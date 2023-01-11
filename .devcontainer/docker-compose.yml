@@ -1,0 +1,34 @@
+version: "3.9"
+
+volumes:
+    # remembers gz config, downloaded models etc
+    gz_config:
+
+services:
+
+  cerebri:
+    image: cognipilot/cerebri-build:latest
+    tty: true
+    stdin_open: true
+    privileged: true
+    hostname: cerebri
+    #devices:
+    #  - /dev/net/tun:/dev/net/tun
+    #  - /dev/input/js2:/dev/input/js0
+    #  - /dev/input/event10:/dev/input/event10
+    environment:
+      - GZ_PARTITION=cognipilot
+      - DISPLAY=${DISPLAY}
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    volumes:
+      - ./workdir:/workdir
+      - ..:/workdir/cerebri
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - gz_config:/home/user/.gz
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

@@ -2,7 +2,7 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.245.2/containers/docker-existing-docker-compose
 // If you want to run as a non-root user in the container, see .devcontainer/docker-compose.yml.
 {
-	"name": "cerebri",
+	"name": "cerebri-nvidia",
 
 	// Update the 'dockerComposeFile' list if you have more compose files or use different names.
 	// The .devcontainer/docker-compose.yml file contains any overrides you need/want to make.
@@ -31,7 +31,7 @@
 	// "postCreateCommand": "apt-get update && apt-get install -y curl",
 
 	// Uncomment to connect as a non-root user if you've added one. See https://aka.ms/vscode-remote/containers/non-root.
-	// "remoteUser": "vscode"
+	"remoteUser": "user",
 	
 	"customizations": {
 		// Configure properties specific to VS Code.
@@ -48,7 +48,9 @@
 			"ms-python.python",
 			"akiramiyakoda.cppincludeguard",
 			"donjayamanne.python-environment-manager",
-			"donjayamanne.githistory"
+			"donjayamanne.githistory",
+			"ms-vscode.remote-explorer",
+			"ms-vscode-remote.remote-ssh"
 			]
 		}
 	  }

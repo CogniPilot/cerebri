@@ -7,7 +7,7 @@ volumes:
 services:
 
   cerebri:
-    image: cognipilot/cerebri-build:latest
+    image: cognipilot/cerebri-build
     build:
       dockerfile: Dockerfile
       target: build

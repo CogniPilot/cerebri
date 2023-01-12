@@ -4,3 +4,5 @@ modules/zenoh-pico/zenoh-pico
 *.swp
 .devcontainer/workdir
 notebooks/.venv
+lcov_html/
+lcov.info

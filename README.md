@@ -69,16 +69,15 @@ Start visual studio code in cerebri directory and select yes, when asked if you 
 For no GPU
 ```bash
 cd cerebri
-ln -s .devcontainer/devcontainer-default.json .devcontainer/devcontainer.json
-code .
-`
-
-For Nvidia-acceleration
-```bash
-cd cerebri
-ln -s .devcontainer/devcontainer-nvidia.json .devcontainer/devcontainer.json
 code .
 ```
+
+Once VSCode starts, select your dev container using: Ctrl-Shit-P "Dev Containers: Open in Container"
+
+Select either:
+* containers/devcontainer-nvidia: for GPU acceleration on NVidia graphics cards
+* containers/devcontainer-default: non-accelerated conntainer
+
 
 ### Build Zephyr
 

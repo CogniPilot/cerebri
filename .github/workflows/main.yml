@@ -15,4 +15,4 @@ jobs:
         run: echo `pwd` && ls -al && cd docker && docker compose pull -q
       - name: Run Docker Image
         shell: bash
-        run: echo `pwd` && ls -al && cd docker && docker compose run cerebri cerebri/scripts/test.sh
+        run: echo `pwd` && ls -al && cd docker && ls -al && ls -al workdir && docker compose run cerebri cerebri/scripts/test.sh

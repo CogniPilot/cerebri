@@ -4,12 +4,15 @@ set -x
 
 echo whoami: `whoami`
 echo pwd: `pwd`
+
 ls -al
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 CEREBRI_DIR="$SCRIPT_DIR/.."
 cd $CEREBRI_DIR
+ls -al
+echo pwd: `pwd`
 
 if [ -d "$CEREBRI_DIR/../.west" ]; then
     echo "West repo already initialized"

@@ -1,5 +1,11 @@
 #!/bin/bash
 set -e
+set -x
+
+echo whoami: `whoami`
+echo pwd: `pwd`
+ls -al
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 CEREBRI_DIR="$SCRIPT_DIR/.."
@@ -12,7 +18,7 @@ else
     west init -l .
 fi
 west update .
-west build -p -- -DCONFIG_COVERAGE=y -DCONFIG_COVERAGE_DUMP=y
+west build -p -- -DCONFIG_COVERAGE=y
 
 ros2 run joy joy_node &
 sleep 1

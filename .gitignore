@@ -2,5 +2,8 @@
 __pycache__
 modules/zenoh-pico/zenoh-pico
 *.swp
-.devcontainer/workdir
+docker/workdir
 notebooks/.venv
+lcov_html/
+lcov.info
+.vscode

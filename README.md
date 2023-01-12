@@ -66,10 +66,18 @@ git clone git@github.com:CogniPilot/cerebri
 
 Start visual studio code in cerebri directory and select yes, when asked if you would like to reopen folder to develop in container.
 
+For no GPU
 ```bash
 cd cerebri
 code .
 ```
+
+Once VSCode starts, select your dev container using: Ctrl-Shit-P "Dev Containers: Open in Container"
+
+Select either:
+* docker/devcontainer-nvidia: for GPU acceleration on NVidia graphics cards
+* docker/devcontainer-default: non-accelerated conntainer
+
 
 ### Build Zephyr
 

@@ -66,8 +66,17 @@ git clone git@github.com:CogniPilot/cerebri
 
 Start visual studio code in cerebri directory and select yes, when asked if you would like to reopen folder to develop in container.
 
+For no GPU
 ```bash
 cd cerebri
+ln -s .devcontainer/devcontainer-default.json .devcontainer/devcontainer.json
+code .
+`
+
+For Nvidia-acceleration
+```bash
+cd cerebri
+ln -s .devcontainer/devcontainer-nvidia.json .devcontainer/devcontainer.json
 code .
 ```
 

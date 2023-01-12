@@ -88,7 +88,8 @@
         "typeinfo": "cpp",
         "channels.h": "c",
         "queue": "cpp",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "*.sdf": "xml"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/.devcontainer/workdir/modules/crypto/mbedtls/programs/aes",
     "cmake.configureOnOpen": false,

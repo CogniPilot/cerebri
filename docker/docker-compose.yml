@@ -7,6 +7,7 @@ volumes:
 services:
 
   cerebri:
+    container_name: cerebri
     image: ghcr.io/cognipilot/cerebri-build
     build:
       dockerfile: Dockerfile

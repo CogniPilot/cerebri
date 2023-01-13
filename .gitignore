@@ -6,3 +6,4 @@ docker/workdir
 notebooks/.venv
 lcov_html/
 lcov.info
+.vscode

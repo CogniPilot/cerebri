@@ -1,0 +1,15 @@
+version: "3.9"
+
+volumes:
+    # remembers gz config, downloaded models etc
+    gz_config:
+
+services:
+
+  cerebri:
+    container_name: cerebri
+    image: cognipilot/cerebri-build
+
+    extends:
+      file: docker-compose.yml
+      service: cerebri

@@ -8,6 +8,10 @@ LABEL maintainer="James Goppert <james.goppert@gmail.com>"
 # Set default shell during Docker image build to bash
 SHELL ["/bin/bash", "-l", "-c"]
 
+# Set non-interactive frontend for apt-get to skip any user confirmations
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Copy docker clean script
 COPY docker_clean.sh /docker_clean.sh
 RUN chmod +x /docker_clean.sh
 
@@ -20,8 +24,18 @@ RUN apt-get -y update && \
 		&& \
 	/docker_clean.sh
 
-# set locale
+# Initialise system locale
 RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
+
+#RUN groupadd -g $GID -o user && \
+#  groupadd -r -g 110 render && \
+#  groupadd -r -g 107 input && \
+#  useradd -u $UID -m -g user -G plugdev,render,input user && \
+#  echo 'user ALL = NOPASSWD: ALL' > /etc/sudoers.d/user && \
+#  chmod 0440 /etc/sudoers.d/user
 
 # set user as default so install scripts look the same for local host install
 RUN groupadd -r -g 110 render \
@@ -31,14 +45,13 @@ RUN groupadd -r -g 110 render \
  && adduser user render \
  && adduser user input \
  && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
 USER user
 
-# initialise system locale
-ENV LANG=en_US.UTF-8
-ENV LANGUAGE=en_US:en
-ENV LC_ALL=en_US.UTF-8
 # required to allow nanopb to build on ubuntu 22.04 currently
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+
+# where to set user directories for X programs
 ENV XDG_RUNTIME_DIR=/tmp/runtime-docker
 
 # install dependencies using scripts in a manner that will cache build
@@ -58,6 +71,14 @@ RUN /tmp/install/gazebo.sh && /docker_clean.sh
 COPY install/zenoh.sh /tmp/install/zenoh.sh
 RUN /tmp/install/zenoh.sh && /docker_clean.sh
 
+# this enables communications between ros2 humble and gz garden
+RUN mkdir -p /home/user/ws_ros_gz/src && \
+  cd /home/user/ws_ros_gz/src && \
+  git clone -b ros2 https://github.com/gazebosim/ros_gz.git && \
+  cd /home/user/ws_ros_gz && \
+  source /opt/ros/humble/setup.bash && \
+  colcon build
+
 COPY install/extra.sh /tmp/install/extra.sh
 RUN /tmp/install/extra.sh && /docker_clean.sh
 
@@ -74,14 +95,6 @@ RUN mkdir /tmp/runtime-docker && sudo chmod 700 /tmp/runtime-docker
 # create workdir
 VOLUME workdir
 RUN sudo mkdir -p /workdir && sudo chown -R user:user /workdir
-
-# build custom ros gz for joystick
-RUN mkdir -p /home/user/ws_ros_gz/src && \
-  cd /home/user/ws_ros_gz/src && \
-  git clone -b pr-bring-some-joy-back https://github.com/rudislabs/ros_gz.git && \
-  cd /home/user/ws_ros_gz && \
-  source /opt/ros/humble/setup.bash && \
-  colcon build
 
 # setup .profile, note bashrc doesn't get sourced by docker by defualt, .profile does
 RUN mkdir -p /home/user/.bash_completion.d && \
@@ -101,10 +114,28 @@ ENV NVIDIA_DRIVER_CAPABILITIES=all
 ENV GZ_PARTITION=cognipilot
 ENV TERM=xterm-256color
 
+# Add bash completion script
+#ADD ./bash_completion /home/user/.bash_completion
+#RUN mkdir -p /home/user/.bash_completion.d
+
+# set working directory
 WORKDIR /workdir
+VOLUME ["/workdir"]
+
+# Configure VNC authentication
+#ARG VNCPASSWD=cerebri
+#RUN mkdir ~/.vnc && x11vnc -storepasswd ${VNCPASSWD} ~/.vnc/passwd
+
+# Expose port 5900 for VNC
+EXPOSE 5900
+
 COPY entrypoint.sh /
 RUN sudo chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["bash"]
+
+# Launch bash shell by default
+CMD ["/bin/bash"]
+
+LABEL org.opencontainers.image.source = "https://github.com/CogniPilot/cerebri"
 
 # vim: set et fenc=utf-8 ff=unix ft=dockerfile sts=0 sw=2 ts=2 :

@@ -7,7 +7,7 @@ volumes:
 services:
 
   cerebri:
-    image: cognipilot/cerebri-build
+    image: ghcr.io/cognipilot/cerebri-build
     build:
       dockerfile: Dockerfile
       target: build
@@ -15,6 +15,8 @@ services:
     stdin_open: true
     privileged: true
     hostname: cerebri
+    ports:
+      - 5900:5900
     sysctls:
       - net.ipv6.conf.all.disable_ipv6=0
     environment:

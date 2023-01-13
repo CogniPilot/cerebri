@@ -8,5 +8,4 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-
 sudo apt-get -y update
 sudo apt-get -y upgrade
 sudo DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
-	qt5dxcb-plugin \
 	gz-${GAZEBO_VERSION}

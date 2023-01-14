@@ -1,0 +1,22 @@
+if (CONFIG_CEREBRI_SIM_GZ_DRIVER)
+
+
+find_package(gz-transport12 REQUIRED)
+
+zephyr_include_directories(.)
+
+zephyr_library()
+
+zephyr_library_sources(
+    src/sim_gz_driver.cc
+)
+
+zephyr_library_include_directories(
+    PRIVATE ${gz-transport12_INCLUDE_DIRS}
+)
+
+zephyr_library_link_libraries(
+    PRIVATE ${gz-transport12_CORE_LIBRARY}
+)
+
+endif(CONFIG_CEREBRI_SIM_GZ_DRIVER)

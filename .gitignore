@@ -1,0 +1,11 @@
+*build/
+__pycache__
+modules/zenoh-pico/zenoh-pico
+*.swp
+docker/workdir
+notebooks/.venv
+lcov_html/
+lcov.info
+.vscode
+.devcontainer.json
+.devcontainer/

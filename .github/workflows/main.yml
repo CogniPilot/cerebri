@@ -1,0 +1,18 @@
+name: Cerebri CI
+
+on: [pull_request]
+
+jobs:
+  cerebri_ci:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Pull Docker Image
+        shell: bash
+        run: echo `pwd` && ls -al && cd docker && docker compose pull -q
+      - name: Run Docker Image
+        shell: bash
+        run: echo `pwd` && ls -al && cd docker && ls -al && ls -al workdir &&  docker compose run cerebri cerebri/tests/test.sh

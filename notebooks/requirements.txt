@@ -1,0 +1,5 @@
+jupyterlab
+sympy
+matplotlib
+scipy
+control

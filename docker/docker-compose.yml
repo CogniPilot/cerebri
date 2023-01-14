@@ -1,0 +1,29 @@
+version: "3.9"
+
+volumes:
+    # remembers gz config, downloaded models etc
+    gz_config:
+
+services:
+
+  cerebri:
+    container_name: cerebri
+    image: cognipilot/cerebri-build
+    build:
+      dockerfile: Dockerfile
+      target: build
+    tty: true
+    stdin_open: true
+    privileged: true
+    hostname: cerebri
+    ports:
+      - 5900:5900
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - ./workdir:/workdir
+      - ..:/workdir/cerebri
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - gz_config:/home/user/.gz

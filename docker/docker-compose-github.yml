@@ -8,7 +8,7 @@ services:
 
   cerebri:
     container_name: cerebri
-    image: ghcr.io/cognipilot/cerebri-build:0.0.0
+    image: ghcr.io/cognipilot/cerebri-build:0.0.1
 
     extends:
       file: docker-compose.yml

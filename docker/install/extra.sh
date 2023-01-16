@@ -7,13 +7,22 @@ sudo DEBIAN_FRONTEND=noninteractive  apt-get install --no-install-recommends -y 
 	htop \
 	iproute2 \
 	lcov \
+	gosu \
 	menu \
+	mesa-utils \
+	novnc \
+	libturbojpeg \
 	openbox \
+	python3-numpy \
+	python3-websockify \
 	python3-xdg \
 	qt5dxcb-plugin \
 	screen \
-	tcpdump \
-	vim
+	terminator \
+	tigervnc-standalone-server \
+	tigervnc-tools \
+	vim \
+	x11vnc \
+	xfce4 \
+	xvfb
 
-#x11vnc \
-#xvfb

@@ -15,7 +15,14 @@ sudo install ./libzplugin_rest.so /usr/local/bin
 sudo install ./libzplugin_storage_manager.so /usr/local/bin
 sudo rm -rf /tmp/zenoh
 
-cd ~
-python3 -m venv ~/.venv-zenoh
-source ~/.venv-zenoh/bin/activate
+# user setup for zenoh
+set -e
+set -x
+CURRENT_USER=`whoami`
+sudo mkdir /opt/.venv-zenoh
+sudo chown $CURRENT_USER:$CURRENT_USER /opt/.venv-zenoh
+cd /opt/.venv-zenoh
+python3 -m venv --prompt zenoh /opt/.venv-zenoh
+source /opt/.venv-zenoh/bin/activate
 pip3 install eclipse-zenoh==${ZENOH_VERSION} cyclonedds pycdr2 
+

@@ -1,22 +1,25 @@
-###
-### Build: bare minimum to build the binary
-###
-
-FROM ubuntu:22.04 AS build
+FROM ubuntu:22.04
 LABEL maintainer="James Goppert <james.goppert@gmail.com>"
+
+# environment
+ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+ENV XDG_RUNTIME_DIR=/tmp/runtime-docker
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=all
+ENV GZ_PARTITION=cognipilot
+ENV TERM=xterm-256color
+ENV DISPLAY=:20
+ENV PATH="/home/user/bin:${PATH}"
 
 # Set default shell during Docker image build to bash
 SHELL ["/bin/bash", "-l", "-c"]
-
-# Set non-interactive frontend for apt-get to skip any user confirmations
-ENV DEBIAN_FRONTEND=noninteractive
 
 # Copy docker clean script
 COPY docker_clean.sh /docker_clean.sh
 RUN chmod +x /docker_clean.sh
 
 # Install base packages
-RUN apt-get -y update && \
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && \
 	apt-get -y upgrade && \
 	apt-get install --no-install-recommends -y \
 		sudo \
@@ -25,34 +28,17 @@ RUN apt-get -y update && \
 	/docker_clean.sh
 
 # Initialise system locale
-RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
+RUN locale-gen en_US.UTF-8
 
-#RUN groupadd -g $GID -o user && \
-#  groupadd -r -g 110 render && \
-#  groupadd -r -g 107 input && \
-#  useradd -u $UID -m -g user -G plugdev,render,input user && \
-#  echo 'user ALL = NOPASSWD: ALL' > /etc/sudoers.d/user && \
-#  chmod 0440 /etc/sudoers.d/user
+# Create a user to make sure install works without root
+ARG UID_INSTALLER=2001
+RUN useradd -l -u $UID_INSTALLER installer -G sudo,plugdev && \
+ echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# set user as default so install scripts look the same for local host install
-RUN groupadd -r -g 110 render \
- && groupadd -r -g 107 input \
- && adduser --disabled-password --gecos '' user \
- && adduser user sudo \
- && adduser user render \
- && adduser user input \
- && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
-USER user
-
-# required to allow nanopb to build on ubuntu 22.04 currently
-ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-
-# where to set user directories for X programs
-ENV XDG_RUNTIME_DIR=/tmp/runtime-docker
+USER installer
 
 # install dependencies using scripts in a manner that will cache build
 # when one script is modified
@@ -71,70 +57,71 @@ RUN /tmp/install/gazebo.sh && /docker_clean.sh
 COPY install/zenoh.sh /tmp/install/zenoh.sh
 RUN /tmp/install/zenoh.sh && /docker_clean.sh
 
-# this enables communications between ros2 humble and gz garden
-RUN mkdir -p /home/user/ws_ros_gz/src && \
-  cd /home/user/ws_ros_gz/src && \
-  git clone -b ros2 https://github.com/gazebosim/ros_gz.git && \
-  cd /home/user/ws_ros_gz && \
-  source /opt/ros/humble/setup.bash && \
-  colcon build
+COPY install/ros_gz.sh /tmp/install/ros_gz.sh
+RUN /tmp/install/ros_gz.sh && /docker_clean.sh
+
+# add groups before we do anything that might add a new group
+ARG GID_INPUT=107
+ARG GID_RENDER=110
+ARG GID_VGLUSERS=1005
+RUN sudo groupadd -r -g $GID_INPUT input && \
+ sudo groupadd -r -g $GID_RENDER render && \
+ sudo groupadd -r -g $GID_VGLUSERS vglusers
+
+# install virtualgl and turbovnc
+COPY install/virtualgl_3.0.91_amd64.deb /tmp
+RUN cd /tmp && \
+  wget https://sourceforge.net/projects/turbovnc/files/3.0.2/turbovnc_3.0.2_amd64.deb  && \
+  sudo apt-get -y update && \
+  sudo apt-get -y upgrade && \
+  sudo DEBIAN_FRONTEND=noninteractive  apt-get install --no-install-recommends -y \
+    ./virtualgl_3.0.91_amd64.deb \
+    ./turbovnc_3.0.2_amd64.deb && \
+  /docker_clean.sh
 
 COPY install/extra.sh /tmp/install/extra.sh
 RUN /tmp/install/extra.sh && /docker_clean.sh
 
+# setup zeth ethernet device
+RUN sudo mkdir -p /opt/zeth
+COPY install/net-setup.sh /opt/zeth
+COPY install/zeth.conf /opt/zeth
+RUN sudo chmod +x /opt/zeth/net-setup.sh
+
 # enable apt auto-completion by deleting autoclean task
 RUN sudo rm /etc/apt/apt.conf.d/docker-clean
-
-# create setting directory for gazebo
-RUN mkdir -p /home/user/.gz \
-  && chown -R user:user /home/user/.gz
 
 # create XDG runtime dir
 RUN mkdir /tmp/runtime-docker && sudo chmod 700 /tmp/runtime-docker
 
-# create workdir
-VOLUME workdir
+# create a user for running the container
+ARG UID_USER=1000
+RUN sudo useradd --create-home -l -u $UID_USER -G sudo,plugdev,render,input,vglusers user && \
+ echo user: $UID_USER && \
+ sudo vglserver_config +egl
+
+USER user
+
+ARG VNCPASSWD=cerebri
+COPY install/user_setup.sh /tmp/install/user_setup.sh
+RUN /tmp/install/user_setup.sh $VNCPASSWD && /docker_clean.sh
+
+# create setting directory for gazebo
+VOLUME /home/user/.gz
+RUN mkdir -p /home/user/.gz && \
+  chown -R user:user /home/user/.gz
+
+# create workdir, this is where the source code will be mounted
+VOLUME /workdir
+WORKDIR /workdir
 RUN sudo mkdir -p /workdir && sudo chown -R user:user /workdir
 
-# setup .profile, note bashrc doesn't get sourced by docker by defualt, .profile does
-RUN mkdir -p /home/user/.bash_completion.d && \
-  echo "source /opt/ros/humble/setup.bash" >> ~/.profile && \
-  echo "source /home/user/ws_ros_gz/install/setup.sh" >> ~/.profile && \
-  echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> ~/.profile &&  \
-  echo "export GZ_SIM_RESOURCE_PATH=/workdir/cerebri/drivers/sim_gz/models:/workdir/cerebri/drivers/sim_gz/worlds" >> ~/.profile
-
-# setup zeth ethernet device
-COPY install/net-setup.sh /tmp
-COPY install/zeth.conf /tmp
-RUN sudo chmod +x /tmp/net-setup.sh
-
-# enable entrypoint
-ENV PATH="/home/user/bin:${PATH}"
-ENV NVIDIA_DRIVER_CAPABILITIES=all
-ENV GZ_PARTITION=cognipilot
-ENV TERM=xterm-256color
-
-# Add bash completion script
-#ADD ./bash_completion /home/user/.bash_completion
-#RUN mkdir -p /home/user/.bash_completion.d
-
-# set working directory
-WORKDIR /workdir
-VOLUME ["/workdir"]
-
-# Configure VNC authentication
-#ARG VNCPASSWD=cerebri
-#RUN mkdir ~/.vnc && x11vnc -storepasswd ${VNCPASSWD} ~/.vnc/passwd
-
-# Expose port 5900 for VNC
-EXPOSE 5900
-
+# setup entry point
 COPY entrypoint.sh /
 RUN sudo chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
 
-# Launch bash shell by default
 CMD ["/bin/bash"]
+ENTRYPOINT ["/entrypoint.sh"]
 
 LABEL org.opencontainers.image.source = "https://github.com/CogniPilot/cerebri"
 

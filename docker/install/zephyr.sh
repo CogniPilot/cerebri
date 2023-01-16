@@ -14,18 +14,6 @@ sudo DEBIAN_FRONTEND=noninteractive  apt-get install --no-install-recommends -y 
 	make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1 \
 	libasan6 net-tools valgrind
 
-# create zephyr venv
-python3 -m venv --prompt zephyr ~/.venv-zephyr
-source ~/.venv-zephyr/bin/activate
-pip install west
-pip install -r https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/master/scripts/requirements.txt
-pip3 check
-
-# create symlink to west in $HOME/bin
-mkdir -p ~/bin
-cd ~/bin
-ln -s ~/.venv-zephyr/bin/west .
-
 # get sdk
 sudo mkdir -p /opt/toolchains
 cd /opt/toolchains
@@ -33,5 +21,15 @@ sudo wget ${WGET_ARGS} https://github.com/zephyrproject-rtos/sdk-ng/releases/dow
 sudo tar xf zephyr-sdk-${ZSDK_VERSION}_linux-${HOSTTYPE}.tar.gz
 sudo zephyr-sdk-${ZSDK_VERSION}/setup.sh -t all -h -c
 sudo rm zephyr-sdk-${ZSDK_VERSION}_linux-${HOSTTYPE}.tar.gz
-sudo -E /opt/toolchains/zephyr-sdk-${ZSDK_VERSION}/setup.sh -c
-sudo -E chown -R $USER:$USER $HOME/.cmake
+
+# setup west
+CURRENT_USER=`whoami`
+sudo mkdir /opt/.venv-zephyr
+sudo chown $CURRENT_USER:$CURRENT_USER /opt/.venv-zephyr
+python3 -m venv --prompt zephyr /opt/.venv-zephyr
+source /opt/.venv-zephyr/bin/activate
+pip install west
+pip install -r https://raw.githubusercontent.com/zephyrproject-rtos/zephyr/master/scripts/requirements.txt
+pip3 check
+
+

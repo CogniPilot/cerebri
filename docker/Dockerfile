@@ -15,7 +15,7 @@ ENV PATH="/home/user/bin:${PATH}"
 SHELL ["/bin/bash", "-l", "-c"]
 
 # Copy docker clean script
-COPY docker_clean.sh /docker_clean.sh
+COPY install/docker_clean.sh /docker_clean.sh
 RUN chmod +x /docker_clean.sh
 
 # Install base packages
@@ -117,7 +117,7 @@ WORKDIR /workdir
 RUN sudo mkdir -p /workdir && sudo chown -R user:user /workdir
 
 # setup entry point
-COPY entrypoint.sh /
+COPY install/entrypoint.sh /
 RUN sudo chmod +x /entrypoint.sh
 
 CMD ["/bin/bash"]

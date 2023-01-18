@@ -71,24 +71,34 @@ git clone git@github.com:CogniPilot/cerebri
 
 ### Docker Command Line Development
 
-#### Software Rendering
-
 ```bash
 cd cerebri/docker
-docker compose -f docker-compose.yml run cerebri
+docker compose up
 ```
 
 #### Hardware Rendering
 
-```bash
-cd cerebri/docker
-docker compose -f docker-compose-nvidia.yml run cerebri
+Create a docker override, this file will be ignored by .git so you
+can use it as a location to put any customizations.
+
+docker/docker-compose.override.yml
+```json
+services:
+
+  cerebri:
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 ```
 
 ### VSCode Development
 
-You can configure VSCode to use the NVidia dev container by creating a
-.devcontainer.json file in the root of the repository.
+You can configure VSCode to create a devcontainer for docker by creating a .devcontainer.json file in the root of the repository.
 
 #### .devcontainer.json  (Software Rendering)
 ```json

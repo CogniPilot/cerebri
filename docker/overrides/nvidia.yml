@@ -1,15 +1,6 @@
-version: "3.9"
-
-volumes:
-    # remembers gz config, downloaded models etc
-    gz_config:
-
 services:
 
   cerebri:
-    extends:
-      file: docker-compose.yml
-      service: cerebri
 
     deploy:
       resources:

@@ -4,3 +4,4 @@ matplotlib
 scipy
 control
 casadi
+pydot

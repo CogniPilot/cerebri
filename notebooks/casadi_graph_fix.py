@@ -5,7 +5,7 @@ from casadi import print_operator as print_operator_orig
 import casadi.tools.graph as mod_graph
 
 def dotdraw(pdot, width=1920, direction='LR'):
-  curdir = os.curdir
+  curdir = os.getcwd()
   # dot draw creates a source.dot file, lets move to the tmp directory
   os.chdir(tempfile.gettempdir())
   graph = mod_graph.dotgraph(pdot, direction=direction)

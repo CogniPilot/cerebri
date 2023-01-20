@@ -1,0 +1,11 @@
+services:
+
+  cerebri:
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

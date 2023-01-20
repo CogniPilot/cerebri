@@ -1,25 +1,31 @@
 # Cerebri
 
-## Goal
-The goal of Cerebri is to create a minimalistic flight controller that it developed for:
-* Verification
-	* Minmimum Viable Product/ Minimum Lines of Code
-	* Use C++ 17 standard, following industry guidelines
-	* Enforce code coverage
-	* Generated estimator/control code with tracking error bound proofs
-* Development
-	* Simple development using vscode and dev containers
-	* Documented debugging process
-	* Software in the Loop (SITL) support
-	* Hardware in the Loop (HITL) support
-    * Minimal maintenance (One supported toolchain only)
-	  * One officially supported development environment: Latest Ubuntu LTS release
-      * One official simulator: Gazebo (matched with Ubuntu LTS)
-      * List of officially supported boards
-	  * Code is written for the Zephyr RTOS
+Cerebri is a minimalistic flight controller that is designed to simplify verification & validation and ease research and development.
 
-At the completion of this project, we hope to have a flight controller that is useful for research and can rapidly deploy new algorithms that can be verified readily.
+* Verification and Validation
+  * Minimimum viable product/ minimum lines of code for each vehicle, avoid branching
+  * Use C++ 17 standard, following industry guidelines
+  * Enforce code test coverage and signing
+  * Generated estimator/control code with tracking error bound proofs
+* Research and Development
+  * Algorithm deployment from python (minimal knowledge of C/C++ Zephyr necessary)
+  * Docker containers for development
+  * Documented debugging process, Software/Hardware in the loop support
+  * Designed for interface with ROS2
+  * Ensure documentation quality and minimize developer maintenance by limiting supported vehicles, simulators, and OSs.
 
+---------------------------
+## Official Support
+
+* Development OS
+  * Ubuntu Linux 22.04
+* Simulators
+  * Gazebo Garden
+* Vehicles
+  * HGDRONEK66 (simulation in development, hardware planned)
+  * MR-BUGGY3 (planned)
+
+---------------------------
 ## Install Dependencies
 
 The necessary dependencies are docker and hardware-acceleration for docker if you have an NVidia graphics card. Also, we will install Visual Studio Code as the development environment.
@@ -50,6 +56,7 @@ export GZ_PARTITION=cognipilot
 gz sim quad.sdf
 ```
 
+---------------------------
 ## Build
 
 ### Clone the Repository
@@ -62,24 +69,73 @@ or with push access
 git clone git@github.com:CogniPilot/cerebri
 ```
 
-### Start VSCode
-
-Start visual studio code in cerebri directory and select yes, when asked if you would like to reopen folder to develop in container.
+### Docker Command Line Development
 
 ```bash
-cd cerebri
-code .
+cd cerebri/docker
+docker compose up
 ```
+
+#### Hardware Rendering
+
+Create a docker override, this file will be ignored by .git so you
+can use it as a location to put any customizations.
+
+docker/docker-compose.override.yml
+```json
+services:
+
+  cerebri:
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+```
+
+### VSCode Development
+
+You can configure VSCode to create a devcontainer for docker by creating a .devcontainer.json file in the root of the repository.
+
+#### .devcontainer.json  (Software Rendering)
+```json
+{
+  "name": "cerebri",
+  "dockerComposeFile": "docker/docker-compose.yml",
+  "service": "cerebri",
+  "workspaceFolder": "/workdir/cerebri",
+  "shutdownAction": "stopCompose"
+}
+```
+
+#### .devcontainer.json  (NVidia GPU)
+```json
+{
+  "name": "cerebri",
+  "dockerComposeFile": "docker/docker-compose-nvidia.yml",
+  "service": "cerebri",
+  "workspaceFolder": "/workdir/cerebri",
+  "shutdownAction": "stopCompose"
+}
+```
+
+After creating .devcontainer.json in the root of the cerebri repository,
+start visual studio code in cerebri directory and select yes, when asked if you would like to reopen folder to develop in container.
 
 ### Build Zephyr
 
 Now we invoke the west command to build the Zephyr project:
 ```bash
+cd /workdir/cerebri
 west init -l .
 west update
 west build
 ```
 
+---------------------------
 ## Simulation
 
 For the simulation, we need to start both gazebo and the zephyr cerebri binary.
@@ -97,9 +153,15 @@ gz sim quad.sdf
 ### Start Cerebri
 
 ```bash
-west build
 ./build/zephyr/zephyr.elf
 ```
 
 Hit play on the gazebo gui and the simulator should connect.
 
+### Joystick Control
+
+Start ros2 joystick and ros_gz bridge.
+
+```bash
+./scripts/joy.sh
+```

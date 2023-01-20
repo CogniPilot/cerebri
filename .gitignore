@@ -1,9 +1,13 @@
 *build/
-__pycache__
+*/__pycache__
 modules/zenoh-pico/zenoh-pico
 *.swp
 docker/workdir
-.devcontainer/workdir
 notebooks/.venv
 *.tmp
-*.vscode/
+lcov_html/
+lcov.info
+.vscode
+.devcontainer.json
+.devcontainer/
+.venv-cerebri/

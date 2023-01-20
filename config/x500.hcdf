@@ -1,0 +1,111 @@
+<?xml version='1.0'?>
+<hcdf version="0.1">
+	<build>simulation</build>
+	<simulation>
+		<vehicle_name>x500</vehicle_name>
+		<world_name>"default"</world_name>
+		<actuators>
+			<sim_motors>
+				<motor_scalar>1000</motor_scalar>
+				<min_rps>0.0</min_rps>
+				<max_rps>314.2</max_rps> <!--3000[RPM] * (2*PI/60) to [rps]-->
+				<sub_topic>command/motor_speed</sub_topic>
+				<motor>
+					<number>0</number>
+					<control_index>0</control_index>
+				</motor>
+				<motor>
+					<number>1</number>
+					<control_index>1</control_index>
+				</motor>
+				<motor>
+					<number>2</number>
+					<control_index>2</control_index>
+				</motor>
+				<motor>
+					<number>3</number>
+					<control_index>3</control_index>
+				</motor>
+			</sim_motors>
+			<mixer>
+				<type>quadcopter</type>
+				<yaw>[0]</yaw>
+				<roll>[0]</roll>
+				<pitch>[0]</pitch>
+				<thrust>[0]</thrust>
+				<thrust_trim>0.76</thrust_trim>
+			</mixer>
+		</actuators>
+		<inputs>
+			<manual>
+				<topic>/joy</topic>
+				<axes>
+					<roll>3</roll>
+					<pitch>4</pitch>
+					<yaw>0</yaw>
+					<thrust>1</thrust>
+				</axes>
+				<buttons>
+					<arm>0</arm>
+					<disarm>1</disarm>
+				</buttons>
+				<thrust_center>0</thrust_center>
+			</manual>
+			<waypoints>
+				<topic>/cmd_vel</topic>
+			</waypoints>
+		</inputs>
+	</simulation>
+	<real>
+		<mcu>FMU_K66</mcu>
+		<number_actuators>4</number_actuators>
+		<actuators>
+			<PWM>
+				<ESC>
+					<control_index>0</control_index>
+					<channel>0</channel>
+					<min_us>1100</min_us>
+					<max_us>2000</max_us>
+					<rps_PWM_coeffs>[1100, 2.864]</rps_PWM_coeffs>
+					<max_rps>314.2</max_rps> <!--3000[RPM] * (2*PI/60) to [rps]-->
+					<min_rps>0</min_rps>
+				</ESC>
+				<ESC>
+					<control_index>1</control_index>
+					<channel>1</channel>
+					<min_us>1100</min_us>
+					<max_us>2000</max_us>
+					<rps_PWM_coeffs>[1100, 2.864]</rps_PWM_coeffs>
+					<max_rps>314.2</max_rps> <!--3000[RPM] * (2*PI/60) to [rps]-->
+					<min_rps>0</min_rps>
+				</ESC>
+				<ESC>
+					<control_index>2</control_index>
+					<channel>2</channel>
+					<min_us>1100</min_us>
+					<max_us>2000</max_us>
+					<rps_PWM_coeffs>[1100, 2.864]</rps_PWM_coeffs>
+					<max_rps>314.2</max_rps> <!--3000[RPM] * (2*PI/60) to [rps]-->
+					<min_rps>0</min_rps>
+				</ESC>
+				<ESC>
+					<control_index>3</control_index>
+					<channel>3</channel>
+					<min_us>1100</min_us>
+					<max_us>2000</max_us>
+					<rps_PWM_coeffs>[1100, 2.864]</rps_PWM_coeffs>
+					<max_rps>314.2</max_rps> <!--3000[RPM] * (2*PI/60) to [rps]-->
+					<min_rps>0</min_rps>
+				</ESC>
+			</PWM>
+			<mixer>
+				<type>quadcopter</type>
+				<yaw>[]</yaw>
+				<roll>[]</roll>
+				<pitch>[]</pitch>
+				<thrust>[]</thrust>
+				<thrust_trim></thrust_trim>
+			</mixer>
+		</actuators>
+	</real>
+</hcdf>

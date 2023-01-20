@@ -1,0 +1,9 @@
+*build/
+__pycache__
+modules/zenoh-pico/zenoh-pico
+*.swp
+docker/workdir
+.devcontainer/workdir
+notebooks/.venv
+*.tmp
+*.vscode/

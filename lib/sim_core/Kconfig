@@ -1,0 +1,5 @@
+config CEREBRI_DRIVER_SIM_CORE
+	bool "Gazebo Simulation Core"
+	default y
+	help
+		This option enables the simulation core driver.

@@ -1,0 +1,5 @@
+config CEREBRI_DRIVER_SIM_GZ
+	bool "Gazebo Simulation"
+	default y
+	help
+		This option enables the gazebo simulation driver.

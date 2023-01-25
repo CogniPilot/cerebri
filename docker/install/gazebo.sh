@@ -8,4 +8,5 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-
 sudo apt-get -y update
 sudo apt-get -y upgrade
 sudo DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
-	gz-${GAZEBO_VERSION}
+	libgz-transport12-dev \
+	gz-transport12-cli

@@ -6,21 +6,40 @@
 
 float gx = 0;
 float gy = 0;
-float gz = 0;void listener_controller_callback(const struct zbus_channel *chan) {
+float gz = 0;
+
+{%- set build = hcdf.build -%}
+{%- if build == "simulation" %}
+{%- set controller = hcdf.simulation -%}
+{% endif %}
+{%- if build == "real" %}
+{%- set controller = hcdf.real -%}
+{% endif %}
+{%- set actuators = controller.actuators -%}
+{%- set mixer = actuators.mixer -%}
+{%- set inputs = controller.inputs -%}
+
+void listener_controller_callback(const struct zbus_channel *chan) {
     
     
     if (chan == &chan_rc_input) {
         const struct msg_rc_input_t *msg_rc_input = (const struct msg_rc_input_t *)zbus_chan_const_msg(chan);
         struct msg_actuators_t actuators_msg;
+{%- if inputs.manual.axes.thrust %}
         double vt = msg_rc_input->thrust;
-
+{% endif %}
+{%- if inputs.manual.axes.roll %}
         double vr = msg_rc_input->roll;
-
+{% endif %}
+{%- if inputs.manual.axes.pitch %}
         double vp = msg_rc_input->pitch;
-
+{% endif %}
+{%- if inputs.manual.axes.yaw %}
         double vy = msg_rc_input->yaw;
-  
+{% endif %}  
         bool armed = msg_rc_input->armed;
+      
+{%- if mixer.type == "quadcopter" %}
         double kd = 0.05;
 
         double thrust_trim = 0.76;
@@ -34,8 +53,23 @@ float gz = 0;void listener_controller_callback(const struct zbus_channel *chan) 
         actuators_msg.actuator1_value = mix_thrust + mix_roll + mix_pitch - mix_yaw; // motor 1 (rear left)
         actuators_msg.actuator2_value = mix_thrust + mix_roll - mix_pitch + mix_yaw; // motor 2 (front left)
         actuators_msg.actuator3_value = mix_thrust - mix_roll + mix_pitch + mix_yaw; // motor 3 (rear right)
-
-
+{% endif %}
+{% if ( mixer.type == "differential" or mixer.type == "ackermann") %}
+        double mix_thrust = armed ? vt : 0;
+        double mix_yaw = armed ? vy : 0;
+{%- set yaw = mixer.yaw.split(',') -%}
+{% set thrust = mixer.thrust.split(',') %}
+    {% for joint in actuators.joints.joint  %}
+        double scale{{ loop.index0 }} = ({{ joint.max }} - {{ joint.min }}) / 2.0;
+        double actuator{{ loop.index0 }} = {{ thrust[loop.index0] }}*mix_thrust*scale{{ loop.index0 }} + {{ yaw[loop.index0] }}*mix_yaw*scale{{ loop.index0 }};
+        if(actuator{{ loop.index0 }} > {{ joint.max }}) {
+            actuator{{ loop.index0 }} = {{ joint.max }};
+        } else if (actuator{{ loop.index0 }} < {{ joint.min }}) {
+            actuator{{ loop.index0 }} = {{ joint.min }};
+        }
+        actuators_msg.actuator{{ joint.control_index }}_value = actuator{{ loop.index0 }};
+    {% endfor %}
+{%- endif %}
 
         zbus_chan_pub(&chan_actuators, &actuators_msg, K_NO_WAIT);
 
@@ -47,3 +81,4 @@ float gz = 0;void listener_controller_callback(const struct zbus_channel *chan) 
     }
 }
 ZBUS_LISTENER_DEFINE(listener_controller, listener_controller_callback);
+

@@ -1,4 +1,0 @@
-menuconfig CEREBRI_SIM_CORE
-	bool "Cerebri Simulation Core"
-	help
-		This option enables cerebri simulation core.

@@ -1,4 +1,0 @@
-menuconfig CEREBRI_SIM_GZ_DRIVER
-	bool "Gazebo Simulation"
-	help
-		This option enables the gazebo simulation driver.

@@ -8,6 +8,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
 	build-essential \
 	curl \
 	git \
+	lsb-release \
 	python3-pip \
 	python3-setuptools \
 	python3-venv \

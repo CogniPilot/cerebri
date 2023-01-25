@@ -11,21 +11,20 @@
 
 #include "../sim_core/src/sim_core.h"
 
-static gz::msgs::Actuators sim_motors{};
-static std::weak_ptr<gz::transport::Node::Publisher> pub_sim_motors_ptr{};
-static const double motor_scalar = 1000;
-static const std::string sim_motors_topic = "/x500/command/motor_speed";
+static std::weak_ptr<gz::transport::Node::Publisher> pub_joint0_ptr{};
+static gz::msgs::Double joint0;
+static const std::string joint0_topic = "/model/MR_Buggy3/steer_angle";
+static std::weak_ptr<gz::transport::Node::Publisher> pub_joint1_ptr{};
+static gz::msgs::Double joint1;
+static const std::string joint1_topic = "/model/MR_Buggy3/drive";
 static const std::string clock_topic = "/world/default/clock";
-static const std::string mag_topic = "/world/default/model/x500/link/base_link/sensor/mag_sensor/mag";
-static const std::string navsat_topic = "/world/default/model/x500/link/base_link/sensor/navsat_sensor/navsat";
-static const std::string alt_topic = "/world/default/model/x500/link/base_link/sensor/altimeter_sensor/altimeter";
-static const std::string imu_topic = "/world/default/model/x500/link/base_link/sensor/imu_sensor/imu";
+static const std::string mag_topic = "/world/default/model/MR_Buggy3/link/base_link/sensor/mag_sensor/mag";
+static const std::string navsat_topic = "/world/default/model/MR_Buggy3/link/base_link/sensor/navsat_sensor/navsat";
+static const std::string alt_topic = "/world/default/model/MR_Buggy3/link/base_link/sensor/altimeter_sensor/altimeter";
+static const std::string imu_topic = "/world/default/model/MR_Buggy3/link/base_link/sensor/imu_sensor/imu";
 
 static std::atomic<bool> g_terminatePub(false);
 static std::atomic<bool> armed(false);
-static const std::string waypoint_topic = "/cmd_vel";
-static gz::msgs::Twist twist{};
-
 static gz::msgs::Joy joy{};
 static const std::string rc_input_topic = "/joy";
 static gz::msgs::Time stamp{};
@@ -35,16 +34,17 @@ void send_control(sim_time_t time, const msg_actuators_t * msg) {
     
     // set timestamp
     stamp.set_sec(time.sec);
-    stamp.set_nsec(time.nsec); 
-    // send sim_motors
-    sim_motors.set_velocity(0, motor_scalar*msg->actuator0_value);
-    sim_motors.set_velocity(1, motor_scalar*msg->actuator1_value);
-    sim_motors.set_velocity(2, motor_scalar*msg->actuator2_value);
-    sim_motors.set_velocity(3, motor_scalar*msg->actuator3_value);
-    
-    if (!pub_sim_motors_ptr.lock().get()->Publish(sim_motors)) {
-        std::cerr << "Error publishing topic [" << sim_motors_topic << "]" << std::endl;
+    stamp.set_nsec(time.nsec);
+    // send joint
+    joint0.set_data(msg->actuator0_value);
+    if (!pub_joint0_ptr.lock().get()->Publish(joint0)) {
+        std::cerr << "Error publishing topic [" << joint0_topic << "]" << std::endl;
     }
+    joint1.set_data(msg->actuator1_value);
+    if (!pub_joint1_ptr.lock().get()->Publish(joint1)) {
+        std::cerr << "Error publishing topic [" << joint1_topic << "]" << std::endl;
+    }
+    
 }
 
 void imu_callback(const gz::msgs::IMU &msg) {
@@ -101,17 +101,6 @@ void alt_callback(const gz::msgs::Altimeter &msg) {
     queue_altimeter.push(msg_pub);
 }
 
-void waypoint_callback(const gz::msgs::Twist &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
-    msg_waypoint_t msg_waypoint{
-        .uptime_nsec=uptime,
-        .velocity_x=msg.linear().x(),
-        .velocity_y=msg.linear().y(),
-        .velocity_z=msg.linear().z()
-    };
-    queue_waypoint.push(msg_waypoint);
-}
-
 void rc_input_callback(const gz::msgs::Joy &msg) {
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     if (!armed && msg.buttons()[0] == 1) {
@@ -124,10 +113,8 @@ void rc_input_callback(const gz::msgs::Joy &msg) {
     }
     msg_rc_input_t msg_rc_input{
         .uptime_nsec=uptime,
-        .roll=-(msg.axes()[3]),
-        .pitch=msg.axes()[4],
         .yaw=msg.axes()[0],
-        .thrust=msg.axes()[1],
+        .thrust=msg.axes()[4],
         .armed=armed,
     };
     queue_rc_input.push(msg_rc_input);
@@ -146,23 +133,27 @@ void thread_sim_entry_point(void)
 {
     // Create a transport node and advertise a topic.
     gz::transport::Node node;
-    // prepare messages, must occur before control sent (subscriber launched)
-    header.set_allocated_stamp(&stamp);
-    sim_motors.add_velocity(0);
-    sim_motors.add_velocity(0);
-    sim_motors.add_velocity(0);
-    sim_motors.add_velocity(0);
-    sim_motors.set_allocated_header(&header);
-
+    //joint0.add_data(0);
     // sim_motors pub
-    auto pub_sim_motors = std::make_shared<gz::transport::Node::Publisher>(
-        node.Advertise<gz::msgs::Actuators>(sim_motors_topic));
-    if (!pub_sim_motors)
+    auto pub_joint0 = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Double>(joint0_topic));
+    if (!pub_joint0)
     {
-        std::cerr << "Error advertising topic [" << sim_motors_topic << "]" << std::endl;
+        std::cerr << "Error advertising topic [" << joint0_topic << "]" << std::endl;
         return;
     }
-    pub_sim_motors_ptr = pub_sim_motors;
+    pub_joint0_ptr = pub_joint0;
+    //joint1.add_data(0);
+    // sim_motors pub
+    auto pub_joint1 = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Double>(joint1_topic));
+    if (!pub_joint1)
+    {
+        std::cerr << "Error advertising topic [" << joint1_topic << "]" << std::endl;
+        return;
+    }
+    pub_joint1_ptr = pub_joint1;
+    
 
     // imu sub
     bool sub_imu = node.Subscribe<gz::msgs::IMU>(imu_topic, imu_callback);
@@ -201,14 +192,6 @@ void thread_sim_entry_point(void)
     if (!sub_alt)
     {
         std::cerr << "Error subscribing to topic [" << alt_topic << "]" << std::endl;
-        return;
-    }
-
-    // waypoint sub
-    bool sub_waypoint = node.Subscribe<gz::msgs::Twist>(waypoint_topic, waypoint_callback);
-    if (!sub_waypoint)
-    {
-        std::cerr << "Error subscribing to topic [" << waypoint_topic << "]" << std::endl;
         return;
     }
 

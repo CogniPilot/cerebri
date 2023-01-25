@@ -1,7 +1,0 @@
-jupyterlab
-sympy
-matplotlib
-scipy
-control
-casadi
-pydot

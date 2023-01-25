@@ -15,7 +15,7 @@ manifest:
         - name-allowlist:
           - mbedtls
           - net-tools
-    - name: zenoh-pico
-      url: https://github.com/CogniPilot/zenoh-pico.git
-      revision: zephyr-3.2
-      path: cerebri/modules/zenoh-pico/zenoh-pico
+#    - name: zenoh-pico
+#      url: https://github.com/CogniPilot/zenoh-pico.git
+#      revision: zephyr-3.2
+#      path: cerebri/modules/zenoh-pico/zenoh-pico

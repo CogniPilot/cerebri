@@ -1,4 +1,0 @@
-name: zenoh-pico
-build:
-  cmake: .
-  kconfig: Kconfig

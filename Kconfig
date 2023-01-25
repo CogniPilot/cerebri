@@ -1,25 +1,29 @@
 # Copyright (c) 2023 CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-menu "Platform Selection"
+mainmenu "Cerebri"
 
-choice
-        prompt "Platform Selection"
-        default CEREBRI_PLATFORM_ROVER
+menu "Test"
 
-config CEREBRI_PLATFORM_MULTICOPTER
-        bool "MultiCopter"
-        help
-          Select MultiCopter for build.
+choice CEREBRI_PLATFORM_CHOICE
+	prompt "Platform Selection"
+	default CEREBRI_PLATFORM_ROVER
+
+config CEREBRI_PLATFORM_MULTIROTOR
+	bool "MultiRotor"
+	help
+	  Select MultiRotor for build.
 
 config CEREBRI_PLATFORM_PLANE
-        bool "Plane"
-        help
-          Select Plane for build.
+	bool "Plane"
+	help
+	  Select Plane for build.
 
 config CEREBRI_PLATFORM_ROVER
-        bool "Rover"
-        help
-          Select Rover for build.
+	bool "Rover"
+	help
+	  Select Rover for build.
 
 endchoice
+
+endmenu

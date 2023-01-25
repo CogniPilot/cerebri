@@ -82,7 +82,8 @@ Create a docker override, this file will be ignored by .git so you
 can use it as a location to put any customizations.
 
 docker/docker-compose.override.yml
-```json
+
+```yaml
 services:
 
   cerebri:

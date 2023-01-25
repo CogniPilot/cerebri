@@ -14,28 +14,31 @@ float gz = 0;void listener_controller_callback(const struct zbus_channel *chan) 
         struct msg_actuators_t actuators_msg;
         double vt = msg_rc_input->thrust;
 
-        double vr = msg_rc_input->roll;
-
-        double vp = msg_rc_input->pitch;
-
         double vy = msg_rc_input->yaw;
   
         bool armed = msg_rc_input->armed;
-        double kd = 0.05;
 
-        double thrust_trim = 0.76;
-        double mix_thrust = armed ? vt + thrust_trim : 0;
-        double mix_roll = armed ? vr*0.1 - kd*gx : 0;
-        double mix_pitch = armed ? vp*0.1 - kd*gy : 0;
-        double mix_yaw = armed ? vy*0.1 - kd*gz : 0;
-
-        
-        actuators_msg.actuator0_value = mix_thrust - mix_roll - mix_pitch - mix_yaw; // motor 0 (front right)
-        actuators_msg.actuator1_value = mix_thrust + mix_roll + mix_pitch - mix_yaw; // motor 1 (rear left)
-        actuators_msg.actuator2_value = mix_thrust + mix_roll - mix_pitch + mix_yaw; // motor 2 (front left)
-        actuators_msg.actuator3_value = mix_thrust - mix_roll + mix_pitch + mix_yaw; // motor 3 (rear right)
-
-
+        double mix_thrust = armed ? vt : 0;
+        double mix_yaw = armed ? vy : 0;
+    
+        double scale0 = (0.4 - -0.4) / 2.0;
+        double actuator0 = 0*mix_thrust*scale0 + 1*mix_yaw*scale0;
+        if(actuator0 > 0.4) {
+            actuator0 = 0.4;
+        } else if (actuator0 < -0.4) {
+            actuator0 = -0.4;
+        }
+        actuators_msg.actuator0_value = actuator0;
+    
+        double scale1 = (50 - -50) / 2.0;
+        double actuator1 =  1*mix_thrust*scale1 +  0*mix_yaw*scale1;
+        if(actuator1 > 50) {
+            actuator1 = 50;
+        } else if (actuator1 < -50) {
+            actuator1 = -50;
+        }
+        actuators_msg.actuator1_value = actuator1;
+    
 
         zbus_chan_pub(&chan_actuators, &actuators_msg, K_NO_WAIT);
 

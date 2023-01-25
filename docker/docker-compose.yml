@@ -1,7 +1,5 @@
 version: "3.9"
 
-
-
 volumes:
 
     # remembers gz config, downloaded models etc
@@ -22,12 +20,10 @@ services:
     stdin_open: true
     privileged: true
     hostname: cerebri
-    ports:
-      - 5820:5820
-      - 5920:5920
     sysctls:
       - net.ipv6.conf.all.disable_ipv6=0
     volumes:
       - ./workdir:/workdir
       - ..:/workdir/cerebri
       - gz_config:/home/user/.gz
+      - /tmp/.X11-unix:/tmp/.X11-unix

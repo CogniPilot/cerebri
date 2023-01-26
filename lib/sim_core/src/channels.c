@@ -1,13 +1,6 @@
 #include "channels.h"
 
-ZBUS_CHAN_DEFINE(chan_actuators, // Name
-    struct msg_actuators_t, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(listener_sim_actuators), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
+// sensor measurements
 ZBUS_CHAN_DEFINE(chan_accelerometer, // Name
     struct msg_accelerometer_t, // Message type
     NULL, // Validator
@@ -48,6 +41,23 @@ ZBUS_CHAN_DEFINE(chan_navsat, // Name
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
+ZBUS_CHAN_DEFINE(chan_external_odometry, // Name
+    struct msg_odometry_t, // Message type
+    NULL, // Validator
+    NULL, // User Data
+    ZBUS_OBSERVERS(), // observers
+    ZBUS_MSG_INIT(0) // Initial value {0}
+);
+
+// commands
+ZBUS_CHAN_DEFINE(chan_rc_input, // Name
+    struct msg_rc_input_t, // Message type
+    NULL, // Validator
+    NULL, // User Data
+    ZBUS_OBSERVERS(listener_controller), // observers
+    ZBUS_MSG_INIT(0) // Initial value {0}
+);
+
 ZBUS_CHAN_DEFINE(chan_waypoint, // Name
     struct msg_waypoint_t, // Message type
     NULL, // Validator
@@ -56,10 +66,22 @@ ZBUS_CHAN_DEFINE(chan_waypoint, // Name
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
-ZBUS_CHAN_DEFINE(chan_rc_input, // Name
-    struct msg_rc_input_t, // Message type
+// estimation
+ZBUS_CHAN_DEFINE(chan_estimator_odometry, // Name
+    struct msg_odometry_t, // Message type
     NULL, // Validator
     NULL, // User Data
-    ZBUS_OBSERVERS(listener_controller), // observers
+    ZBUS_OBSERVERS(), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
+
+// control
+ZBUS_CHAN_DEFINE(chan_actuators, // Name
+    struct msg_actuators_t, // Message type
+    NULL, // Validator
+    NULL, // User Data
+    ZBUS_OBSERVERS(listener_sim_actuators), // observers
+    ZBUS_MSG_INIT(0) // Initial value {0}
+);
+
+

@@ -16,6 +16,7 @@ extern LockingQueue<msg_altimeter_t> queue_altimeter;
 extern LockingQueue<msg_navsat_t> queue_navsat;
 extern LockingQueue<msg_waypoint_t> queue_waypoint;
 extern LockingQueue<msg_rc_input_t> queue_rc_input;
+extern LockingQueue<msg_odometry_t> queue_external_odometry;
 extern LockingQueue<sim_time_t> queue_sim_time;
 
 #endif /* A7E1DA61_9CBB_4AD6_9749_15CEA1A70318 */

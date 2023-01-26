@@ -89,4 +89,27 @@ struct msg_rc_input_t {
     bool armed;
 };
 
+struct msg_odometry_t {
+    uint64_t uptime_nsec;
+    double x;
+    double y;
+    double z;
+    double qx;
+    double qy;
+    double qz;
+    double qw;
+    double vx;
+    double vy;
+    double vz;
+    double wx;
+    double wy;
+    double wz;
+    double pose_cov[36];
+    double twist_cov[36];
+    char child_frame_id[10];
+    char parent_frame_id[10];
+};
+
+
+
 #endif /* D00B381E_08D8_47AC_B779_57B422AF3850 */

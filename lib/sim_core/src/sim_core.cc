@@ -17,11 +17,13 @@ LockingQueue<msg_altimeter_t> queue_altimeter{};
 LockingQueue<msg_navsat_t> queue_navsat{};
 LockingQueue<msg_waypoint_t> queue_waypoint{};
 LockingQueue<msg_rc_input_t> queue_rc_input{};
+LockingQueue<msg_odometry_t> queue_external_odometry{};
 LockingQueue<sim_time_t> queue_sim_time{};
 
-#define PUB_SIM_MESSAGES(TOPIC) \
+
+#define PUB_SIM_MESSAGES(TOPIC, MSG) \
 { \
-    msg_ ## TOPIC ## _t data; \
+    msg_ ## MSG ## _t data; \
     while (queue_##TOPIC.tryPop(data)) { \
         zbus_chan_pub(&chan_##TOPIC,  &data, K_FOREVER); \
     } \
@@ -75,13 +77,14 @@ void thread_sim_core_entry_point(void *p1, void *p2, void *p3) {
         }
 
         // publish all messages queued
-        PUB_SIM_MESSAGES(accelerometer);
-        PUB_SIM_MESSAGES(gyroscope);
-        PUB_SIM_MESSAGES(magnetometer);
-        PUB_SIM_MESSAGES(altimeter);
-        PUB_SIM_MESSAGES(navsat);
-        PUB_SIM_MESSAGES(waypoint);
-        PUB_SIM_MESSAGES(rc_input);
+        PUB_SIM_MESSAGES(accelerometer, accelerometer);
+        PUB_SIM_MESSAGES(gyroscope, gyroscope);
+        PUB_SIM_MESSAGES(magnetometer, magnetometer);
+        PUB_SIM_MESSAGES(altimeter, altimeter);
+        PUB_SIM_MESSAGES(navsat, navsat);
+        PUB_SIM_MESSAGES(waypoint, waypoint);
+        PUB_SIM_MESSAGES(rc_input, rc_input);
+        PUB_SIM_MESSAGES(external_odometry, odometry);
 
         // allow other threads to run
         k_yield();

@@ -38,6 +38,7 @@ static const std::string mag_topic = "/world/{{ world }}/model/{{ model }}/link/
 static const std::string navsat_topic = "/world/{{ world }}/model/{{ model }}/link/base_link/sensor/navsat_sensor/navsat";
 static const std::string alt_topic = "/world/{{ world }}/model/{{ model }}/link/base_link/sensor/altimeter_sensor/altimeter";
 static const std::string imu_topic = "/world/{{ world }}/model/{{ model }}/link/base_link/sensor/imu_sensor/imu";
+static const std::string odom_topic = "/model/{{ model }}/odometry_with_covariance";
 
 static std::atomic<bool> g_terminatePub(false);
 static std::atomic<bool> armed(false);
@@ -134,6 +135,28 @@ void alt_callback(const gz::msgs::Altimeter &msg) {
     };
     queue_altimeter.push(msg_pub);
 }
+
+void odom_callback(const gz::msgs::OdometryWithCovariance &msg) {
+    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    msg_odometry_t msg_odom{
+        .uptime_nsec=uptime,
+        .x=msg.pose_with_covariance().pose().position().x(),
+        .y=msg.pose_with_covariance().pose().position().y(),
+        .z=msg.pose_with_covariance().pose().position().z(),
+        .qx=msg.pose_with_covariance().pose().orientation().x(),
+        .qy=msg.pose_with_covariance().pose().orientation().y(),
+        .qz=msg.pose_with_covariance().pose().orientation().z(),
+        .qw=msg.pose_with_covariance().pose().orientation().w(),
+        .vx=msg.twist_with_covariance().twist().linear().x(),
+        .vy=msg.twist_with_covariance().twist().linear().y(),
+        .vz=msg.twist_with_covariance().twist().linear().z(),
+        .wx=msg.twist_with_covariance().twist().angular().x(),
+        .wy=msg.twist_with_covariance().twist().angular().y(),
+        .wz=msg.twist_with_covariance().twist().angular().z()
+    };
+    queue_external_odometry.push(msg_odom);
+}
+
 {% if inputs.waypoints %}
 void waypoint_callback(const gz::msgs::Twist &msg) {
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();

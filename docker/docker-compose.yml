@@ -12,7 +12,7 @@ services:
       - DISPLAY=$DISPLAY
       - RUN_VNC=false
       - RUN_ZETH=false
-    image: ${REGISTRY}/cognipilot/cerebri-build:${TAG}
+    image: ${REGISTRY}/cognipilot/cerebri:${TAG}
     build:
       dockerfile: Dockerfile
     tty: true

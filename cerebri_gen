@@ -10,8 +10,8 @@ import argparse
 import xmltodict
 
 cerebriPath = os.path.dirname(os.path.realpath(__file__))
-cogniPilotPath = os.path.relpath(os.path.join(cerebriPath, ".."))
-hcdfPath = os.path.relpath(os.path.join(cogniPilotPath, "hcdformat/vehicles"))
+cogniPilotPath = os.path.relpath(os.path.join(cerebriPath, "../.."))
+hcdfPath = os.path.relpath(os.path.join(cogniPilotPath, "tools/hcdformat/vehicles"))
 
 fileGenList = [
     "lib/sim_gz/src/sim_gz_driver.cc.jinja",
@@ -21,14 +21,17 @@ fileGenList = [
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--hcdf', default="x500.hcdf", help="hardware configuration description file name in config folder")
-    parser.add_argument('--clean', help="Clean Build")
+    parser.add_argument('--hcdf', default='x500.hcdf', help='hardware configuration description file name in config folder')
+    parser.add_argument('--absolute', action='store_true')
+    parser.add_argument('--clean', action='store_true')
 
     args = parser.parse_args()
 
-    cogniPilotPath
+    if args.absolute:
+        fileHCDF = os.path.realpath(args.hcdf)
+    else:
+        fileHCDF = os.path.realpath(os.path.join(hcdfPath, args.hcdf))
 
-    fileHCDF = os.path.realpath(os.path.join(hcdfPath, args.hcdf))
     with open(fileHCDF) as fd:
         config = xmltodict.parse(fd.read(), process_namespaces=True)
 
@@ -44,7 +47,7 @@ if __name__ == "__main__":
 
             filenameOut = filePath.replace('.jinja','')
             
-            if (not os.path.isfile(filenameOut)) or (args.clean is not None):
+            if (not os.path.isfile(filenameOut)) or args.clean:
                 with open(filenameOut, 'w') as f_out:
                     print(f"{filePath} -> {filenameOut}")
                     f_out.write(result)

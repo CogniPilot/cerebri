@@ -21,12 +21,12 @@ float gz = 0;void listener_controller_callback(const struct zbus_channel *chan) 
         double mix_thrust = armed ? vt : 0;
         double mix_yaw = armed ? vy : 0;
     
-        double scale0 = (0.3 - -0.3) / 2.0;
+        double scale0 = (0.4 - -0.4) / 2.0;
         double actuator0 = 0*mix_thrust*scale0 + 1*mix_yaw*scale0;
-        if(actuator0 > 0.3) {
-            actuator0 = 0.3;
-        } else if (actuator0 < -0.3) {
-            actuator0 = -0.3;
+        if(actuator0 > 0.4) {
+            actuator0 = 0.4;
+        } else if (actuator0 < -0.4) {
+            actuator0 = -0.4;
         }
         actuators_msg.actuator0_value = actuator0;
     

@@ -30,12 +30,12 @@ float gz = 0;void listener_controller_callback(const struct zbus_channel *chan) 
         }
         actuators_msg.actuator0_value = actuator0;
     
-        double scale1 = (50 - -50) / 2.0;
+        double scale1 = (200 - -200) / 2.0;
         double actuator1 =  1*mix_thrust*scale1 +  0*mix_yaw*scale1;
-        if(actuator1 > 50) {
-            actuator1 = 50;
-        } else if (actuator1 < -50) {
-            actuator1 = -50;
+        if(actuator1 > 200) {
+            actuator1 = 200;
+        } else if (actuator1 < -200) {
+            actuator1 = -200;
         }
         actuators_msg.actuator1_value = actuator1;
     

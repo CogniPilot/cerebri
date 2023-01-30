@@ -136,16 +136,29 @@ void trajectory_callback(const gz::msgs::PolynomialTrajectory &msg) {
     msg_trajectory_t msg_trajectory{
         .uptime_nsec=uptime,
         .sequence=uint16_t(msg.sequence()),
-        .poly_order=uint8_t(msg.poly_order()),
         .time_start=msg.time_start(),
         .time_end=msg.time_end(),
         .x={},
-        .y={}
+        .y={},
+        .z={},
+        .yaw={}
     };
-    for (int m = 0; m < msg.poly_order(); m++)
+    for (int m = 0; m < msg.x_size(); m++)
     {
         msg_trajectory.x[m]=msg.x()[m];
+        printf("x: %f\n", msg_trajectory.x[m]);
+    };
+    for (int m = 0; m < msg.y_size(); m++) {
         msg_trajectory.y[m]=msg.y()[m];
+        printf("y: %f\n", msg_trajectory.y[m]);
+    };
+    for (int m = 0; m < msg.z_size(); m++) {
+        msg_trajectory.y[m]=msg.y()[m];
+        printf("z: %f\n", msg_trajectory.z[m]);
+    };
+    for (int m = 0; m < msg.yaw_size(); m++) {
+        msg_trajectory.yaw[m]=msg.yaw()[m];
+        printf("yaw: %f\n", msg_trajectory.yaw[m]);
     };
     queue_trajectory.push(msg_trajectory);
 }
@@ -162,8 +175,8 @@ void rc_input_callback(const gz::msgs::Joy &msg) {
     }
     msg_rc_input_t msg_rc_input{
         .uptime_nsec=uptime,
-        .yaw=msg.axes()[3],
-        .thrust=msg.axes()[2],
+        .yaw=msg.axes()[2],
+        .thrust=msg.axes()[3],
         .mode=msg.buttons()[4],
         .armed=armed,
     };
@@ -209,6 +222,14 @@ void thread_sim_entry_point(void)
     if (!sub_imu)
     {
         std::cerr << "Error subscribing to topic [" << imu_topic << "]" << std::endl;
+        return;
+    }
+
+    // odom sub
+    bool sub_odom = node.Subscribe<gz::msgs::OdometryWithCovariance>(odom_topic, odom_callback);
+    if (!sub_odom)
+    {
+        std::cerr << "Error subscribing to topic [" << odom_topic << "]" << std::endl;
         return;
     }
 

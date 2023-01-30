@@ -15,7 +15,7 @@ hcdfPath = os.path.relpath(os.path.join(cogniPilotPath, "tools/hcdformat/vehicle
 
 fileGenList = [
     "lib/sim_gz/src/sim_gz_driver.cc.jinja",
-    "apps/rover/src/controller.c.jinja"
+    "apps/rover/src/mixer.c.jinja"
 ]
 
 if __name__ == "__main__":

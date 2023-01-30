@@ -18,5 +18,6 @@ project(cerebri)
 target_sources(app PRIVATE
     src/main.c
     src/estimator.c
+    src/mixer.c
     src/controller.c
 )

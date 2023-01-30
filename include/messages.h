@@ -72,7 +72,6 @@ struct msg_navsat_t {
 struct msg_trajectory_t {
     uint64_t uptime_nsec;
     uint16_t sequence;
-    uint8_t poly_order;
     double time_start;
     double time_end;
     double x[8];

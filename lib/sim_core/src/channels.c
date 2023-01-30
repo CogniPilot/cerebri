@@ -45,7 +45,7 @@ ZBUS_CHAN_DEFINE(chan_external_odometry, // Name
     struct msg_odometry_t, // Message type
     NULL, // Validator
     NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
+    ZBUS_OBSERVERS(listener_controller), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
@@ -62,7 +62,7 @@ ZBUS_CHAN_DEFINE(chan_trajectory, // Name
     struct msg_trajectory_t, // Message type
     NULL, // Validator
     NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
+    ZBUS_OBSERVERS(listener_controller), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 

@@ -69,15 +69,16 @@ struct msg_navsat_t {
     double velocity_up;
 };
 
-struct msg_waypoint_t {
+struct msg_trajectory_t {
     uint64_t uptime_nsec;
-    double position_x;
-    double position_y;
-    double position_z;
-    double orientation_yaw;
-    double velocity_x;
-    double velocity_y;
-    double velocity_z;
+    uint32_t sequence;
+    double time_start;
+    double time_end;
+    double x[6];
+    double y[6];
+    double z[6];
+    double yaw[6];
+
 };
 
 struct msg_rc_input_t {
@@ -86,6 +87,7 @@ struct msg_rc_input_t {
     double pitch;
     double yaw;
     double thrust;
+    uint8_t mode;
     bool armed;
 };
 

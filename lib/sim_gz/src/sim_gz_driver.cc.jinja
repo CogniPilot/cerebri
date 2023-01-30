@@ -10,28 +10,39 @@
 #include <gz/transport.hh>
 
 #include "../sim_core/src/sim_core.h"
-{%- set simulation = hcdf.simulation -%}
-{%- set actuators = simulation.actuators -%}
-
-{%- set model = simulation.vehicle_name.strip('"').strip("'") -%}
+{%- set vehicle = hcdf.vehicle -%}
+{%- set simulation = vehicle.simulation -%}
+{%- set mcu = vehicle.mcu -%}
+{%- set actuators = mcu.actuators -%}
+{%- set inputs = mcu.inputs -%}
+{%- set model = simulation.model_name.strip('"').strip("'") -%}
 {%- set world = simulation.world_name.strip('"').strip("'") -%}
-{%- set inputs = simulation.inputs -%}
-{%- if actuators.sim_motors %}
-{% set sim_motors = actuators.sim_motors %}
-static gz::msgs::Actuators sim_motors{};
-static std::weak_ptr<gz::transport::Node::Publisher> pub_sim_motors_ptr{};
-static const double motor_scalar = {{ sim_motors.motor_scalar }};
-static const std::string sim_motors_topic = "/{{ model }}/{{ sim_motors.sub_topic.strip('"').strip("'") }}";
-{% endif -%}
-{%- if actuators.joints %}
-{% set joints = actuators.joints %}
-{% for joint in joints.joint -%}
-static std::weak_ptr<gz::transport::Node::Publisher> pub_joint{{ joint.control_index }}_ptr{};
-static gz::msgs::Double joint{{ joint.control_index }};
-static const std::string joint{{ joint.control_index }}_topic = "/model/{{ model }}/{{ joint.sub_topic.strip('"').strip("'") }}";
+
+
+{%- if actuators.escs %}
+{% set escs = actuators.escs %}
+{%- if vehicle.type == "rover" %}
+{% for name, esc in escs.items() -%}
+static std::weak_ptr<gz::transport::Node::Publisher> pub_esc{{ esc.control_index }}_ptr{};
+static gz::msgs::Double esc{{ esc.control_index }};
+static const std::string esc{{ esc.control_index }}_topic = "/model/{{ model }}/{{ esc.sim_topic.strip('"').strip("'") }}";
 {% endfor -%}
 {% endif -%}
+{%- if vehicle.type == "multicopter" %}
+static std::weak_ptr<gz::transport::Node::Publisher> pub_esc_ptr{};
+static gz::msgs::Actuators esc;
+static const std::string esc_topic = "/model/{{ model }}/command/motor_speed";
+{% endif -%}
+{% endif -%}
 
+{%- if actuators.servos %}
+{% set servos = actuators.servos %}
+{% for name, servo in servos.items() -%}
+static std::weak_ptr<gz::transport::Node::Publisher> pub_servo{{ servo.control_index }}_ptr{};
+static gz::msgs::Double servo{{ servo.control_index }};
+static const std::string servo{{ servo.control_index }}_topic = "/model/{{ model }}/{{ servo.sim_topic.strip('"').strip("'") }}";
+{% endfor -%}
+{% endif -%}
 
 static const std::string clock_topic = "/world/{{ world }}/clock";
 static const std::string mag_topic = "/world/{{ world }}/model/{{ model }}/link/base_link/sensor/mag_sensor/mag";
@@ -43,9 +54,9 @@ static const std::string odom_topic = "/model/{{ model }}/odometry_with_covarian
 static std::atomic<bool> g_terminatePub(false);
 static std::atomic<bool> armed(false);
 
-{%- if inputs.waypoints %}
-static const std::string waypoint_topic = "{{ inputs.waypoints.topic }}";
-static gz::msgs::Twist twist{};
+{%- if inputs.trajectory %}
+static const std::string trajectory_topic = "{{ inputs.trajectory.topic }}";
+static gz::msgs::PolynomialTrajectory trajectory{};
 {% endif -%}
 
 {%- if inputs.manual %}
@@ -62,21 +73,29 @@ void send_control(sim_time_t time, const msg_actuators_t * msg) {
     stamp.set_sec(time.sec);
     stamp.set_nsec(time.nsec);
 
-{%- if actuators.sim_motors %} 
-    // send sim_motors
-    {% for motor in sim_motors.motor -%}
-    sim_motors.set_velocity({{ motor.number }}, motor_scalar*msg->actuator{{ motor.control_index }}_value);
+{%- if actuators.escs %}
+{%- if vehicle.type == "multicopter" %}
+    {% for name, esc in escs.items() -%}
+    escs.set_velocity({{ esc.sim_actuator }}, msg->actuator{{ esc.control_index }}_value);
     {% endfor %}
-    if (!pub_sim_motors_ptr.lock().get()->Publish(sim_motors)) {
-        std::cerr << "Error publishing topic [" << sim_motors_topic << "]" << std::endl;
+    if (!pub_esc_ptr.lock().get()->Publish(escs)) {
+        std::cerr << "Error publishing topic [" << esc_topic << "]" << std::endl;
     }
 {% endif -%}
-{%- if actuators.joints %}
-    // send joint
-    {% for joint in joints.joint -%}
-    joint{{ joint.control_index }}.set_data(msg->actuator{{ joint.control_index }}_value);
-    if (!pub_joint{{ joint.control_index }}_ptr.lock().get()->Publish(joint{{ joint.control_index }})) {
-        std::cerr << "Error publishing topic [" << joint{{ joint.control_index }}_topic << "]" << std::endl;
+{%- if vehicle.type == "rover" %}
+    {% for name, esc in escs.items() -%}
+    esc{{ esc.control_index }}.set_data(msg->actuator{{esc.control_index }}_value);
+    if (!pub_esc{{ esc.control_index }}_ptr.lock().get()->Publish(esc{{ esc.control_index }})) {
+        std::cerr << "Error publishing topic [" << esc{{ esc.control_index }}_topic << "]" << std::endl;
+    }
+    {% endfor %}
+{% endif -%}
+{% endif -%}
+{%- if actuators.servos %}
+    {% for name, servo in servos.items() -%}
+    servo{{ servo.control_index }}.set_data(msg->actuator{{servo.control_index }}_value);
+    if (!pub_servo{{ servo.control_index }}_ptr.lock().get()->Publish(servo{{ servo.control_index }})) {
+        std::cerr << "Error publishing topic [" << servo{{ servo.control_index }}_topic << "]" << std::endl;
     }
     {% endfor %}
 {% endif -%}
@@ -87,10 +106,7 @@ void imu_callback(const gz::msgs::IMU &msg) {
     msg_gyroscope_t msg_gyro{
         .uptime_nsec=uptime,
         .x=msg.angular_velocity().x(),
-        .y=msg.angular_velocity().y(),
-        .z=msg.angular_velocity().z()
-    };
-    queue_gyroscope.push(msg_gyro);
+        .y=msg.angular_velocity().y(),twis
     msg_accelerometer_t msg_acc{
         .uptime_nsec=uptime,
         .x=msg.linear_acceleration().x(),
@@ -106,12 +122,7 @@ void mag_callback(const gz::msgs::Magnetometer &msg) {
         .uptime_nsec=uptime,
         .x=msg.field_tesla().x(),
         .y=msg.field_tesla().y(),
-        .z=msg.field_tesla().z()
-    };
-    queue_magnetometer.push(msg_pub);
-}
-
-void navsat_callback(const gz::msgs::NavSat &msg) {
+        .z=msg.field_tesla().z()twis
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_navsat_t msg_pub{
         .uptime_nsec=uptime,
@@ -128,10 +139,7 @@ void navsat_callback(const gz::msgs::NavSat &msg) {
 void alt_callback(const gz::msgs::Altimeter &msg) {
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_altimeter_t msg_pub {
-        .uptime_nsec=uptime,
-        .position=msg.vertical_position(),
-        .reference=msg.vertical_reference(),
-        .velocity=msg.vertical_velocity()
+        .uptime_nsec=uptime,twis
     };
     queue_altimeter.push(msg_pub);
 }
@@ -157,16 +165,23 @@ void odom_callback(const gz::msgs::OdometryWithCovariance &msg) {
     queue_external_odometry.push(msg_odom);
 }
 
-{% if inputs.waypoints %}
-void waypoint_callback(const gz::msgs::Twist &msg) {
+{% if inputs.trajectory %}
+void trajectory_callback(const gz::msgs::PolynomialTrajectory &msg) {
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
-    msg_waypoint_t msg_waypoint{
+    msg_trajectory_t msg_trajectory{
         .uptime_nsec=uptime,
-        .velocity_x=msg.linear().x(),
-        .velocity_y=msg.linear().y(),
-        .velocity_z=msg.linear().z()
+        .sequence=msg.sequence(),
+        .time_start=msg.time_start(),
+        .time_end=msg.time_end(),
+        .x={},
+        .y={}
     };
-    queue_waypoint.push(msg_waypoint);
+    for (m = 0; m < sizeof(msg_trajectory.x); m++)
+    {
+        msg_trajectory.x[m]=msg.x[m];
+        msg_trajectory.y[m]=msg.y[m];
+    };
+    queue_trajectory.push(msg_trajectory);
 }
 {% endif %}
 {% if inputs.manual %}
@@ -196,6 +211,9 @@ void rc_input_callback(const gz::msgs::Joy &msg) {
     {%- if axes.thrust %}
         .thrust=msg.axes()[{{ axes.thrust }}],
     {%- endif %}
+    {%- if buttons.mode %}
+        .mode=msg.buttons()[{{ buttons.mode }}],
+    {%- endif %}
         .armed=armed,
     };
     queue_rc_input.push(msg_rc_input);
@@ -215,36 +233,47 @@ void thread_sim_entry_point(void)
     // Create a transport node and advertise a topic.
     gz::transport::Node node;
 
-{%- if actuators.sim_motors %}
+{%- if actuators.escs %}
+{%- if vehicle.type == "multicopter" %}
     // prepare messages, must occur before control sent (subscriber launched)
     header.set_allocated_stamp(&stamp);
-    {% for motor in sim_motors.motor -%}
-    sim_motors.add_velocity(0);
+    {% for name, esc in escs.items() -%}
+    esc.add_velocity(0);
     {% endfor -%}
-    sim_motors.set_allocated_header(&header);
+    esc.set_allocated_header(&header);
 
-    // sim_motors pub
-    auto pub_sim_motors = std::make_shared<gz::transport::Node::Publisher>(
-        node.Advertise<gz::msgs::Actuators>(sim_motors_topic));
-    if (!pub_sim_motors)
+    auto pub_esc = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Actuators>(esc_topic));
+    if (!pub_esc)
     {
-        std::cerr << "Error advertising topic [" << sim_motors_topic << "]" << std::endl;
+        std::cerr << "Error advertising topic [" << esc_topic << "]" << std::endl;
         return;
     }
-    pub_sim_motors_ptr = pub_sim_motors;
+    pub_esc_ptr = pub_esc;
 {% endif %}
-{%- if actuators.joints %}
-    {% for joint in joints.joint -%}
-    //joint{{ joint.control_index }}.add_data(0);
-    // sim_motors pub
-    auto pub_joint{{ joint.control_index }} = std::make_shared<gz::transport::Node::Publisher>(
-        node.Advertise<gz::msgs::Double>(joint{{ joint.control_index }}_topic));
-    if (!pub_joint{{ joint.control_index }})
+{%- if vehicle.type == "rover" %}
+    {% for name, esc in escs.items() -%}
+    auto pub_esc{{ esc.control_index }} = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Double>(esc{{ esc.control_index }}_topic));
+    if (!pub_esc{{ esc.control_index }})
     {
-        std::cerr << "Error advertising topic [" << joint{{ joint.control_index }}_topic << "]" << std::endl;
+        std::cerr << "Error advertising topic [" << esc{{ esc.control_index }}_topic << "]" << std::endl;
         return;
     }
-    pub_joint{{ joint.control_index }}_ptr = pub_joint{{ joint.control_index }};
+    pub_esc{{ esc.control_index }}_ptr = pub_esc{{ esc.control_index }};
+    {% endfor %}
+{% endif %}
+{% endif %}
+{%- if actuators.servos %}
+    {% for name, servo in servos.items() -%}
+    auto pub_servo{{ servo.control_index }} = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Double>(servo{{ servo.control_index }}_topic));
+    if (!pub_servo{{ servo.control_index }})
+    {
+        std::cerr << "Error advertising topic [" << servo{{ servo.control_index }}_topic << "]" << std::endl;
+        return;
+    }
+    pub_servo{{ servo.control_index }}_ptr = pub_servo{{ servo.control_index }};
     {% endfor %}
 {% endif %}
     // imu sub
@@ -286,12 +315,12 @@ void thread_sim_entry_point(void)
         std::cerr << "Error subscribing to topic [" << alt_topic << "]" << std::endl;
         return;
     }
-{% if inputs.waypoints %}
-    // waypoint sub
-    bool sub_waypoint = node.Subscribe<gz::msgs::Twist>(waypoint_topic, waypoint_callback);
-    if (!sub_waypoint)
+{% if inputs.trajectory %}
+    // Trajectory sub
+    bool sub_trajectory = node.Subscribe<gz::msgs::PolynomialTrajectory>(trajectory_topic, trajectory_callback);
+    if (!sub_trajectory)
     {
-        std::cerr << "Error subscribing to topic [" << waypoint_topic << "]" << std::endl;
+        std::cerr << "Error subscribing to topic [" << trajectory_topic << "]" << std::endl;
         return;
     }
 {% endif %}

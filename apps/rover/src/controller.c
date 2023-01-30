@@ -6,8 +6,9 @@
 
 float gx = 0;
 float gy = 0;
-float gz = 0;void listener_controller_callback(const struct zbus_channel *chan) {
-    
+float gz = 0;
+ 
+void listener_controller_callback(const struct zbus_channel *chan) {
     
     if (chan == &chan_rc_input) {
         const struct msg_rc_input_t *msg_rc_input = (const struct msg_rc_input_t *)zbus_chan_const_msg(chan);
@@ -17,25 +18,27 @@ float gz = 0;void listener_controller_callback(const struct zbus_channel *chan) 
         double vy = msg_rc_input->yaw;
   
         bool armed = msg_rc_input->armed;
+      
 
         double mix_thrust = armed ? vt : 0;
         double mix_yaw = armed ? vy : 0;
     
-        double scale0 = (0.4 - -0.4) / 2.0;
-        double actuator0 = 0*mix_thrust*scale0 + 1*mix_yaw*scale0;
-        if(actuator0 > 0.4) {
-            actuator0 = 0.4;
-        } else if (actuator0 < -0.4) {
-            actuator0 = -0.4;
+        double scale0 = (104.8 - -104.8) / 2.0;
+        double actuator0 = *mix_thrust*scale0 + *mix_yaw*scale0;
+        if(actuator0 > 104.8) {
+            actuator0 = 104.8;
+        } else if (actuator0 < -104.8) {
+            actuator0 = -104.8;
         }
         actuators_msg.actuator0_value = actuator0;
     
-        double scale1 = (200 - -200) / 2.0;
-        double actuator1 =  1*mix_thrust*scale1 +  0*mix_yaw*scale1;
-        if(actuator1 > 200) {
-            actuator1 = 200;
-        } else if (actuator1 < -200) {
-            actuator1 = -200;
+    
+        double scale1 = (0.3 - -0.3) / 2.0;
+        double actuator1 = *mix_thrust*scale1 + *mix_yaw*scale1;
+        if(actuator1 > 0.3) {
+            actuator1 = 0.3;
+        } else if (actuator1 < -0.3) {
+            actuator1 = -0.3;
         }
         actuators_msg.actuator1_value = actuator1;
     

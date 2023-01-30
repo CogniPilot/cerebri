@@ -11,12 +11,14 @@
 
 #include "../sim_core/src/sim_core.h"
 
-static std::weak_ptr<gz::transport::Node::Publisher> pub_joint0_ptr{};
-static gz::msgs::Double joint0;
-static const std::string joint0_topic = "/model/MR_Buggy3/steer_angle";
-static std::weak_ptr<gz::transport::Node::Publisher> pub_joint1_ptr{};
-static gz::msgs::Double joint1;
-static const std::string joint1_topic = "/model/MR_Buggy3/drive";
+static std::weak_ptr<gz::transport::Node::Publisher> pub_esc0_ptr{};
+static gz::msgs::Double esc0;
+static const std::string esc0_topic = "/model/MR_Buggy3/drive";
+
+
+static std::weak_ptr<gz::transport::Node::Publisher> pub_servo1_ptr{};
+static gz::msgs::Double servo1;
+static const std::string servo1_topic = "/model/MR_Buggy3/steer_angle";
 static const std::string clock_topic = "/world/default/clock";
 static const std::string mag_topic = "/world/default/model/MR_Buggy3/link/base_link/sensor/mag_sensor/mag";
 static const std::string navsat_topic = "/world/default/model/MR_Buggy3/link/base_link/sensor/navsat_sensor/navsat";
@@ -26,6 +28,9 @@ static const std::string odom_topic = "/model/MR_Buggy3/odometry_with_covariance
 
 static std::atomic<bool> g_terminatePub(false);
 static std::atomic<bool> armed(false);
+static const std::string trajectory_topic = "/traj";
+static gz::msgs::PolynomialTrajectory trajectory{};
+
 static gz::msgs::Joy joy{};
 static const std::string rc_input_topic = "/joy";
 static gz::msgs::Time stamp{};
@@ -36,14 +41,15 @@ void send_control(sim_time_t time, const msg_actuators_t * msg) {
     // set timestamp
     stamp.set_sec(time.sec);
     stamp.set_nsec(time.nsec);
-    // send joint
-    joint0.set_data(msg->actuator0_value);
-    if (!pub_joint0_ptr.lock().get()->Publish(joint0)) {
-        std::cerr << "Error publishing topic [" << joint0_topic << "]" << std::endl;
+    esc0.set_data(msg->actuator0_value);
+    if (!pub_esc0_ptr.lock().get()->Publish(esc0)) {
+        std::cerr << "Error publishing topic [" << esc0_topic << "]" << std::endl;
     }
-    joint1.set_data(msg->actuator1_value);
-    if (!pub_joint1_ptr.lock().get()->Publish(joint1)) {
-        std::cerr << "Error publishing topic [" << joint1_topic << "]" << std::endl;
+    
+
+    servo1.set_data(msg->actuator1_value);
+    if (!pub_servo1_ptr.lock().get()->Publish(servo1)) {
+        std::cerr << "Error publishing topic [" << servo1_topic << "]" << std::endl;
     }
     
 }
@@ -53,10 +59,7 @@ void imu_callback(const gz::msgs::IMU &msg) {
     msg_gyroscope_t msg_gyro{
         .uptime_nsec=uptime,
         .x=msg.angular_velocity().x(),
-        .y=msg.angular_velocity().y(),
-        .z=msg.angular_velocity().z()
-    };
-    queue_gyroscope.push(msg_gyro);
+        .y=msg.angular_velocity().y(),twis
     msg_accelerometer_t msg_acc{
         .uptime_nsec=uptime,
         .x=msg.linear_acceleration().x(),
@@ -72,12 +75,7 @@ void mag_callback(const gz::msgs::Magnetometer &msg) {
         .uptime_nsec=uptime,
         .x=msg.field_tesla().x(),
         .y=msg.field_tesla().y(),
-        .z=msg.field_tesla().z()
-    };
-    queue_magnetometer.push(msg_pub);
-}
-
-void navsat_callback(const gz::msgs::NavSat &msg) {
+        .z=msg.field_tesla().z()twis
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_navsat_t msg_pub{
         .uptime_nsec=uptime,
@@ -94,10 +92,7 @@ void navsat_callback(const gz::msgs::NavSat &msg) {
 void alt_callback(const gz::msgs::Altimeter &msg) {
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_altimeter_t msg_pub {
-        .uptime_nsec=uptime,
-        .position=msg.vertical_position(),
-        .reference=msg.vertical_reference(),
-        .velocity=msg.vertical_velocity()
+        .uptime_nsec=uptime,twis
     };
     queue_altimeter.push(msg_pub);
 }
@@ -124,20 +119,39 @@ void odom_callback(const gz::msgs::OdometryWithCovariance &msg) {
 }
 
 
+void trajectory_callback(const gz::msgs::PolynomialTrajectory &msg) {
+    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    msg_trajectory_t msg_trajectory{
+        .uptime_nsec=uptime,
+        .sequence=msg.sequence(),
+        .time_start=msg.time_start(),
+        .time_end=msg.time_end(),
+        .x={},
+        .y={}
+    };
+    for (m = 0; m < sizeof(msg_trajectory.x); m++)
+    {
+        msg_trajectory.x[m]=msg.x[m];
+        msg_trajectory.y[m]=msg.y[m];
+    };
+    queue_trajectory.push(msg_trajectory);
+}
+
 void rc_input_callback(const gz::msgs::Joy &msg) {
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
-    if (!armed && msg.buttons()[0] == 1) {
+    if (!armed && msg.buttons()[6] == 1) {
         armed = true;
         std::cout << "armed!" << std::endl;
     }
-    if (armed && msg.buttons()[1] == 1) {
+    if (armed && msg.buttons()[7] == 1) {
         armed = false;
         std::cout << "dis-armed!" << std::endl;
     }
     msg_rc_input_t msg_rc_input{
         .uptime_nsec=uptime,
-        .yaw=msg.axes()[0],
-        .thrust=msg.axes()[4],
+        .yaw=msg.axes()[3],
+        .thrust=msg.axes()[2],
+        .mode=msg.buttons()[4],
         .armed=armed,
     };
     queue_rc_input.push(msg_rc_input);
@@ -156,26 +170,25 @@ void thread_sim_entry_point(void)
 {
     // Create a transport node and advertise a topic.
     gz::transport::Node node;
-    //joint0.add_data(0);
-    // sim_motors pub
-    auto pub_joint0 = std::make_shared<gz::transport::Node::Publisher>(
-        node.Advertise<gz::msgs::Double>(joint0_topic));
-    if (!pub_joint0)
+    auto pub_esc0 = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Double>(esc0_topic));
+    if (!pub_esc0)
     {
-        std::cerr << "Error advertising topic [" << joint0_topic << "]" << std::endl;
+        std::cerr << "Error advertising topic [" << esc0_topic << "]" << std::endl;
         return;
     }
-    pub_joint0_ptr = pub_joint0;
-    //joint1.add_data(0);
-    // sim_motors pub
-    auto pub_joint1 = std::make_shared<gz::transport::Node::Publisher>(
-        node.Advertise<gz::msgs::Double>(joint1_topic));
-    if (!pub_joint1)
+    pub_esc0_ptr = pub_esc0;
+    
+
+
+    auto pub_servo1 = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Double>(servo1_topic));
+    if (!pub_servo1)
     {
-        std::cerr << "Error advertising topic [" << joint1_topic << "]" << std::endl;
+        std::cerr << "Error advertising topic [" << servo1_topic << "]" << std::endl;
         return;
     }
-    pub_joint1_ptr = pub_joint1;
+    pub_servo1_ptr = pub_servo1;
     
 
     // imu sub
@@ -215,6 +228,14 @@ void thread_sim_entry_point(void)
     if (!sub_alt)
     {
         std::cerr << "Error subscribing to topic [" << alt_topic << "]" << std::endl;
+        return;
+    }
+
+    // Trajectory sub
+    bool sub_trajectory = node.Subscribe<gz::msgs::PolynomialTrajectory>(trajectory_topic, trajectory_callback);
+    if (!sub_trajectory)
+    {
+        std::cerr << "Error subscribing to topic [" << trajectory_topic << "]" << std::endl;
         return;
     }
 

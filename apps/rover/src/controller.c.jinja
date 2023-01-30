@@ -45,7 +45,7 @@ void listener_controller_callback(const struct zbus_channel *chan) {
 {% set thrust = mixer.thrust.split(',') %}
     {% for name, esc in escs.items()  %}
         double scale{{ esc.control_index }} = ({{ esc.max_rps }} - {{ esc.min_rps }}) / 2.0;
-        double actuator{{ esc.control_index }} = {{ thrust[esc.control_index] }}*mix_thrust*scale{{ esc.control_index }} + {{ yaw[esc.control_index] }}*mix_yaw*scale{{ esc.control_index }};
+        double actuator{{ esc.control_index }} = {{ thrust[esc.control_index | int ] }}*mix_thrust*scale{{ esc.control_index }} + {{ yaw[esc.control_index | int ] }}*mix_yaw*scale{{ esc.control_index }};
         if(actuator{{ esc.control_index }} > {{ esc.max_rps }}) {
             actuator{{ esc.control_index }} = {{ esc.max_rps }};
         } else if (actuator{{ esc.control_index }} < {{ esc.min_rps }}) {
@@ -55,7 +55,7 @@ void listener_controller_callback(const struct zbus_channel *chan) {
     {% endfor %}
     {% for name, servo in servos.items()  %}
         double scale{{ servo.control_index }} = ({{ servo.max }} - {{ servo.min }}) / 2.0;
-        double actuator{{ servo.control_index }} = {{ thrust[servo.control_index] }}*mix_thrust*scale{{ servo.control_index }} + {{ yaw[servo.control_index] }}*mix_yaw*scale{{ servo.control_index }};
+        double actuator{{ servo.control_index }} = {{ thrust[servo.control_index | int ] }}*mix_thrust*scale{{ servo.control_index }} + {{ yaw[servo.control_index | int ] }}*mix_yaw*scale{{ servo.control_index }};
         if(actuator{{ servo.control_index }} > {{ servo.max }}) {
             actuator{{servo.control_index }} = {{ servo.max }};
         } else if (actuator{{ servo.control_index }} < {{ servo.min }}) {

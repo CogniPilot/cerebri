@@ -58,8 +58,8 @@ ZBUS_CHAN_DEFINE(chan_rc_input, // Name
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
-ZBUS_CHAN_DEFINE(chan_waypoint, // Name
-    struct msg_waypoint_t, // Message type
+ZBUS_CHAN_DEFINE(chan_trajectory, // Name
+    struct msg_trajectory_t, // Message type
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(), // observers

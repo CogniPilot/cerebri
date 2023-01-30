@@ -59,7 +59,11 @@ void imu_callback(const gz::msgs::IMU &msg) {
     msg_gyroscope_t msg_gyro{
         .uptime_nsec=uptime,
         .x=msg.angular_velocity().x(),
-        .y=msg.angular_velocity().y(),twis
+        .y=msg.angular_velocity().y(),
+        .z=msg.angular_velocity().z()
+    };
+    queue_gyroscope.push(msg_gyro);
+
     msg_accelerometer_t msg_acc{
         .uptime_nsec=uptime,
         .x=msg.linear_acceleration().x(),
@@ -75,7 +79,12 @@ void mag_callback(const gz::msgs::Magnetometer &msg) {
         .uptime_nsec=uptime,
         .x=msg.field_tesla().x(),
         .y=msg.field_tesla().y(),
-        .z=msg.field_tesla().z()twis
+        .z=msg.field_tesla().z()
+    };
+    queue_magnetometer.push(msg_pub);
+}
+
+void navsat_callback(const gz::msgs::NavSat &msg) {
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_navsat_t msg_pub{
         .uptime_nsec=uptime,
@@ -92,7 +101,10 @@ void mag_callback(const gz::msgs::Magnetometer &msg) {
 void alt_callback(const gz::msgs::Altimeter &msg) {
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_altimeter_t msg_pub {
-        .uptime_nsec=uptime,twis
+        .uptime_nsec=uptime,
+        .position=msg.vertical_position(),
+        .reference=msg.vertical_reference(),
+        .velocity=msg.vertical_velocity()
     };
     queue_altimeter.push(msg_pub);
 }
@@ -123,16 +135,17 @@ void trajectory_callback(const gz::msgs::PolynomialTrajectory &msg) {
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_trajectory_t msg_trajectory{
         .uptime_nsec=uptime,
-        .sequence=msg.sequence(),
+        .sequence=uint16_t(msg.sequence()),
+        .poly_order=uint8_t(msg.poly_order()),
         .time_start=msg.time_start(),
         .time_end=msg.time_end(),
         .x={},
         .y={}
     };
-    for (m = 0; m < sizeof(msg_trajectory.x); m++)
+    for (int m = 0; m < msg.poly_order(); m++)
     {
-        msg_trajectory.x[m]=msg.x[m];
-        msg_trajectory.y[m]=msg.y[m];
+        msg_trajectory.x[m]=msg.x()[m];
+        msg_trajectory.y[m]=msg.y()[m];
     };
     queue_trajectory.push(msg_trajectory);
 }

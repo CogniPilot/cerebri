@@ -14,7 +14,7 @@ extern LockingQueue<msg_gyroscope_t> queue_gyroscope;
 extern LockingQueue<msg_magnetometer_t> queue_magnetometer;
 extern LockingQueue<msg_altimeter_t> queue_altimeter;
 extern LockingQueue<msg_navsat_t> queue_navsat;
-extern LockingQueue<msg_waypoint_t> queue_waypoint;
+extern LockingQueue<msg_trajectory_t> queue_trajectory;
 extern LockingQueue<msg_rc_input_t> queue_rc_input;
 extern LockingQueue<msg_odometry_t> queue_external_odometry;
 extern LockingQueue<sim_time_t> queue_sim_time;

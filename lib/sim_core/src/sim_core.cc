@@ -15,7 +15,7 @@ LockingQueue<msg_gyroscope_t> queue_gyroscope{};
 LockingQueue<msg_magnetometer_t> queue_magnetometer{};
 LockingQueue<msg_altimeter_t> queue_altimeter{};
 LockingQueue<msg_navsat_t> queue_navsat{};
-LockingQueue<msg_waypoint_t> queue_waypoint{};
+LockingQueue<msg_trajectory_t> queue_trajectory{};
 LockingQueue<msg_rc_input_t> queue_rc_input{};
 LockingQueue<msg_odometry_t> queue_external_odometry{};
 LockingQueue<sim_time_t> queue_sim_time{};
@@ -82,7 +82,7 @@ void thread_sim_core_entry_point(void *p1, void *p2, void *p3) {
         PUB_SIM_MESSAGES(magnetometer, magnetometer);
         PUB_SIM_MESSAGES(altimeter, altimeter);
         PUB_SIM_MESSAGES(navsat, navsat);
-        PUB_SIM_MESSAGES(waypoint, waypoint);
+        PUB_SIM_MESSAGES(trajectory, trajectory);
         PUB_SIM_MESSAGES(rc_input, rc_input);
         PUB_SIM_MESSAGES(external_odometry, odometry);
 

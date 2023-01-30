@@ -71,13 +71,14 @@ struct msg_navsat_t {
 
 struct msg_trajectory_t {
     uint64_t uptime_nsec;
-    uint32_t sequence;
+    uint16_t sequence;
+    uint8_t poly_order;
     double time_start;
     double time_end;
-    double x[6];
-    double y[6];
-    double z[6];
-    double yaw[6];
+    double x[8];
+    double y[8];
+    double z[8];
+    double yaw[8];
 
 };
 
@@ -87,7 +88,7 @@ struct msg_rc_input_t {
     double pitch;
     double yaw;
     double thrust;
-    uint8_t mode;
+    int mode;
     bool armed;
 };
 

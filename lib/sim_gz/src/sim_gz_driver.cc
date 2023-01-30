@@ -146,19 +146,9 @@ void trajectory_callback(const gz::msgs::PolynomialTrajectory &msg) {
     for (int m = 0; m < msg.x_size(); m++)
     {
         msg_trajectory.x[m]=msg.x()[m];
-        printf("x: %f\n", msg_trajectory.x[m]);
-    };
-    for (int m = 0; m < msg.y_size(); m++) {
         msg_trajectory.y[m]=msg.y()[m];
-        printf("y: %f\n", msg_trajectory.y[m]);
-    };
-    for (int m = 0; m < msg.z_size(); m++) {
-        msg_trajectory.y[m]=msg.y()[m];
-        printf("z: %f\n", msg_trajectory.z[m]);
-    };
-    for (int m = 0; m < msg.yaw_size(); m++) {
+        msg_trajectory.z[m]=msg.z()[m];
         msg_trajectory.yaw[m]=msg.yaw()[m];
-        printf("yaw: %f\n", msg_trajectory.yaw[m]);
     };
     queue_trajectory.push(msg_trajectory);
 }
@@ -175,8 +165,8 @@ void rc_input_callback(const gz::msgs::Joy &msg) {
     }
     msg_rc_input_t msg_rc_input{
         .uptime_nsec=uptime,
-        .yaw=msg.axes()[2],
-        .thrust=msg.axes()[3],
+        .yaw=msg.axes()[3],
+        .thrust=msg.axes()[2],
         .mode=msg.buttons()[4],
         .armed=armed,
     };

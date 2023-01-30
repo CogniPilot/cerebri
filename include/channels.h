@@ -14,7 +14,7 @@ ZBUS_CHAN_DECLARE(chan_external_odometry);
 
 // commands
 ZBUS_CHAN_DECLARE(chan_rc_input);
-ZBUS_CHAN_DECLARE(chan_waypoint);
+ZBUS_CHAN_DECLARE(chan_trajectory);
 
 // estimation
 ZBUS_CHAN_DECLARE(chan_estimator_odometry);

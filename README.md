@@ -1,18 +1,20 @@
 # Cerebri
 
-Cerebri is a minimalistic flight controller that is designed to simplify verification & validation and ease research and development.
+Cerebri is a minimalistic flight controller that is designed to simplify verification & validation and ease development.
 
 * Verification and Validation
   * Minimimum viable product/ minimum lines of code for each vehicle, avoid branching
   * Use C++ 17 standard, following industry guidelines
   * Enforce code test coverage and signing
   * Generated estimator/control code with tracking error bound proofs
-* Research and Development
+* Development
   * Algorithm deployment from python (minimal knowledge of C/C++ Zephyr necessary)
-  * Docker containers for development
+  * Optional Docker containers for development
   * Documented debugging process, Software/Hardware in the loop support
   * Designed for interface with ROS2
-  * Ensure documentation quality and minimize developer maintenance by limiting supported vehicles, simulators, and OSs.
+  * Ensure documentation quality with mathematical derivations and references
+  * Minimize developer maintenance by designing for out of tree custom vehicles and
+    with several officially supported examples
 
 ---------------------------
 ## Official Support
@@ -26,13 +28,16 @@ Cerebri is a minimalistic flight controller that is designed to simplify verific
   * MR-BUGGY3 (planned)
 
 ---------------------------
-## Install Dependencies
+## Native Installation
+
+---------------------------
+## Docker Installation
 
 The necessary dependencies are docker and hardware-acceleration for docker if you have an NVidia graphics card. Also, we will install Visual Studio Code as the development environment.
 
 ### On host
 
-#### Install Visual Studio Code
+#### Install Visual Studio Code (or preferred IDE)
 https://code.visualstudio.com/docs/setup/linux
 
 #### Install Docker

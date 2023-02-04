@@ -20,6 +20,7 @@ struct msg_odometry_t msg_odometry = {};
 double auto_thrust = 0;
 double auto_steering = 0;
 int last_mode_change = -1;
+double thrust_gain = 0.5;
 
 void auto_mode() {
     uint64_t time_start = msg_trajectory.time_start;
@@ -28,7 +29,10 @@ void auto_mode() {
     int64_t T_nsec = time_stop - time_start;
     int64_t t_nsec = uptime - time_start;
     if (t_nsec > T_nsec) {
-      t_nsec = T_nsec;
+      // stop
+      auto_thrust = 0;
+      auto_steering = 0;
+      return;
     }
     if (t_nsec < 0) {
       t_nsec = 0;
@@ -94,7 +98,7 @@ void auto_mode() {
         printf("V is nan\n");
         auto_thrust = 0;
     } else {
-        auto_thrust = V;
+        auto_thrust = thrust_gain*V;
     }
 
     if (isnan(delta)) {
@@ -120,7 +124,7 @@ void listener_controller_callback(const struct zbus_channel *chan) {
             }
             msg_control.thrust = msg_rc_input->thrust;
             msg_control.yaw = msg_rc_input->yaw;
-    
+
         // auto
         } else if (msg_rc_input->mode == 0) {
             if (msg_rc_input->mode != last_mode_change) {

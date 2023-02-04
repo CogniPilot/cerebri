@@ -22,11 +22,11 @@ double auto_steering = 0;
 int last_mode_change = -1;
 
 void auto_mode() {
-    double time_start = msg_trajectory.time_start;
-    double time_end = msg_trajectory.time_end;
+    uint64_t time_start = msg_trajectory.time_start;
+    uint64_t time_stop = msg_trajectory.time_stop;
     int64_t uptime = k_uptime_get();
     double time_now = uptime/1.0e3;
-    double T = time_end - time_start;
+    int64_t T = time_stop - time_start;
     //double t = time_now - time_start;
     double t = 0.1;
     double x, y, psi, V, delta = 0;
@@ -48,10 +48,11 @@ void auto_mode() {
         msg_trajectory.y[5]
     };
 
+    printf("t: %10.2f\n", t);
+    printf("T: %ld\n", T);
     printf("PX: %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n", PX[0], PX[1], PX[2], PX[3], PX[4], PX[5]);
     printf("PY: %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n", PY[0], PY[1], PY[2], PY[3], PY[4], PY[5]);
     printf("L: %10.2f\n", L);
-    printf("t: %10.2f\n", t);
 
     /* rover:(t,T,PX[1x6],PY[1x6],L)->(x,y,psi,V,delta) */
     const casadi_real * args[5];
@@ -70,6 +71,12 @@ void auto_mode() {
     casadi_real * w = NULL;
     int mem = 0;
     rover(args, res, iw, w, mem);
+
+    printf("x: %10.2f\n", x);
+    printf("y: %10.2f\n", y);
+    printf("psi: %10.2f\n", psi);
+    printf("V: %10.2f\n", V);
+    printf("delta: %10.2f\n", delta);
 
     if (isnan(V)) {
         printf("V is nan\n");

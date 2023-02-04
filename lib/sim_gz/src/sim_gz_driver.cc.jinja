@@ -56,7 +56,7 @@ static std::atomic<bool> armed(false);
 
 {%- if inputs.trajectory %}
 static const std::string trajectory_topic = "{{ inputs.trajectory.topic }}";
-static gz::msgs::PolynomialTrajectory trajectory{};
+static gz::msgs::BezierTrajectory trajectory{};
 {% endif -%}
 
 {%- if inputs.manual %}
@@ -178,13 +178,13 @@ void odom_callback(const gz::msgs::OdometryWithCovariance &msg) {
 }
 
 {% if inputs.trajectory %}
-void trajectory_callback(const gz::msgs::PolynomialTrajectory &msg) {
+void trajectory_callback(const gz::msgs::BezierTrajectory &msg) {
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_trajectory_t msg_trajectory{
         .uptime_nsec=uptime,
         .sequence=uint16_t(msg.sequence()),
         .time_start=msg.time_start(),
-        .time_end=msg.time_end(),
+        .time_stop=msg.time_stop(),
         .x={},
         .y={},
         .z={},
@@ -341,7 +341,7 @@ void thread_sim_entry_point(void)
     }
 {% if inputs.trajectory %}
     // Trajectory sub
-    bool sub_trajectory = node.Subscribe<gz::msgs::PolynomialTrajectory>(trajectory_topic, trajectory_callback);
+    bool sub_trajectory = node.Subscribe<gz::msgs::BezierTrajectory>(trajectory_topic, trajectory_callback);
     if (!sub_trajectory)
     {
         std::cerr << "Error subscribing to topic [" << trajectory_topic << "]" << std::endl;

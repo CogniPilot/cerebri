@@ -29,7 +29,7 @@ static const std::string odom_topic = "/model/MR_Buggy3/odometry_with_covariance
 static std::atomic<bool> g_terminatePub(false);
 static std::atomic<bool> armed(false);
 static const std::string trajectory_topic = "/traj";
-static gz::msgs::PolynomialTrajectory trajectory{};
+static gz::msgs::BezierTrajectory trajectory{};
 
 static gz::msgs::Joy joy{};
 static const std::string rc_input_topic = "/joy";
@@ -131,13 +131,13 @@ void odom_callback(const gz::msgs::OdometryWithCovariance &msg) {
 }
 
 
-void trajectory_callback(const gz::msgs::PolynomialTrajectory &msg) {
+void trajectory_callback(const gz::msgs::BezierTrajectory &msg) {
     uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_trajectory_t msg_trajectory{
         .uptime_nsec=uptime,
         .sequence=uint16_t(msg.sequence()),
         .time_start=msg.time_start(),
-        .time_end=msg.time_end(),
+        .time_stop=msg.time_stop(),
         .x={},
         .y={},
         .z={},
@@ -256,7 +256,7 @@ void thread_sim_entry_point(void)
     }
 
     // Trajectory sub
-    bool sub_trajectory = node.Subscribe<gz::msgs::PolynomialTrajectory>(trajectory_topic, trajectory_callback);
+    bool sub_trajectory = node.Subscribe<gz::msgs::BezierTrajectory>(trajectory_topic, trajectory_callback);
     if (!sub_trajectory)
     {
         std::cerr << "Error subscribing to topic [" << trajectory_topic << "]" << std::endl;

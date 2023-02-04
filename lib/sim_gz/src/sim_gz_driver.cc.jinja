@@ -190,11 +190,16 @@ void trajectory_callback(const gz::msgs::BezierTrajectory &msg) {
         .z={},
         .yaw={}
     };
-    for (int m = 0; m < msg.x_size(); m++)
-    {
+    for (int m = 0; m < msg.x_size(); m++) {
         msg_trajectory.x[m]=msg.x()[m];
+    };
+    for (int m = 0; m < msg.y_size(); m++) {
         msg_trajectory.y[m]=msg.y()[m];
+    };
+    for (int m = 0; m < msg.z_size(); m++) {
         msg_trajectory.z[m]=msg.z()[m];
+    };
+    for (int m = 0; m < msg.yaw_size(); m++) {
         msg_trajectory.yaw[m]=msg.yaw()[m];
     };
     queue_trajectory.push(msg_trajectory);

@@ -24,11 +24,17 @@ int last_mode_change = -1;
 void auto_mode() {
     uint64_t time_start = msg_trajectory.time_start;
     uint64_t time_stop = msg_trajectory.time_stop;
-    int64_t uptime = k_uptime_get();
-    double time_now = uptime/1.0e3;
-    int64_t T = time_stop - time_start;
-    //double t = time_now - time_start;
-    double t = 0.1;
+    int64_t uptime = k_uptime_get()*1e6;
+    int64_t T_nsec = time_stop - time_start;
+    int64_t t_nsec = uptime - time_start;
+    if (t_nsec > T_nsec) {
+      t_nsec = T_nsec;
+    }
+    if (t_nsec < 0) {
+      t_nsec = 0;
+    }
+    double t = t_nsec*1e-9;
+    double T = T_nsec*1e-9;
     double x, y, psi, V, delta = 0;
     double L = 0.2255;
     double PX[6] = {
@@ -48,11 +54,17 @@ void auto_mode() {
         msg_trajectory.y[5]
     };
 
-    printf("t: %10.2f\n", t);
-    printf("T: %ld\n", T);
-    printf("PX: %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n", PX[0], PX[1], PX[2], PX[3], PX[4], PX[5]);
-    printf("PY: %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n", PY[0], PY[1], PY[2], PY[3], PY[4], PY[5]);
-    printf("L: %10.2f\n", L);
+    //printf("uptime ms: %ld\n", uptime);
+    //printf("start ns: %ld\n", time_start);
+    //printf("stop ns: %ld\n", time_stop);
+    //printf("t ns: %ld\n", t_nsec);
+    //printf("T ns: %ld\n", T_nsec);
+
+    //printf("t: %10.2f\n", t);
+    //printf("T: %10.2f\n", T);
+    //printf("PX: %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n", PX[0], PX[1], PX[2], PX[3], PX[4], PX[5]);
+    //printf("PY: %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n", PY[0], PY[1], PY[2], PY[3], PY[4], PY[5]);
+    //printf("L: %10.2f\n", L);
 
     /* rover:(t,T,PX[1x6],PY[1x6],L)->(x,y,psi,V,delta) */
     const casadi_real * args[5];
@@ -117,8 +129,8 @@ void listener_controller_callback(const struct zbus_channel *chan) {
             }
             msg_control.thrust = auto_thrust;
             msg_control.yaw = auto_steering;
-            printf("thrust: %15.2f\n", auto_thrust);
-            printf("yaw: %15.2f\n", auto_steering);
+            //printf("thrust: %15.2f\n", auto_thrust);
+            //printf("yaw: %15.2f\n", auto_steering);
         }
 
         struct msg_actuators_t actuators_msg = mixer(&msg_control);

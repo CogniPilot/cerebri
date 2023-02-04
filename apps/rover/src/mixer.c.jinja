@@ -34,7 +34,7 @@ struct msg_actuators_t mixer(struct msg_rc_input_t * msg_rc_input) {
 {%- set yaw = mixer.yaw.split(',') -%}
 {% set thrust = mixer.thrust.split(',') %}
     {% for name, esc in escs.items()  %}
-    double scale{{ esc.control_index }} = ({{ esc.max_rps }} - {{ esc.min_rps }}) / 2.0;
+    double scale{{ esc.control_index }} = 1.0;
     double actuator{{ esc.control_index }} = {{ thrust[esc.control_index | int ] }}*mix_thrust*scale{{ esc.control_index }} + {{ yaw[esc.control_index | int ] }}*mix_yaw*scale{{ esc.control_index }};
     if(actuator{{ esc.control_index }} > {{ esc.max_rps }}) {
         actuator{{ esc.control_index }} = {{ esc.max_rps }};
@@ -44,7 +44,7 @@ struct msg_actuators_t mixer(struct msg_rc_input_t * msg_rc_input) {
     actuators_msg.actuator{{ esc.control_index }}_value = actuator{{ esc.control_index }};
     {% endfor %}
     {% for name, servo in servos.items()  %}
-    double scale{{ servo.control_index }} = ({{ servo.max }} - {{ servo.min }}) / 2.0;
+    double scale{{ servo.control_index }} = 1.0;
     double actuator{{ servo.control_index }} = {{ thrust[servo.control_index | int ] }}*mix_thrust*scale{{ servo.control_index }} + {{ yaw[servo.control_index | int ] }}*mix_yaw*scale{{ servo.control_index }};
     if(actuator{{ servo.control_index }} > {{ servo.max }}) {
         actuator{{servo.control_index }} = {{ servo.max }};

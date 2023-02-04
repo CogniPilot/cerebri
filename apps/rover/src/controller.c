@@ -20,7 +20,8 @@ struct msg_odometry_t msg_odometry = {};
 double auto_thrust = 0;
 double auto_steering = 0;
 int last_mode_change = -1;
-double thrust_gain = 0.5;
+double wheel_radius = 0.0365;
+double L = 0.2255;
 
 void auto_mode() {
     uint64_t time_start = msg_trajectory.time_start;
@@ -40,7 +41,6 @@ void auto_mode() {
     double t = t_nsec*1e-9;
     double T = T_nsec*1e-9;
     double x, y, psi, V, delta = 0;
-    double L = 0.2255;
     double PX[6] = {
         msg_trajectory.x[0],
         msg_trajectory.x[1],
@@ -98,7 +98,7 @@ void auto_mode() {
         printf("V is nan\n");
         auto_thrust = 0;
     } else {
-        auto_thrust = thrust_gain*V;
+        auto_thrust = V/wheel_radius;
     }
 
     if (isnan(delta)) {

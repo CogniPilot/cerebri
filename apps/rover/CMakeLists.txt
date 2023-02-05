@@ -22,4 +22,5 @@ target_sources(app PRIVATE
     src/controller.c
     src/casadi/bezier6.c
     src/casadi/rover.c
+    src/casadi/se2.c
 )

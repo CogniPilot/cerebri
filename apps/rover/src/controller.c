@@ -9,6 +9,7 @@
 
 #include "casadi/bezier6.h"
 #include "casadi/rover.h"
+#include "casadi/se2.h"
 
 double gx = 0;
 double gy = 0;
@@ -41,6 +42,7 @@ void auto_mode() {
     double t = t_nsec*1e-9;
     double T = T_nsec*1e-9;
     double x, y, psi, V, delta = 0;
+    double e[3] = {}; // e_x, e_y, e_theta
     double PX[6] = {
         msg_trajectory.x[0],
         msg_trajectory.x[1],
@@ -71,41 +73,73 @@ void auto_mode() {
     //printf("L: %10.2f\n", L);
 
     /* rover:(t,T,PX[1x6],PY[1x6],L)->(x,y,psi,V,delta) */
-    const casadi_real * args[5];
-    casadi_real * res[5];
-    args[0] = &t;
-    args[1] = &T;
-    args[2] = PX;
-    args[3] = PY;
-    args[4] = &L;
-    res[0] = &x;
-    res[1] = &y;
-    res[2] = &psi;
-    res[3] = &V;
-    res[4] = &delta;
-    casadi_int * iw = NULL;
-    casadi_real * w = NULL;
-    int mem = 0;
-    rover(args, res, iw, w, mem);
+    {
+        const casadi_real * args[5];
+        casadi_real * res[5];
+        args[0] = &t;
+        args[1] = &T;
+        args[2] = PX;
+        args[3] = PY;
+        args[4] = &L;
+        res[0] = &x;
+        res[1] = &y;
+        res[2] = &psi;
+        res[3] = &V;
+        res[4] = &delta;
+        casadi_int * iw = NULL;
+        casadi_real * w = NULL;
+        int mem = 0;
+        rover(args, res, iw, w, mem);
 
-    printf("x: %10.2f\n", x);
-    printf("y: %10.2f\n", y);
-    printf("psi: %10.2f\n", psi);
-    printf("V: %10.2f\n", V);
-    printf("delta: %10.2f\n", delta);
+        printf("x: %10.2f\n", x);
+        printf("y: %10.2f\n", y);
+        printf("psi: %10.2f\n", psi);
+        printf("V: %10.2f\n", V);
+        printf("delta: %10.2f\n", delta);
+    }
+
+    /* se2_error:(i0[3],i1[3])->(o0[3]) */
+    {
+        const casadi_real * args[2];
+        casadi_real * res[1];
+        casadi_int * iw = NULL;
+        casadi_real * w = NULL;
+        int mem = 0;
+
+        casadi_real i0[3], i1[3];
+
+        // vehicle position
+        i0[0] = msg_odometry.x;
+        i0[1] = msg_odometry.y;
+        i0[2] = 2*atan2(msg_odometry.qz, msg_odometry.qw);
+
+        // reference position
+        i1[0] = x;
+        i1[1] = y;
+        i1[2] = psi;
+
+        // call function
+        args[0] = i0;
+        args[1] = i1;
+        res[0] = e;
+        se2_error(args, res, iw, w, mem);
+    }
 
     if (isnan(V)) {
         printf("V is nan\n");
         auto_thrust = 0;
     } else {
-        auto_thrust = V/wheel_radius;
+        printf("e_x: %15.4f\n", e[0]);
+        auto_thrust = 1*e[0] + V/wheel_radius;
     }
 
     if (isnan(delta)) {
         printf("delta is nan\n");
         auto_steering = 0;
     } else {
-        auto_steering = delta;
+        printf("e_y: %15.4f\n", e[1]);
+        printf("e_theta: %15.4f\n", e[2]);
+        auto_steering = 1*e[1] + 1*e[2] + delta;
     }
 }
  

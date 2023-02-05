@@ -18,6 +18,10 @@ double gz = 0;
 struct msg_trajectory_t msg_trajectory = {};
 struct msg_odometry_t msg_odometry = {};
 
+double gain_heading = 0.5;
+double gain_cross_track = 0.4;
+double gain_along_track = 1.0;
+
 double auto_thrust = 0;
 double auto_steering = 0;
 int last_mode_change = -1;
@@ -130,7 +134,7 @@ void auto_mode() {
         auto_thrust = 0;
     } else {
         printf("e_x: %15.4f\n", e[0]);
-        auto_thrust = 1*e[0] + V/wheel_radius;
+        auto_thrust = gain_along_track*e[0] + V/wheel_radius;
     }
 
     if (isnan(delta)) {
@@ -139,7 +143,7 @@ void auto_mode() {
     } else {
         printf("e_y: %15.4f\n", e[1]);
         printf("e_theta: %15.4f\n", e[2]);
-        auto_steering = 1*e[1] + 1*e[2] + delta;
+        auto_steering = gain_cross_track*e[1] + gain_heading*e[2] + delta;
     }
 }
  

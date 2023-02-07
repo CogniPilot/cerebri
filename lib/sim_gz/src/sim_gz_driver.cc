@@ -13,18 +13,18 @@
 
 static std::weak_ptr<gz::transport::Node::Publisher> pub_esc0_ptr{};
 static gz::msgs::Double esc0;
-static const std::string esc0_topic = "/model/MR_Buggy3/drive";
+static const std::string esc0_topic = "/model/mrb3s/drive";
 
 
 static std::weak_ptr<gz::transport::Node::Publisher> pub_servo1_ptr{};
 static gz::msgs::Double servo1;
-static const std::string servo1_topic = "/model/MR_Buggy3/steer_angle";
+static const std::string servo1_topic = "/model/mrb3s/steer_angle";
 static const std::string clock_topic = "/world/default/clock";
-static const std::string mag_topic = "/world/default/model/MR_Buggy3/link/base_link/sensor/mag_sensor/mag";
-static const std::string navsat_topic = "/world/default/model/MR_Buggy3/link/base_link/sensor/navsat_sensor/navsat";
-static const std::string alt_topic = "/world/default/model/MR_Buggy3/link/base_link/sensor/altimeter_sensor/altimeter";
-static const std::string imu_topic = "/world/default/model/MR_Buggy3/link/base_link/sensor/imu_sensor/imu";
-static const std::string odom_topic = "/model/MR_Buggy3/odometry_with_covariance";
+static const std::string mag_topic = "/world/default/model/mrb3s/link/base_link/sensor/mag_sensor/mag";
+static const std::string navsat_topic = "/world/default/model/mrb3s/link/base_link/sensor/navsat_sensor/navsat";
+static const std::string alt_topic = "/world/default/model/mrb3s/link/base_link/sensor/altimeter_sensor/altimeter";
+static const std::string imu_topic = "/world/default/model/mrb3s/link/base_link/sensor/imu_sensor/imu";
+static const std::string odom_topic = "/model/mrb3s/odometry_with_covariance";
 
 static std::atomic<bool> g_terminatePub(false);
 static std::atomic<bool> armed(false);

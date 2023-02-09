@@ -18,30 +18,47 @@
 {%- set model = simulation.model_name.strip('"').strip("'") -%}
 {%- set world = simulation.world_name.strip('"').strip("'") -%}
 
-
 {%- if actuators.escs %}
 {% set escs = actuators.escs %}
 {%- if vehicle.type == "rover" %}
-{% for name, esc in escs.items() -%}
+{% if not escs.esc.__class__.__name__ == 'list' -%}
+{% set esc = escs.esc %}
+static std::weak_ptr<gz::transport::Node::Publisher> pub_esc{{ esc.control_index }}_ptr{};
+static gz::msgs::Double esc{{ esc.control_index }};
+static const std::string esc{{ esc.control_index }}_topic = "/model/{{ model }}/{{ esc.sim_topic.strip('"').strip("'") }}";
+{% endif -%}
+{% if escs.esc.__class__.__name__ == 'list' -%}
+{% for esc in escs.esc -%}
 static std::weak_ptr<gz::transport::Node::Publisher> pub_esc{{ esc.control_index }}_ptr{};
 static gz::msgs::Double esc{{ esc.control_index }};
 static const std::string esc{{ esc.control_index }}_topic = "/model/{{ model }}/{{ esc.sim_topic.strip('"').strip("'") }}";
 {% endfor -%}
 {% endif -%}
+{% endif -%}
 {%- if vehicle.type == "multicopter" %}
-static std::weak_ptr<gz::transport::Node::Publisher> pub_esc_ptr{};
-static gz::msgs::Actuators esc;
-static const std::string esc_topic = "/model/{{ model }}/command/motor_speed";
+static std::weak_ptr<gz::transport::Node::Publisher> pub_escs_ptr{};
+static gz::msgs::Actuators escs;
+static const std::string escs_topic = "/model/{{ model }}/command/motor_speed";
+static gz::msgs::Time stamp{};
+static gz::msgs::Header header{};
 {% endif -%}
 {% endif -%}
 
 {%- if actuators.servos %}
 {% set servos = actuators.servos %}
-{% for name, servo in servos.items() -%}
+{% if not servos.servo.__class__.__name__ == 'list' -%}
+{% set servo = servos.servo %}
+static std::weak_ptr<gz::transport::Node::Publisher> pub_servo{{ servo.control_index }}_ptr{};
+static gz::msgs::Double servo{{ servo.control_index }};
+static const std::string servo{{ servo.control_index }}_topic = "/model/{{ model }}/{{ servo.sim_topic.strip('"').strip("'") }}";
+{% endif -%}
+{% if servos.servo.__class__.__name__ == 'list' -%}
+{% for servo in servos.servo -%}
 static std::weak_ptr<gz::transport::Node::Publisher> pub_servo{{ servo.control_index }}_ptr{};
 static gz::msgs::Double servo{{ servo.control_index }};
 static const std::string servo{{ servo.control_index }}_topic = "/model/{{ model }}/{{ servo.sim_topic.strip('"').strip("'") }}";
 {% endfor -%}
+{% endif -%}
 {% endif -%}
 
 static const std::string clock_topic = "/world/{{ world }}/clock";
@@ -196,7 +213,7 @@ void rc_input_callback(const gz::msgs::Joy &msg) {
         .thrust=msg.axes()[{{ axes.thrust }}],
     {%- endif %}
     {%- if buttons.mode %}
-        .mode=flight_mode_t(msg.buttons()[{{ buttons.mode }}]),
+        .mode=control_mode_t(msg.buttons()[{{ buttons.mode }}]),
     {%- endif %}
         .armed=armed,
     };
@@ -221,22 +238,23 @@ void thread_sim_entry_point(void)
 {%- if vehicle.type == "multicopter" %}
     // prepare messages, must occur before control sent (subscriber launched)
     header.set_allocated_stamp(&stamp);
-    {% for name, esc in escs.items() -%}
-    esc.add_velocity(0);
+    {% for esc in escs.esc -%}
+    escs.add_velocity(0);
     {% endfor -%}
-    esc.set_allocated_header(&header);
+    escs.set_allocated_header(&header);
 
-    auto pub_esc = std::make_shared<gz::transport::Node::Publisher>(
-        node.Advertise<gz::msgs::Actuators>(esc_topic));
-    if (!pub_esc)
+    auto pub_escs = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Actuators>(escs_topic));
+    if (!pub_escs)
     {
-        std::cerr << "Error advertising topic [" << esc_topic << "]" << std::endl;
+        std::cerr << "Error advertising topic [" << escs_topic << "]" << std::endl;
         return;
     }
-    pub_esc_ptr = pub_esc;
+    pub_escs_ptr = pub_escs;
 {% endif %}
 {%- if vehicle.type == "rover" %}
-    {% for name, esc in escs.items() -%}
+{% if not escs.esc.__class__.__name__ == 'list' -%}
+{%- set esc = escs.esc %}
     auto pub_esc{{ esc.control_index }} = std::make_shared<gz::transport::Node::Publisher>(
         node.Advertise<gz::msgs::Double>(esc{{ esc.control_index }}_topic));
     if (!pub_esc{{ esc.control_index }})
@@ -245,11 +263,24 @@ void thread_sim_entry_point(void)
         return;
     }
     pub_esc{{ esc.control_index }}_ptr = pub_esc{{ esc.control_index }};
-    {% endfor %}
+{% endif -%}
+{% if escs.esc.__class__.__name__ == 'list' -%}
+{%- for esc in escs.esc %}
+    auto pub_esc{{ esc.control_index }} = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Double>(esc{{ esc.control_index }}_topic));
+    if (!pub_esc{{ esc.control_index }})
+    {
+        std::cerr << "Error advertising topic [" << esc{{ esc.control_index }}_topic << "]" << std::endl;
+        return;
+    }
+    pub_esc{{ esc.control_index }}_ptr = pub_esc{{ esc.control_index }};
+{% endfor %}
+{% endif -%}
 {% endif %}
 {% endif %}
 {%- if actuators.servos %}
-    {% for name, servo in servos.items() -%}
+{% if not servos.servo.__class__.__name__ == 'list' -%}
+{%- set servo = servos.servo %}
     auto pub_servo{{ servo.control_index }} = std::make_shared<gz::transport::Node::Publisher>(
         node.Advertise<gz::msgs::Double>(servo{{ servo.control_index }}_topic));
     if (!pub_servo{{ servo.control_index }})
@@ -258,7 +289,19 @@ void thread_sim_entry_point(void)
         return;
     }
     pub_servo{{ servo.control_index }}_ptr = pub_servo{{ servo.control_index }};
-    {% endfor %}
+{% endif %}
+{% if servos.servo.__class__.__name__ == 'list' -%}
+{%- for servo in servos.servo %}
+    auto pub_servo{{ servo.control_index }} = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Double>(servo{{ servo.control_index }}_topic));
+    if (!pub_servo{{ servo.control_index }})
+    {
+        std::cerr << "Error advertising topic [" << servo{{ servo.control_index }}_topic << "]" << std::endl;
+        return;
+    }
+    pub_servo{{ servo.control_index }}_ptr = pub_servo{{ servo.control_index }};
+{% endfor %}
+{% endif %}
 {% endif %}
     // imu sub
     bool sub_imu = node.Subscribe<gz::msgs::IMU>(imu_topic, imu_callback);
@@ -338,18 +381,24 @@ void thread_sim_entry_point(void)
 
 {%- if actuators.escs %}
 {%- if vehicle.type == "multicopter" %}
-    {%- for name, esc in escs.items() -%}
             escs.set_velocity({{ esc.sim_actuator }}, msg.actuator{{ esc.control_index }}_value);
-            escs.mutable_header()->mutable_stamp()->set_sec(sec);
-            escs.mutable_header()->mutable_stamp()->set_nsec(nsec);
-    {% endfor -%}
             if (!pub_esc_ptr.lock().get()->Publish(escs)) {
                 std::cerr << "Error publishing topic [" << esc_topic << "]" << std::endl;
             }
 
 {% endif %}
 {%- if vehicle.type == "rover" %}
-    {%- for name, esc in escs.items() %}
+{% if not escs.esc.__class__.__name__ == 'list' -%}
+{% set esc = escs.esc %}
+            esc{{ esc.control_index }}.set_data(msg.actuator{{esc.control_index }}_value);
+            esc{{ esc.control_index }}.mutable_header()->mutable_stamp()->set_sec(sec);
+            esc{{ esc.control_index }}.mutable_header()->mutable_stamp()->set_nsec(nsec);
+            if (!pub_esc{{ esc.control_index }}_ptr.lock().get()->Publish(esc{{ esc.control_index }})) {
+                std::cerr << "Error publishing topic [" << esc{{ esc.control_index }}_topic << "]" << std::endl;
+            }
+{% endif -%}
+{% if escs.esc.__class__.__name__ == 'list' -%}
+{%- for esc in escs.esc %}
             esc{{ esc.control_index }}.set_data(msg.actuator{{esc.control_index }}_value);
             esc{{ esc.control_index }}.mutable_header()->mutable_stamp()->set_sec(sec);
             esc{{ esc.control_index }}.mutable_header()->mutable_stamp()->set_nsec(nsec);
@@ -357,11 +406,22 @@ void thread_sim_entry_point(void)
                 std::cerr << "Error publishing topic [" << esc{{ esc.control_index }}_topic << "]" << std::endl;
             }
 
-    {%- endfor -%}
+{%- endfor -%}
+{% endif %}
 {% endif %}
 {% endif -%}
 {%- if actuators.servos %}
-    {%- for name, servo in servos.items() %}
+{% if not servos.servo.__class__.__name__ == 'list' -%}
+{% set servo = servos.servo %}
+            servo{{ servo.control_index }}.set_data(msg.actuator{{servo.control_index }}_value);
+            servo{{ servo.control_index }}.mutable_header()->mutable_stamp()->set_sec(sec);
+            servo{{ servo.control_index }}.mutable_header()->mutable_stamp()->set_nsec(nsec);
+            if (!pub_servo{{ servo.control_index }}_ptr.lock().get()->Publish(servo{{ servo.control_index }})) {
+                std::cerr << "Error publishing topic [" << servo{{ servo.control_index }}_topic << "]" << std::endl;
+            }
+{% endif %}
+{% if servos.servo.__class__.__name__ == 'list' -%}
+{%- for servo in servos.servo %}
             servo{{ servo.control_index }}.set_data(msg.actuator{{servo.control_index }}_value);
             servo{{ servo.control_index }}.mutable_header()->mutable_stamp()->set_sec(sec);
             servo{{ servo.control_index }}.mutable_header()->mutable_stamp()->set_nsec(nsec);
@@ -369,7 +429,8 @@ void thread_sim_entry_point(void)
                 std::cerr << "Error publishing topic [" << servo{{ servo.control_index }}_topic << "]" << std::endl;
             }
 
-    {%- endfor -%}
+{%- endfor -%}
+{% endif -%}
 {% endif %}
             // sleep 1 ms
             usleep(1000);

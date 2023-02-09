@@ -29,7 +29,7 @@ double L = 0.2255;
 // local variables
 double auto_thrust = 0;
 double auto_steering = 0;
-char * flight_mode_name[2] = {"manual", "auto"};
+char * mode_name[2] = {"auto", "manual"};
 
 // listens to zbus channels
 void listener_controller_callback(const struct zbus_channel *chan) {
@@ -144,7 +144,7 @@ void auto_mode() {
 }
 
 void control_entry_point(void *, void *, void *) {
-    enum flight_mode_t mode = FLIGHT_MODE_MANUAL;
+    enum control_mode_t mode = MODE_MANUAL;
     struct msg_rc_input_t msg_control = {};
 
     while (true) {
@@ -157,18 +157,18 @@ void control_entry_point(void *, void *, void *) {
         // notify on mode change
         if (msg_rc_input.mode != mode) {
             mode = msg_rc_input.mode;
-            printf("mode changed to %s!\n", flight_mode_name[mode]);
+            printf("mode changed to %s!\n", mode_name[mode]);
         }
 
         // manual mode
-        if (mode == FLIGHT_MODE_MANUAL) {
+        if (mode == MODE_MANUAL) {
             msg_control.timestamp = msg_rc_input.timestamp;
             msg_control.thrust = msg_rc_input.thrust;
             msg_control.yaw = msg_rc_input.yaw;
             msg_control.mode = mode;
 
         // auto
-        } else if (mode == FLIGHT_MODE_AUTO) {
+        } else if (mode == MODE_AUTO) {
             // comptue auto if we have a trajectory
             if (msg_trajectory.time_start != 0) {
                 auto_mode();

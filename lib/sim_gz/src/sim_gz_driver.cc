@@ -11,9 +11,11 @@
 
 #include "../sim_core/src/sim_core.h"
 
+
 static std::weak_ptr<gz::transport::Node::Publisher> pub_esc0_ptr{};
 static gz::msgs::Double esc0;
 static const std::string esc0_topic = "/model/mrb3s/drive";
+
 
 
 static std::weak_ptr<gz::transport::Node::Publisher> pub_servo1_ptr{};
@@ -152,7 +154,7 @@ void rc_input_callback(const gz::msgs::Joy &msg) {
         .timestamp=timestamp,
         .yaw=msg.axes()[3],
         .thrust=msg.axes()[1],
-        .mode=flight_mode_t(msg.buttons()[4]),
+        .mode=control_mode_t(msg.buttons()[4]),
         .armed=armed,
     };
     queue_rc_input.push(msg_rc_input);
@@ -171,6 +173,7 @@ void thread_sim_entry_point(void)
 {
     // Create a transport node and advertise a topic.
     gz::transport::Node node;
+
     auto pub_esc0 = std::make_shared<gz::transport::Node::Publisher>(
         node.Advertise<gz::msgs::Double>(esc0_topic));
     if (!pub_esc0)
@@ -179,7 +182,7 @@ void thread_sim_entry_point(void)
         return;
     }
     pub_esc0_ptr = pub_esc0;
-    
+
 
 
     auto pub_servo1 = std::make_shared<gz::transport::Node::Publisher>(
@@ -190,7 +193,8 @@ void thread_sim_entry_point(void)
         return;
     }
     pub_servo1_ptr = pub_servo1;
-    
+
+
 
     // imu sub
     bool sub_imu = node.Subscribe<gz::msgs::IMU>(imu_topic, imu_callback);
@@ -267,6 +271,7 @@ void thread_sim_entry_point(void)
         while (queue_actuator.tryPop(msg)) {
             uint64_t sec = msg.timestamp/1e9;
             uint64_t nsec = msg.timestamp - sec*1e9;
+
             esc0.set_data(msg.actuator0_value);
             esc0.mutable_header()->mutable_stamp()->set_sec(sec);
             esc0.mutable_header()->mutable_stamp()->set_nsec(nsec);
@@ -274,12 +279,17 @@ void thread_sim_entry_point(void)
                 std::cerr << "Error publishing topic [" << esc0_topic << "]" << std::endl;
             }
 
+
+
+
             servo1.set_data(msg.actuator1_value);
             servo1.mutable_header()->mutable_stamp()->set_sec(sec);
             servo1.mutable_header()->mutable_stamp()->set_nsec(nsec);
             if (!pub_servo1_ptr.lock().get()->Publish(servo1)) {
                 std::cerr << "Error publishing topic [" << servo1_topic << "]" << std::endl;
             }
+
+
             // sleep 1 ms
             usleep(1000);
         }

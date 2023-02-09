@@ -80,9 +80,9 @@ struct msg_trajectory_t {
     double yaw[8];
 };
 
-enum flight_mode_t {
-    FLIGHT_MODE_MANUAL=0,
-    FLIGHT_MODE_AUTO=1,
+enum control_mode_t {
+    MODE_AUTO=0,
+    MODE_MANUAL=1,
 };
 
 struct msg_rc_input_t {
@@ -91,7 +91,7 @@ struct msg_rc_input_t {
     double pitch;
     double yaw;
     double thrust;
-    enum flight_mode_t mode;
+    enum control_mode_t mode;
     bool armed;
 };
 

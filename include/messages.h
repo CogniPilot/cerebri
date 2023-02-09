@@ -81,8 +81,8 @@ struct msg_trajectory_t {
 };
 
 enum control_mode_t {
-    MODE_AUTO=0,
-    MODE_MANUAL=1,
+    MODE_MANUAL=0,
+    MODE_AUTO=1,
 };
 
 struct msg_rc_input_t {

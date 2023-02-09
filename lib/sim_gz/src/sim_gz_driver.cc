@@ -11,22 +11,24 @@
 
 #include "../sim_core/src/sim_core.h"
 
-
 static std::weak_ptr<gz::transport::Node::Publisher> pub_esc0_ptr{};
 static gz::msgs::Double esc0;
-static const std::string esc0_topic = "/model/mrb3s/drive";
-
-
-
-static std::weak_ptr<gz::transport::Node::Publisher> pub_servo1_ptr{};
-static gz::msgs::Double servo1;
-static const std::string servo1_topic = "/model/mrb3s/steer_angle";
+static const std::string esc0_topic = "/model/elm4s/front_left";
+static std::weak_ptr<gz::transport::Node::Publisher> pub_esc1_ptr{};
+static gz::msgs::Double esc1;
+static const std::string esc1_topic = "/model/elm4s/front_right";
+static std::weak_ptr<gz::transport::Node::Publisher> pub_esc2_ptr{};
+static gz::msgs::Double esc2;
+static const std::string esc2_topic = "/model/elm4s/rear_right";
+static std::weak_ptr<gz::transport::Node::Publisher> pub_esc3_ptr{};
+static gz::msgs::Double esc3;
+static const std::string esc3_topic = "/model/elm4s/rear_left";
 static const std::string clock_topic = "/world/default/clock";
-static const std::string mag_topic = "/world/default/model/mrb3s/link/base_link/sensor/mag_sensor/mag";
-static const std::string navsat_topic = "/world/default/model/mrb3s/link/base_link/sensor/navsat_sensor/navsat";
-static const std::string alt_topic = "/world/default/model/mrb3s/link/base_link/sensor/altimeter_sensor/altimeter";
-static const std::string imu_topic = "/world/default/model/mrb3s/link/base_link/sensor/imu_sensor/imu";
-static const std::string odom_topic = "/model/mrb3s/odometry_with_covariance";
+static const std::string mag_topic = "/world/default/model/elm4s/link/base_link/sensor/mag_sensor/mag";
+static const std::string navsat_topic = "/world/default/model/elm4s/link/base_link/sensor/navsat_sensor/navsat";
+static const std::string alt_topic = "/world/default/model/elm4s/link/base_link/sensor/altimeter_sensor/altimeter";
+static const std::string imu_topic = "/world/default/model/elm4s/link/base_link/sensor/imu_sensor/imu";
+static const std::string odom_topic = "/model/elm4s/odometry_with_covariance";
 
 static std::atomic<bool> g_terminatePub(false);
 static std::atomic<bool> armed(false);
@@ -142,18 +144,18 @@ void trajectory_callback(const gz::msgs::BezierTrajectory &msg) {
 
 void rc_input_callback(const gz::msgs::Joy &msg) {
     uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
-    if (!armed && msg.buttons()[0] == 1) {
+    if (!armed && msg.buttons()[6] == 1) {
         armed = true;
         std::cout << "armed!" << std::endl;
     }
-    if (armed && msg.buttons()[1] == 1) {
+    if (armed && msg.buttons()[7] == 1) {
         armed = false;
         std::cout << "dis-armed!" << std::endl;
     }
     msg_rc_input_t msg_rc_input{
         .timestamp=timestamp,
         .yaw=msg.axes()[3],
-        .thrust=msg.axes()[1],
+        .thrust=msg.axes()[2],
         .mode=control_mode_t(msg.buttons()[4]),
         .armed=armed,
     };
@@ -183,16 +185,32 @@ void thread_sim_entry_point(void)
     }
     pub_esc0_ptr = pub_esc0;
 
-
-
-    auto pub_servo1 = std::make_shared<gz::transport::Node::Publisher>(
-        node.Advertise<gz::msgs::Double>(servo1_topic));
-    if (!pub_servo1)
+    auto pub_esc1 = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Double>(esc1_topic));
+    if (!pub_esc1)
     {
-        std::cerr << "Error advertising topic [" << servo1_topic << "]" << std::endl;
+        std::cerr << "Error advertising topic [" << esc1_topic << "]" << std::endl;
         return;
     }
-    pub_servo1_ptr = pub_servo1;
+    pub_esc1_ptr = pub_esc1;
+
+    auto pub_esc2 = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Double>(esc2_topic));
+    if (!pub_esc2)
+    {
+        std::cerr << "Error advertising topic [" << esc2_topic << "]" << std::endl;
+        return;
+    }
+    pub_esc2_ptr = pub_esc2;
+
+    auto pub_esc3 = std::make_shared<gz::transport::Node::Publisher>(
+        node.Advertise<gz::msgs::Double>(esc3_topic));
+    if (!pub_esc3)
+    {
+        std::cerr << "Error advertising topic [" << esc3_topic << "]" << std::endl;
+        return;
+    }
+    pub_esc3_ptr = pub_esc3;
 
 
 
@@ -278,15 +296,23 @@ void thread_sim_entry_point(void)
             if (!pub_esc0_ptr.lock().get()->Publish(esc0)) {
                 std::cerr << "Error publishing topic [" << esc0_topic << "]" << std::endl;
             }
-
-
-
-
-            servo1.set_data(msg.actuator1_value);
-            servo1.mutable_header()->mutable_stamp()->set_sec(sec);
-            servo1.mutable_header()->mutable_stamp()->set_nsec(nsec);
-            if (!pub_servo1_ptr.lock().get()->Publish(servo1)) {
-                std::cerr << "Error publishing topic [" << servo1_topic << "]" << std::endl;
+            esc1.set_data(msg.actuator1_value);
+            esc1.mutable_header()->mutable_stamp()->set_sec(sec);
+            esc1.mutable_header()->mutable_stamp()->set_nsec(nsec);
+            if (!pub_esc1_ptr.lock().get()->Publish(esc1)) {
+                std::cerr << "Error publishing topic [" << esc1_topic << "]" << std::endl;
+            }
+            esc2.set_data(msg.actuator2_value);
+            esc2.mutable_header()->mutable_stamp()->set_sec(sec);
+            esc2.mutable_header()->mutable_stamp()->set_nsec(nsec);
+            if (!pub_esc2_ptr.lock().get()->Publish(esc2)) {
+                std::cerr << "Error publishing topic [" << esc2_topic << "]" << std::endl;
+            }
+            esc3.set_data(msg.actuator3_value);
+            esc3.mutable_header()->mutable_stamp()->set_sec(sec);
+            esc3.mutable_header()->mutable_stamp()->set_nsec(nsec);
+            if (!pub_esc3_ptr.lock().get()->Publish(esc3)) {
+                std::cerr << "Error publishing topic [" << esc3_topic << "]" << std::endl;
             }
 
 

@@ -29,7 +29,7 @@ double L = 0.2255;
 // local variables
 double auto_thrust = 0;
 double auto_steering = 0;
-char * mode_name[2] = {"auto", "manual"};
+char * mode_name[2] = {"manual", "auto"};
 
 // listens to zbus channels
 void listener_controller_callback(const struct zbus_channel *chan) {

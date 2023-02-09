@@ -81,18 +81,6 @@ void auto_mode() {
         msg_trajectory.y[5]
     };
 
-    //printf("uptime ms: %ld\n", uptime);
-    //printf("start ns: %ld\n", time_start);
-    //printf("stop ns: %ld\n", time_stop);
-    //printf("t ns: %ld\n", t_nsec);
-    //printf("T ns: %ld\n", T_nsec);
-
-    //printf("t: %10.2f\n", t);
-    //printf("T: %10.2f\n", T);
-    //printf("PX: %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n", PX[0], PX[1], PX[2], PX[3], PX[4], PX[5]);
-    //printf("PY: %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f\n", PY[0], PY[1], PY[2], PY[3], PY[4], PY[5]);
-    //printf("L: %10.2f\n", L);
-
     /* rover:(t,T,PX[1x6],PY[1x6],L)->(x,y,psi,V,delta) */
     {
         const casadi_real * args[5];
@@ -111,12 +99,6 @@ void auto_mode() {
         casadi_real * w = NULL;
         int mem = 0;
         rover(args, res, iw, w, mem);
-
-        printf("x: %10.2f\n", x);
-        printf("y: %10.2f\n", y);
-        printf("psi: %10.2f\n", psi);
-        printf("V: %10.2f\n", V);
-        printf("delta: %10.2f\n", delta);
     }
 
     /* se2_error:(i0[3],i1[3])->(o0[3]) */
@@ -150,7 +132,6 @@ void auto_mode() {
         printf("V is nan\n");
         auto_thrust = 0;
     } else {
-        printf("e_x: %15.4f\n", e[0]);
         auto_thrust = gain_along_track*e[0] + V/wheel_radius;
     }
 
@@ -158,8 +139,6 @@ void auto_mode() {
         printf("delta is nan\n");
         auto_steering = 0;
     } else {
-        printf("e_y: %15.4f\n", e[1]);
-        printf("e_theta: %15.4f\n", e[2]);
         auto_steering = gain_cross_track*e[1] + gain_heading*e[2] + delta;
     }
 }
@@ -171,6 +150,7 @@ void control_entry_point(void *, void *, void *) {
     while (true) {
 
         msg_control.timestamp = msg_rc_input.timestamp;
+        msg_control.armed = msg_rc_input.armed;
         msg_control.thrust = 0;
         msg_control.yaw = 0;
 
@@ -193,17 +173,15 @@ void control_entry_point(void *, void *, void *) {
                 auto_mode();
                 msg_control.thrust = auto_thrust;
                 msg_control.yaw = auto_steering;
-                //printf("thrust: %15.2f\n", auto_thrust);
-                //printf("yaw: %15.2f\n", auto_steering);
             }
         }
 
         // send data to motors
-        struct msg_actuators_t actuators_msg = mixer(&msg_control);
+        struct msg_actuators_t msg_actuators = mixer(&msg_control);
+        msg_actuators.timestamp = msg_control.timestamp;
 
-        if (msg_control.timestamp != 0) {
-            zbus_chan_pub(&chan_actuators, &actuators_msg, K_NO_WAIT);
-        }
+        zbus_chan_pub(&chan_actuators, &msg_actuators, K_NO_WAIT);
+
         // sleep to set control rate at 50 Hz
         k_usleep(1e6/50);
     }

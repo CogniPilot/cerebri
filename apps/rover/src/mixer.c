@@ -18,10 +18,10 @@ struct msg_actuators_t mixer(struct msg_rc_input_t * msg_rc_input) {
     
     double scale0 = 1.0;
     double actuator0 = 1*mix_thrust*scale0 + 0*mix_yaw*scale0;
-    if(actuator0 > 104.8) {
-        actuator0 = 104.8;
-    } else if (actuator0 < -104.8) {
-        actuator0 = -104.8;
+    if(actuator0 > 1004.8) {
+        actuator0 = 1004.8;
+    } else if (actuator0 < -1004.8) {
+        actuator0 = -1004.8;
     }
     actuators_msg.actuator0_value = actuator0;
     

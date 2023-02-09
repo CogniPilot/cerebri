@@ -11,15 +11,15 @@ static const int clock_check_rate = 1000; // Hz
 int64_t connect_time = 0;
 
 LockingQueue<msg_accelerometer_t> queue_accelerometer{};
+LockingQueue<msg_actuators_t> queue_actuator{};
+LockingQueue<msg_altimeter_t> queue_altimeter{};
 LockingQueue<msg_gyroscope_t> queue_gyroscope{};
 LockingQueue<msg_magnetometer_t> queue_magnetometer{};
-LockingQueue<msg_altimeter_t> queue_altimeter{};
 LockingQueue<msg_navsat_t> queue_navsat{};
-LockingQueue<msg_trajectory_t> queue_trajectory{};
-LockingQueue<msg_rc_input_t> queue_rc_input{};
 LockingQueue<msg_odometry_t> queue_external_odometry{};
+LockingQueue<msg_rc_input_t> queue_rc_input{};
+LockingQueue<msg_trajectory_t> queue_trajectory{};
 LockingQueue<sim_time_t> queue_sim_time{};
-
 
 #define PUB_SIM_MESSAGES(TOPIC, MSG) \
 { \
@@ -29,18 +29,10 @@ LockingQueue<sim_time_t> queue_sim_time{};
     } \
 }
 
-extern void send_control(sim_time_t time, const msg_actuators_t * msg);
-
 void sim_actuator_callback(const struct zbus_channel *chan)
 {
-    int64_t uptime = k_uptime_get();
-    int64_t sec = uptime/1.0e3;
-    int32_t nsec = (uptime - sec*1e3)*1e6;
-    const msg_actuators_t *msg = (const msg_actuators_t *)zbus_chan_const_msg(chan);
-    sim_time_t sim_time {
-        .sec=sec, .nsec=nsec
-    };
-    send_control(sim_time, msg);
+    msg_actuators_t msg = *(const msg_actuators_t *)zbus_chan_const_msg(chan);
+    queue_actuator.push(msg);
 };
 ZBUS_LISTENER_DEFINE(listener_sim_actuators, sim_actuator_callback);
 

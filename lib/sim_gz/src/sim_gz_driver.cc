@@ -33,26 +33,6 @@ static gz::msgs::BezierTrajectory trajectory{};
 
 static gz::msgs::Joy joy{};
 static const std::string rc_input_topic = "/joy";
-static gz::msgs::Time stamp{};
-static gz::msgs::Header header{};
-
-void send_control(sim_time_t time, const msg_actuators_t * msg) {
-    
-    // set timestamp
-    stamp.set_sec(time.sec);
-    stamp.set_nsec(time.nsec);
-    esc0.set_data(msg->actuator0_value);
-    if (!pub_esc0_ptr.lock().get()->Publish(esc0)) {
-        std::cerr << "Error publishing topic [" << esc0_topic << "]" << std::endl;
-    }
-    
-
-    servo1.set_data(msg->actuator1_value);
-    if (!pub_servo1_ptr.lock().get()->Publish(servo1)) {
-        std::cerr << "Error publishing topic [" << servo1_topic << "]" << std::endl;
-    }
-    
-}
 
 void imu_callback(const gz::msgs::IMU &msg) {
     uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
@@ -199,8 +179,6 @@ void thread_sim_entry_point(void)
         return;
     }
     pub_esc0_ptr = pub_esc0;
-    
-
 
     auto pub_servo1 = std::make_shared<gz::transport::Node::Publisher>(
         node.Advertise<gz::msgs::Double>(servo1_topic));
@@ -210,7 +188,6 @@ void thread_sim_entry_point(void)
         return;
     }
     pub_servo1_ptr = pub_servo1;
-    
 
     // imu sub
     bool sub_imu = node.Subscribe<gz::msgs::IMU>(imu_topic, imu_callback);
@@ -268,7 +245,6 @@ void thread_sim_entry_point(void)
         return;
     }
 
-
     // rc_input sub
     bool sub_rc_input = node.Subscribe<gz::msgs::Joy>(rc_input_topic, rc_input_callback);
     if (!sub_rc_input)
@@ -277,11 +253,35 @@ void thread_sim_entry_point(void)
         return;
     }
 
+    // actuator msg
+    msg_actuators_t msg;
+
     // sleep main thread, everything done async
     while (!g_terminatePub)
     {
         // host sleep doesn't count for zephyr time
-        sleep(1);
+        while (queue_actuator.tryPop(msg)) {
+            uint64_t sec = msg.timestamp/1e9;
+            uint64_t nsec = msg.timestamp - sec*1e9;
+
+            esc0.set_data(msg.actuator0_value);
+            esc0.mutable_header()->mutable_stamp()->set_sec(sec);
+            esc0.mutable_header()->mutable_stamp()->set_nsec(nsec);
+            if (!pub_esc0_ptr.lock().get()->Publish(esc0)) {
+                std::cerr << "Error publishing topic [" << esc0_topic << "]" << std::endl;
+            }
+
+            servo1.set_data(msg.actuator1_value);
+            servo1.mutable_header()->mutable_stamp()->set_sec(sec);
+            servo1.mutable_header()->mutable_stamp()->set_nsec(nsec);
+            servo1.set_data(msg.actuator1_value);
+            if (!pub_servo1_ptr.lock().get()->Publish(servo1)) {
+                std::cerr << "Error publishing topic [" << servo1_topic << "]" << std::endl;
+            }
+
+            // sleep 1 ms
+            usleep(1000);
+        }
     }
 }
 

@@ -12,7 +12,7 @@ enum actuator_type_t{
     ACTUATOR_TYPE_END
 };
 struct msg_actuators_t {
-    uint64_t uptime_nsec;
+    uint64_t timestamp;
     double actuator0_value;
     uint8_t actuator0_type;
     double actuator1_value;
@@ -32,35 +32,35 @@ struct msg_actuators_t {
 };
 
 struct msg_accelerometer_t {
-    uint64_t uptime_nsec;
+    uint64_t timestamp;
     double x;
     double y;
     double z;
 };
 
 struct msg_gyroscope_t {
-    uint64_t uptime_nsec;
+    uint64_t timestamp;
     double x;
     double y;
     double z;
 };
 
 struct msg_magnetometer_t {
-    uint64_t uptime_nsec;
+    uint64_t timestamp;
     double x;
     double y;
     double z;
 };
 
 struct msg_altimeter_t {
-    uint64_t uptime_nsec;
+    uint64_t timestamp;
     double position;
     double reference;
     double velocity;
 };
 
 struct msg_navsat_t {
-    uint64_t uptime_nsec;
+    uint64_t timestamp;
     double latitude_deg;
     double longitude_deg;
     double altitude;
@@ -70,7 +70,7 @@ struct msg_navsat_t {
 };
 
 struct msg_trajectory_t {
-    uint64_t uptime_nsec;
+    uint64_t timestamp;
     uint16_t sequence;
     uint64_t time_start;
     uint64_t time_stop;
@@ -80,18 +80,23 @@ struct msg_trajectory_t {
     double yaw[8];
 };
 
+enum flight_mode_t {
+    FLIGHT_MODE_MANUAL=0,
+    FLIGHT_MODE_AUTO=1,
+};
+
 struct msg_rc_input_t {
-    uint64_t uptime_nsec;
+    uint64_t timestamp;
     double roll;
     double pitch;
     double yaw;
     double thrust;
-    int mode;
+    enum flight_mode_t mode;
     bool armed;
 };
 
 struct msg_odometry_t {
-    uint64_t uptime_nsec;
+    uint64_t timestamp;
     double x;
     double y;
     double z;

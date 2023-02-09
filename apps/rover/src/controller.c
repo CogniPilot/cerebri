@@ -11,23 +11,40 @@
 #include "casadi/rover.h"
 #include "casadi/se2.h"
 
-double gx = 0;
-double gy = 0;
-double gz = 0;
-
+// data
+struct msg_gyroscope_t msg_gyroscope = {};
 struct msg_trajectory_t msg_trajectory = {};
 struct msg_odometry_t msg_odometry = {};
+struct msg_rc_input_t msg_rc_input = {};
 
+// gains
 double gain_heading = 0.5;
 double gain_cross_track = 0.4;
 double gain_along_track = 1.0;
 
-double auto_thrust = 0;
-double auto_steering = 0;
-int last_mode_change = -1;
+// parameters
 double wheel_radius = 0.0365;
 double L = 0.2255;
 
+// local variables
+double auto_thrust = 0;
+double auto_steering = 0;
+char * flight_mode_name[2] = {"manual", "auto"};
+
+// listens to zbus channels
+void listener_controller_callback(const struct zbus_channel *chan) {
+    if (chan == &chan_rc_input) {
+        msg_rc_input = *(const struct msg_rc_input_t *)zbus_chan_const_msg(chan);
+    } else if (chan == &chan_gyroscope) {
+        msg_gyroscope = *(const struct msg_gyroscope_t *)zbus_chan_const_msg(chan);
+    } else if (chan == &chan_trajectory) {
+        msg_trajectory = *(const struct msg_trajectory_t *)zbus_chan_const_msg(chan);
+    } else if (chan == &chan_external_odometry) {
+        msg_odometry = *(const struct msg_odometry_t *)zbus_chan_const_msg(chan);
+    }
+}
+
+// computes thrust/steering in auto mode
 void auto_mode() {
     uint64_t time_start = msg_trajectory.time_start;
     uint64_t time_stop = msg_trajectory.time_stop;
@@ -146,55 +163,54 @@ void auto_mode() {
         auto_steering = gain_cross_track*e[1] + gain_heading*e[2] + delta;
     }
 }
- 
-void listener_controller_callback(const struct zbus_channel *chan) {
-    
-    if (chan == &chan_rc_input) {
-        const struct msg_rc_input_t *msg_rc_input = (const struct msg_rc_input_t *)zbus_chan_const_msg(chan);
-        struct msg_rc_input_t msg_control = *msg_rc_input;
 
+void control_entry_point(void *, void *, void *) {
+    enum flight_mode_t mode = FLIGHT_MODE_MANUAL;
+    struct msg_rc_input_t msg_control = {};
+
+    while (true) {
+
+        msg_control.timestamp = msg_rc_input.timestamp;
+        msg_control.thrust = 0;
+        msg_control.yaw = 0;
+
+        // notify on mode change
+        if (msg_rc_input.mode != mode) {
+            mode = msg_rc_input.mode;
+            printf("mode changed to %s!\n", flight_mode_name[mode]);
+        }
 
         // manual mode
-        if (msg_rc_input->mode == 1) {
-            if (msg_rc_input->mode != last_mode_change) {
-                last_mode_change = msg_rc_input->mode;
-                printf("Set to manual mode!\n");
-            }
-            msg_control.thrust = msg_rc_input->thrust;
-            msg_control.yaw = msg_rc_input->yaw;
+        if (mode == FLIGHT_MODE_MANUAL) {
+            msg_control.timestamp = msg_rc_input.timestamp;
+            msg_control.thrust = msg_rc_input.thrust;
+            msg_control.yaw = msg_rc_input.yaw;
 
         // auto
-        } else if (msg_rc_input->mode == 0) {
-            if (msg_rc_input->mode != last_mode_change) {
-                last_mode_change = msg_rc_input->mode;
-                printf("Set to trajectory follow!\n");
+        } else if (mode == FLIGHT_MODE_AUTO) {
+            // comptue auto if we have a trajectory
+            if (msg_trajectory.time_start != 0) {
+                auto_mode();
+                msg_control.thrust = auto_thrust;
+                msg_control.yaw = auto_steering;
+                //printf("thrust: %15.2f\n", auto_thrust);
+                //printf("yaw: %15.2f\n", auto_steering);
             }
-            msg_control.thrust = auto_thrust;
-            msg_control.yaw = auto_steering;
-            //printf("thrust: %15.2f\n", auto_thrust);
-            //printf("yaw: %15.2f\n", auto_steering);
         }
 
+        // send data to motors
         struct msg_actuators_t actuators_msg = mixer(&msg_control);
-        zbus_chan_pub(&chan_actuators, &actuators_msg, K_NO_WAIT);
 
-    } else if (chan == &chan_gyroscope) {
-        const struct msg_gyroscope_t * msg_gyroscope = (const struct msg_gyroscope_t *)zbus_chan_const_msg(chan);
-        gx = msg_gyroscope->x;
-        gy = msg_gyroscope->y;
-        gz = msg_gyroscope->z;
-
-    } else if (chan == &chan_trajectory) {
-        msg_trajectory = *(const struct msg_trajectory_t *)zbus_chan_const_msg(chan);
-
-    } else if (chan == &chan_external_odometry) {
-        msg_odometry = *(const struct msg_odometry_t *)zbus_chan_const_msg(chan);
-
-        // comptue auto if we have a trajectory
-        if (msg_trajectory.time_start != 0) {
-            auto_mode();
+        if (msg_control.timestamp != 0) {
+            zbus_chan_pub(&chan_actuators, &actuators_msg, K_NO_WAIT);
         }
+        // sleep to set control rate at 50 Hz
+        k_usleep(1e6/50);
     }
 }
 
 ZBUS_LISTENER_DEFINE(listener_controller, listener_controller_callback);
+
+K_THREAD_DEFINE(control_thread, 500,
+                control_entry_point, NULL, NULL, NULL,
+                5, 0, 0);

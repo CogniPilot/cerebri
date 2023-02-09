@@ -55,9 +55,9 @@ void send_control(sim_time_t time, const msg_actuators_t * msg) {
 }
 
 void imu_callback(const gz::msgs::IMU &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_gyroscope_t msg_gyro{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .x=msg.angular_velocity().x(),
         .y=msg.angular_velocity().y(),
         .z=msg.angular_velocity().z()
@@ -65,7 +65,7 @@ void imu_callback(const gz::msgs::IMU &msg) {
     queue_gyroscope.push(msg_gyro);
 
     msg_accelerometer_t msg_acc{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .x=msg.linear_acceleration().x(),
         .y=msg.linear_acceleration().y(),
         .z=msg.linear_acceleration().z()
@@ -74,9 +74,9 @@ void imu_callback(const gz::msgs::IMU &msg) {
 }
 
 void mag_callback(const gz::msgs::Magnetometer &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_magnetometer_t msg_pub {
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .x=msg.field_tesla().x(),
         .y=msg.field_tesla().y(),
         .z=msg.field_tesla().z()
@@ -85,9 +85,9 @@ void mag_callback(const gz::msgs::Magnetometer &msg) {
 }
 
 void navsat_callback(const gz::msgs::NavSat &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_navsat_t msg_pub{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .latitude_deg=msg.latitude_deg(),
         .longitude_deg=msg.longitude_deg(),
         .altitude=msg.altitude(),
@@ -99,9 +99,9 @@ void navsat_callback(const gz::msgs::NavSat &msg) {
 }
 
 void alt_callback(const gz::msgs::Altimeter &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_altimeter_t msg_pub {
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .position=msg.vertical_position(),
         .reference=msg.vertical_reference(),
         .velocity=msg.vertical_velocity()
@@ -110,9 +110,9 @@ void alt_callback(const gz::msgs::Altimeter &msg) {
 }
 
 void odom_callback(const gz::msgs::OdometryWithCovariance &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_odometry_t msg_odom{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .x=msg.pose_with_covariance().pose().position().x(),
         .y=msg.pose_with_covariance().pose().position().y(),
         .z=msg.pose_with_covariance().pose().position().z(),
@@ -132,9 +132,9 @@ void odom_callback(const gz::msgs::OdometryWithCovariance &msg) {
 
 
 void trajectory_callback(const gz::msgs::BezierTrajectory &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_trajectory_t msg_trajectory{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .sequence=uint16_t(msg.sequence()),
         .time_start=msg.time_start(),
         .time_stop=msg.time_stop(),
@@ -159,7 +159,7 @@ void trajectory_callback(const gz::msgs::BezierTrajectory &msg) {
 }
 
 void rc_input_callback(const gz::msgs::Joy &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     if (!armed && msg.buttons()[0] == 1) {
         armed = true;
         std::cout << "armed!" << std::endl;
@@ -169,10 +169,10 @@ void rc_input_callback(const gz::msgs::Joy &msg) {
         std::cout << "dis-armed!" << std::endl;
     }
     msg_rc_input_t msg_rc_input{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .yaw=msg.axes()[3],
         .thrust=msg.axes()[1],
-        .mode=msg.buttons()[4],
+        .mode=flight_mode_t(msg.buttons()[4]),
         .armed=armed,
     };
     queue_rc_input.push(msg_rc_input);

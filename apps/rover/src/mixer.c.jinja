@@ -14,6 +14,8 @@
 struct msg_actuators_t mixer(struct msg_rc_input_t * msg_rc_input) {
     struct msg_actuators_t actuators_msg;
 
+    enum flight_mode_t mode = msg_rc_input->mode;
+
 {%- if inputs.manual.axes.thrust %}
     double vt = msg_rc_input->thrust;
 {% endif %}
@@ -35,6 +37,9 @@ struct msg_actuators_t mixer(struct msg_rc_input_t * msg_rc_input) {
 {% set thrust = mixer.thrust.split(',') %}
     {% for name, esc in escs.items()  %}
     double scale{{ esc.control_index }} = 1.0;
+    if (mode == FLIGHT_MODE_MANUAL) {
+        scale{{ esc.control_index }} = ({{ esc.max_rps }} - {{ esc.min_rps }})/2.0;
+    }
     double actuator{{ esc.control_index }} = {{ thrust[esc.control_index | int ] }}*mix_thrust*scale{{ esc.control_index }} + {{ yaw[esc.control_index | int ] }}*mix_yaw*scale{{ esc.control_index }};
     if(actuator{{ esc.control_index }} > {{ esc.max_rps }}) {
         actuator{{ esc.control_index }} = {{ esc.max_rps }};
@@ -45,6 +50,9 @@ struct msg_actuators_t mixer(struct msg_rc_input_t * msg_rc_input) {
     {% endfor %}
     {% for name, servo in servos.items()  %}
     double scale{{ servo.control_index }} = 1.0;
+    if (mode == FLIGHT_MODE_MANUAL) {
+        scale{{ servo.control_index }} = ({{ servo.max }} - {{ servo.min }})/2.0;
+    }
     double actuator{{ servo.control_index }} = {{ thrust[servo.control_index | int ] }}*mix_thrust*scale{{ servo.control_index }} + {{ yaw[servo.control_index | int ] }}*mix_yaw*scale{{ servo.control_index }};
     if(actuator{{ servo.control_index }} > {{ servo.max }}) {
         actuator{{servo.control_index }} = {{ servo.max }};

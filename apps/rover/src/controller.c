@@ -165,6 +165,7 @@ void control_entry_point(void *, void *, void *) {
             msg_control.timestamp = msg_rc_input.timestamp;
             msg_control.thrust = msg_rc_input.thrust;
             msg_control.yaw = msg_rc_input.yaw;
+            msg_control.mode = mode;
 
         // auto
         } else if (mode == FLIGHT_MODE_AUTO) {
@@ -173,6 +174,7 @@ void control_entry_point(void *, void *, void *) {
                 auto_mode();
                 msg_control.thrust = auto_thrust;
                 msg_control.yaw = auto_steering;
+                msg_control.mode = mode;
             }
         }
 

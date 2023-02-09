@@ -62,49 +62,12 @@ static gz::msgs::BezierTrajectory trajectory{};
 {%- if inputs.manual %}
 static gz::msgs::Joy joy{};
 static const std::string rc_input_topic = "{{ inputs.manual.topic }}";
-{% endif -%}
-
-static gz::msgs::Time stamp{};
-static gz::msgs::Header header{};
-
-void send_control(sim_time_t time, const msg_actuators_t * msg) {
-    
-    // set timestamp
-    stamp.set_sec(time.sec);
-    stamp.set_nsec(time.nsec);
-
-{%- if actuators.escs %}
-{%- if vehicle.type == "multicopter" %}
-    {% for name, esc in escs.items() -%}
-    escs.set_velocity({{ esc.sim_actuator }}, msg->actuator{{ esc.control_index }}_value);
-    {% endfor %}
-    if (!pub_esc_ptr.lock().get()->Publish(escs)) {
-        std::cerr << "Error publishing topic [" << esc_topic << "]" << std::endl;
-    }
-{% endif -%}
-{%- if vehicle.type == "rover" %}
-    {% for name, esc in escs.items() -%}
-    esc{{ esc.control_index }}.set_data(msg->actuator{{esc.control_index }}_value);
-    if (!pub_esc{{ esc.control_index }}_ptr.lock().get()->Publish(esc{{ esc.control_index }})) {
-        std::cerr << "Error publishing topic [" << esc{{ esc.control_index }}_topic << "]" << std::endl;
-    }
-    {% endfor %}
-{% endif -%}
-{% endif -%}
-{%- if actuators.servos %}
-    {% for name, servo in servos.items() -%}
-    servo{{ servo.control_index }}.set_data(msg->actuator{{servo.control_index }}_value);
-    if (!pub_servo{{ servo.control_index }}_ptr.lock().get()->Publish(servo{{ servo.control_index }})) {
-        std::cerr << "Error publishing topic [" << servo{{ servo.control_index }}_topic << "]" << std::endl;
-    }
-    {% endfor %}
-{% endif -%}
-}
+{%- endif %}
 
 void imu_callback(const gz::msgs::IMU &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_gyroscope_t msg_gyro{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .x=msg.angular_velocity().x(),
         .y=msg.angular_velocity().y(),
         .z=msg.angular_velocity().z()
@@ -112,7 +75,7 @@ void imu_callback(const gz::msgs::IMU &msg) {
     queue_gyroscope.push(msg_gyro);
 
     msg_accelerometer_t msg_acc{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .x=msg.linear_acceleration().x(),
         .y=msg.linear_acceleration().y(),
         .z=msg.linear_acceleration().z()
@@ -121,9 +84,9 @@ void imu_callback(const gz::msgs::IMU &msg) {
 }
 
 void mag_callback(const gz::msgs::Magnetometer &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_magnetometer_t msg_pub {
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .x=msg.field_tesla().x(),
         .y=msg.field_tesla().y(),
         .z=msg.field_tesla().z()
@@ -132,9 +95,9 @@ void mag_callback(const gz::msgs::Magnetometer &msg) {
 }
 
 void navsat_callback(const gz::msgs::NavSat &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_navsat_t msg_pub{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .latitude_deg=msg.latitude_deg(),
         .longitude_deg=msg.longitude_deg(),
         .altitude=msg.altitude(),
@@ -146,9 +109,9 @@ void navsat_callback(const gz::msgs::NavSat &msg) {
 }
 
 void alt_callback(const gz::msgs::Altimeter &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_altimeter_t msg_pub {
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .position=msg.vertical_position(),
         .reference=msg.vertical_reference(),
         .velocity=msg.vertical_velocity()
@@ -157,9 +120,9 @@ void alt_callback(const gz::msgs::Altimeter &msg) {
 }
 
 void odom_callback(const gz::msgs::OdometryWithCovariance &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_odometry_t msg_odom{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .x=msg.pose_with_covariance().pose().position().x(),
         .y=msg.pose_with_covariance().pose().position().y(),
         .z=msg.pose_with_covariance().pose().position().z(),
@@ -179,9 +142,9 @@ void odom_callback(const gz::msgs::OdometryWithCovariance &msg) {
 
 {% if inputs.trajectory %}
 void trajectory_callback(const gz::msgs::BezierTrajectory &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     msg_trajectory_t msg_trajectory{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
         .sequence=uint16_t(msg.sequence()),
         .time_start=msg.time_start(),
         .time_stop=msg.time_stop(),
@@ -209,7 +172,7 @@ void trajectory_callback(const gz::msgs::BezierTrajectory &msg) {
 {%- set buttons = inputs.manual.buttons -%}
 {%- set axes = inputs.manual.axes -%}
 void rc_input_callback(const gz::msgs::Joy &msg) {
-    uint64_t uptime = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
+    uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
     if (!armed && msg.buttons()[{{ buttons.arm }}] == 1) {
         armed = true;
         std::cout << "armed!" << std::endl;
@@ -219,7 +182,7 @@ void rc_input_callback(const gz::msgs::Joy &msg) {
         std::cout << "dis-armed!" << std::endl;
     }
     msg_rc_input_t msg_rc_input{
-        .uptime_nsec=uptime,
+        .timestamp=timestamp,
     {%- if axes.roll %}
         .roll=-(msg.axes()[{{ axes.roll }}]),
     {%- endif %}
@@ -233,7 +196,7 @@ void rc_input_callback(const gz::msgs::Joy &msg) {
         .thrust=msg.axes()[{{ axes.thrust }}],
     {%- endif %}
     {%- if buttons.mode %}
-        .mode=msg.buttons()[{{ buttons.mode }}],
+        .mode=flight_mode_t(msg.buttons()[{{ buttons.mode }}]),
     {%- endif %}
         .armed=armed,
     };
@@ -362,11 +325,55 @@ void thread_sim_entry_point(void)
         return;
     }
 {% endif %}
+    // actuator msg
+    msg_actuators_t msg;
+
     // sleep main thread, everything done async
     while (!g_terminatePub)
     {
         // host sleep doesn't count for zephyr time
-        sleep(1);
+        while (queue_actuator.tryPop(msg)) {
+            uint64_t sec = msg.timestamp/1e9;
+            uint64_t nsec = msg.timestamp - sec*1e9;
+
+{%- if actuators.escs %}
+{%- if vehicle.type == "multicopter" %}
+    {%- for name, esc in escs.items() -%}
+            escs.set_velocity({{ esc.sim_actuator }}, msg.actuator{{ esc.control_index }}_value);
+            escs.mutable_header()->mutable_stamp()->set_sec(sec);
+            escs.mutable_header()->mutable_stamp()->set_nsec(nsec);
+    {% endfor -%}
+            if (!pub_esc_ptr.lock().get()->Publish(escs)) {
+                std::cerr << "Error publishing topic [" << esc_topic << "]" << std::endl;
+            }
+
+{% endif %}
+{%- if vehicle.type == "rover" %}
+    {%- for name, esc in escs.items() %}
+            esc{{ esc.control_index }}.set_data(msg.actuator{{esc.control_index }}_value);
+            esc{{ esc.control_index }}.mutable_header()->mutable_stamp()->set_sec(sec);
+            esc{{ esc.control_index }}.mutable_header()->mutable_stamp()->set_nsec(nsec);
+            if (!pub_esc{{ esc.control_index }}_ptr.lock().get()->Publish(esc{{ esc.control_index }})) {
+                std::cerr << "Error publishing topic [" << esc{{ esc.control_index }}_topic << "]" << std::endl;
+            }
+
+    {%- endfor -%}
+{% endif %}
+{% endif -%}
+{%- if actuators.servos %}
+    {%- for name, servo in servos.items() %}
+            servo{{ servo.control_index }}.set_data(msg.actuator{{servo.control_index }}_value);
+            servo{{ servo.control_index }}.mutable_header()->mutable_stamp()->set_sec(sec);
+            servo{{ servo.control_index }}.mutable_header()->mutable_stamp()->set_nsec(nsec);
+            if (!pub_servo{{ servo.control_index }}_ptr.lock().get()->Publish(servo{{ servo.control_index }})) {
+                std::cerr << "Error publishing topic [" << servo{{ servo.control_index }}_topic << "]" << std::endl;
+            }
+
+    {%- endfor -%}
+{% endif %}
+            // sleep 1 ms
+            usleep(1000);
+        }
     }
 }
 

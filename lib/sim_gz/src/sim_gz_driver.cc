@@ -179,6 +179,8 @@ void thread_sim_entry_point(void)
         return;
     }
     pub_esc0_ptr = pub_esc0;
+    
+
 
     auto pub_servo1 = std::make_shared<gz::transport::Node::Publisher>(
         node.Advertise<gz::msgs::Double>(servo1_topic));
@@ -188,6 +190,7 @@ void thread_sim_entry_point(void)
         return;
     }
     pub_servo1_ptr = pub_servo1;
+    
 
     // imu sub
     bool sub_imu = node.Subscribe<gz::msgs::IMU>(imu_topic, imu_callback);
@@ -245,6 +248,7 @@ void thread_sim_entry_point(void)
         return;
     }
 
+
     // rc_input sub
     bool sub_rc_input = node.Subscribe<gz::msgs::Joy>(rc_input_topic, rc_input_callback);
     if (!sub_rc_input)
@@ -274,7 +278,6 @@ void thread_sim_entry_point(void)
             servo1.set_data(msg.actuator1_value);
             servo1.mutable_header()->mutable_stamp()->set_sec(sec);
             servo1.mutable_header()->mutable_stamp()->set_nsec(nsec);
-            servo1.set_data(msg.actuator1_value);
             if (!pub_servo1_ptr.lock().get()->Publish(servo1)) {
                 std::cerr << "Error publishing topic [" << servo1_topic << "]" << std::endl;
             }

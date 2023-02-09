@@ -267,7 +267,6 @@ void thread_sim_entry_point(void)
         while (queue_actuator.tryPop(msg)) {
             uint64_t sec = msg.timestamp/1e9;
             uint64_t nsec = msg.timestamp - sec*1e9;
-
             esc0.set_data(msg.actuator0_value);
             esc0.mutable_header()->mutable_stamp()->set_sec(sec);
             esc0.mutable_header()->mutable_stamp()->set_nsec(nsec);
@@ -281,7 +280,6 @@ void thread_sim_entry_point(void)
             if (!pub_servo1_ptr.lock().get()->Publish(servo1)) {
                 std::cerr << "Error publishing topic [" << servo1_topic << "]" << std::endl;
             }
-
             // sleep 1 ms
             usleep(1000);
         }

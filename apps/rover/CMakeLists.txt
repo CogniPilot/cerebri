@@ -20,7 +20,5 @@ target_sources(app PRIVATE
     src/estimator.c
     src/mixer.c
     src/controller.c
-    src/casadi/bezier6.c
     src/casadi/rover.c
-    src/casadi/se2.c
 )

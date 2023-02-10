@@ -6,25 +6,15 @@
 
 #include "messages.h"
 #include "mixer.h"
+#include "parameters.h"
 
-#include "casadi/bezier6.h"
 #include "casadi/rover.h"
-#include "casadi/se2.h"
 
 // data
 struct msg_gyroscope_t msg_gyroscope = {};
 struct msg_trajectory_t msg_trajectory = {};
 struct msg_odometry_t msg_odometry = {};
 struct msg_rc_input_t msg_rc_input = {};
-
-// gains
-double gain_heading = 0.5;
-double gain_cross_track = 0.4;
-double gain_along_track = 1.0;
-
-// parameters
-double wheel_radius = 0.0365;
-double L = 0.2255;
 
 // local variables
 double auto_thrust = 0;
@@ -62,7 +52,7 @@ void auto_mode() {
     }
     double t = t_nsec*1e-9;
     double T = T_nsec*1e-9;
-    double x, y, psi, V, delta = 0;
+    double x, y, psi, V, omega = 0;
     double e[3] = {}; // e_x, e_y, e_theta
     double PX[6] = {
         msg_trajectory.x[0],
@@ -81,7 +71,12 @@ void auto_mode() {
         msg_trajectory.y[5]
     };
 
-    /* rover:(t,T,PX[1x6],PY[1x6],L)->(x,y,psi,V,delta) */
+    // casadi mem args
+    casadi_int * iw = NULL;
+    casadi_real * w = NULL;
+    int mem = 0;
+
+    /* bezier6_rover:(t,T,PX[1x6],PY[1x6],L)->(x,y,psi,V,omega) */
     {
         const casadi_real * args[5];
         casadi_real * res[5];
@@ -89,58 +84,73 @@ void auto_mode() {
         args[1] = &T;
         args[2] = PX;
         args[3] = PY;
-        args[4] = &L;
+        args[4] = &wheel_base;
         res[0] = &x;
         res[1] = &y;
         res[2] = &psi;
         res[3] = &V;
-        res[4] = &delta;
-        casadi_int * iw = NULL;
-        casadi_real * w = NULL;
-        int mem = 0;
-        rover(args, res, iw, w, mem);
+        res[4] = &omega;
+        bezier6_rover(args, res, iw, w, mem);
     }
 
-    /* se2_error:(i0[3],i1[3])->(o0[3]) */
+    /* se2_error:(p[3],r[3])->(error[3]) */
     {
         const casadi_real * args[2];
         casadi_real * res[1];
-        casadi_int * iw = NULL;
-        casadi_real * w = NULL;
-        int mem = 0;
 
-        casadi_real i0[3], i1[3];
+        double p[3], r[3];
 
         // vehicle position
-        i0[0] = msg_odometry.x;
-        i0[1] = msg_odometry.y;
-        i0[2] = 2*atan2(msg_odometry.qz, msg_odometry.qw);
+        p[0] = msg_odometry.x;
+        p[1] = msg_odometry.y;
+        p[2] = 2*atan2(msg_odometry.qz, msg_odometry.qw);
 
         // reference position
-        i1[0] = x;
-        i1[1] = y;
-        i1[2] = psi;
+        r[0] = x;
+        r[1] = y;
+        r[2] = psi;
 
         // call function
-        args[0] = i0;
-        args[1] = i1;
+        args[0] = p;
+        args[1] = r;
         res[0] = e;
         se2_error(args, res, iw, w, mem);
     }
 
-    if (isnan(V)) {
-        printf("V is nan\n");
-        auto_thrust = 0;
-    } else {
-        auto_thrust = gain_along_track*e[0] + V/wheel_radius;
-    }
+#ifdef STEERING_ACKERMANN
 
-    if (isnan(delta)) {
-        printf("delta is nan\n");
-        auto_steering = 0;
-    } else {
+    /* ackermann_steering:(L,omega,V)->(delta) */
+    {
+        double delta = 0;
+        const casadi_real * args[3];
+        casadi_real * res[1];
+        args[0] = &wheel_base;
+        args[1] = &omega;
+        args[2] = &V;
+        res[0] = &delta;
+        ackermann_steering(args, res, iw, w, mem);
+        auto_thrust = gain_along_track*e[0] + V/wheel_radius;
         auto_steering = gain_cross_track*e[1] + gain_heading*e[2] + delta;
     }
+#endif // STEERING_ACKERMANN
+
+#ifdef STEERING_DIFFERENTIAL
+    /* differential_steering:(L,omega,w)->(Vw) */
+    {
+        double Vw = 0;
+        const casadi_real * args[3];
+        casadi_real * res[1];
+        args[0] = &wheel_base;
+        args[1] = &omega;
+        args[2] = &wheel_separation;
+        res[0] = &Vw;
+        differential_steering(args, res, iw, w, mem);
+        auto_thrust = gain_along_track*e[0] + V/wheel_radius;
+        auto_steering = gain_cross_track*e[1] + gain_heading*e[2] + Vw/wheel_radius;
+    }
+#endif // STEERING_DIFFERENTIAL
+
+
 }
 
 void control_entry_point(void *, void *, void *) {

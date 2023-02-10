@@ -144,18 +144,18 @@ void trajectory_callback(const gz::msgs::BezierTrajectory &msg) {
 
 void rc_input_callback(const gz::msgs::Joy &msg) {
     uint64_t timestamp = msg.header().stamp().sec()*1e9 + msg.header().stamp().nsec();
-    if (!armed && msg.buttons()[6] == 1) {
+    if (!armed && msg.buttons()[0] == 1) {
         armed = true;
         std::cout << "armed!" << std::endl;
     }
-    if (armed && msg.buttons()[7] == 1) {
+    if (armed && msg.buttons()[1] == 1) {
         armed = false;
         std::cout << "dis-armed!" << std::endl;
     }
     msg_rc_input_t msg_rc_input{
         .timestamp=timestamp,
         .yaw=msg.axes()[3],
-        .thrust=msg.axes()[2],
+        .thrust=msg.axes()[1],
         .mode=control_mode_t(msg.buttons()[4]),
         .armed=armed,
     };

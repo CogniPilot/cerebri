@@ -983,7 +983,7 @@ static int casadi_f4(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   a0=(a0/a2);
   a0=atan(a0);
   a0=cos(a0);
-  a1=(a1*a0);
+  a1=(a1/a0);
   if (res[0]!=0) res[0][0]=a1;
   return 0;
 }

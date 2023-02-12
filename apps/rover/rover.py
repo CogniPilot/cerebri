@@ -127,7 +127,7 @@ def derive_rover():
     h = ca.sqrt(L**2 + w**2)/2  # hypontenuse
     Vt = h*omega_in;  # tangent velocity
     theta = ca.atan(L/w)
-    Vw = Vt*ca.cos(theta) # wheel velocity
+    Vw = Vt/ca.cos(theta) # wheel velocity
 
     functions = [
         ca.Function(

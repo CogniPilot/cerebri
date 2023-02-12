@@ -10,17 +10,14 @@
 #include <gz/transport.hh>
 
 #include "../sim_core/src/sim_core.h"
-{%- set vehicle = hcdf.vehicle -%}
-{%- set simulation = vehicle.simulation -%}
-{%- set mcu = vehicle.mcu -%}
 {%- set actuators = mcu.actuators -%}
-{%- set inputs = mcu.inputs -%}
+{%- set inputs = control.inputs -%}
 {%- set model = simulation.model_name.strip('"').strip("'") -%}
 {%- set world = simulation.world_name.strip('"').strip("'") -%}
 
 {%- if actuators.escs %}
 {% set escs = actuators.escs %}
-{%- if vehicle.type == "rover" %}
+{%- if type == "rover" %}
 {% if not escs.esc.__class__.__name__ == 'list' -%}
 {% set esc = escs.esc %}
 static std::weak_ptr<gz::transport::Node::Publisher> pub_esc{{ esc.control_index }}_ptr{};
@@ -35,7 +32,7 @@ static const std::string esc{{ esc.control_index }}_topic = "/model/{{ model }}/
 {% endfor -%}
 {% endif -%}
 {% endif -%}
-{%- if vehicle.type == "multicopter" %}
+{%- if type == "multicopter" %}
 static std::weak_ptr<gz::transport::Node::Publisher> pub_escs_ptr{};
 static gz::msgs::Actuators escs;
 static const std::string escs_topic = "/model/{{ model }}/command/motor_speed";
@@ -235,7 +232,7 @@ void thread_sim_entry_point(void)
     gz::transport::Node node;
 
 {%- if actuators.escs %}
-{%- if vehicle.type == "multicopter" %}
+{%- if type == "multicopter" %}
     // prepare messages, must occur before control sent (subscriber launched)
     header.set_allocated_stamp(&stamp);
     {% for esc in escs.esc -%}
@@ -252,7 +249,7 @@ void thread_sim_entry_point(void)
     }
     pub_escs_ptr = pub_escs;
 {% endif %}
-{%- if vehicle.type == "rover" %}
+{%- if type == "rover" %}
 {% if not escs.esc.__class__.__name__ == 'list' -%}
 {%- set esc = escs.esc %}
     auto pub_esc{{ esc.control_index }} = std::make_shared<gz::transport::Node::Publisher>(
@@ -380,14 +377,14 @@ void thread_sim_entry_point(void)
             uint64_t nsec = msg.timestamp - sec*1e9;
 
 {%- if actuators.escs %}
-{%- if vehicle.type == "multicopter" %}
+{%- if type == "multicopter" %}
             escs.set_velocity({{ esc.sim_actuator }}, msg.actuator{{ esc.control_index }}_value);
             if (!pub_esc_ptr.lock().get()->Publish(escs)) {
                 std::cerr << "Error publishing topic [" << esc_topic << "]" << std::endl;
             }
 
 {% endif %}
-{%- if vehicle.type == "rover" %}
+{%- if type == "rover" %}
 {% if not escs.esc.__class__.__name__ == 'list' -%}
 {% set esc = escs.esc %}
             esc{{ esc.control_index }}.set_data(msg.actuator{{esc.control_index }}_value);

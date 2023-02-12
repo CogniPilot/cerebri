@@ -13,11 +13,6 @@ cerebriPath = os.path.dirname(os.path.realpath(__file__))
 cogniPilotPath = os.path.relpath(os.path.join(cerebriPath, "../.."))
 hcdfPath = os.path.relpath(os.path.join(cogniPilotPath, "tools/hcdformat/vehicles"))
 
-fileGenList = [
-    "lib/sim_gz/src/sim_gz_driver.cc.jinja",
-    "apps/rover/src/mixer.c.jinja"
-]
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--hcdf', default='x500.hcdf', help='hardware configuration description file name in config folder')
@@ -33,8 +28,19 @@ if __name__ == "__main__":
 
     with open(fileHCDF) as fd:
         config = xmltodict.parse(fd.read(), process_namespaces=True)
+    vehicle = config['hcdf']['vehicle']
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(cerebriPath))
+
+    if vehicle['type'] == "rover" or vehicle['type'] == "multicopter":
+        fileGenList=[
+            "lib/sim_gz/src/sim_gz_driver.cc.jinja",
+            f"apps/{vehicle['type']}/src/mixer.c.jinja",
+            f"apps/{vehicle['type']}/src/parameters.h.jinja"]
+    else:
+        print(f"vehicle['type']: '{vehicle['type']}' does not match rover or multicopter.")
+        print("Please check your HCDF for validity! Exiting.")
+        exit(1)
 
     for file in fileGenList:
 
@@ -42,7 +48,7 @@ if __name__ == "__main__":
         if os.path.isfile(filePath):
             template = env.get_template(filePath)
 
-            result = template.render(config)
+            result = template.render(vehicle)
 
             filenameOut = filePath.replace('.jinja','')
             

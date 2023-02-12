@@ -1,0 +1,23 @@
+#ifndef E00B391E_08D8_47AC_B779_57B422AF3850
+#define E00B391E_08D8_47AC_B779_57B422AF3850
+
+//gains
+const double gain_heading = {{ control.gains.heading }};
+const double gain_cross_track = {{ control.gains.cross_track }};
+const double gain_along_track = {{ control.gains.along_track }};
+
+// parameters
+const double wheel_radius = {{ control.parameters.wheel_radius }};
+const double wheel_base = {{ control.parameters.wheel_base }};
+{%- if control.type == "differential" %}
+const double wheel_separation = {{ control.parameters.wheel_separation }};
+{% endif -%}
+{%- if control.type == "ackermann" %}
+#define STEERING_ACKERMANN
+{% endif -%}
+{%- if control.type == "differential" %}
+#define STEERING_DIFFERENTIAL
+{% endif -%}
+#endif /* E00B391E_08D8_47AC_B779_57B422AF3850 */
+
+

@@ -1,12 +1,10 @@
-{%- set vehicle = hcdf.vehicle -%}
-{%- set mcu = vehicle.mcu -%}
 {%- set actuators = mcu.actuators -%}
-{%- set inputs = mcu.inputs -%}
+{%- set inputs = control.inputs -%}
 {%- if actuators.servos -%}
 {% set servos = actuators.servos %}
 {% endif %} 
 {% set escs = actuators.escs %}
-{%- set mixer = actuators.mixer -%}
+{%- set mixer = control.mixer -%}
 #include <zephyr/kernel.h>
 
 #include "messages.h"
@@ -30,7 +28,7 @@ struct msg_actuators_t mixer(struct msg_rc_input_t * msg_rc_input) {
 {% endif %}  
     bool armed = msg_rc_input->armed;
       
-{% if ( mixer.type == "ackermann") %}
+{% if ( control.type == "ackermann") %}
     double mix_thrust = armed ? vt : 0;
     double mix_yaw = armed ? vy : 0;
 {%- set yaw = mixer.yaw.split(',') -%}
@@ -95,7 +93,7 @@ struct msg_actuators_t mixer(struct msg_rc_input_t * msg_rc_input) {
 {%- endfor %}
 {%- endif %}
 {%- endif %}
-{% if ( mixer.type == "differential") %}
+{% if ( control.type == "differential") %}
     double mix_thrust = armed ? vt : 0;
     double mix_yaw = armed ? vy : 0;
 {%- set yaw = mixer.yaw.split(',') -%}

@@ -10,3 +10,6 @@ lcov.info
 .devcontainer.json
 .devcontainer/
 .venv-cerebri/
+apps/rover/src/mixer.c
+apps/rover/src/parameters.h
+lib/sim_gz/src/sim_gz_driver.cc

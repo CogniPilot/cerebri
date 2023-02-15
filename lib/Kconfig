@@ -1,7 +1,0 @@
-# Copyright (c) 2023 CogniPilot
-# SPDX-License-Identifier: Apache-2.0
-
-menu "Libraries"
-rsource "sim_gz/Kconfig"
-rsource "sim_core/Kconfig"
-endmenu

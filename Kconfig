@@ -1,4 +1,15 @@
-# Copyright (c) 2023 CogniPilot
+# Copyright (c) 2023 CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
+#
+# This file is the application Kconfig entry point. All application Kconfig
+# options can be defined here or included via other application Kconfig files.
+# You can browse these options using the west targets menuconfig (terminal) or
+# guiconfig (GUI).
 
-rsource "lib/Kconfig"
+menu "Zephyr"
+source "Kconfig.zephyr"
+endmenu
+
+module = CEREBRI
+module-str = CEREBRI
+source "subsys/logging/Kconfig.template.log_config"

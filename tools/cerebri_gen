@@ -8,10 +8,11 @@ import os
 import numpy as np
 import argparse
 import xmltodict
+from pathlib import Path
 
-cerebriPath = os.path.dirname(os.path.realpath(__file__))
-cogniPilotPath = os.path.relpath(os.path.join(cerebriPath, "../.."))
-hcdfPath = os.path.relpath(os.path.join(cogniPilotPath, "tools/hcdformat/vehicles"))
+cerebriPath = Path(__file__).parents[1]
+cogniPilotPath = cerebriPath.parents[0]
+hcdfPath = cogniPilotPath / "hcdformat" / "vehicles"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -22,9 +23,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.absolute:
-        fileHCDF = os.path.realpath(args.hcdf)
+        fileHCDF = Path(args.hcdf).resolve()
     else:
-        fileHCDF = os.path.realpath(os.path.join(hcdfPath, args.hcdf))
+        fileHCDF = hcdfPath / args.hcdf
 
     with open(fileHCDF) as fd:
         config = xmltodict.parse(fd.read(), process_namespaces=True)
@@ -34,27 +35,29 @@ if __name__ == "__main__":
 
     if vehicle['type'] == "rover" or vehicle['type'] == "multicopter":
         fileGenList=[
-            "lib/sim_gz/src/sim_gz_driver.cc.jinja",
-            f"apps/{vehicle['type']}/src/mixer.c.jinja",
-            f"apps/{vehicle['type']}/src/parameters.h.jinja"]
+            "modules/sim_gz/src/sim_gz_driver.cc.jinja",
+            f"modules/{vehicle['type']}_control/src/mixer.c.jinja",
+            f"modules/{vehicle['type']}_control/src/parameters.h.jinja"]
     else:
         print(f"vehicle['type']: '{vehicle['type']}' does not match rover or multicopter.")
         print("Please check your HCDF for validity! Exiting.")
         exit(1)
 
+
     for file in fileGenList:
 
-        filePath = os.path.relpath(os.path.join(cerebriPath, file))
+        filePath = cerebriPath / file
+
         if os.path.isfile(filePath):
-            template = env.get_template(filePath)
+            template = env.get_template(file)
 
             result = template.render(vehicle)
 
-            filenameOut = filePath.replace('.jinja','')
+            filenameOut = filePath.with_suffix('')
             
-            if (not os.path.isfile(filenameOut)) or args.clean:
+            if (not filenameOut.is_file() or args.clean):
                 with open(filenameOut, 'w') as f_out:
-                    print(f"{filePath} -> {filenameOut}")
+                    print(f"{file} -> {filenameOut}")
                     f_out.write(result)
             else:
                 tmpFilenameOut = f"{filenameOut}.tmp"

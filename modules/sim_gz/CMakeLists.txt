@@ -1,3 +1,5 @@
+enable_language(CXX)
+
 find_package(gz-transport12 REQUIRED)
 
 zephyr_include_directories(.)

@@ -9,8 +9,7 @@ endif()
 set(ZEPHYR_MODULES
   ${CMAKE_SOURCE_DIR}/modules/sim_gz
   ${CMAKE_SOURCE_DIR}/modules/sim_core
-  ${CMAKE_SOURCE_DIR}/modules/rover_control
-  ${CMAKE_SOURCE_DIR}/modules/estimator
+  ${CMAKE_SOURCE_DIR}/modules/rover_control ${CMAKE_SOURCE_DIR}/modules/estimator
 )
 
 message(STATUS "ZEPHYR_MODULES: ${ZEPHYR_MODULES}")
@@ -27,6 +26,8 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(hcdformat REQUIRED)
+
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -45,9 +46,14 @@ endif()
 
 zephyr_include_directories(include)
 
-set(HCDF ${CMAKE_SOURCE_DIR}/../hcdformat/vehicles/mrb3s.hcdf)
+if (NOT DEFINED HCDF)
+  set(HCDF mrb3s)
+endif()
+set(HCDF_FILE "${hcdformat_DIR}/../vehicles/${HCDF}.hcdf")
+
 add_custom_target(generate_hcdf ALL
-	COMMAND ${CMAKE_SOURCE_DIR}/tools/cerebri_gen --clean --absolute --hcdf ${HCDF})
+	COMMAND ${CMAKE_SOURCE_DIR}/tools/cerebri_gen --clean --absolute
+	--hcdf  ${HCDF_FILE})
 
 target_sources(app PRIVATE
   src/main.c

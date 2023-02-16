@@ -1,3 +1,5 @@
+enable_language(CXX)
+
 zephyr_include_directories(.)
 
 zephyr_library()

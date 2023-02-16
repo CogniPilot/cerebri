@@ -10,60 +10,35 @@ import argparse
 import xmltodict
 from pathlib import Path
 
-cerebriPath = Path(__file__).parents[1]
-cogniPilotPath = cerebriPath.parents[0]
-hcdfPath = cogniPilotPath / "hcdformat" / "vehicles"
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--hcdf', default='x500.hcdf', help='hardware configuration description file name in config folder')
-    parser.add_argument('--absolute', action='store_true')
-    parser.add_argument('--clean', action='store_true')
+    parser.add_argument('--hcdf')
+    parser.add_argument('--template')
+    parser.add_argument('--out')
 
     args = parser.parse_args()
 
-    if args.absolute:
-        fileHCDF = Path(args.hcdf).resolve()
-    else:
-        fileHCDF = hcdfPath / args.hcdf
+    hcdf = Path(args.hcdf).resolve()
+    template_dir = Path(args.template).parent.resolve()
+    out_dir = Path(args.out).resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    with open(fileHCDF) as fd:
+    with open(hcdf) as fd:
         config = xmltodict.parse(fd.read(), process_namespaces=True)
     vehicle = config['hcdf']['vehicle']
 
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader(cerebriPath))
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(str(template_dir)))
 
-    if vehicle['type'] == "rover" or vehicle['type'] == "multicopter":
-        fileGenList=[
-            "modules/sim_gz/src/sim_gz_driver.cc.jinja",
-            f"modules/{vehicle['type']}_control/src/mixer.c.jinja",
-            f"modules/{vehicle['type']}_control/src/parameters.h.jinja"]
+    template_file = Path(args.template)
+
+    if os.path.isfile(template_file):
+        template = env.get_template(str(template_file.relative_to(template_dir)))
+        result = template.render(vehicle)
+        out = Path(args.out)
+        out_file = out / template_file.stem
+        
+        with open(out_file, 'w') as f_out:
+            print(f"{template} -> {out_file}")
+            f_out.write(result)
     else:
-        print(f"vehicle['type']: '{vehicle['type']}' does not match rover or multicopter.")
-        print("Please check your HCDF for validity! Exiting.")
-        exit(1)
-
-
-    for file in fileGenList:
-
-        filePath = cerebriPath / file
-
-        if os.path.isfile(filePath):
-            template = env.get_template(file)
-
-            result = template.render(vehicle)
-
-            filenameOut = filePath.with_suffix('')
-            
-            if (not filenameOut.is_file() or args.clean):
-                with open(filenameOut, 'w') as f_out:
-                    print(f"{file} -> {filenameOut}")
-                    f_out.write(result)
-            else:
-                tmpFilenameOut = f"{filenameOut}.tmp"
-                print(f"{filenameOut} already exists writing to: {tmpFilenameOut}")
-                with open(tmpFilenameOut, 'w') as f_out:
-                    print(f"{filePath} -> {tmpFilenameOut}")
-                    f_out.write(result)
-        else:
-            print(f"{filePath} does not exist!!!")
+        print(f"{template} does not exist!!!")

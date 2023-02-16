@@ -6,10 +6,18 @@ if (NOT DEFINED BOARD)
   set(BOARD native_posix_64)
 endif()
 
+if (NOT DEFINED HCDF)
+  set(HCDF mrb3s)
+endif()
+set(HCDF_FILE "${hcdformat_DIR}/../vehicles/${HCDF}.hcdf")
+set(JINJA_GEN "${CMAKE_SOURCE_DIR}/tools/cerebri_gen")
+
+
 set(ZEPHYR_MODULES
   ${CMAKE_SOURCE_DIR}/modules/sim_gz
   ${CMAKE_SOURCE_DIR}/modules/sim_core
-  ${CMAKE_SOURCE_DIR}/modules/rover_control ${CMAKE_SOURCE_DIR}/modules/estimator
+  ${CMAKE_SOURCE_DIR}/modules/rover_control
+  ${CMAKE_SOURCE_DIR}/modules/estimator
 )
 
 message(STATUS "ZEPHYR_MODULES: ${ZEPHYR_MODULES}")
@@ -45,15 +53,6 @@ if(BUILD_TESTING)
 endif()
 
 zephyr_include_directories(include)
-
-if (NOT DEFINED HCDF)
-  set(HCDF mrb3s)
-endif()
-set(HCDF_FILE "${hcdformat_DIR}/../vehicles/${HCDF}.hcdf")
-
-add_custom_target(generate_hcdf ALL
-	COMMAND ${CMAKE_SOURCE_DIR}/tools/cerebri_gen --clean --absolute
-	--hcdf  ${HCDF_FILE})
 
 target_sources(app PRIVATE
   src/main.c

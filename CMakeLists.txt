@@ -17,7 +17,7 @@ message(STATUS "ZEPHYR_MODULES: ${ZEPHYR_MODULES}")
 
 set(ZephyrBuildConfiguration_ROOT cmake)
 
-find_package(Zephyr 3.3.0 REQUIRED HINTS $ENV{ZEPHYR_BASE})
+find_package(Zephyr 3.2.0 REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(cerebri)
 

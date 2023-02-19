@@ -6,24 +6,26 @@ if (NOT DEFINED BOARD)
   set(BOARD native_posix_64)
 endif()
 
-if (NOT DEFINED HCDF)
-  set(HCDF mrb3s)
-endif()
-set(HCDF_FILE "${hcdformat_DIR}/../vehicles/${HCDF}.hcdf")
-set(JINJA_GEN "${CMAKE_SOURCE_DIR}/tools/cerebri_gen")
-
-
 set(ZEPHYR_MODULES
   ${CMAKE_SOURCE_DIR}/modules/sim_gz
   ${CMAKE_SOURCE_DIR}/modules/sim_core
   ${CMAKE_SOURCE_DIR}/modules/rover_control
   ${CMAKE_SOURCE_DIR}/modules/estimator
 )
-
 message(STATUS "ZEPHYR_MODULES: ${ZEPHYR_MODULES}")
 
-set(ZephyrBuildConfiguration_ROOT cmake)
+find_package(hcdformat REQUIRED)
+find_package(ament_cmake REQUIRED)
 
+# find dependencies
+if (NOT DEFINED HCDF)
+  set(HCDF mrb3s)
+endif()
+set(HCDF_FILE "${hcdformat_DIR}/../vehicles/${HCDF}.hcdf")
+set(JINJA_GEN "${CMAKE_SOURCE_DIR}/tools/cerebri_gen")
+message(STATUS "Jinja gen: ${JINJA_GEN}")
+
+set(ZephyrBuildConfiguration_ROOT cmake)
 find_package(Zephyr 3.2.0 REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(cerebri)
@@ -31,14 +33,6 @@ project(cerebri)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
-
-# find dependencies
-find_package(ament_cmake REQUIRED)
-find_package(hcdformat REQUIRED)
-
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

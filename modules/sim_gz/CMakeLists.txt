@@ -15,11 +15,12 @@ set(JINJA_FILES
   sim_gz_driver.cc
 )
 
+message(STATUS "XXXXXXXXXXXXXXXXXXXX Jinja gen: ${JINJA_GEN}")
+
 foreach(JINJA_FILE ${JINJA_FILES})
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/${JINJA_FILE}
-    COMMAND ${JINJA_GEN}
-    --hcdf ${HCDF_FILE}
+    COMMAND ${JINJA_GEN} --hcdf ${HCDF_FILE}
     --template ${CMAKE_CURRENT_SOURCE_DIR}/src/${JINJA_FILE}.jinja
     --out ${CMAKE_CURRENT_BINARY_DIR}/src
     )

@@ -38,7 +38,7 @@ if __name__ == "__main__":
         out_file = out / template_file.stem
         
         with open(out_file, 'w') as f_out:
-            print(f"{template} -> {out_file}")
+            print(f"JINJA GENERATION: {template} -> {out_file}")
             f_out.write(result)
     else:
         print(f"{template} does not exist!!!")

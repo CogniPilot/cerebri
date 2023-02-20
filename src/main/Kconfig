@@ -1,0 +1,7 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config CEREBRI_BANNER
+	bool "enable cerebri banner"
+	help
+	  This option enables the cerebri banner

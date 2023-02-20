@@ -203,4 +203,4 @@ ZBUS_LISTENER_DEFINE(listener_controller, listener_controller_callback);
 
 K_THREAD_DEFINE(control_thread, 500,
                 control_entry_point, NULL, NULL, NULL,
-                5, 0, 0);
+                -1, 0, 0);

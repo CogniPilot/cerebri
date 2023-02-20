@@ -267,31 +267,26 @@ void thread_sim_entry_point(void)
     // sleep main thread, everything done async
     while (!g_terminatePub)
     {
-        // host sleep doesn't count for zephyr time
-        while (queue_actuator.tryPop(msg)) {
-            uint64_t sec = msg.timestamp/1e9;
-            uint64_t nsec = msg.timestamp - sec*1e9;
+        // wait for a new actuator msg, then send it
+        queue_actuator.waitAndPop(msg);
+        uint64_t sec = msg.timestamp/1e9;
+        uint64_t nsec = msg.timestamp - sec*1e9;
 
-            esc0.set_data(msg.actuator0_value);
-            esc0.mutable_header()->mutable_stamp()->set_sec(sec);
-            esc0.mutable_header()->mutable_stamp()->set_nsec(nsec);
-            if (!pub_esc0_ptr.lock().get()->Publish(esc0)) {
-                std::cerr << "Error publishing topic [" << esc0_topic << "]" << std::endl;
-            }
-
-
+        esc0.set_data(msg.actuator0_value);
+        esc0.mutable_header()->mutable_stamp()->set_sec(sec);
+        esc0.mutable_header()->mutable_stamp()->set_nsec(nsec);
+        if (!pub_esc0_ptr.lock().get()->Publish(esc0)) {
+            std::cerr << "Error publishing topic [" << esc0_topic << "]" << std::endl;
+        }
 
 
-            servo1.set_data(msg.actuator1_value);
-            servo1.mutable_header()->mutable_stamp()->set_sec(sec);
-            servo1.mutable_header()->mutable_stamp()->set_nsec(nsec);
-            if (!pub_servo1_ptr.lock().get()->Publish(servo1)) {
-                std::cerr << "Error publishing topic [" << servo1_topic << "]" << std::endl;
-            }
 
 
-            // sleep 1 ms
-            usleep(1000);
+        servo1.set_data(msg.actuator1_value);
+        servo1.mutable_header()->mutable_stamp()->set_sec(sec);
+        servo1.mutable_header()->mutable_stamp()->set_nsec(nsec);
+        if (!pub_servo1_ptr.lock().get()->Publish(servo1)) {
+            std::cerr << "Error publishing topic [" << servo1_topic << "]" << std::endl;
         }
     }
 }

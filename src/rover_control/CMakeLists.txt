@@ -8,6 +8,7 @@ set(JINJA_FILES
 )
 
 foreach(JINJA_FILE ${JINJA_FILES})
+  message(STATUS "jinja file: ${JINJA_FILE}")
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/${JINJA_FILE}
     COMMAND ${JINJA_GEN} --hcdf ${HCDF_FILE}
@@ -25,6 +26,6 @@ zephyr_library_sources(
   src/controller.c
   src/casadi/rover.c
   ${CMAKE_CURRENT_BINARY_DIR}/src/mixer.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/parameters.h.jinja
+  ${CMAKE_CURRENT_BINARY_DIR}/src/parameters.h
 )
 

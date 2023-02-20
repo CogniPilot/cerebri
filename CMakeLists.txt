@@ -6,12 +6,13 @@ if (NOT DEFINED BOARD)
   set(BOARD native_posix_64)
 endif()
 
-set(ZEPHYR_EXTRA_MODULES
+set(ZEPHYR_MODULES
   ${CMAKE_SOURCE_DIR}/src
 )
 
 find_package(hcdformat REQUIRED)
 find_package(ament_cmake REQUIRED)
+find_package(gz-transport12 REQUIRED)
 
 # find dependencies
 if (NOT DEFINED HCDF)

@@ -1,7 +1,3 @@
-enable_language(CXX)
-
-find_package(gz-transport12 REQUIRED)
-
 zephyr_library()
 
 zephyr_compile_options(
@@ -12,10 +8,8 @@ zephyr_compile_options(
 )
 
 set(JINJA_FILES
-  sim_gz_driver.cc
+	#  sim_gz_driver.cc
 )
-
-message(STATUS "XXXXXXXXXXXXXXXXXXXX Jinja gen: ${JINJA_GEN}")
 
 foreach(JINJA_FILE ${JINJA_FILES})
   add_custom_command(
@@ -32,7 +26,8 @@ zephyr_include_directories(
   )
 
 zephyr_library_sources(
-  ${CMAKE_CURRENT_BINARY_DIR}/src/sim_gz_driver.cc
+  src/sim_gz_driver.cc
+  #${CMAKE_CURRENT_BINARY_DIR}/src/sim_gz_driver.cc
 )
 
 zephyr_library_include_directories(

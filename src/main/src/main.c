@@ -16,6 +16,7 @@ int main(void) {
     signal(SIGINT, intHandler);
 
     // all tasks are handled by threads
+#ifdef CONFIG_CEREBRI_BANNER
     const char * banner =
     "                            \033[0m\033[38;5;252m              ▄▄▄▄▄▄▄▄\n"
     "\033[2;34m         ▄▄▄▄▄ \033[2;33m▄▄▄▄▄\033[0m\033[38;5;252m                    ▀▀▀▀▀▀▀▀▀\n"
@@ -44,8 +45,9 @@ int main(void) {
     "       ┗━━━┛┗━━━┛┗┛┗━┛┗━━━┛┗━━━┛┗┛┗━┛┗━━┛\n\033[0m";
 
     printf("%s\n", banner);
+#endif
     while(keepRunning) {
-        k_msleep(1000);
+        k_msleep(5000);
     }
     return 0;
 }

@@ -7,7 +7,6 @@
 
 #include "channels.h"
 
-static const int clock_check_rate = 1000; // Hz
 int64_t connect_time = 0;
 
 LockingQueue<msg_accelerometer_t> queue_accelerometer{};
@@ -38,20 +37,18 @@ ZBUS_LISTENER_DEFINE(listener_sim_actuators, sim_actuator_callback);
 
 void thread_sim_core_entry_point(void *p1, void *p2, void *p3) {
     printf("waiting for simulation connection\n");
+    bool connected = false;
     while (true)
     {
+        sim_time_t sim_time{};
+        queue_sim_time.waitAndPop(sim_time);
+        if (!connected) {
+            connected = true;
+            printf("simulator connected\n");
+        }
         int64_t uptime = k_uptime_get();
         int64_t sec = uptime/1.0e3;
         int32_t nsec = (uptime - sec*1e3)*1e6;
-
-        // get the latest simulation time
-        sim_time_t sim_time;
-        while (queue_sim_time.tryPop(sim_time)) {
-        }
-
-        if (sim_time.sec == 0 && sim_time.nsec == 0) {
-            // first run, need to fast forward clock
-        }
 
         // fast forward zephyClock time to match sim
         int64_t delta_sec = sim_time.sec - sec;
@@ -63,7 +60,6 @@ void thread_sim_core_entry_point(void *p1, void *p2, void *p3) {
             //printf("wait: %d\n", wait);
             if (connect_time == 0) {
                 connect_time = k_uptime_get();
-                printf("simulator connected\n");
             }
             k_usleep(wait);
         }
@@ -77,16 +73,8 @@ void thread_sim_core_entry_point(void *p1, void *p2, void *p3) {
         PUB_SIM_MESSAGES(trajectory, trajectory);
         PUB_SIM_MESSAGES(rc_input, rc_input);
         PUB_SIM_MESSAGES(external_odometry, odometry);
-
-        // allow other threads to run
-        k_yield();
-
-        // this sleeps the sim to save cpu load
-        struct timespec tsleep, trem;
-        tsleep.tv_sec = 0;
-        tsleep.tv_nsec = 1e9/clock_check_rate;
-        nanosleep(&tsleep, &trem);
     }
 }
 
-K_THREAD_DEFINE(sim_core, 1024, thread_sim_core_entry_point, NULL, NULL, NULL, 7, 0, 0);
+static const int PRIORITY=-10;
+K_THREAD_DEFINE(sim_core, 1024, thread_sim_core_entry_point, NULL, NULL, NULL, PRIORITY, 0, 0);

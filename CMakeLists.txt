@@ -6,13 +6,9 @@ if (NOT DEFINED BOARD)
   set(BOARD native_posix_64)
 endif()
 
-set(ZEPHYR_MODULES
-  ${CMAKE_SOURCE_DIR}/modules/sim_gz
-  ${CMAKE_SOURCE_DIR}/modules/sim_core
-  ${CMAKE_SOURCE_DIR}/modules/rover_control
-  ${CMAKE_SOURCE_DIR}/modules/estimator
+set(ZEPHYR_EXTRA_MODULES
+  ${CMAKE_SOURCE_DIR}/src
 )
-message(STATUS "ZEPHYR_MODULES: ${ZEPHYR_MODULES}")
 
 find_package(hcdformat REQUIRED)
 find_package(ament_cmake REQUIRED)
@@ -48,18 +44,14 @@ endif()
 
 zephyr_include_directories(include)
 
-target_sources(app PRIVATE
-  src/main.c
-)
-
 install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
 
-install(
-  TARGETS zephyr_pre1
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/zephyr/zephyr.elf
   DESTINATION lib/${PROJECT_NAME}
+  RENAME cerebri
 )
 
 ament_package()

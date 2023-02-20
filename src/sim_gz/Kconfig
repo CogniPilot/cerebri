@@ -1,0 +1,7 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config CEREBRI_SIM_GZ
+	bool "sim gz"
+	help
+	  This option enables gazebo simulation

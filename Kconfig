@@ -6,10 +6,9 @@
 # You can browse these options using the west targets menuconfig (terminal) or
 # guiconfig (GUI).
 
+mainmenu "Cerebri"
+
 menu "Zephyr"
 source "Kconfig.zephyr"
 endmenu
 
-module = CEREBRI
-module-str = CEREBRI
-source "subsys/logging/Kconfig.template.log_config"

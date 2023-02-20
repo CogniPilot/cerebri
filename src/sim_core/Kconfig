@@ -1,0 +1,7 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config CEREBRI_SIM_CORE
+	bool "sim core"
+	help
+	  This option enables sim core

@@ -1,0 +1,7 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config CEREBRI_ROVER_CONTROL
+	bool "rover control"
+	help
+	  This option enables rover control

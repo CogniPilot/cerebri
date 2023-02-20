@@ -1,0 +1,8 @@
+# Copyright (c) 2023 CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+rsource "estimator/Kconfig"
+rsource "multirotor_control/Kconfig"
+rsource "rover_control/Kconfig"
+rsource "sim_core/Kconfig"
+rsource "sim_gz/Kconfig"

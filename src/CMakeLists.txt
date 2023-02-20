@@ -1,0 +1,6 @@
+add_subdirectory(main)
+add_subdirectory_ifdef(CONFIG_CEREBRI_ESTIMATOR estimator)
+add_subdirectory_ifdef(CONFIG_CEREBRI_ROVER_CONTROL rover_control)
+add_subdirectory_ifdef(CONFIG_CEREBRI_MULTIROTOR_CONTROL multirotor_control)
+add_subdirectory_ifdef(CONFIG_CEREBRI_SIM_CORE sim_core)
+add_subdirectory_ifdef(CONFIG_CEREBRI_SIM_GZ sim_gz)

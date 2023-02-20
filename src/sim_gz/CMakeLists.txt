@@ -8,12 +8,13 @@ zephyr_compile_options(
 )
 
 set(JINJA_FILES
-	#  sim_gz_driver.cc
+  sim_gz_driver.cc
 )
 
 foreach(JINJA_FILE ${JINJA_FILES})
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/${JINJA_FILE}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${JINJA_FILE}.jinja
     COMMAND ${JINJA_GEN} --hcdf ${HCDF_FILE}
     --template ${CMAKE_CURRENT_SOURCE_DIR}/src/${JINJA_FILE}.jinja
     --out ${CMAKE_CURRENT_BINARY_DIR}/src
@@ -26,8 +27,7 @@ zephyr_include_directories(
   )
 
 zephyr_library_sources(
-  src/sim_gz_driver.cc
-  #${CMAKE_CURRENT_BINARY_DIR}/src/sim_gz_driver.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/src/sim_gz_driver.cc
 )
 
 zephyr_library_include_directories(

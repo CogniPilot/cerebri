@@ -11,6 +11,7 @@ foreach(JINJA_FILE ${JINJA_FILES})
   message(STATUS "jinja file: ${JINJA_FILE}")
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/src/${JINJA_FILE}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/${JINJA_FILE}.jinja
     COMMAND ${JINJA_GEN} --hcdf ${HCDF_FILE}
     --template ${CMAKE_CURRENT_SOURCE_DIR}/src/${JINJA_FILE}.jinja
     --out ${CMAKE_CURRENT_BINARY_DIR}/src

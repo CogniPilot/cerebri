@@ -18,3 +18,6 @@ build:
     # `<dts_root>/dts/bindings` for additional dts binding files. The `.` is
     # the root of this repository.
     dts_root: .
+    module_ext_root: .
+  depends:
+    - nanopb

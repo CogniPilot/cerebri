@@ -7,6 +7,8 @@
 .venv
 
 # build
-/build*
+build/
 
 __pycache__/
+
+manifest-tmp/

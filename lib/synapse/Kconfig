@@ -1,0 +1,7 @@
+# Copyright (c) 2021, Legrand North America, LLC.
+# SPDX-License-Identifier: Apache-2.0
+
+config SYNAPSE
+	bool "synapse Support"
+	help
+	  This option enables the synapse library

@@ -2,6 +2,7 @@ common:
   tags: extensibility
   integration_platforms:
     - custom_plank
+    - native_posix_64
     - qemu_cortex_m0
 tests:
   lib.custom_lib: {}

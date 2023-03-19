@@ -14,11 +14,7 @@ manifest:
       url: https://github.com/zephyrproject-rtos/zephyr
       west-commands: scripts/west-commands.yml
       revision: v3.3.0
-      import:
-        - name-allowlist:
-          - nanopb
-          - mbedtls
-          - net-tools
+      import: true
     - name: tinyframe
       url: https://github.com/jgoppert/TinyFrame
       revision: zephyr

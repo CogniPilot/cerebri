@@ -8,6 +8,8 @@
 
 #include "app_version.h"
 
+#include <synapse_pb/twist.pb.h>
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
 
@@ -16,7 +18,12 @@ void main(void)
 	int ret;
 	const struct device *sensor;
 
-	printk("Zephyr Example Application %s\n", APP_VERSION_STR);
+	printk("Cerebri %s\n", APP_VERSION_STR);
+
+	Twist twist = Twist_init_zero;
+	twist.has_linear = true;
+	twist.linear.x = 1;
+	twist.angular.x = 1;
 
 	/*
 	sensor = DEVICE_DT_GET(DT_NODELABEL(examplesensor0));

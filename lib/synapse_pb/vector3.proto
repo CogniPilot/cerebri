@@ -3,7 +3,8 @@
 
 syntax = "proto3";
 
-message SimpleMessage {
-    int32 lucky_number = 1;
-    int64 clock = 2;
+message Vector3 {
+    double x = 1; 
+    double y = 2; 
+    double z = 3; 
 }

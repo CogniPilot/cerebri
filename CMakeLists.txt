@@ -1,4 +1,4 @@
-# Copyright (c) 2021 Nordic Semiconductor ASA
+# Copyright (c) 2023 CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 #
 # This CMake file is picked by the Zephyr build system because it is defined

@@ -1,9 +1,10 @@
-# Copyright (c) 2021 Legrand North America, LLC.
+# Copyright (c) 2023 CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
 menu "Libraries"
 
 rsource "custom_lib/Kconfig"
-rsource "synapse/Kconfig"
+rsource "synapse_pb/Kconfig"
+rsource "synapse_zbus/Kconfig"
 
 endmenu

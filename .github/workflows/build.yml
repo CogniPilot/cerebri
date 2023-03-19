@@ -23,7 +23,7 @@ jobs:
       - name: Build firmware
         working-directory: example-application
         run: |
-          west build -b custom_plank app
+          west build -b native_posix_64 app
 
       - name: Twister Tests
         working-directory: example-application

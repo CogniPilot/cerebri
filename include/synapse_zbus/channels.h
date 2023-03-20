@@ -5,4 +5,4 @@
 
 ZBUS_CHAN_DECLARE(chan_twist);
 
-#endif CEREBRI_ZBUS_CHANNELS_H
+#endif // CEREBRI_ZBUS_CHANNELS_H

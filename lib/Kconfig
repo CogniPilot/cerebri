@@ -6,5 +6,7 @@ menu "Libraries"
 rsource "custom_lib/Kconfig"
 rsource "synapse_pb/Kconfig"
 rsource "synapse_zbus/Kconfig"
+rsource "protobuf_uart/Kconfig"
+rsource "protobuf_ethernet/Kconfig"
 
 endmenu

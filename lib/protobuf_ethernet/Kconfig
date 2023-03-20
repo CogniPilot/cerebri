@@ -1,0 +1,12 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config PROTOBUF_ETHERNET
+	bool "protobuf ethernet support"
+	help
+	  This option enables the the protobuf ethernet library
+	depends on CONFIG_NETWORKING
+	depends on CONFIG_NET_SOCKETS
+	depends on CONFIG_NANOPB
+	depends on CONFIG_TINYFRAME
+	depends on CONFIG_SYNAPSE_PB

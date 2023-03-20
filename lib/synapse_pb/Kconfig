@@ -5,3 +5,18 @@ config SYNAPSE_PB
 	bool "synapse protobuf backend"
 	help
 	  This option enables the synapse protobuf backend
+
+if SYNAPSE_PB
+
+config SYNAPSE_PB_UART
+	bool "synapse protobuf uart thread"
+	help
+	  This option enables the synapse protobuf uart thread
+
+config SYNAPSE_PB_ETHERNET
+	bool "synapse protobuf uart thread"
+	help
+	  This option enables the synapse protobuf uart thread
+        depends on NET
+
+endif  # SYNAPSE_PB

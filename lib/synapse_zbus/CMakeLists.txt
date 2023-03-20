@@ -3,8 +3,6 @@
 
 zephyr_library_named(synapse_zbus)
 
-add_dependencies(synapse_zbus synapse_pb)
-
 zephyr_library_sources(
   channels.c
   )

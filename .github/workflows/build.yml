@@ -28,7 +28,7 @@ jobs:
       - name: Twister Tests
         working-directory: example-application
         run: |
-          ../zephyr/scripts/twister -G --board-root boards/ --testsuite-root ./tests/
+          west test
 
       - name: Archive firmware
         uses: actions/upload-artifact@v2

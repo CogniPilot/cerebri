@@ -3,3 +3,5 @@
 add_subdirectory_ifdef(CONFIG_CUSTOM_LIB custom_lib)
 add_subdirectory_ifdef(CONFIG_SYNAPSE_PB synapse_pb)
 add_subdirectory_ifdef(CONFIG_SYNAPSE_ZBUS synapse_zbus)
+add_subdirectory_ifdef(CONFIG_PROTOBUF_UART protobuf_uart)
+add_subdirectory_ifdef(CONFIG_PROTOBUF_ETHERNET protobuf_ethernet)

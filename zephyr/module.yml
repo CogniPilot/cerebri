@@ -21,3 +21,4 @@ build:
     module_ext_root: .
   depends:
     - nanopb
+    - tinyframe

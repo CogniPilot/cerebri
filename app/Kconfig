@@ -6,7 +6,7 @@
 # You can browse these options using the west targets menuconfig (terminal) or
 # guiconfig (GUI).
 
-menu "Zephyr"
+menu "Cerebri"
 source "Kconfig.zephyr"
 endmenu
 

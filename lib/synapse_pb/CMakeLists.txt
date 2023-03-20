@@ -16,6 +16,8 @@ zephyr_library_named(synapse_pb)
 zephyr_include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 
 zephyr_library_sources(
+  main.c
+  channels.c
   ${PROTO_SOURCES}
   )
 

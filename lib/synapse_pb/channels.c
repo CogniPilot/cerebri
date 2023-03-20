@@ -1,4 +1,4 @@
-#include "synapse_zbus/channels.h"
+#include "synapse_pb/channels.h"
 #include "synapse_pb/twist.pb.h"
 
 // sensor measurements

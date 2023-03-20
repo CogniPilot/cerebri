@@ -1,9 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-
-config ZEPHYR_TINYFRAME_MODULE
-        bool
-
-menuconfig TINYFRAME
+config TINYFRAME
         bool "TinyFrame Support"
         help
           This option enables the Tinyframe library.

@@ -1,0 +1,21 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config SYNAPTIC_GAP
+  bool "synapse gap"
+  help
+    This option enables the synaptic gap that communicates with ROS
+
+if SYNAPTIC_GAP
+
+config SYNAPTIC_GAP_UART
+  bool "synapse protobuf uart thread"
+  help
+    This option enables the synapse protobuf uart thread
+
+config SYNAPTIC_GAP_ETHERNET
+  bool "synapse protobuf ethernet thread"
+  help
+    This option enables the synapse protobuf ethernet thread
+
+endif  # SYNAPTIC_GAP

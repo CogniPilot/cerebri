@@ -15,7 +15,7 @@
 
 #include <pb_encode.h>
 #include <pb_decode.h>
-#include "synapse_pb/twist.pb.h"
+#include "synapse_protobuf/twist.pb.h"
 
 #include "synapse_tinyframe/TinyFrame.h"
 #include "synapse_tinyframe/utils.h"
@@ -103,6 +103,7 @@ static TF_Result twistListener(TinyFrame *tf, TF_Msg *msg)
   return TF_STAY;
 }
 
+#if defined(CONFIG_SYNAPTIC_GAP_UART)
 static void uart_entry_point(void)
 {
     TF_Msg msg;
@@ -147,10 +148,11 @@ static void uart_entry_point(void)
   }
 }
 
-//K_THREAD_DEFINE(protobuf_ethernet_tid, MY_STACK_SIZE, uart_entry_point,
-//    NULL, NULL, NULL, MY_PRIORITY, 0, 0);
+K_THREAD_DEFINE(synaptic_gap_uart, MY_STACK_SIZE, uart_entry_point,
+    NULL, NULL, NULL, MY_PRIORITY, 0, 0);
+#endif
 
-
+#if defined(CONFIG_SYNAPTIC_GAP_ETHERNET)
 static void ethernet_entry_point(void)
 {
   int serv;
@@ -245,6 +247,6 @@ static void ethernet_entry_point(void)
   }
 }
 
-K_THREAD_DEFINE(protobuf_uart_tid, MY_STACK_SIZE, ethernet_entry_point,
+K_THREAD_DEFINE(synaptic_gap_ethernet, MY_STACK_SIZE, ethernet_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
-
+#endif

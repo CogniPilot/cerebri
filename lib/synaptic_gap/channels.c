@@ -1,5 +1,5 @@
-#include "synapse_pb/channels.h"
-#include "synapse_pb/twist.pb.h"
+#include "synaptic_gap/channels.h"
+#include "synapse_protobuf/twist.pb.h"
 
 // sensor measurements
 ZBUS_CHAN_DEFINE(chan_twist, // Name

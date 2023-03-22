@@ -34,12 +34,6 @@
 #define UART_DEVICE_NODE DT_CHOSEN(zephyr_shell_uart)
 
 static const struct device *const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
-
-static uint8_t tx0_buf[TX_BUF_SIZE];
-
-static uint8_t tx1_buf[TX_BUF_SIZE];
-static uint8_t rx1_buf[RX_BUF_SIZE];
-
 static int client = 0;
 
 /**
@@ -68,9 +62,6 @@ void TF_WriteImpl(TinyFrame *tf, const uint8_t *buf, uint32_t len)
       p += out_len;
       len -= out_len;
     } while (len);
-    for (int i=0; i<len; i++) {
-      uart_poll_out(uart_dev, buf[i]);
-    }
   }
 }
 
@@ -94,7 +85,7 @@ static TF_Result twistListener(TinyFrame *tf, TF_Msg *msg)
   /* Check for errors... */
   if (status) {
     /* Print the data contained in the message. */
-    printk("%d %d %d %d %d %d", 
+    printf("%10.4f %10.4f %10.4f %10.4f %10.4f %10.4f\n", 
       message.linear.x, message.linear.y, message.linear.z,
       message.angular.x, message.angular.y, message.angular.z);
   } else {
@@ -106,17 +97,18 @@ static TF_Result twistListener(TinyFrame *tf, TF_Msg *msg)
 #if defined(CONFIG_SYNAPTIC_GAP_UART)
 static void uart_entry_point(void)
 {
-    TF_Msg msg;
+  uint8_t tx0_buf[TX_BUF_SIZE];
 
-    // Set up the TinyFrame library
-    TinyFrame *tf0;
-    tf0 = TF_Init(TF_MASTER); // 1 = master, 0 = slave
-    tf0->usertag = 0;
-    TF_AddGenericListener(tf0, genericListener);
-    TF_AddTypeListener(tf0, TYPE_TWIST, twistListener);
+  TF_Msg msg;
+
+  // Set up the TinyFrame library
+  TinyFrame *tf0;
+  tf0 = TF_Init(TF_MASTER); // 1 = master, 0 = slave
+  tf0->usertag = 0;
+  TF_AddGenericListener(tf0, genericListener);
+  TF_AddTypeListener(tf0, TYPE_TWIST, twistListener);
 
   while (true) {
-
     // send twist message
     {
       Twist message = Twist_init_zero;
@@ -155,6 +147,9 @@ K_THREAD_DEFINE(synaptic_gap_uart, MY_STACK_SIZE, uart_entry_point,
 #if defined(CONFIG_SYNAPTIC_GAP_ETHERNET)
 static void ethernet_entry_point(void)
 {
+  static uint8_t tx1_buf[TX_BUF_SIZE];
+  static uint8_t rx1_buf[RX_BUF_SIZE];
+
   int serv;
   struct sockaddr_in bind_addr;
   static int counter;

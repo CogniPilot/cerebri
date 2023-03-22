@@ -1,6 +1,0 @@
-syntax = "proto3";
-
-enum Topics {
-	SYNAPSE_CMD_VEL = 0;
-	SYNAPSE_CMD_TRAJ = 1;
-};

@@ -8,7 +8,7 @@
 
 #include "app_version.h"
 
-#include <synapse_pb/twist.pb.h>
+#include <synapse_protobuf/twist.pb.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);

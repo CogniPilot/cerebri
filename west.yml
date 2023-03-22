@@ -15,7 +15,11 @@ manifest:
       west-commands: scripts/west-commands.yml
       revision: v3.3.0
       import: true
-    - name: tinyframe
-      url: https://github.com/jgoppert/TinyFrame
-      revision: zephyr
-      path: modules/lib/tinyframe
+    - name: synapse_tinyframe
+      url: https://github.com/CogniPilot/synapse_tinyframe
+      revision: main
+      path: modules/lib/synapse_tinyframe
+    - name: synapse_protobuf
+      url: https://github.com/CogniPilot/synapse_protobuf
+      revision: main
+      path: modules/lib/synapse_protobuf

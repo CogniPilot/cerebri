@@ -19,14 +19,13 @@
 
 #include "synapse_tinyframe/TinyFrame.h"
 #include "synapse_tinyframe/utils.h"
+#include "synapse_tinyframe/SynapseTopics.h"
 
 #define MY_STACK_SIZE 500
 #define MY_PRIORITY 5
 
 #define TX_BUF_SIZE 100
 #define RX_BUF_SIZE 100
-
-#define TYPE_TWIST 0x01
 
 #define BIND_PORT 4242
 
@@ -71,7 +70,7 @@ static TF_Result genericListener(TinyFrame *tf, TF_Msg *msg)
     return TF_STAY;
 }
 
-static TF_Result twistListener(TinyFrame *tf, TF_Msg *msg)
+static TF_Result cmdVelListener(TinyFrame *tf, TF_Msg *msg)
 {
   /* Allocate space for the decoded message. */
   Twist message = Twist_init_zero;
@@ -106,17 +105,17 @@ static void uart_entry_point(void)
   tf0 = TF_Init(TF_MASTER); // 1 = master, 0 = slave
   tf0->usertag = 0;
   TF_AddGenericListener(tf0, genericListener);
-  TF_AddTypeListener(tf0, TYPE_TWIST, twistListener);
+  TF_AddTypeListener(tf0, SYNAPSE_IN_CMD_VEL_TOPIC, cmdVelListener);
 
   while (true) {
-    // send twist message
+    // send cmd vel topic
     {
       Twist message = Twist_init_zero;
       pb_ostream_t tx_stream = pb_ostream_from_buffer(tx0_buf, Twist_size);
       pb_encode(&tx_stream, Twist_fields, &message);
       
       TF_ClearMsg(&msg);
-      msg.type = TYPE_TWIST;
+      msg.type = SYNAPSE_IN_CMD_VEL_TOPIC;
       msg.len = tx_stream.bytes_written;
       msg.data = (pu8) tx0_buf;
       TF_Send(tf0, &msg);
@@ -185,7 +184,7 @@ static void ethernet_entry_point(void)
   tf0 = TF_Init(TF_MASTER); // 1 = master, 0 = slave
   tf0->usertag = 1;
   TF_AddGenericListener(tf0, genericListener);
-  TF_AddTypeListener(tf0, TYPE_TWIST, twistListener);
+  TF_AddTypeListener(tf0, SYNAPSE_IN_CMD_VEL_TOPIC, cmdVelListener);
 
   while (1) {
     struct sockaddr_in client_addr;
@@ -204,7 +203,7 @@ static void ethernet_entry_point(void)
     printf("Connection #%d from %s\n", counter++, addr_str);
 
     while (1) {
-      // send twist message
+      // send cmd vel topic
       {
         Twist message = Twist_init_zero;
         message.has_linear = true;
@@ -219,7 +218,7 @@ static void ethernet_entry_point(void)
         pb_encode(&tx_stream, Twist_fields, &message);
         
         TF_ClearMsg(&msg);
-        msg.type = TYPE_TWIST;
+        msg.type = SYNAPSE_IN_CMD_VEL_TOPIC;
         msg.len = tx_stream.bytes_written;
         msg.data = (pu8) tx1_buf;
         TF_Send(tf0, &msg);

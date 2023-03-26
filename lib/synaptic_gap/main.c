@@ -83,7 +83,7 @@ static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
         int status = pb_decode(&stream, CLASS##_fields, &msg);                 \
         if (status) {                                                          \
             zbus_chan_pub(&chan_##CHANNEL, &msg, K_FOREVER);                   \
-            printf("Decoded  channel ## CHANNEL\n");                           \
+            printf("Decoded " #CHANNEL "\n");                                  \
         } else {                                                               \
             printf("Decoding failed: %s\n", PB_GET_ERROR(&stream));            \
         }                                                                      \

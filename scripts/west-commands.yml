@@ -4,3 +4,8 @@ west-commands:
       - name: test
         class: TestCommand
         help: runs tests on project
+  - file: scripts/format_command.py
+    commands:
+      - name: format
+        class: FormatCommand
+        help: runs code formatting

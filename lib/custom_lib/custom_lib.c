@@ -8,6 +8,6 @@
 
 int custom_lib_get_value(int return_value_if_nonzero)
 {
-	return (return_value_if_nonzero != 0) ? return_value_if_nonzero
-		: CONFIG_CUSTOM_LIB_GET_VALUE_DEFAULT;
+    return (return_value_if_nonzero != 0) ? return_value_if_nonzero
+                                          : CONFIG_CUSTOM_LIB_GET_VALUE_DEFAULT;
 }

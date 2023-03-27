@@ -1,26 +1,26 @@
 # Copyright (c) 2023 CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-'''format_command.py
+'''tidy_command.py
 
-Formats the code using clang-format
+Runs clang-tidy
 '''
 
 import subprocess
 import os
 import re
 
+import cerebri_common
+
 from west.commands import WestCommand  # your extension must subclass this
 from west import log                   # use this for user output
 
-import cerebri_common
-
-class FormatCommand(WestCommand):
+class TidyCommand(WestCommand):
 
     def __init__(self):
         super().__init__(
-            'format',               # gets stored as self.name
-            'runs formatting',  # self.help
+            'tidy',               # gets stored as self.name
+            'runs tidy',  # self.help
             # self.description:
             '''Runs clang-format''')
 
@@ -46,7 +46,7 @@ class FormatCommand(WestCommand):
         #   required is BAR
         #log.inf('--optional is', args.optional)
         #log.inf('required is', args.required)
-        log.inf('running clang-format')
+        log.inf('running clang-tidy')
 
         regex = re.compile('(.*\.c$)|(.*\.cpp$)|(.*\.h$)|(.*\.hpp$)')
 
@@ -55,11 +55,11 @@ class FormatCommand(WestCommand):
                 for file in files:
                     if regex.match(file):
                         file_path = os.path.join(root, file)
-                        cmd_str = f'\tclang-format -i -style WebKit {file_path}'
+                        cmd_str = f'\tclang-tidy -p build/ {file_path}'
                         print(cmd_str)
                         subprocess.run(cmd_str, shell=True)
 
         for path in cerebri_common.source_paths:
-            print(f'formatting {path}')
+            print(f'calling tidy on {path}')
             format_dir_files(path)
 

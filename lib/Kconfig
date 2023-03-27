@@ -4,6 +4,6 @@
 menu "Libraries"
 
 rsource "custom_lib/Kconfig"
-rsource "synaptic_gap/Kconfig"
+rsource "synapse_zbus/Kconfig"
 
 endmenu

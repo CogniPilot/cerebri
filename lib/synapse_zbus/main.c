@@ -2,8 +2,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "synaptic_gap/channels.h"
-
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
@@ -21,10 +19,13 @@
 #include "synapse_protobuf/joy.pb.h"
 #include "synapse_protobuf/odometry.pb.h"
 #include "synapse_protobuf/twist.pb.h"
+#include "synapse_protobuf/clock.pb.h"
 
 #include "synapse_tinyframe/SynapseTopics.h"
 #include "synapse_tinyframe/TinyFrame.h"
 #include "synapse_tinyframe/utils.h"
+
+#include "synapse_zbus/channels.h"
 
 #define MY_STACK_SIZE 500
 #define MY_PRIORITY 5
@@ -33,6 +34,7 @@
 #define RX_BUF_SIZE 100
 
 #define BIND_PORT 4242
+#define SIM_BIND_PORT 4243
 
 /* change this to any other UART peripheral if desired */
 #define UART_DEVICE_NODE DT_CHOSEN(zephyr_shell_uart)
@@ -93,8 +95,9 @@ static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 TOPIC_LISTENER(in_cmd_vel, Twist);
 TOPIC_LISTENER(in_joy, Joy);
 TOPIC_LISTENER(in_odometry, Odometry);
+TOPIC_LISTENER(sim_clock, Clock);
 
-#if defined(CONFIG_SYNAPTIC_GAP_UART)
+#if defined(CONFIG_SYNAPSE_ZBUS_UART)
 static void uart_entry_point(void)
 {
     uint8_t tx0_buf[TX_BUF_SIZE];
@@ -142,11 +145,11 @@ static void uart_entry_point(void)
     }
 }
 
-K_THREAD_DEFINE(synaptic_gap_uart, MY_STACK_SIZE, uart_entry_point,
+K_THREAD_DEFINE(synapse_zbus_uart, MY_STACK_SIZE, uart_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
 #endif
 
-#if defined(CONFIG_SYNAPTIC_GAP_ETHERNET)
+#if defined(CONFIG_SYNAPSE_ZBUS_ETHERNET)
 static void ethernet_entry_point(void)
 {
     static uint8_t tx1_buf[TX_BUF_SIZE];
@@ -191,6 +194,7 @@ static void ethernet_entry_point(void)
     TF_AddTypeListener(tf0, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
     TF_AddTypeListener(tf0, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
     TF_AddTypeListener(tf0, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
+    TF_AddTypeListener(tf0, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_Listener);
 
     while (1) {
         struct sockaddr_in client_addr;
@@ -247,6 +251,6 @@ static void ethernet_entry_point(void)
     }
 }
 
-K_THREAD_DEFINE(synaptic_gap_ethernet, MY_STACK_SIZE, ethernet_entry_point,
+K_THREAD_DEFINE(synapse_zbus_ethernet, MY_STACK_SIZE, ethernet_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
 #endif

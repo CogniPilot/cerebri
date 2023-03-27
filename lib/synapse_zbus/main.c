@@ -1,4 +1,5 @@
 /*
+ * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -15,11 +16,6 @@
 
 #include <pb_decode.h>
 #include <pb_encode.h>
-
-#include "synapse_protobuf/joy.pb.h"
-#include "synapse_protobuf/odometry.pb.h"
-#include "synapse_protobuf/twist.pb.h"
-#include "synapse_protobuf/clock.pb.h"
 
 #include "synapse_tinyframe/SynapseTopics.h"
 #include "synapse_tinyframe/TinyFrame.h"
@@ -92,10 +88,23 @@ static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
         return TF_STAY;                                                        \
     }
 
+TOPIC_LISTENER(in_bezier_trajectory, BezierTrajectory);
 TOPIC_LISTENER(in_cmd_vel, Twist);
 TOPIC_LISTENER(in_joy, Joy);
 TOPIC_LISTENER(in_odometry, Odometry);
 TOPIC_LISTENER(sim_clock, Clock);
+TOPIC_LISTENER(out_actuators, Actuators);
+
+void setup_listeners(TinyFrame * tf) {
+    TF_AddGenericListener(tf, genericListener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_OUT_ACTUATORS_TOPIC, out_actuators_Listener);
+};
 
 #if defined(CONFIG_SYNAPSE_ZBUS_UART)
 static void uart_entry_point(void)
@@ -108,10 +117,7 @@ static void uart_entry_point(void)
     TinyFrame* tf0;
     tf0 = TF_Init(TF_MASTER); // 1 = master, 0 = slave
     tf0->usertag = 0;
-    TF_AddGenericListener(tf0, genericListener);
-    TF_AddTypeListener(tf0, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
-    TF_AddTypeListener(tf0, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
-    TF_AddTypeListener(tf0, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
+    setup_listeners(tf0);
 
     while (true) {
         // send cmd vel topic
@@ -190,11 +196,7 @@ static void ethernet_entry_point(void)
     static TinyFrame* tf0;
     tf0 = TF_Init(TF_MASTER); // 1 = master, 0 = slave
     tf0->usertag = 1;
-    TF_AddGenericListener(tf0, genericListener);
-    TF_AddTypeListener(tf0, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
-    TF_AddTypeListener(tf0, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
-    TF_AddTypeListener(tf0, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
-    TF_AddTypeListener(tf0, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_Listener);
+    setup_listeners(tf0);
 
     while (1) {
         struct sockaddr_in client_addr;

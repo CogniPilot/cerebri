@@ -23,11 +23,11 @@
 
 #include "synapse_zbus/channels.h"
 
-#define MY_STACK_SIZE 500
-#define MY_PRIORITY 5
+#define MY_STACK_SIZE 10240
+#define MY_PRIORITY -1
 
-#define TX_BUF_SIZE 100
-#define RX_BUF_SIZE 100
+#define TX_BUF_SIZE 2560
+#define RX_BUF_SIZE 2560
 
 #define BIND_PORT 4242
 #define SIM_BIND_PORT 4243
@@ -96,7 +96,7 @@ TOPIC_LISTENER(sim_clock, Clock);
 TOPIC_LISTENER(out_actuators, Actuators);
 
 void setup_listeners(TinyFrame * tf) {
-    TF_AddGenericListener(tf, genericListener);
+    //TF_AddGenericListener(tf, genericListener);
     TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
     TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
     TF_AddTypeListener(tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
@@ -127,7 +127,7 @@ static void uart_entry_point(void)
             pb_encode(&tx_stream, Twist_fields, &message);
 
             TF_ClearMsg(&msg);
-            msg.type = SYNAPSE_IN_CMD_VEL_TOPIC;
+            msg.type = SYNAPSE_OUT_CMD_VEL_TOPIC;
             msg.len = tx_stream.bytes_written;
             msg.data = (pu8)tx0_buf;
             TF_Send(tf0, &msg);
@@ -217,6 +217,7 @@ static void ethernet_entry_point(void)
         while (1) {
             // send cmd vel topic
             {
+		/*
                 Twist msg = Twist_init_zero;
                 msg.has_linear = true;
                 msg.linear.x = 1;
@@ -230,22 +231,19 @@ static void ethernet_entry_point(void)
                 pb_encode(&tx_stream, Twist_fields, &msg);
 
                 TF_ClearMsg(&frame);
-                frame.type = SYNAPSE_IN_CMD_VEL_TOPIC;
+                frame.type = SYNAPSE_OUT_CMD_VEL_TOPIC;
                 frame.len = tx_stream.bytes_written;
                 frame.data = (pu8)tx1_buf;
                 TF_Send(tf0, &frame);
+		*/
             }
 
             // receive messages
             {
                 int len = recv(client, rx1_buf, sizeof(rx1_buf), 0);
-                for (int i = 0; i < len; i++) {
-                    TF_AcceptChar(tf0, rx1_buf[i]);
-                }
+		TF_Accept(tf0, rx1_buf, len);
+		printf("len: %d\n", len);
             }
-
-            // sleep
-            k_busy_wait(100000);
 
             // should move tf tick to a clock thread
             TF_Tick(tf0);

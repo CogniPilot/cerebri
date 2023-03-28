@@ -23,11 +23,11 @@
 
 #include "synapse_zbus/channels.h"
 
-#define MY_STACK_SIZE 10240
+#define MY_STACK_SIZE 1024
 #define MY_PRIORITY -1
 
-#define TX_BUF_SIZE 2560
-#define RX_BUF_SIZE 2560
+#define TX_BUF_SIZE 1024
+#define RX_BUF_SIZE 1024
 
 #define BIND_PORT 4242
 #define SIM_BIND_PORT 4243
@@ -81,7 +81,6 @@ static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
         int status = pb_decode(&stream, CLASS##_fields, &msg);                 \
         if (status) {                                                          \
             zbus_chan_pub(&chan_##CHANNEL, &msg, K_FOREVER);                   \
-            printf("Decoded " #CHANNEL "\n");                                  \
         } else {                                                               \
             printf("Decoding failed: %s\n", PB_GET_ERROR(&stream));            \
         }                                                                      \
@@ -95,8 +94,9 @@ TOPIC_LISTENER(in_odometry, Odometry);
 TOPIC_LISTENER(sim_clock, Clock);
 TOPIC_LISTENER(out_actuators, Actuators);
 
-void setup_listeners(TinyFrame * tf) {
-    //TF_AddGenericListener(tf, genericListener);
+void setup_listeners(TinyFrame* tf)
+{
+    // TF_AddGenericListener(tf, genericListener);
     TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
     TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
     TF_AddTypeListener(tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
@@ -144,7 +144,7 @@ static void uart_entry_point(void)
         }
 
         // sleep 0.01 seconds
-        k_busy_wait(10000);
+        // k_busy_wait(10000);
 
         // should move TF tick to a clock thread
         TF_Tick(tf0);
@@ -186,11 +186,9 @@ static void ethernet_entry_point(void)
         exit(1);
     }
 
-    printf("Single-threaded TCP echo server waits for a connection on "
+    printf("TCP Simulation server waits for a connection on "
            "port %d...\n",
         BIND_PORT);
-
-    TF_Msg frame;
 
     // Set up the TinyFrame library
     static TinyFrame* tf0;
@@ -208,6 +206,8 @@ static void ethernet_entry_point(void)
         if (client < 0) {
             printf("error: accept: %d\n", errno);
             continue;
+        } else {
+            printf("connected\n");
         }
 
         inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
@@ -216,8 +216,9 @@ static void ethernet_entry_point(void)
 
         while (1) {
             // send cmd vel topic
+            /*
             {
-		/*
+                TF_Msg frame;
                 Twist msg = Twist_init_zero;
                 msg.has_linear = true;
                 msg.linear.x = 1;
@@ -235,14 +236,14 @@ static void ethernet_entry_point(void)
                 frame.len = tx_stream.bytes_written;
                 frame.data = (pu8)tx1_buf;
                 TF_Send(tf0, &frame);
-		*/
             }
+            */
 
             // receive messages
             {
                 int len = recv(client, rx1_buf, sizeof(rx1_buf), 0);
-		TF_Accept(tf0, rx1_buf, len);
-		printf("len: %d\n", len);
+                TF_Accept(tf0, rx1_buf, len);
+                // printf("len: %d\n", len);
             }
 
             // should move tf tick to a clock thread
@@ -254,3 +255,5 @@ static void ethernet_entry_point(void)
 K_THREAD_DEFINE(synapse_zbus_ethernet, MY_STACK_SIZE, ethernet_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
 #endif
+
+/* vi: ts=2 sw=2 et */

@@ -10,7 +10,6 @@
 #include "synapse_protobuf/odometry.pb.h"
 #include "synapse_protobuf/twist.pb.h"
 
-
 ZBUS_CHAN_DECLARE(chan_in_bezier_trajectory);
 ZBUS_CHAN_DECLARE(chan_in_cmd_vel);
 ZBUS_CHAN_DECLARE(chan_in_joy);

@@ -36,7 +36,13 @@
 #define UART_DEVICE_NODE DT_CHOSEN(zephyr_shell_uart)
 
 static const struct device* const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
-static int client = 0;
+
+enum tf_comm_t {
+    TF_COMM_UART_0 = 0,
+    TF_COMM_UART_1 = 1,
+    TF_COMM_ETHR_0 = 10,
+    TF_COMM_SIM_0 = 30
+};
 
 /**
  * This function should be defined in the application code.
@@ -45,13 +51,14 @@ static int client = 0;
 void TF_WriteImpl(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {
     // uart
-    if (tf->usertag == 0) {
+    if (tf->usertag == TF_COMM_UART_0) {
         for (int i = 0; i < len; i++) {
             uart_poll_out(uart_dev, buf[i]);
         }
     }
     // ethernet
-    else if (tf->usertag == 1) {
+    else if (tf->usertag == TF_COMM_ETHR_0) {
+        int client = *(int *)(tf->userdata);
         int out_len;
         const char* p;
         p = buf;
@@ -65,13 +72,19 @@ void TF_WriteImpl(TinyFrame* tf, const uint8_t* buf, uint32_t len)
             len -= out_len;
         } while (len);
     }
+    // simulation
+    else if (tf->usertag == TF_COMM_SIM_0) {
+        // pass
+    }
 }
 
+/*
 static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 {
     dumpFrameInfo(msg);
     return TF_STAY;
 }
+*/
 
 #define TOPIC_LISTENER(CHANNEL, CLASS)                                         \
     static TF_Result CHANNEL##_Listener(TinyFrame* tf, TF_Msg* frame)          \
@@ -114,10 +127,10 @@ static void uart_entry_point(void)
     TF_Msg msg;
 
     // Set up the TinyFrame library
-    TinyFrame* tf0;
-    tf0 = TF_Init(TF_MASTER); // 1 = master, 0 = slave
-    tf0->usertag = 0;
-    setup_listeners(tf0);
+    TinyFrame* tf;
+    tf = TF_Init(TF_MASTER); // 1 = master, 0 = slave
+    tf->usertag = TF_COMM_UART_0;
+    setup_listeners(tf);
 
     while (true) {
         // send cmd vel topic
@@ -130,7 +143,7 @@ static void uart_entry_point(void)
             msg.type = SYNAPSE_OUT_CMD_VEL_TOPIC;
             msg.len = tx_stream.bytes_written;
             msg.data = (pu8)tx0_buf;
-            TF_Send(tf0, &msg);
+            TF_Send(tf, &msg);
         }
 
         // receive messages
@@ -138,7 +151,7 @@ static void uart_entry_point(void)
             uint8_t c;
             int count = 0;
             while (uart_poll_in(uart_dev, &c) == 0) {
-                TF_AcceptChar(tf0, c);
+                TF_AcceptChar(tf, c);
                 count++;
             }
         }
@@ -147,7 +160,7 @@ static void uart_entry_point(void)
         // k_busy_wait(10000);
 
         // should move TF tick to a clock thread
-        TF_Tick(tf0);
+        TF_Tick(tf);
     }
 }
 
@@ -158,7 +171,7 @@ K_THREAD_DEFINE(synapse_zbus_uart, MY_STACK_SIZE, uart_entry_point,
 #if defined(CONFIG_SYNAPSE_ZBUS_ETHERNET)
 static void ethernet_entry_point(void)
 {
-    static uint8_t tx1_buf[TX_BUF_SIZE];
+    //static uint8_t tx1_buf[TX_BUF_SIZE];
     static uint8_t rx1_buf[RX_BUF_SIZE];
 
     int serv;
@@ -191,17 +204,18 @@ static void ethernet_entry_point(void)
         BIND_PORT);
 
     // Set up the TinyFrame library
-    static TinyFrame* tf0;
-    tf0 = TF_Init(TF_MASTER); // 1 = master, 0 = slave
-    tf0->usertag = 1;
-    setup_listeners(tf0);
+    static TinyFrame* tf;
+    tf = TF_Init(TF_MASTER); // 1 = master, 0 = slave
+    tf->usertag = TF_COMM_ETHR_0;
+    setup_listeners(tf);
 
     while (1) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
-        client = accept(serv, (struct sockaddr*)&client_addr,
+        int client = accept(serv, (struct sockaddr*)&client_addr,
             &client_addr_len);
+        tf->userdata = &client;
 
         if (client < 0) {
             printf("error: accept: %d\n", errno);
@@ -235,19 +249,19 @@ static void ethernet_entry_point(void)
                 frame.type = SYNAPSE_OUT_CMD_VEL_TOPIC;
                 frame.len = tx_stream.bytes_written;
                 frame.data = (pu8)tx1_buf;
-                TF_Send(tf0, &frame);
+                TF_Send(tf, &frame);
             }
             */
 
             // receive messages
             {
                 int len = recv(client, rx1_buf, sizeof(rx1_buf), 0);
-                TF_Accept(tf0, rx1_buf, len);
+                TF_Accept(tf, rx1_buf, len);
                 // printf("len: %d\n", len);
             }
 
             // should move tf tick to a clock thread
-            TF_Tick(tf0);
+            TF_Tick(tf);
         }
     }
 }
@@ -256,4 +270,4 @@ K_THREAD_DEFINE(synapse_zbus_ethernet, MY_STACK_SIZE, ethernet_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
 #endif
 
-/* vi: ts=2 sw=2 et */
+/* vi: ts=4 sw=4 et */

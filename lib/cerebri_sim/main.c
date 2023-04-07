@@ -2,27 +2,32 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
+
 #include "clock.pb.h"
 #include <zephyr/kernel.h>
 
-
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
 #include <pthread.h>
+#include <soc.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <time.h>
-#include <soc.h>
-#include <fcntl.h>
+#include <unistd.h>
+
+#include <pb_decode.h>
+#include <pb_encode.h>
+
+#include <synapse_tinyframe/SynapseTopics.h>
+#include <synapse_tinyframe/TinyFrame.h>
+#include <synapse_tinyframe/utils.h>
 
 #include <synapse_zbus/channels.h>
 
-#include "synapse_tinyframe/SynapseTopics.h"
-#include "synapse_tinyframe/TinyFrame.h"
-#include "synapse_tinyframe/utils.h"
+#include <zephyr/sys/ring_buffer.h>
 
 #define MY_STACK_SIZE 500
 #define MY_PRIORITY -10
@@ -30,53 +35,58 @@
 #define RX_BUF_SIZE 1024
 
 int64_t connect_time = 0;
-Clock sim_clock = Clock_init_default;
+Clock g_sim_clock = Clock_init_default;
+pthread_mutex_t g_lock_sim_clock;
 static int client = 0;
+static int serv = 0;
+pthread_t thread1;
 
-enum tf_comm_t {
-    TF_COMM_UART_0 = 0,
-    TF_COMM_UART_1 = 1,
-    TF_COMM_ETHR_0 = 10,
-    TF_COMM_SIM_0 = 30
-};
+static void write_sim(TinyFrame* tf, const uint8_t* buf, uint32_t len)
+{
+}
 
-#define PUB_SIM_MESSAGES(TOPIC, MSG)                        \
-    {                                                       \
-        msg_##MSG##_t data;                                 \
-        while (queue_##TOPIC.tryPop(data)) {                \
-            if (data.timestamp == 0) {                      \
-                data.timestamp = uptime;                    \
-            }                                               \
-            zbus_chan_pub(&chan_##TOPIC, &data, K_FOREVER); \
-        }                                                   \
+static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    Clock msg = Clock_init_zero;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int status = pb_decode(&stream, Clock_fields, &msg);
+    if (status) {
+        pthread_mutex_lock(&g_lock_sim_clock);
+        g_sim_clock = msg;
+        pthread_mutex_unlock(&g_lock_sim_clock);
+    } else {
+        printf("Decoding failed: %s\n", PB_GET_ERROR(&stream));
     }
+    return TF_STAY;
+}
+
+TF_Result generic_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    return TF_STAY;
+}
 
 void sim_clock_callback(const struct zbus_channel* chan)
 {
-    sim_clock = *(const Clock*)zbus_chan_const_msg(chan);
-    // printf("sim clock callback\n");
+    pthread_mutex_lock(&g_lock_sim_clock);
+    g_sim_clock = *(const Clock*)zbus_chan_const_msg(chan);
+    pthread_mutex_unlock(&g_lock_sim_clock);
 }
 
-
-extern void setup_listeners(TinyFrame * tf);
-
-void cerebri_sim_entry_point(void) {
+void* native_sim_entry_point(void* data)
+{
     printf("sim core running\n");
 
-    static uint8_t rx1_buf[RX_BUF_SIZE];
+    // setup tinyframe
+    static TinyFrame* tf;
+    tf = TF_Init(TF_MASTER);
+    tf->write = write_sim;
+    TF_AddGenericListener(tf, generic_listener);
+    TF_AddTypeListener(tf, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_listener);
 
-    int serv;
     struct sockaddr_in bind_addr;
     static int counter;
 
-
-    // Set up the TinyFrame library
-    static TinyFrame * tf;
-    tf = TF_Init(TF_MASTER);
-    tf->usertag = TF_COMM_SIM_0;
-    setup_listeners(tf);
-
-    serv = socket(AF_INET, SOCK_STREAM , IPPROTO_TCP);
+    serv = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (serv < 0) {
         printf("error: socket: %d\n", errno);
         exit(1);
@@ -92,7 +102,7 @@ void cerebri_sim_entry_point(void) {
     bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     bind_addr.sin_port = htons(BIND_PORT);
 
-    if (bind(serv, (struct sockaddr*) &bind_addr, sizeof(bind_addr)) < 0) {
+    if (bind(serv, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
         printf("bind() failed: %d\n", errno);
         exit(1);
     }
@@ -106,18 +116,17 @@ void cerebri_sim_entry_point(void) {
 
     struct timespec remaining, request;
 
+    printf("waiting for client connection\n");
     while (true) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
         client = accept(serv, (struct sockaddr*)&client_addr,
-                &client_addr_len);
+            &client_addr_len);
         fcntl(client, F_SETFL, O_NONBLOCK);
 
-
         if (client < 0) {
-            printf("error: accept: %d\n", errno);
-            request.tv_sec = 5;
+            request.tv_sec = 1;
             request.tv_nsec = 0;
             nanosleep(&request, &remaining);
             continue;
@@ -130,40 +139,69 @@ void cerebri_sim_entry_point(void) {
         printf("Connection #%d from %s\n", counter++, addr_str);
 
         while (true) {
-            int len = recv(client, rx1_buf, sizeof(rx1_buf), 0);
-            printf("receiving: %d\n", len);
-            TF_Accept(tf, rx1_buf, len);
-            TF_Tick(tf);
+            // write received data to sim_rx_buf
+            uint8_t data[RX_BUF_SIZE];
+            int len = recv(client, data, RX_BUF_SIZE, 0);
+            if (len > 0) {
+                TF_Accept(tf, data, len);
+            }
+            request.tv_sec = 0;
+            request.tv_nsec = 1000000; // 1 ms
+            nanosleep(&request, &remaining);
+        }
+    }
+}
+
+void native_sim_start_task(void)
+{
+    pthread_create(&thread1, NULL, native_sim_entry_point, NULL);
+}
+
+void native_sim_stop_task(void)
+{
+    pthread_join(thread1, NULL);
+}
+
+static void zephyr_sim_entry_point(void)
+{
+    printf("zephyr sim entry point\n");
+    while (true) {
+        // printf("hello zephyr sim entry\n");
+
+        int64_t uptime = k_uptime_get();
+        int64_t sec = uptime / 1.0e3;
+        int32_t nsec = (uptime - sec * 1e3) * 1e6;
+        Clock sim_clock;
+
+        // fast forward zephyClock time to match sim
+        pthread_mutex_lock(&g_lock_sim_clock);
+        sim_clock = g_sim_clock;
+        pthread_mutex_unlock(&g_lock_sim_clock);
+
+        int64_t delta_sec = sim_clock.sim.sec - sec;
+        int32_t delta_nsec = sim_clock.sim.nsec - nsec;
+        int64_t wait_msec = delta_sec * 1e3 + delta_nsec * 1e-6;
+
+        if (wait_msec > 0) {
+            // printf("sim: sec %ld nsec %d\n", sim_clock.sim.sec, sim_clock.sim.nsec);
+            // printf("uptime: sec %ld nsec %d\n", sec, nsec);
+            // printf("wait: msec %ld\n", wait_msec);
+            k_msleep(wait_msec);
+        } else {
+            struct timespec request, remaining;
             request.tv_sec = 0;
             request.tv_nsec = 1000000;
             nanosleep(&request, &remaining);
         }
     }
-
-    /*
-    while (true) {
-        int64_t uptime = k_uptime_get();
-        int64_t sec = uptime / 1.0e3;
-        int32_t nsec = (uptime - sec * 1e3) * 1e6;
-
-        // fast forward zephyClock time to match sim
-        int64_t delta_sec = sim_clock.sim.sec - sec;
-        int32_t delta_nsec = sim_clock.sim.nsec - nsec;
-        int32_t wait = delta_sec * 1e6 + delta_nsec / 1e3;
-
-        printf("sim: sec %ld nsec %d\n", sim_clock.sim.sec, sim_clock.sim.nsec);
-        printf("uptime: sec %ld nsec %d\n", sec, nsec);
-        printf("wait millis: %d\n", wait);
-        if (wait > 0) {
-            struct timespec remaining, request;
-            request.tv_sec = delta_sec;
-            request.tv_nsec = delta_nsec;
-            nanosleep(&request, &remaining);
-        }
-    }
-    */
 }
 
-NATIVE_TASK(cerebri_sim_entry_point, PRE_BOOT_1, 0);
+// native tasks
+NATIVE_TASK(native_sim_start_task, PRE_BOOT_1, 0);
+NATIVE_TASK(native_sim_stop_task, ON_EXIT, 0);
+
+// zephyr threads
+K_THREAD_DEFINE(zephyr_sim_thread, MY_STACK_SIZE, zephyr_sim_entry_point,
+    NULL, NULL, NULL, MY_PRIORITY, 0, 0);
 
 // vi: ts=4 sw=4 et

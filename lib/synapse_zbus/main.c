@@ -17,11 +17,11 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 
-#include "synapse_tinyframe/SynapseTopics.h"
-#include "synapse_tinyframe/TinyFrame.h"
-#include "synapse_tinyframe/utils.h"
+#include <synapse_tinyframe/SynapseTopics.h>
+#include <synapse_tinyframe/TinyFrame.h>
+#include <synapse_tinyframe/utils.h>
 
-#include "synapse_zbus/channels.h"
+#include <synapse_zbus/channels.h>
 
 #define MY_STACK_SIZE 1024
 #define MY_PRIORITY -1
@@ -30,53 +30,9 @@
 #define RX_BUF_SIZE 1024
 
 #define BIND_PORT 4242
-#define SIM_BIND_PORT 4243
 
 /* change this to any other UART peripheral if desired */
 #define UART_DEVICE_NODE DT_CHOSEN(zephyr_shell_uart)
-
-static const struct device* const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
-
-enum tf_comm_t {
-    TF_COMM_UART_0 = 0,
-    TF_COMM_UART_1 = 1,
-    TF_COMM_ETHR_0 = 10,
-    TF_COMM_SIM_0 = 30
-};
-
-/**
- * This function should be defined in the application code.
- * It implements the lowest layer - sending bytes to UART (or other)
- */
-void TF_WriteImpl(TinyFrame* tf, const uint8_t* buf, uint32_t len)
-{
-    // uart
-    if (tf->usertag == TF_COMM_UART_0) {
-        for (int i = 0; i < len; i++) {
-            uart_poll_out(uart_dev, buf[i]);
-        }
-    }
-    // ethernet
-    else if (tf->usertag == TF_COMM_ETHR_0) {
-        int client = *(int *)(tf->userdata);
-        int out_len;
-        const char* p;
-        p = buf;
-        do {
-            out_len = send(client, p, len, 0);
-            if (out_len < 0) {
-                printf("error: send: %d\n", errno);
-                return;
-            }
-            p += out_len;
-            len -= out_len;
-        } while (len);
-    }
-    // simulation
-    else if (tf->usertag == TF_COMM_SIM_0) {
-        // pass
-    }
-}
 
 /*
 static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
@@ -104,22 +60,18 @@ TOPIC_LISTENER(in_bezier_trajectory, BezierTrajectory);
 TOPIC_LISTENER(in_cmd_vel, Twist);
 TOPIC_LISTENER(in_joy, Joy);
 TOPIC_LISTENER(in_odometry, Odometry);
-TOPIC_LISTENER(sim_clock, Clock);
 TOPIC_LISTENER(out_actuators, Actuators);
 
-void setup_listeners(TinyFrame* tf)
-{
-    // TF_AddGenericListener(tf, genericListener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_OUT_ACTUATORS_TOPIC, out_actuators_Listener);
-};
-
 #if defined(CONFIG_SYNAPSE_ZBUS_UART)
+static const struct device* const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
+
+static void write_uart(TinyFrame* tf, const uint8_t* buf, uint32_t len)
+{
+    for (int i = 0; i < len; i++) {
+        uart_poll_out(uart_dev, buf[i]);
+    }
+}
+
 static void uart_entry_point(void)
 {
     uint8_t tx0_buf[TX_BUF_SIZE];
@@ -129,8 +81,14 @@ static void uart_entry_point(void)
     // Set up the TinyFrame library
     TinyFrame* tf;
     tf = TF_Init(TF_MASTER); // 1 = master, 0 = slave
-    tf->usertag = TF_COMM_UART_0;
-    setup_listeners(tf);
+    tf->write = write_uart;
+
+    // TF_AddGenericListener(tf, genericListener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_OUT_ACTUATORS_TOPIC, out_actuators_Listener);
 
     while (true) {
         // send cmd vel topic
@@ -169,9 +127,25 @@ K_THREAD_DEFINE(synapse_zbus_uart, MY_STACK_SIZE, uart_entry_point,
 #endif
 
 #if defined(CONFIG_SYNAPSE_ZBUS_ETHERNET)
+static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
+{
+    int client = *(int*)(tf->userdata);
+    int out_len;
+    const char* p;
+    p = buf;
+    do {
+        out_len = send(client, p, len, 0);
+        if (out_len < 0) {
+            printf("error: send: %d\n", errno);
+            return;
+        }
+        p += out_len;
+        len -= out_len;
+    } while (len);
+}
+
 static void ethernet_entry_point(void)
 {
-    //static uint8_t tx1_buf[TX_BUF_SIZE];
     static uint8_t rx1_buf[RX_BUF_SIZE];
 
     int serv;
@@ -206,8 +180,14 @@ static void ethernet_entry_point(void)
     // Set up the TinyFrame library
     static TinyFrame* tf;
     tf = TF_Init(TF_MASTER); // 1 = master, 0 = slave
-    tf->usertag = TF_COMM_ETHR_0;
-    setup_listeners(tf);
+    tf->write = write_ethernet;
+
+    // TF_AddGenericListener(tf, genericListener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
+    TF_AddTypeListener(tf, SYNAPSE_OUT_ACTUATORS_TOPIC, out_actuators_Listener);
 
     while (1) {
         struct sockaddr_in client_addr;

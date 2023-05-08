@@ -166,8 +166,6 @@ static void zephyr_sim_entry_point(void)
 {
     printf("zephyr sim entry point\n");
     while (true) {
-        // printf("hello zephyr sim entry\n");
-
         int64_t uptime = k_uptime_get();
         int64_t sec = uptime / 1.0e3;
         int32_t nsec = (uptime - sec * 1e3) * 1e6;
@@ -183,9 +181,9 @@ static void zephyr_sim_entry_point(void)
         int64_t wait_msec = delta_sec * 1e3 + delta_nsec * 1e-6;
 
         if (wait_msec > 0) {
-            // printf("sim: sec %ld nsec %d\n", sim_clock.sim.sec, sim_clock.sim.nsec);
-            // printf("uptime: sec %ld nsec %d\n", sec, nsec);
-            // printf("wait: msec %ld\n", wait_msec);
+            printf("sim: sec %ld nsec %d\n", sim_clock.sim.sec, sim_clock.sim.nsec);
+            printf("uptime: sec %ld nsec %d\n", sec, nsec);
+            printf("wait: msec %ld\n", wait_msec);
             k_msleep(wait_msec);
         } else {
             struct timespec request, remaining;

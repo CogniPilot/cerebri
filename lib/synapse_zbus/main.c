@@ -173,7 +173,7 @@ static void ethernet_entry_point(void)
         exit(1);
     }
 
-    printf("TCP Simulation server waits for a connection on "
+    printf("TCP server waits for a connection on "
            "port %d...\n",
         BIND_PORT);
 

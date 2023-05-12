@@ -20,6 +20,7 @@
 
 #include <pb_decode.h>
 #include <pb_encode.h>
+#include <synapse_protobuf/actuators.pb.h>
 
 #include <synapse_tinyframe/SynapseTopics.h>
 #include <synapse_tinyframe/TinyFrame.h>
@@ -34,17 +35,42 @@
 #define BIND_PORT 4241
 #define RX_BUF_SIZE 1024
 
+
 int64_t connect_time = 0;
 Clock g_sim_clock = Clock_init_default;
 pthread_mutex_t g_lock_sim_clock;
-static int client = 0;
 static int serv = 0;
+static TinyFrame* g_tf = NULL;
 pthread_t thread1;
+
+void listener_sim_callback(const struct zbus_channel *chan) {
+    if (chan == &chan_out_actuators) {
+        TF_Msg msg;
+        TF_ClearMsg(&msg);
+        uint8_t buf[500];
+        pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
+        int status = pb_encode(&stream, Actuators_fields, chan->message);
+        if (status) {
+            msg.type = SYNAPSE_OUT_ACTUATORS_TOPIC;
+            msg.data = buf;
+            msg.len =  stream.bytes_written;
+            TF_Send(g_tf, &msg);
+        } else {
+            printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));
+        }
+    }
+}
+
+ZBUS_LISTENER_DEFINE(listener_sim, listener_sim_callback);
 
 static void write_sim(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {
+    int client = *(int*)(tf->userdata);
+    if (len > 0) {
+        send(client, buf, len, 0);
+    }
 }
-
+ 
 static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
 {
     Clock msg = Clock_init_zero;
@@ -65,23 +91,17 @@ TF_Result generic_listener(TinyFrame* tf, TF_Msg* frame)
     return TF_STAY;
 }
 
-void sim_clock_callback(const struct zbus_channel* chan)
-{
-    pthread_mutex_lock(&g_lock_sim_clock);
-    g_sim_clock = *(const Clock*)zbus_chan_const_msg(chan);
-    pthread_mutex_unlock(&g_lock_sim_clock);
-}
-
 void* native_sim_entry_point(void* data)
 {
     printf("sim core running\n");
 
     // setup tinyframe
-    static TinyFrame* tf;
-    tf = TF_Init(TF_MASTER);
-    tf->write = write_sim;
-    TF_AddGenericListener(tf, generic_listener);
-    TF_AddTypeListener(tf, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_listener);
+    g_tf = TF_Init(TF_MASTER);
+    int client = 0;
+    g_tf->userdata = &client;
+    g_tf->write = write_sim;
+    TF_AddGenericListener(g_tf, generic_listener);
+    TF_AddTypeListener(g_tf, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_listener);
 
     struct sockaddr_in bind_addr;
     static int counter;
@@ -143,7 +163,7 @@ void* native_sim_entry_point(void* data)
             uint8_t data[RX_BUF_SIZE];
             int len = recv(client, data, RX_BUF_SIZE, 0);
             if (len > 0) {
-                TF_Accept(tf, data, len);
+                TF_Accept(g_tf, data, len);
             }
             request.tv_sec = 0;
             request.tv_nsec = 1000000; // 1 ms
@@ -181,9 +201,9 @@ static void zephyr_sim_entry_point(void)
         int64_t wait_msec = delta_sec * 1e3 + delta_nsec * 1e-6;
 
         if (wait_msec > 0) {
-            printf("sim: sec %ld nsec %d\n", sim_clock.sim.sec, sim_clock.sim.nsec);
-            printf("uptime: sec %ld nsec %d\n", sec, nsec);
-            printf("wait: msec %ld\n", wait_msec);
+            //printf("sim: sec %ld nsec %d\n", sim_clock.sim.sec, sim_clock.sim.nsec);
+            //printf("uptime: sec %ld nsec %d\n", sec, nsec);
+            //printf("wait: msec %ld\n", wait_msec);
             k_msleep(wait_msec);
         } else {
             struct timespec request, remaining;

@@ -17,7 +17,7 @@ ZBUS_CHAN_DEFINE(chan_in_joy, // Name
 );
 
 ZBUS_CHAN_DEFINE(chan_in_odometry, // Name
-    Joy, // Message type
+    Odometry, // Message type
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(), // observers
@@ -36,6 +36,6 @@ ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
     Actuators, // Message type
     NULL, // Validator
     NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
+    ZBUS_OBSERVERS(listener_sim), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );

@@ -6,5 +6,6 @@ menu "Libraries"
 rsource "custom_lib/Kconfig"
 rsource "synapse_zbus/Kconfig"
 rsource "cerebri_sim/Kconfig"
+rsource "control_rover/Kconfig"
 
 endmenu

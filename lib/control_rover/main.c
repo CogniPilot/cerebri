@@ -23,18 +23,14 @@ void control_entry_point(void *p1, void *p2, void *p3) {
         msg.header.stamp.seconds = 0;
         msg.normalized_count = 0;
         msg.position_count = 0;
-        for (int i=0; i<10; i++) {
-            msg.position[i] = i;
-            msg.velocity[i] = 1000.0;
-            msg.normalized[i] = i/9.0;
+        for (int i=0; i<4; i++) {
+            msg.velocity[i] = 1.0;
         }
-        msg.velocity_count = 10;
-        msg.position_count = 10;
-        msg.normalized_count = 10;
+        msg.velocity_count = 4;
         zbus_chan_pub(&chan_out_actuators, &msg, K_NO_WAIT);
         
-        // sleep to set control rate at 1 Hz
-        k_usleep(1e6/1);
+        // sleep to set control rate at 10 Hz
+        k_usleep(1e6/10);
     }
 }
 

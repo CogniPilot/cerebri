@@ -11,6 +11,29 @@
 #include <synapse_zbus/channels.h>
 
 
+double thrust = 0;
+double yaw = 0;
+
+
+void listener_controller_callback(const struct zbus_channel *chan) {
+    if (chan == &chan_in_joy) {
+        Joy * msg = (Joy *)(chan->message);
+        printf("received joy message %f %f %f %f %f %f %f %f\n",
+            msg->axes[0],
+            msg->axes[1],
+            msg->axes[2],
+            msg->axes[3],
+            msg->axes[4],
+            msg->axes[5],
+            msg->axes[6],
+            msg->axes[7]);
+        thrust = msg->axes[1];
+        yaw = msg->axes[3];
+    }
+}
+
+ZBUS_LISTENER_DEFINE(listener_controller, listener_controller_callback);
+
 void control_entry_point(void *p1, void *p2, void *p3) {
     while (true) {
         // send data to motors
@@ -23,9 +46,10 @@ void control_entry_point(void *p1, void *p2, void *p3) {
         msg.header.stamp.seconds = 0;
         msg.normalized_count = 0;
         msg.position_count = 0;
-        for (int i=0; i<4; i++) {
-            msg.velocity[i] = 1.0;
-        }
+        msg.velocity[0] = 1.0 * thrust + 1.0 * yaw;;
+        msg.velocity[1] = 1.0 * thrust - 1.0 * yaw;;
+        msg.velocity[2] = 1.0 * thrust - 1.0 * yaw;;
+        msg.velocity[3] = 1.0 * thrust + 1.0 * yaw;;
         msg.velocity_count = 4;
         zbus_chan_pub(&chan_out_actuators, &msg, K_NO_WAIT);
         

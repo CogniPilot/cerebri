@@ -12,7 +12,7 @@ ZBUS_CHAN_DEFINE(chan_in_joy, // Name
     Joy, // Message type
     NULL, // Validator
     NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
+    ZBUS_OBSERVERS(listener_controller), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 

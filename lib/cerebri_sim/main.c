@@ -43,7 +43,7 @@ static int serv = 0;
 static TinyFrame* g_tf = NULL;
 pthread_t thread1;
 
-void listener_sim_callback(const struct zbus_channel *chan) {
+void listener_cerebri_sim_callback(const struct zbus_channel *chan) {
     if (chan == &chan_out_actuators) {
         TF_Msg msg;
         TF_ClearMsg(&msg);
@@ -61,7 +61,7 @@ void listener_sim_callback(const struct zbus_channel *chan) {
     }
 }
 
-ZBUS_LISTENER_DEFINE(listener_sim, listener_sim_callback);
+ZBUS_LISTENER_DEFINE(listener_cerebri_sim, listener_cerebri_sim_callback);
 
 static void write_sim(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {

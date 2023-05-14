@@ -12,7 +12,7 @@ ZBUS_CHAN_DEFINE(chan_in_joy, // Name
     Joy, // Message type
     NULL, // Validator
     NULL, // User Data
-    ZBUS_OBSERVERS(listener_controller), // observers
+    ZBUS_OBSERVERS(listener_control_rover), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
@@ -36,6 +36,7 @@ ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
     Actuators, // Message type
     NULL, // Validator
     NULL, // User Data
-    ZBUS_OBSERVERS(listener_sim), // observers
+    ZBUS_OBSERVERS(listener_cerebri_sim, listener_synapse_zbus_ethernet), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
+

@@ -15,24 +15,15 @@ double thrust = 0;
 double yaw = 0;
 
 
-void listener_controller_callback(const struct zbus_channel *chan) {
+void listener_control_rover_callback(const struct zbus_channel *chan) {
     if (chan == &chan_in_joy) {
         Joy * msg = (Joy *)(chan->message);
-        printf("received joy message %f %f %f %f %f %f %f %f\n",
-            msg->axes[0],
-            msg->axes[1],
-            msg->axes[2],
-            msg->axes[3],
-            msg->axes[4],
-            msg->axes[5],
-            msg->axes[6],
-            msg->axes[7]);
         thrust = msg->axes[1];
         yaw = msg->axes[3];
     }
 }
 
-ZBUS_LISTENER_DEFINE(listener_controller, listener_controller_callback);
+ZBUS_LISTENER_DEFINE(listener_control_rover, listener_control_rover_callback);
 
 void control_entry_point(void *p1, void *p2, void *p3) {
     while (true) {

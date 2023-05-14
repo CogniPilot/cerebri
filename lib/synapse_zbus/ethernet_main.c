@@ -4,7 +4,6 @@
  */
 
 #include <zephyr/device.h>
-#include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/sys/printk.h>
@@ -31,16 +30,14 @@
 
 #define BIND_PORT 4242
 
-/* change this to any other UART peripheral if desired */
-#define UART_DEVICE_NODE DT_CHOSEN(zephyr_shell_uart)
+static TinyFrame* g_tf = NULL;
+static int g_client = 0;
 
-/*
 static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 {
     dumpFrameInfo(msg);
     return TF_STAY;
 }
-*/
 
 #define TOPIC_LISTENER(CHANNEL, CLASS)                                         \
     static TF_Result CHANNEL##_Listener(TinyFrame* tf, TF_Msg* frame)          \
@@ -60,81 +57,38 @@ TOPIC_LISTENER(in_bezier_trajectory, BezierTrajectory);
 TOPIC_LISTENER(in_cmd_vel, Twist);
 TOPIC_LISTENER(in_joy, Joy);
 TOPIC_LISTENER(in_odometry, Odometry);
-TOPIC_LISTENER(out_actuators, Actuators);
 
-#if defined(CONFIG_SYNAPSE_ZBUS_UART)
-static const struct device* const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
 
-static void write_uart(TinyFrame* tf, const uint8_t* buf, uint32_t len)
-{
-    for (int i = 0; i < len; i++) {
-        uart_poll_out(uart_dev, buf[i]);
-    }
-}
-
-static void uart_entry_point(void)
-{
-    uint8_t tx0_buf[TX_BUF_SIZE];
-
-    TF_Msg msg;
-
-    // Set up the TinyFrame library
-    TinyFrame* tf;
-    tf = TF_Init(TF_MASTER); // 1 = master, 0 = slave
-    tf->write = write_uart;
-
-    // TF_AddGenericListener(tf, genericListener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_OUT_ACTUATORS_TOPIC, out_actuators_Listener);
-
-    while (true) {
-        // send cmd vel topic
-        {
-            Twist message = Twist_init_zero;
-            pb_ostream_t tx_stream = pb_ostream_from_buffer(tx0_buf, Twist_size);
-            pb_encode(&tx_stream, Twist_fields, &message);
-
-            TF_ClearMsg(&msg);
-            msg.type = SYNAPSE_OUT_CMD_VEL_TOPIC;
-            msg.len = tx_stream.bytes_written;
-            msg.data = (pu8)tx0_buf;
-            TF_Send(tf, &msg);
-        }
-
-        // receive messages
-        {
-            uint8_t c;
-            int count = 0;
-            while (uart_poll_in(uart_dev, &c) == 0) {
-                TF_AcceptChar(tf, c);
-                count++;
+void listener_synapse_zbus_ethernet_callback(const struct zbus_channel *chan) {
+    if (chan == &chan_out_actuators) {
+        TF_Msg msg;
+        TF_ClearMsg(&msg);
+        uint8_t buf[500];
+        pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
+        int status = pb_encode(&stream, Actuators_fields, chan->message);
+        if (status) {
+            msg.type = SYNAPSE_OUT_ACTUATORS_TOPIC;
+            msg.data = buf;
+            msg.len =  stream.bytes_written;
+            if (g_tf != NULL) {
+                TF_Send(g_tf, &msg);
             }
+        } else {
+            printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));
         }
-
-        // sleep 0.01 seconds
-        // k_busy_wait(10000);
-
-        // should move TF tick to a clock thread
-        TF_Tick(tf);
     }
 }
 
-K_THREAD_DEFINE(synapse_zbus_uart, MY_STACK_SIZE, uart_entry_point,
-    NULL, NULL, NULL, MY_PRIORITY, 0, 0);
-#endif
+ZBUS_LISTENER_DEFINE(listener_synapse_zbus_ethernet, listener_synapse_zbus_ethernet_callback);
 
-#if defined(CONFIG_SYNAPSE_ZBUS_ETHERNET)
+
 static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {
-    int client = *(int*)(tf->userdata);
     int out_len;
     const char* p;
     p = buf;
     do {
-        out_len = send(client, p, len, 0);
+        out_len = send(g_client, p, len, 0);
         if (out_len < 0) {
             printf("error: send: %d\n", errno);
             return;
@@ -178,26 +132,23 @@ static void ethernet_entry_point(void)
         BIND_PORT);
 
     // Set up the TinyFrame library
-    static TinyFrame* tf;
-    tf = TF_Init(TF_MASTER); // 1 = master, 0 = slave
-    tf->write = write_ethernet;
+    g_tf = TF_Init(TF_MASTER);
+    g_tf->write = write_ethernet;
 
-    // TF_AddGenericListener(tf, genericListener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
-    TF_AddTypeListener(tf, SYNAPSE_OUT_ACTUATORS_TOPIC, out_actuators_Listener);
+    TF_AddGenericListener(g_tf, genericListener);
+    TF_AddTypeListener(g_tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
+    TF_AddTypeListener(g_tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
+    TF_AddTypeListener(g_tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
+    TF_AddTypeListener(g_tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
 
     while (1) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
-        int client = accept(serv, (struct sockaddr*)&client_addr,
+        g_client = accept(serv, (struct sockaddr*)&client_addr,
             &client_addr_len);
-        tf->userdata = &client;
 
-        if (client < 0) {
+        if (g_client < 0) {
             printf("error: accept: %d\n", errno);
             continue;
         } else {
@@ -235,19 +186,18 @@ static void ethernet_entry_point(void)
 
             // receive messages
             {
-                int len = recv(client, rx1_buf, sizeof(rx1_buf), 0);
-                TF_Accept(tf, rx1_buf, len);
+                int len = recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
+                TF_Accept(g_tf, rx1_buf, len);
                 // printf("len: %d\n", len);
             }
 
             // should move tf tick to a clock thread
-            TF_Tick(tf);
+            TF_Tick(g_tf);
         }
     }
 }
 
 K_THREAD_DEFINE(synapse_zbus_ethernet, MY_STACK_SIZE, ethernet_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
-#endif
 
 /* vi: ts=4 sw=4 et */

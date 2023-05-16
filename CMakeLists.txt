@@ -12,3 +12,5 @@ zephyr_include_directories(include)
 
 add_subdirectory(drivers)
 add_subdirectory(lib)
+
+install(PROGRAMS ${CMAKE_BINARY_DIR}/zephyr/zephyr.exe DESTINATION $ENV{HOME}/bin RENAME cerebri)

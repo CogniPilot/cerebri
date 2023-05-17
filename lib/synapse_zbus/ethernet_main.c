@@ -5,8 +5,12 @@
 
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
-#include <zephyr/net/socket.h>
 #include <zephyr/sys/printk.h>
+
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
 #include <errno.h>
 #include <stdio.h>

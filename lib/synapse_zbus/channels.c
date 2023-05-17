@@ -36,7 +36,12 @@ ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
     Actuators, // Message type
     NULL, // Validator
     NULL, // User Data
-    ZBUS_OBSERVERS(listener_cerebri_sim, listener_synapse_zbus_ethernet), // observers
+    ZBUS_OBSERVERS(
+#if defined(CONFIG_CEREBRI_SIM)
+    listener_cerebri_sim,
+#endif
+    listener_synapse_zbus_ethernet
+    ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 

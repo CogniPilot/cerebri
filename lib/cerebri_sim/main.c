@@ -60,7 +60,6 @@ void listener_cerebri_sim_callback(const struct zbus_channel *chan) {
         }
     }
 }
-
 ZBUS_LISTENER_DEFINE(listener_cerebri_sim, listener_cerebri_sim_callback);
 
 static void write_sim(TinyFrame* tf, const uint8_t* buf, uint32_t len)

@@ -58,8 +58,8 @@ TOPIC_LISTENER(in_cmd_vel, Twist);
 TOPIC_LISTENER(in_joy, Joy);
 TOPIC_LISTENER(in_odometry, Odometry);
 
-
-void listener_synapse_zbus_uart_callback(const struct zbus_channel *chan) {
+void listener_synapse_zbus_uart_callback(const struct zbus_channel* chan)
+{
     if (chan == &chan_out_actuators) {
         TF_Msg msg;
         TF_ClearMsg(&msg);
@@ -69,7 +69,7 @@ void listener_synapse_zbus_uart_callback(const struct zbus_channel *chan) {
         if (status) {
             msg.type = SYNAPSE_OUT_ACTUATORS_TOPIC;
             msg.data = buf;
-            msg.len =  stream.bytes_written;
+            msg.len = stream.bytes_written;
             TF_Send(g_tf, &msg);
         } else {
             printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));
@@ -78,7 +78,6 @@ void listener_synapse_zbus_uart_callback(const struct zbus_channel *chan) {
 }
 
 ZBUS_LISTENER_DEFINE(listener_synapse_zbus_uart, listener_synapse_zbus_uart_callback);
-
 
 static const struct device* const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
 

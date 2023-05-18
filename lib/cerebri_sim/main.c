@@ -35,7 +35,6 @@
 #define BIND_PORT 4241
 #define RX_BUF_SIZE 1024
 
-
 int64_t connect_time = 0;
 Clock g_sim_clock = Clock_init_default;
 pthread_mutex_t g_lock_sim_clock;
@@ -43,7 +42,8 @@ static int serv = 0;
 static TinyFrame* g_tf = NULL;
 pthread_t thread1;
 
-void listener_cerebri_sim_callback(const struct zbus_channel *chan) {
+void listener_cerebri_sim_callback(const struct zbus_channel* chan)
+{
     if (chan == &chan_out_actuators) {
         TF_Msg msg;
         TF_ClearMsg(&msg);
@@ -53,7 +53,7 @@ void listener_cerebri_sim_callback(const struct zbus_channel *chan) {
         if (status) {
             msg.type = SYNAPSE_OUT_ACTUATORS_TOPIC;
             msg.data = buf;
-            msg.len =  stream.bytes_written;
+            msg.len = stream.bytes_written;
             TF_Send(g_tf, &msg);
         } else {
             printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));
@@ -69,7 +69,7 @@ static void write_sim(TinyFrame* tf, const uint8_t* buf, uint32_t len)
         send(client, buf, len, 0);
     }
 }
- 
+
 static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
 {
     Clock msg = Clock_init_zero;
@@ -200,9 +200,9 @@ static void zephyr_sim_entry_point(void)
         int64_t wait_msec = delta_sec * 1e3 + delta_nsec * 1e-6;
 
         if (wait_msec > 0) {
-            //printf("sim: sec %ld nsec %d\n", sim_clock.sim.sec, sim_clock.sim.nsec);
-            //printf("uptime: sec %ld nsec %d\n", sec, nsec);
-            //printf("wait: msec %ld\n", wait_msec);
+            // printf("sim: sec %ld nsec %d\n", sim_clock.sim.sec, sim_clock.sim.nsec);
+            // printf("uptime: sec %ld nsec %d\n", sec, nsec);
+            // printf("wait: msec %ld\n", wait_msec);
             k_msleep(wait_msec);
         } else {
             struct timespec request, remaining;

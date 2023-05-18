@@ -11,9 +11,9 @@ manifest:
 
   projects:
     - name: zephyr
-      url: https://github.com/NXPHoverGames/Zephyr
+      url: https://github.com/CogniPilot/zephyr
       west-commands: scripts/west-commands.yml
-      revision: pr-mimxrt1062-fmurt6
+      revision: pr-fmurt6-uart
       import: true
     - name: synapse_tinyframe
       url: https://github.com/CogniPilot/synapse_tinyframe

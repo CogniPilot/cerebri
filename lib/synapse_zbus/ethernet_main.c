@@ -17,19 +17,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <pb_decode.h>
-#include <pb_encode.h>
-
-#include <synapse_tinyframe/SynapseTopics.h>
-#include <synapse_tinyframe/TinyFrame.h>
-#include <synapse_tinyframe/utils.h>
-
-#include <synapse_zbus/channels.h>
+#include "common.h"
 
 #define MY_STACK_SIZE 1024
 #define MY_PRIORITY -1
 
-#define TX_BUF_SIZE 1024
 #define RX_BUF_SIZE 1024
 
 #define BIND_PORT 4242
@@ -42,40 +34,6 @@ static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
     dumpFrameInfo(msg);
     return TF_STAY;
 }
-
-#define TOPIC_LISTENER(CHANNEL, CLASS)                                         \
-    static TF_Result CHANNEL##_Listener(TinyFrame* tf, TF_Msg* frame)          \
-    {                                                                          \
-        CLASS msg = CLASS##_init_zero;                                         \
-        pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len); \
-        int status = pb_decode(&stream, CLASS##_fields, &msg);                 \
-        if (status) {                                                          \
-            zbus_chan_pub(&chan_##CHANNEL, &msg, K_FOREVER);                   \
-        } else {                                                               \
-            printf("Decoding failed: %s\n", PB_GET_ERROR(&stream));            \
-        }                                                                      \
-        return TF_STAY;                                                        \
-    }
-
-#define TOPIC_PUBLISHER(CHANNEL, CLASS, TOPIC)                               \
-    else if (chan == &chan_##CHANNEL)                                        \
-    {                                                                        \
-        TF_Msg msg;                                                          \
-        TF_ClearMsg(&msg);                                                   \
-        uint8_t buf[500];                                                    \
-        pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf)); \
-        int status = pb_encode(&stream, CLASS##_fields, chan->message);      \
-        if (status) {                                                        \
-            msg.type = TOPIC;                                                \
-            msg.data = buf;                                                  \
-            msg.len = stream.bytes_written;                                  \
-            if (g_tf != NULL) {                                              \
-                TF_Send(g_tf, &msg);                                         \
-            }                                                                \
-        } else {                                                             \
-            printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));          \
-        }                                                                    \
-    }
 
 // ROS -> cerebri
 TOPIC_LISTENER(in_actuators, Actuators)
@@ -148,9 +106,8 @@ static void ethernet_entry_point(void)
     g_tf = TF_Init(TF_MASTER);
     g_tf->write = write_ethernet;
 
-    TF_AddGenericListener(g_tf, genericListener);
-
     // ros -> cerebri
+    TF_AddGenericListener(g_tf, genericListener);
     TF_AddTypeListener(g_tf, SYNAPSE_IN_ACTUATORS_TOPIC, in_actuators_Listener);
     TF_AddTypeListener(g_tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
     TF_AddTypeListener(g_tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);

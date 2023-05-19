@@ -32,7 +32,7 @@ ZBUS_CHAN_DEFINE(chan_in_joy, // Name
 #if defined(CONFIG_CONTROL_ROVER)
         listener_control_rover,
 #endif
-    ), // observers
+        ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
@@ -58,7 +58,7 @@ ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
 #if defined(CONFIG_SYNAPSE_ZBUS_UART)
         listener_synapse_zbus_uart,
 #endif
-    ), // observers
+        ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
@@ -73,6 +73,6 @@ ZBUS_CHAN_DEFINE(chan_out_odometry, // Name
 #if defined(CONFIG_SYNAPSE_ZBUS_UART)
         listener_synapse_zbus_uart,
 #endif
-    ), // observers
+        ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );

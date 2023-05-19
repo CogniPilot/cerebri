@@ -38,7 +38,7 @@ void main(void)
     while (keepRunning) {
         k_msleep(10000);
         //int64_t uptime = k_uptime_get()/1e3;
-        //printf("uptime: %lld sec\n", uptime);
+        //printf("\nuptime: %lld sec\n", uptime);
     }
 }
 

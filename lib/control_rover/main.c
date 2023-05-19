@@ -31,7 +31,6 @@ ZBUS_LISTENER_DEFINE(listener_control_rover, listener_control_rover_callback);
 static void control_entry_point(void* p1, void* p2, void* p3)
 {
     while (true) {
-    	printf("control loop\n");
         // send data to motors
         msg.has_header = true;
         strncpy(msg.header.frame_id, "test", 16);

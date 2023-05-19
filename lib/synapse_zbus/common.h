@@ -14,7 +14,6 @@
 
 #include <synapse_zbus/channels.h>
 
-
 #define TOPIC_LISTENER(CHANNEL, CLASS)                                         \
     static TF_Result CHANNEL##_Listener(TinyFrame* tf, TF_Msg* frame)          \
     {                                                                          \

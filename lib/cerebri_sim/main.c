@@ -39,7 +39,22 @@ int64_t connect_time = 0;
 Clock g_sim_clock = Clock_init_default;
 pthread_mutex_t g_lock_sim_clock;
 static int serv = 0;
-static TinyFrame* g_tf = NULL;
+int client = 0;
+
+static void write_sim(TinyFrame* tf, const uint8_t* buf, uint32_t len)
+{
+    int client = *(int*)(tf->userdata);
+    if (len > 0) {
+        send(client, buf, len, 0);
+    }
+}
+
+static TinyFrame g_tf = {
+    .peer_bit = TF_MASTER,
+    .write = write_sim,
+    .userdata = &client,
+};
+
 pthread_t thread1;
 
 void listener_cerebri_sim_callback(const struct zbus_channel* chan)
@@ -54,21 +69,13 @@ void listener_cerebri_sim_callback(const struct zbus_channel* chan)
             msg.type = SYNAPSE_OUT_ACTUATORS_TOPIC;
             msg.data = buf;
             msg.len = stream.bytes_written;
-            TF_Send(g_tf, &msg);
+            TF_Send(&g_tf, &msg);
         } else {
             printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));
         }
     }
 }
 ZBUS_LISTENER_DEFINE(listener_cerebri_sim, listener_cerebri_sim_callback);
-
-static void write_sim(TinyFrame* tf, const uint8_t* buf, uint32_t len)
-{
-    int client = *(int*)(tf->userdata);
-    if (len > 0) {
-        send(client, buf, len, 0);
-    }
-}
 
 static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
 {
@@ -95,12 +102,8 @@ void* native_sim_entry_point(void* data)
     printf("sim core running\n");
 
     // setup tinyframe
-    g_tf = TF_Init(TF_MASTER);
-    int client = 0;
-    g_tf->userdata = &client;
-    g_tf->write = write_sim;
-    TF_AddGenericListener(g_tf, generic_listener);
-    TF_AddTypeListener(g_tf, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_listener);
+    TF_AddGenericListener(&g_tf, generic_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_listener);
 
     struct sockaddr_in bind_addr;
     static int counter;
@@ -162,7 +165,7 @@ void* native_sim_entry_point(void* data)
             uint8_t data[RX_BUF_SIZE];
             int len = recv(client, data, RX_BUF_SIZE, 0);
             if (len > 0) {
-                TF_Accept(g_tf, data, len);
+                TF_Accept(&g_tf, data, len);
             }
             request.tv_sec = 0;
             request.tv_nsec = 1000000; // 1 ms

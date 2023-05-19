@@ -14,13 +14,6 @@
 
 #include <synapse_zbus/channels.h>
 
-#define MY_STACK_SIZE 1024
-#define MY_PRIORITY -1
-
-#define TX_BUF_SIZE 1024
-#define RX_BUF_SIZE 1024
-
-#define BIND_PORT 4242
 
 #define TOPIC_LISTENER(CHANNEL, CLASS)                                         \
     static TF_Result CHANNEL##_Listener(TinyFrame* tf, TF_Msg* frame)          \
@@ -48,9 +41,7 @@
             msg.type = TOPIC;                                                \
             msg.data = buf;                                                  \
             msg.len = stream.bytes_written;                                  \
-            if (g_tf != NULL) {                                              \
-                TF_Send(g_tf, &msg);                                         \
-            }                                                                \
+            TF_Send(&g_tf, &msg);                                            \
         } else {                                                             \
             printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));          \
         }                                                                    \

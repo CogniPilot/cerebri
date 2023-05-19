@@ -36,11 +36,9 @@ void main(void)
     signal(SIGINT, intHandler);
 #endif
     while (keepRunning) {
-        k_msleep(5000);
-#if defined(CONFIG_ARCH_POSIX)
-        int64_t uptime = k_uptime_get() / 1e3;
-        printf("uptime: %ld sec\n", uptime);
-#endif
+        k_msleep(10000);
+        //int64_t uptime = k_uptime_get()/1e3;
+        //printf("uptime: %lld sec\n", uptime);
     }
 }
 

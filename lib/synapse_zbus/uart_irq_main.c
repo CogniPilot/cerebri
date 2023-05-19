@@ -23,12 +23,37 @@
 /* change this to any other UART peripheral if desired */
 #define UART_DEVICE_NODE DT_CHOSEN(zephyr_telem1)
 
+static const struct device *const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
+
 static TinyFrame g_tf;
 
 static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 {
     dumpFrameInfo(msg);
     return TF_STAY;
+}
+
+
+/*
+ * Read characters from UART until line end is detected. Afterwards push the
+ * data to the message queue.
+ */
+void serial_cb(const struct device *dev, void *user_data)
+{
+    uint8_t c;
+
+    if (!uart_irq_update(uart_dev)) {
+        return;
+    }
+
+    if (!uart_irq_rx_ready(uart_dev)) {
+        return;
+    }
+
+    /* read until FIFO empty */
+    while (uart_fifo_read(uart_dev, &c, 1) == 1) {
+        TF_AcceptChar(&g_tf, c);
+    }
 }
 
 // ROS -> cerebri
@@ -48,8 +73,6 @@ void listener_synapse_zbus_uart_callback(const struct zbus_channel* chan)
 }
 
 ZBUS_LISTENER_DEFINE(listener_synapse_zbus_uart, listener_synapse_zbus_uart_callback);
-
-static const struct device* const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
 
 static void write_uart(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {
@@ -73,17 +96,30 @@ static void uart_entry_point(void)
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
 
-    /*
-    while (true) {
-        uint8_t c;
-        int count = 0;
-        while (uart_poll_in(uart_dev, &c) == 0) {
-            TF_AcceptChar(&g_tf, c);
-            count++;
+    if (!device_is_ready(uart_dev)) {
+        printk("UART device not found!");
+        return;
+    }
+
+    /* configure interrupt and callback to receive data */
+    int ret = uart_irq_callback_user_data_set(uart_dev, serial_cb, NULL);
+
+    if (ret < 0) {
+        if (ret == -ENOTSUP) {
+            printk("Interrupt-driven UART API support not enabled\n");
+        } else if (ret == -ENOSYS) {
+            printk("UART device does not support interrupt-driven API\n");
+        } else {
+            printk("Error setting UART callback: %d\n", ret);
         }
+        return;
+    }
+    uart_irq_rx_enable(uart_dev);
+
+    while (true) {
+        k_msleep(1000);
         TF_Tick(&g_tf);
     }
-    */
 }
 
 K_THREAD_DEFINE(synapse_zbus_uart, MY_STACK_SIZE, uart_entry_point,

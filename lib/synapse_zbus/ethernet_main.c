@@ -19,14 +19,14 @@
 
 #include "common.h"
 
-#define MY_STACK_SIZE 1024
-#define MY_PRIORITY -1
+#define MY_STACK_SIZE 500
+#define MY_PRIORITY 5
 
-#define RX_BUF_SIZE 1024
+#define RX_BUF_SIZE 100
 
 #define BIND_PORT 4242
 
-static TinyFrame* g_tf = NULL;
+static TinyFrame g_tf;
 static int g_client = 0;
 
 static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
@@ -103,18 +103,19 @@ static void ethernet_entry_point(void)
         BIND_PORT);
 
     // Set up the TinyFrame library
-    g_tf = TF_Init(TF_MASTER);
-    g_tf->write = write_ethernet;
+    TF_InitStatic(&g_tf, TF_MASTER);
+    g_tf.write = write_ethernet;
 
     // ros -> cerebri
-    TF_AddGenericListener(g_tf, genericListener);
-    TF_AddTypeListener(g_tf, SYNAPSE_IN_ACTUATORS_TOPIC, in_actuators_Listener);
-    TF_AddTypeListener(g_tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
-    TF_AddTypeListener(g_tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
-    TF_AddTypeListener(g_tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
-    TF_AddTypeListener(g_tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
+    TF_AddGenericListener(&g_tf, genericListener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IN_ACTUATORS_TOPIC, in_actuators_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
 
     while (1) {
+	k_usleep(1000);
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
@@ -134,8 +135,9 @@ static void ethernet_entry_point(void)
 
         while (1) {
             int len = recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
-            TF_Accept(g_tf, rx1_buf, len);
-            TF_Tick(g_tf);
+	    k_usleep(1000);
+            TF_Accept(&g_tf, rx1_buf, len);
+            TF_Tick(&g_tf);
         }
     }
 }

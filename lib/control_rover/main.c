@@ -10,10 +10,14 @@
 
 #include <synapse_zbus/channels.h>
 
-double thrust = 0;
-double yaw = 0;
+#define MY_STACK_SIZE 10240
+#define MY_PRIORITY 5
 
-void listener_control_rover_callback(const struct zbus_channel* chan)
+static double thrust = 0;
+static double yaw = 0;
+static Actuators msg = Actuators_init_zero;
+
+static void listener_control_rover_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_in_joy) {
         Joy* msg = (Joy*)(chan->message);
@@ -24,11 +28,11 @@ void listener_control_rover_callback(const struct zbus_channel* chan)
 
 ZBUS_LISTENER_DEFINE(listener_control_rover, listener_control_rover_callback);
 
-void control_entry_point(void* p1, void* p2, void* p3)
+static void control_entry_point(void* p1, void* p2, void* p3)
 {
     while (true) {
+    	printf("control loop\n");
         // send data to motors
-        Actuators msg = Actuators_init_zero;
         msg.has_header = true;
         strncpy(msg.header.frame_id, "test", 16);
         msg.header.has_stamp = true;
@@ -42,15 +46,14 @@ void control_entry_point(void* p1, void* p2, void* p3)
         msg.velocity[2] = 1.0 * thrust - 1.0 * yaw;
         msg.velocity[3] = 1.0 * thrust + 1.0 * yaw;
         msg.velocity_count = 4;
-        zbus_chan_pub(&chan_out_actuators, &msg, K_NO_WAIT);
-
+        zbus_chan_pub(&chan_out_actuators, &msg, K_SECONDS(1));
+        k_msleep(1e3 / 10);
         // sleep to set control rate at 10 Hz
-        k_usleep(1e6 / 10);
     }
 }
 
-K_THREAD_DEFINE(control_thread, 500,
+K_THREAD_DEFINE(control_thread, MY_STACK_SIZE,
     control_entry_point, NULL, NULL, NULL,
-    -1, 0, 0);
+    MY_PRIORITY, 0, 0);
 
 /* vi: ts=4 sw=4 et */

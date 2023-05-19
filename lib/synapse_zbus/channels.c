@@ -29,7 +29,10 @@ ZBUS_CHAN_DEFINE(chan_in_joy, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
-        listener_control_rover), // observers
+#if defined(CONFIG_CONTROL_ROVER)
+        listener_control_rover,
+#endif
+    ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
@@ -49,8 +52,12 @@ ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
 #if defined(CONFIG_CEREBRI_SIM)
         listener_cerebri_sim,
 #endif
+#if defined(CONFIG_SYNAPSE_ZBUS_ETHERNET)
         listener_synapse_zbus_ethernet,
-        listener_synapse_zbus_uart
+#endif
+#if defined(CONFIG_SYNAPSE_ZBUS_UART)
+        listener_synapse_zbus_uart,
+#endif
     ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
@@ -60,8 +67,12 @@ ZBUS_CHAN_DEFINE(chan_out_odometry, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_ZBUS_ETHERNET)
         listener_synapse_zbus_ethernet,
-        listener_synapse_zbus_uart
+#endif
+#if defined(CONFIG_SYNAPSE_ZBUS_UART)
+        listener_synapse_zbus_uart,
+#endif
     ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );

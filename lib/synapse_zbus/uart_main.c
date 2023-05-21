@@ -2,6 +2,7 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
+#if defined(CONFIG_SYNAPSE_ZBUS_UART)
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
@@ -136,4 +137,5 @@ static void uart_entry_point(void)
 K_THREAD_DEFINE(synapse_zbus_uart, MY_STACK_SIZE, uart_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
 
+#endif // defined(CONFIG_SYNAPSE_ZBUS_UART)
 /* vi: ts=4 sw=4 et */

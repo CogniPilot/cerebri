@@ -2,6 +2,7 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
+#if defined(CONFIG_SYNAPSE_ZBUS_ETHERNET)
 
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
@@ -115,7 +116,7 @@ static void ethernet_entry_point(void)
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
 
     while (1) {
-        k_usleep(1000);
+        //k_usleep(1000);
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
@@ -135,7 +136,7 @@ static void ethernet_entry_point(void)
 
         while (1) {
             int len = recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
-            k_usleep(1000);
+            //k_usleep(1000);
             TF_Accept(&g_tf, rx1_buf, len);
             TF_Tick(&g_tf);
         }
@@ -145,4 +146,5 @@ static void ethernet_entry_point(void)
 K_THREAD_DEFINE(synapse_zbus_ethernet, MY_STACK_SIZE, ethernet_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
 
+#endif // defined(CONFIG_SYNAPSE_ZBUS_ETHERNET)
 /* vi: ts=4 sw=4 et */

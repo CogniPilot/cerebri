@@ -11,7 +11,7 @@
 #include <synapse_zbus/channels.h>
 
 #define MY_STACK_SIZE 10240
-#define MY_PRIORITY 5
+#define MY_PRIORITY 4
 
 static double thrust = 0;
 static double yaw = 0;
@@ -40,10 +40,11 @@ static void control_entry_point(void* p1, void* p2, void* p3)
         msg.header.stamp.seconds = 0;
         msg.normalized_count = 0;
         msg.position_count = 0;
-        msg.velocity[0] = 1.0 * thrust + 1.0 * yaw;
-        msg.velocity[1] = 1.0 * thrust - 1.0 * yaw;
-        msg.velocity[2] = 1.0 * thrust - 1.0 * yaw;
-        msg.velocity[3] = 1.0 * thrust + 1.0 * yaw;
+        double scale = 30.0;
+        msg.velocity[0] = scale*(1.0 * thrust + 1.0 * yaw);
+        msg.velocity[1] = scale*(1.0 * thrust - 1.0 * yaw);
+        msg.velocity[2] = scale*(1.0 * thrust - 1.0 * yaw);
+        msg.velocity[3] = scale*(1.0 * thrust + 1.0 * yaw);
         msg.velocity_count = 4;
         zbus_chan_pub(&chan_out_actuators, &msg, K_SECONDS(1));
         k_msleep(1e3 / 10);

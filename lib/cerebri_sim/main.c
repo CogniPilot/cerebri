@@ -71,7 +71,7 @@ void listener_cerebri_sim_callback(const struct zbus_channel* chan)
             msg.len = stream.bytes_written;
             TF_Send(&g_tf, &msg);
         } else {
-            printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));
+            printf("cerebri_sim: encoding failed: %s\n", PB_GET_ERROR(&stream));
         }
     }
 }
@@ -87,7 +87,7 @@ static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
         g_sim_clock = msg;
         pthread_mutex_unlock(&g_lock_sim_clock);
     } else {
-        printf("Decoding failed: %s\n", PB_GET_ERROR(&stream));
+        printf("cerebri_sim: decoding failed: %s\n", PB_GET_ERROR(&stream));
     }
     return TF_STAY;
 }
@@ -99,7 +99,7 @@ TF_Result generic_listener(TinyFrame* tf, TF_Msg* frame)
 
 void* native_sim_entry_point(void* data)
 {
-    printf("sim core running\n");
+    printf("cerebri_sim: sim core running\n");
 
     // setup tinyframe
     TF_AddGenericListener(&g_tf, generic_listener);
@@ -110,7 +110,7 @@ void* native_sim_entry_point(void* data)
 
     serv = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (serv < 0) {
-        printf("error: socket: %d\n", errno);
+        printf("cerebri_sim: error: socket: %d\n", errno);
         exit(1);
     }
 
@@ -125,20 +125,20 @@ void* native_sim_entry_point(void* data)
     bind_addr.sin_port = htons(BIND_PORT);
 
     if (bind(serv, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
-        printf("bind() failed: %d\n", errno);
+        printf("cerebri_sim: bind() failed: %d\n", errno);
         exit(1);
     }
 
     if (listen(serv, 5) < 0) {
-        printf("error: listen: %d\n", errno);
+        printf("cerebri_sim: error: listen: %d\n", errno);
         exit(1);
     }
 
-    printf("listening to server on port: %d\n", BIND_PORT);
+    printf("cerebri_sim: listening to server on port: %d\n", BIND_PORT);
 
     struct timespec remaining, request;
 
-    printf("waiting for client connection\n");
+    printf("cerebri_sim: waiting for client connection\n");
     while (true) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
@@ -152,13 +152,11 @@ void* native_sim_entry_point(void* data)
             request.tv_nsec = 0;
             nanosleep(&request, &remaining);
             continue;
-        } else {
-            printf("connected\n");
         }
 
         inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
             addr_str, sizeof(addr_str));
-        printf("Connection #%d from %s\n", counter++, addr_str);
+        printf("cerebri_sim: connection #%d from %s\n", counter++, addr_str);
 
         while (true) {
             // write received data to sim_rx_buf
@@ -186,7 +184,7 @@ void native_sim_stop_task(void)
 
 static void zephyr_sim_entry_point(void)
 {
-    printf("zephyr sim entry point\n");
+    printf("cerebri_sim: zephyr sim entry point\n");
     while (true) {
         int64_t uptime = k_uptime_get();
         int64_t sec = uptime / 1.0e3;

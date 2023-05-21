@@ -7,11 +7,9 @@
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
+#include <zephyr/net/socket.h>
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include <fcntl.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -27,17 +25,21 @@
 
 #define BIND_PORT 4242
 
-static int g_client = 0;
+static int g_client = -1;
 
 static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {
+    if (g_client < 0) {
+        return;
+    }
+
     int out_len;
     const char* p;
     p = buf;
     do {
         out_len = send(g_client, p, len, 0);
         if (out_len < 0) {
-            printf("error: send: %d\n", errno);
+            printf("synapse_zbus: error: send: %d\n", errno);
             return;
         }
         p += out_len;
@@ -74,6 +76,14 @@ void listener_synapse_zbus_ethernet_callback(const struct zbus_channel* chan)
 
 ZBUS_LISTENER_DEFINE(listener_synapse_zbus_ethernet, listener_synapse_zbus_ethernet_callback);
 
+static bool set_blocking_enabled(int fd, bool blocking) {
+    if (fd < 0) return false;
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) return false;
+    flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
+    return (fcntl(fd, F_SETFL, flags) == 0) ? true : false;
+}
+
 static void ethernet_entry_point(void)
 {
     static uint8_t rx1_buf[RX_BUF_SIZE];
@@ -83,9 +93,10 @@ static void ethernet_entry_point(void)
     static int counter;
 
     serv = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    set_blocking_enabled(serv, true);
 
     if (serv < 0) {
-        printf("error: socket: %d\n", errno);
+        printf("synapse_zbus: error: socket: %d\n", errno);
         exit(1);
     }
 
@@ -94,19 +105,19 @@ static void ethernet_entry_point(void)
     bind_addr.sin_port = htons(BIND_PORT);
 
     if (bind(serv, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
-        printf("error: bind: %d\n", errno);
+        printf("synapse_zbus: error: bind: %d\n", errno);
         exit(1);
     }
 
     if (listen(serv, 5) < 0) {
-        printf("error: listen: %d\n", errno);
+        printf("synapse_zbus: error: listen: %d\n", errno);
         exit(1);
     }
 
-    printf("TCP server waits for a connection on "
+    printf("synapse_zbus: TCP server waits for a connection on "
            "port %d...\n",
         BIND_PORT);
-
+    
     // ros -> cerebri
     TF_AddGenericListener(&g_tf, genericListener);
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_ACTUATORS_TOPIC, in_actuators_Listener);
@@ -116,27 +127,30 @@ static void ethernet_entry_point(void)
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
 
     while (1) {
-        //k_usleep(1000);
+        printf("synapse_zbus: socket waiting for connection on port: %d\n", BIND_PORT);
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
         g_client = accept(serv, (struct sockaddr*)&client_addr,
             &client_addr_len);
+        k_msleep(1000);
 
         if (g_client < 0) {
-            printf("error: accept: %d\n", errno);
+            //printf("error: accept: %d\n", errno);
             continue;
-        } else {
-            printf("connected\n");
         }
 
         inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
             addr_str, sizeof(addr_str));
-        printf("Connection #%d from %s\n", counter++, addr_str);
+        printf("synapse_zbus: connection #%d from %s\n", counter++, addr_str);
 
         while (1) {
+            //printf("synapse_zbus: receiving\n");
+            k_msleep(1);
             int len = recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
-            //k_usleep(1000);
+            if (len < 0) {
+                continue;
+            }
             TF_Accept(&g_tf, rx1_buf, len);
             TF_Tick(&g_tf);
         }

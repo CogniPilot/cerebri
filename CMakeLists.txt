@@ -6,8 +6,6 @@
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include(FetchContent)
-
 zephyr_include_directories(include)
 
 add_subdirectory(drivers)

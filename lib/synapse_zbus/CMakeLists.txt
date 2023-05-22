@@ -8,6 +8,7 @@ zephyr_library_named(synapse_zbus)
 zephyr_include_directories()
 
 zephyr_library_sources(
+  zbus_topic_list.c
   uart_main.c
   ethernet_main.c
   channels.c

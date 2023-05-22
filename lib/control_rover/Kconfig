@@ -6,3 +6,12 @@ config CONTROL_ROVER
   help
     This option enables the rover control lib.
 
+config CONTROL_ROVER_STEERING_ACKERMANN
+  bool "ackermann steering"
+  help
+    This option enables ackermann steering
+
+config CONTROL_ROVER_STEERING_DIFFERENTIAL
+  bool "differential steering"
+  help
+    This option enables differential steering

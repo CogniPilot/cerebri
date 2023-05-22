@@ -9,6 +9,7 @@ zephyr_include_directories()
 
 zephyr_library_sources(
   main.c
+  casadi/rover.c
   )
 
 add_dependencies(control_rover synapse_protobuf)

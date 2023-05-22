@@ -13,7 +13,7 @@
 #include "casadi/rover.h"
 #include "parameters.h"
 
-#define MY_STACK_SIZE 10240
+#define MY_STACK_SIZE 1024
 #define MY_PRIORITY 4
 
 
@@ -34,8 +34,10 @@ static BezierTrajectory g_bezier_trajectory = BezierTrajectory_init_zero;
 static void handle_joy(Joy * joy) {
     // arming
     if (joy->buttons[7] == 1) {
+        printf("armed\n");
         g_armed = true;
     } else if (joy->buttons[6] == 1) {
+        printf("disarmed\n");
         g_armed = false;
     }
 
@@ -68,12 +70,16 @@ static void handle_joy(Joy * joy) {
 static void listener_control_rover_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_in_joy) {
+        printf("handle joy\n");
         handle_joy((Joy*)(chan->mutex));
     } else if (chan == &chan_in_odometry) {
+        printf("handle odometry\n");
         g_pose = *(Odometry*)(chan->message);
     } else if (chan == &chan_in_cmd_vel) {
+        printf("handle cmd_vel\n");
         g_cmd_vel = *(Twist*)(chan->message);
     } else if (chan == &chan_in_bezier_trajectory) {
+        printf("handle bezier\n");
         g_bezier_trajectory = *(BezierTrajectory*)(chan->message);
     }
 }
@@ -111,7 +117,9 @@ void mixer() {
             turn_angle = delta;
         }
         actuators.position[0] = turn_angle;
+        actuators.position_count = 1;
         actuators.velocity[0] = omega_fwd;
+        actuators.velocity_count = 1;
     }
 #endif
 
@@ -132,6 +140,7 @@ void mixer() {
         actuators.velocity[1] = omega_fwd + omega_turn;
         actuators.velocity[2] = omega_fwd + omega_turn;
         actuators.velocity[3] = omega_fwd - omega_turn;
+        actuators.velocity_count = 4;
     }
 #endif
 
@@ -223,6 +232,7 @@ void auto_mode() {
 void control_entry_point(void * p1, void * p2, void * p3) {
 
     while (true) {
+        printf("control running\n");
         // auto
         if (g_mode == MODE_AUTO) {
             auto_mode();

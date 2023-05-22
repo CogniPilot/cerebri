@@ -40,7 +40,11 @@ ZBUS_CHAN_DEFINE(chan_in_odometry, // Name
     Odometry, // Message type
     NULL, // Validator
     NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
+    ZBUS_OBSERVERS(
+#if defined(CONFIG_CONTROL_ROVER)
+        listener_control_rover,
+#endif
+        ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 

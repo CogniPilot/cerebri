@@ -20,9 +20,17 @@ static Actuators msg = Actuators_init_zero;
 static void listener_control_rover_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_in_joy) {
+        printf("received joy\n");
         Joy* msg = (Joy*)(chan->message);
         thrust = msg->axes[1];
         yaw = msg->axes[3];
+    } else if (chan == &chan_in_odometry) {
+        printf("received odometry\n");
+        Odometry * msg = (Odometry*)(chan->message);
+        printf("x: %10.4f, y: %10.4f, z: %10.4f\n",
+                msg->pose.pose.position.x,
+                msg->pose.pose.position.y,
+                msg->pose.pose.position.z);
     }
 }
 
@@ -41,10 +49,10 @@ static void control_entry_point(void* p1, void* p2, void* p3)
         msg.normalized_count = 0;
         msg.position_count = 0;
         double scale = 30.0;
-        msg.velocity[0] = scale*(1.0 * thrust + 1.0 * yaw);
-        msg.velocity[1] = scale*(1.0 * thrust - 1.0 * yaw);
-        msg.velocity[2] = scale*(1.0 * thrust - 1.0 * yaw);
-        msg.velocity[3] = scale*(1.0 * thrust + 1.0 * yaw);
+        msg.velocity[0] = scale * (1.0 * thrust + 1.0 * yaw);
+        msg.velocity[1] = scale * (1.0 * thrust - 1.0 * yaw);
+        msg.velocity[2] = scale * (1.0 * thrust - 1.0 * yaw);
+        msg.velocity[3] = scale * (1.0 * thrust + 1.0 * yaw);
         msg.velocity_count = 4;
         zbus_chan_pub(&chan_out_actuators, &msg, K_SECONDS(1));
         k_msleep(1e3 / 10);

@@ -6,8 +6,8 @@
 
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
-#include <zephyr/sys/printk.h>
 #include <zephyr/net/socket.h>
+#include <zephyr/sys/printk.h>
 
 #include <fcntl.h>
 
@@ -76,10 +76,13 @@ void listener_synapse_zbus_ethernet_callback(const struct zbus_channel* chan)
 
 ZBUS_LISTENER_DEFINE(listener_synapse_zbus_ethernet, listener_synapse_zbus_ethernet_callback);
 
-static bool set_blocking_enabled(int fd, bool blocking) {
-    if (fd < 0) return false;
+static bool set_blocking_enabled(int fd, bool blocking)
+{
+    if (fd < 0)
+        return false;
     int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) return false;
+    if (flags == -1)
+        return false;
     flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
     return (fcntl(fd, F_SETFL, flags) == 0) ? true : false;
 }
@@ -117,7 +120,7 @@ static void ethernet_entry_point(void)
     printf("synapse_zbus: TCP server waits for a connection on "
            "port %d...\n",
         BIND_PORT);
-    
+
     // ros -> cerebri
     TF_AddGenericListener(&g_tf, genericListener);
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_ACTUATORS_TOPIC, in_actuators_Listener);
@@ -136,7 +139,7 @@ static void ethernet_entry_point(void)
         k_msleep(1000);
 
         if (g_client < 0) {
-            //printf("error: accept: %d\n", errno);
+            // printf("error: accept: %d\n", errno);
             continue;
         }
 
@@ -145,7 +148,7 @@ static void ethernet_entry_point(void)
         printf("synapse_zbus: connection #%d from %s\n", counter++, addr_str);
 
         while (1) {
-            //printf("synapse_zbus: receiving\n");
+            // printf("synapse_zbus: receiving\n");
             k_msleep(1);
             int len = recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
             if (len < 0) {

@@ -18,14 +18,15 @@
 
 
 enum control_mode_t {
-    MODE_MANUAL=0,
-    MODE_AUTO=1,
-    MODE_CMD_VEL=2,
+    MODE_INIT=0,
+    MODE_MANUAL=1,
+    MODE_AUTO=2,
+    MODE_CMD_VEL=3,
 };
 typedef enum control_mode_t control_mode_t;
-char * mode_name[3] = {"manual", "auto", "cmd_vel"};
+char * mode_name[4] = {"init", "manual", "auto", "cmd_vel"};
 
-control_mode_t g_mode = {MODE_MANUAL};
+control_mode_t g_mode = {MODE_INIT};
 bool g_armed = false;
 static Odometry g_pose  = Odometry_init_zero;
 static Twist g_cmd_vel = Twist_init_zero;
@@ -33,12 +34,17 @@ static BezierTrajectory g_bezier_trajectory = BezierTrajectory_init_zero;
 
 static void handle_joy(Joy * joy) {
     // arming
-    if (joy->buttons[7] == 1) {
+    if (joy->buttons[7] == 1 && !g_armed) {
+        if (g_mode == MODE_INIT) {
+            printf("cannot arm until mode selected\n");
+            return;
+        }
         printf("armed\n");
         g_armed = true;
-    } else if (joy->buttons[6] == 1) {
+    } else if (joy->buttons[6] == 1 && g_armed) {
         printf("disarmed\n");
         g_armed = false;
+        g_mode = MODE_INIT;
     }
 
     // handle modes
@@ -49,7 +55,7 @@ static void handle_joy(Joy * joy) {
         if (g_bezier_trajectory.time_start != 0) {
             g_mode =  MODE_AUTO;
         } else {
-            printf("no valid tranjectory\n");
+            printf("auto rejected: no valid trajectory\n");
         }
     } else if (joy->buttons[2] == 1) {
         g_mode =  MODE_CMD_VEL;
@@ -70,16 +76,12 @@ static void handle_joy(Joy * joy) {
 static void listener_control_rover_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_in_joy) {
-        printf("handle joy\n");
-        handle_joy((Joy*)(chan->mutex));
+        handle_joy((Joy*)(chan->message));
     } else if (chan == &chan_in_odometry) {
-        printf("handle odometry\n");
         g_pose = *(Odometry*)(chan->message);
     } else if (chan == &chan_in_cmd_vel) {
-        printf("handle cmd_vel\n");
         g_cmd_vel = *(Twist*)(chan->message);
     } else if (chan == &chan_in_bezier_trajectory) {
-        printf("handle bezier\n");
         g_bezier_trajectory = *(BezierTrajectory*)(chan->message);
     }
 }
@@ -116,10 +118,12 @@ void mixer() {
         if (fabs(V) > 0.01) {
             turn_angle = delta;
         }
-        actuators.position[0] = turn_angle;
         actuators.position_count = 1;
-        actuators.velocity[0] = omega_fwd;
         actuators.velocity_count = 1;
+        if (g_armed) {
+            actuators.position[0] = turn_angle;
+            actuators.velocity[0] = omega_fwd;
+        }
     }
 #endif
 
@@ -136,14 +140,15 @@ void mixer() {
         differential_steering(args, res, iw, w, mem);
         double omega_fwd = V/wheel_radius;
         double omega_turn = Vw/wheel_radius;
-        actuators.velocity[0] = omega_fwd - omega_turn;
-        actuators.velocity[1] = omega_fwd + omega_turn;
-        actuators.velocity[2] = omega_fwd + omega_turn;
-        actuators.velocity[3] = omega_fwd - omega_turn;
         actuators.velocity_count = 4;
+        if (g_armed) {
+            actuators.velocity[0] = omega_fwd + omega_turn;
+            actuators.velocity[1] = omega_fwd - omega_turn;
+            actuators.velocity[2] = omega_fwd - omega_turn;
+            actuators.velocity[3] = omega_fwd + omega_turn;
+        }
     }
 #endif
-
     zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
 }
 
@@ -232,7 +237,7 @@ void auto_mode() {
 void control_entry_point(void * p1, void * p2, void * p3) {
 
     while (true) {
-        printf("control running\n");
+        //printf("control running\n");
         // auto
         if (g_mode == MODE_AUTO) {
             auto_mode();

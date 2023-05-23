@@ -37,11 +37,11 @@ void main(void)
 #endif
     while (keepRunning) {
         k_msleep(10000);
-        int64_t uptime = k_uptime_get() / 1e3;
+        //int64_t uptime = k_uptime_get() / 1e3;
 #if defined(CONFIG_ARCH_POSIX)
-        printf("\nuptime: %ld sec\n", uptime);
+        //printf("\nuptime: %ld sec\n", uptime);
 #else
-        printf("\nuptime: %lld sec\n", uptime);
+        //printf("\nuptime: %lld sec\n", uptime);
 #endif
     }
 }

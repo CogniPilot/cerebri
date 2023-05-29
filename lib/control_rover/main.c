@@ -36,13 +36,13 @@ static void handle_joy(Joy * joy) {
     // arming
     if (joy->buttons[7] == 1 && !g_armed) {
         if (g_mode == MODE_INIT) {
-            printf("cannot arm until mode selected\n");
+            printf("Cannot arm until mode selected.\n");
             return;
         }
-        printf("armed\n");
+        printf("Armed in mode: %s\n", mode_name[g_mode]);
         g_armed = true;
     } else if (joy->buttons[6] == 1 && g_armed) {
-        printf("disarmed\n");
+        printf("Disarmed\n");
         g_armed = false;
         g_mode = MODE_INIT;
     }
@@ -55,7 +55,7 @@ static void handle_joy(Joy * joy) {
         if (g_bezier_trajectory.time_start != 0) {
             g_mode =  MODE_AUTO;
         } else {
-            printf("auto rejected: no valid trajectory\n");
+            printf("Auto mode rejected: no valid trajectory\n");
         }
     } else if (joy->buttons[2] == 1) {
         g_mode =  MODE_CMD_VEL;
@@ -63,7 +63,7 @@ static void handle_joy(Joy * joy) {
 
     // notify on mode change
     if (g_mode != prev_mode) {
-        printf("mode changed to %s!\n", mode_name[g_mode]);
+        printf("Mode changed to: %s!\n", mode_name[g_mode]);
     }
 
     // translate joystick to twist message
@@ -79,7 +79,7 @@ static void listener_control_rover_callback(const struct zbus_channel* chan)
         handle_joy((Joy*)(chan->message));
     } else if (chan == &chan_in_odometry) {
         g_pose = *(Odometry*)(chan->message);
-    } else if (chan == &chan_in_cmd_vel) {
+    } else if (g_mode == MODE_CMD_VEL && chan == &chan_in_cmd_vel) {
         g_cmd_vel = *(Twist*)(chan->message);
     } else if (chan == &chan_in_bezier_trajectory) {
         g_bezier_trajectory = *(BezierTrajectory*)(chan->message);

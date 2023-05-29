@@ -37,7 +37,7 @@ static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
     const char* p;
     p = buf;
     do {
-        out_len = send(g_client, p, len, 0);
+        out_len = zsock_send(g_client, p, len, 0);
         if (out_len < 0) {
             printf("synapse_zbus: error: send: %d\n", errno);
             return;
@@ -95,7 +95,7 @@ static void ethernet_entry_point(void)
     struct sockaddr_in bind_addr;
     static int counter;
 
-    serv = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    serv = zsock_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     set_blocking_enabled(serv, true);
 
     if (serv < 0) {
@@ -107,12 +107,12 @@ static void ethernet_entry_point(void)
     bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     bind_addr.sin_port = htons(BIND_PORT);
 
-    if (bind(serv, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
+    if (zsock_bind(serv, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
         printf("synapse_zbus: error: bind: %d\n", errno);
         exit(1);
     }
 
-    if (listen(serv, 5) < 0) {
+    if (zsock_listen(serv, 5) < 0) {
         printf("synapse_zbus: error: listen: %d\n", errno);
         exit(1);
     }
@@ -134,7 +134,7 @@ static void ethernet_entry_point(void)
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
-        g_client = accept(serv, (struct sockaddr*)&client_addr,
+        g_client = zsock_accept(serv, (struct sockaddr*)&client_addr,
             &client_addr_len);
         k_msleep(1000);
 
@@ -143,14 +143,14 @@ static void ethernet_entry_point(void)
             continue;
         }
 
-        inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
+        zsock_inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
             addr_str, sizeof(addr_str));
         printf("synapse_zbus: connection #%d from %s\n", counter++, addr_str);
 
         while (1) {
             // printf("synapse_zbus: receiving\n");
             k_msleep(1);
-            int len = recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
+            int len = zsock_recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
             if (len < 0) {
                 continue;
             }

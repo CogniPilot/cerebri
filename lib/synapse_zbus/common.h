@@ -23,7 +23,7 @@
         if (status) {                                                          \
             zbus_chan_pub(&chan_##CHANNEL, &msg, K_FOREVER);                   \
         } else {                                                               \
-            printf("Decoding failed: %s\n", PB_GET_ERROR(&stream));            \
+            printf("%s decoding failed: %s\n", #CHANNEL, PB_GET_ERROR(&stream));\
         }                                                                      \
         return TF_STAY;                                                        \
     }
@@ -42,7 +42,7 @@
             msg.len = stream.bytes_written;                                  \
             TF_Send(&g_tf, &msg);                                            \
         } else {                                                             \
-            printf("Encoding failed: %s\n", PB_GET_ERROR(&stream));          \
+            printf("%s encoding failed: %s\n", #CHANNEL, PB_GET_ERROR(&stream));\
         }                                                                    \
     }
 

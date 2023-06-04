@@ -29,7 +29,7 @@ void intHandler(int dummy)
 }
 #endif
 
-void main(void)
+int main(void)
 {
     const char * banner =
     "                            \033[0m\033[38;5;252m              ▄▄▄▄▄▄▄▄\n"
@@ -72,6 +72,8 @@ void main(void)
         //printf("\nuptime: %lld sec\n", uptime);
 #endif
     }
+
+    return 0;
 }
 
 // vi: ts=4 sw=4 et

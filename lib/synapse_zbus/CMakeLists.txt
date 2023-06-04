@@ -3,7 +3,6 @@
 
 zephyr_library_named(synapse_zbus)
 
-
 # we need to be able to include generated header files
 zephyr_include_directories()
 

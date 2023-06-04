@@ -31,7 +31,8 @@ void intHandler(int dummy)
 
 int main(void)
 {
-    const char * banner =
+#if defined(CONFIG_BOOT_BANNER)
+    const char banner[] =
     "                            \033[0m\033[38;5;252m              ▄▄▄▄▄▄▄▄\n"
     "\033[2;34m         ▄▄▄▄▄ \033[2;33m▄▄▄▄▄\033[0m\033[38;5;252m                    ▀▀▀▀▀▀▀▀▀\n"
     "\033[2;34m     ▄███████▀\033[2;33m▄██████▄\033[0m\033[38;5;252m   ▀█████████████████████▀\n"
@@ -59,6 +60,7 @@ int main(void)
     "       ┗━━━┛┗━━━┛┗┛┗━┛┗━━━┛┗━━━┛┗┛┗━┛┗━━┛\n\033[0m";
     printk("Cerebri %s\n", APP_VERSION_STR);
     printf("%s\n", banner);
+#endif
 
 #if defined(CONFIG_ARCH_POSIX)
     signal(SIGINT, intHandler);

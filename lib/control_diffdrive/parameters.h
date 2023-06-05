@@ -9,6 +9,7 @@ const double gain_along_track = 1.0;
 // parameters
 const double wheel_radius = 0.108;
 const double wheel_base = 0.667;
+const double max_omega = 500;
 
 const double wheel_separation = 0.667;
 

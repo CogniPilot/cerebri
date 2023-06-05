@@ -8,5 +8,6 @@ rsource "synapse_zbus/Kconfig"
 rsource "cerebri_sim/Kconfig"
 rsource "control_ackermann/Kconfig"
 rsource "control_diffdrive/Kconfig"
+rsource "actuator_pwm/Kconfig"
 
 endmenu

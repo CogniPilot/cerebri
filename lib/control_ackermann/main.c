@@ -119,9 +119,12 @@ void mixer() {
         }
         actuators.position_count = 1;
         actuators.velocity_count = 1;
+        actuators.normalized_count = 2;
         if (g_armed) {
             actuators.position[0] = turn_angle;
             actuators.velocity[0] = omega_fwd;
+            actuators.normalized[0] = turn_angle/max_turn_angle;
+            actuators.normalized[1] = V/max_velocity;
         }
     }
     zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);

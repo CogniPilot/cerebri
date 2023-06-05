@@ -21,10 +21,7 @@
 
 #define RX_BUF_SIZE 100
 
-/* change this to any other UART peripheral if desired */
-#define UART_DEVICE_NODE DT_CHOSEN(zephyr_telem1)
-
-static const struct device* const uart_dev = DEVICE_DT_GET(UART_DEVICE_NODE);
+static const struct device* const uart_dev = DEVICE_DT_GET(DT_ALIAS(telem1));
 
 static void write_uart(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {

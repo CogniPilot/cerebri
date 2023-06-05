@@ -3,4 +3,5 @@
 add_subdirectory_ifdef(CONFIG_CUSTOM_LIB custom_lib)
 add_subdirectory_ifdef(CONFIG_SYNAPSE_ZBUS synapse_zbus)
 add_subdirectory_ifdef(CONFIG_CEREBRI_SIM cerebri_sim)
-add_subdirectory_ifdef(CONFIG_CONTROL_ROVER control_rover)
+add_subdirectory_ifdef(CONFIG_CONTROL_ACKERMANN control_ackermann)
+add_subdirectory_ifdef(CONFIG_CONTROL_DIFFDRIVE control_diffdrive)

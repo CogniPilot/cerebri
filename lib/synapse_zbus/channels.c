@@ -13,8 +13,10 @@ ZBUS_CHAN_DEFINE(chan_in_bezier_trajectory, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
-#if defined(CONFIG_CONTROL_ROVER)
-        listener_control_rover,
+#if defined(CONFIG_CONTROL_ACKERMANN)
+        listener_control_ackermann,
+#elif defined(CONFIG_CONTROL_DIFFDRIVE)
+        listener_control_diffdrive,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
@@ -25,8 +27,10 @@ ZBUS_CHAN_DEFINE(chan_in_cmd_vel, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
-#if defined(CONFIG_CONTROL_ROVER)
-        listener_control_rover,
+#if defined(CONFIG_CONTROL_ACKERMANN)
+        listener_control_ackermann,
+#elif defined(CONFIG_CONTROL_DIFFDRIVE)
+        listener_control_diffdrive,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
@@ -37,8 +41,10 @@ ZBUS_CHAN_DEFINE(chan_in_joy, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
-#if defined(CONFIG_CONTROL_ROVER)
-        listener_control_rover,
+#if defined(CONFIG_CONTROL_ACKERMANN)
+        listener_control_ackermann,
+#elif defined(CONFIG_CONTROL_DIFFDRIVE)
+        listener_control_diffdrive,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
@@ -49,8 +55,10 @@ ZBUS_CHAN_DEFINE(chan_in_odometry, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
-#if defined(CONFIG_CONTROL_ROVER)
-        listener_control_rover,
+#if defined(CONFIG_CONTROL_ACKERMANN)
+        listener_control_ackermann,
+#elif defined(CONFIG_CONTROL_DIFFDRIVE)
+        listener_control_diffdrive,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}

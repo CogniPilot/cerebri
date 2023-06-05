@@ -1,5 +1,5 @@
-#ifndef E00B391E_08D8_47AC_B779_57B422AF3850
-#define E00B391E_08D8_47AC_B779_57B422AF3850
+#ifndef CASADI_CONTROL_DIFFDRIVE_H__
+#define CASADI_CONTROL_DIFFDRIVE_H__
 
 //gains
 const double gain_heading = 0.8;
@@ -12,6 +12,4 @@ const double wheel_base = 0.667;
 
 const double wheel_separation = 0.667;
 
-#endif /* E00B391E_08D8_47AC_B779_57B422AF3850 */
-
-
+#endif /* CASADI_CONTROL_DIFFDRIVE_H__ */

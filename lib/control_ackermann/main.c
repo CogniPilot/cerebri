@@ -73,7 +73,7 @@ static void handle_joy(Joy * joy) {
     }
 }
 
-static void listener_control_rover_callback(const struct zbus_channel* chan)
+static void listener_control_ackermann_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_in_joy) {
         handle_joy((Joy*)(chan->message));
@@ -86,7 +86,7 @@ static void listener_control_rover_callback(const struct zbus_channel* chan)
     }
 }
 
-ZBUS_LISTENER_DEFINE(listener_control_rover, listener_control_rover_callback);
+ZBUS_LISTENER_DEFINE(listener_control_ackermann, listener_control_ackermann_callback);
 
 // computes rc_input from V, omega
 void mixer() {
@@ -101,7 +101,6 @@ void mixer() {
     casadi_real * w = NULL;
     int mem = 0;
 
-#ifdef CONFIG_CONTROL_ROVER_STEERING_ACKERMANN
     /* ackermann_steering:(L,omega,V)->(delta) */
     {
 
@@ -125,30 +124,6 @@ void mixer() {
             actuators.velocity[0] = omega_fwd;
         }
     }
-#endif
-
-#ifdef CONFIG_CONTROL_ROVER_STEERING_DIFFERENTIAL
-    /* differential_steering:(L,omega,w)->(Vw) */
-    {
-        double Vw = 0;
-        const casadi_real * args[3];
-        casadi_real * res[1];
-        args[0] = &wheel_base;
-        args[1] = &omega;
-        args[2] = &wheel_separation;
-        res[0] = &Vw;
-        differential_steering(args, res, iw, w, mem);
-        double omega_fwd = V/wheel_radius;
-        double omega_turn = Vw/wheel_radius;
-        actuators.velocity_count = 4;
-        if (g_armed) {
-            actuators.velocity[0] = omega_fwd + omega_turn;
-            actuators.velocity[1] = omega_fwd - omega_turn;
-            actuators.velocity[2] = omega_fwd - omega_turn;
-            actuators.velocity[3] = omega_fwd + omega_turn;
-        }
-    }
-#endif
     zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
 }
 
@@ -158,6 +133,7 @@ void auto_mode() {
     
     uint64_t time_start = g_bezier_trajectory.time_start;
     uint64_t time_stop = g_bezier_trajectory.time_stop;
+
     int64_t uptime = k_uptime_get()*1e6;
     int64_t T_nsec = time_stop - time_start;
     int64_t t_nsec = uptime - time_start;
@@ -230,15 +206,13 @@ void auto_mode() {
     }
 
     // compute twist
-    g_cmd_vel.linear.x = V + wheel_radius*gain_along_track*e[0];
+    g_cmd_vel.linear.x = V + gain_along_track*e[0];
     g_cmd_vel.angular.z = omega + gain_cross_track*e[1] + gain_heading*e[2];
 }
 
-void control_entry_point(void * p1, void * p2, void * p3) {
+void ackermann_entry_point(void * p1, void * p2, void * p3) {
 
     while (true) {
-        //printf("control running\n");
-        // auto
         if (g_mode == MODE_AUTO) {
             auto_mode();
         }
@@ -251,7 +225,7 @@ void control_entry_point(void * p1, void * p2, void * p3) {
 }
 
 K_THREAD_DEFINE(control_thread, MY_STACK_SIZE,
-    control_entry_point, NULL, NULL, NULL,
+    ackermann_entry_point, NULL, NULL, NULL,
     MY_PRIORITY, 0, 0);
 
 /* vi: ts=4 sw=4 et */

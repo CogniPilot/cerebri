@@ -69,7 +69,7 @@ ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
-#if defined(CONFIG_ACUTATOR_PWM)
+#if defined(CONFIG_ACTUATOR_PWM)
         listener_actuator_pwm,
 #endif
 #if defined(CONFIG_CEREBRI_SIM)

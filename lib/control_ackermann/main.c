@@ -13,7 +13,7 @@
 #include "casadi/rover.h"
 #include "parameters.h"
 
-#define MY_STACK_SIZE 1024
+#define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
 
 
@@ -30,18 +30,19 @@ control_mode_t g_mode = {MODE_INIT};
 bool g_armed = false;
 static Odometry g_pose  = Odometry_init_zero;
 static Twist g_cmd_vel = Twist_init_zero;
+static Joy g_joy = Joy_init_zero;
 static BezierTrajectory g_bezier_trajectory = BezierTrajectory_init_zero;
 
-static void handle_joy(Joy * joy) {
+static void handle_joy() {
     // arming
-    if (joy->buttons[7] == 1 && !g_armed) {
+    if (g_joy.buttons[7] == 1 && !g_armed) {
         if (g_mode == MODE_INIT) {
             printf("Cannot arm until mode selected.\n");
             return;
         }
         printf("Armed in mode: %s\n", mode_name[g_mode]);
         g_armed = true;
-    } else if (joy->buttons[6] == 1 && g_armed) {
+    } else if (g_joy.buttons[6] == 1 && g_armed) {
         printf("Disarmed\n");
         g_armed = false;
         g_mode = MODE_INIT;
@@ -49,15 +50,15 @@ static void handle_joy(Joy * joy) {
 
     // handle modes
     control_mode_t prev_mode = g_mode;
-    if (joy->buttons[0] == 1) {
+    if (g_joy.buttons[0] == 1) {
         g_mode =  MODE_MANUAL;
-    } else if (joy->buttons[1] == 1) {
+    } else if (g_joy.buttons[1] == 1) {
         if (g_bezier_trajectory.time_start != 0) {
             g_mode =  MODE_AUTO;
         } else {
             printf("Auto mode rejected: no valid trajectory\n");
         }
-    } else if (joy->buttons[2] == 1) {
+    } else if (g_joy.buttons[2] == 1) {
         g_mode =  MODE_CMD_VEL;
     }
 
@@ -65,18 +66,13 @@ static void handle_joy(Joy * joy) {
     if (g_mode != prev_mode) {
         printf("Mode changed to: %s!\n", mode_name[g_mode]);
     }
-
-    // translate joystick to twist message
-    if (g_mode == MODE_MANUAL) {
-        g_cmd_vel.linear.x = joy->axes[1];
-        g_cmd_vel.angular.z = joy->axes[3];
-    }
 }
 
 static void listener_control_ackermann_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_in_joy) {
-        handle_joy((Joy*)(chan->message));
+        g_joy = *(Joy*)(chan->message);
+        handle_joy();
     } else if (chan == &chan_in_odometry) {
         g_pose = *(Odometry*)(chan->message);
     } else if (g_mode == MODE_CMD_VEL && chan == &chan_in_cmd_vel) {
@@ -92,18 +88,21 @@ ZBUS_LISTENER_DEFINE(listener_control_ackermann, listener_control_ackermann_call
 void mixer() {
 
     // given cmd_vel, compute actuators
-    double V = g_cmd_vel.linear.x;
-    double omega = g_cmd_vel.angular.z;
     Actuators actuators = Actuators_init_zero;
 
-    // casadi mem args
-    casadi_int * iw = NULL;
-    casadi_real * w = NULL;
-    int mem = 0;
+    double turn_angle = 0;
+    double omega_fwd = 0;
 
     /* ackermann_steering:(L,omega,V)->(delta) */
-    {
-
+    if(g_mode == MODE_MANUAL) {
+        turn_angle = max_turn_angle*g_joy.axes[3];
+        omega_fwd = max_velocity*g_joy.axes[1]/wheel_radius;
+    } else {
+        double V = g_cmd_vel.linear.x;
+        double omega = g_cmd_vel.angular.z;
+        casadi_int * iw = NULL;
+        casadi_real * w = NULL;
+        int mem = 0;
         double delta = 0;
         const casadi_real * args[3];
         casadi_real * res[1];
@@ -112,20 +111,19 @@ void mixer() {
         args[2] = &V;
         res[0] = &delta;
         ackermann_steering(args, res, iw, w, mem);
-        double omega_fwd = V/wheel_radius;
-        double turn_angle = 0;
+        omega_fwd = V/wheel_radius;
         if (fabs(V) > 0.01) {
             turn_angle = delta;
         }
+    }
+    if (g_armed) {
         actuators.position_count = 1;
         actuators.velocity_count = 1;
         actuators.normalized_count = 2;
-        if (g_armed) {
-            actuators.position[0] = turn_angle;
-            actuators.velocity[0] = omega_fwd;
-            actuators.normalized[0] = turn_angle/max_turn_angle;
-            actuators.normalized[1] = V/max_velocity;
-        }
+        actuators.position[0] = turn_angle;
+        actuators.velocity[0] = omega_fwd;
+        actuators.normalized[0] = turn_angle/max_turn_angle;
+        actuators.normalized[1] = omega_fwd*wheel_radius/max_velocity;
     }
     zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
 }

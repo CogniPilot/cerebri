@@ -18,7 +18,7 @@
 
 #include "common.h"
 
-#define MY_STACK_SIZE 500
+#define MY_STACK_SIZE 4096
 #define MY_PRIORITY 5
 
 #define RX_BUF_SIZE 100

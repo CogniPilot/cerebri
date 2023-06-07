@@ -24,16 +24,16 @@ ZBUS_LISTENER_DEFINE(listener_actuator_pwm, listener_actuator_pwm_callback);
 
 void actuator_pwm_entry_point(void * p1, void * p2, void * p3) {
     const struct device *devpwm0;
-    devpwm0 = device_get_binding("pwm0");
+    devpwm0 = device_get_binding("pwm2_0");
     if (!devpwm0) {
-        printf("PWM device pwm0 not found\n");
+        printf("PWM device pwm2_0 not found\n");
         return;
     }
 
     const struct device *devpwm1;
-    devpwm1 = device_get_binding("pwm1");
+    devpwm1 = device_get_binding("pwm2_1");
     if (!devpwm1) {
-        printf("PWM device pwm1 not found\n");
+        printf("PWM device pwm2_1 not found\n");
         return;
     }
 
@@ -44,13 +44,13 @@ void actuator_pwm_entry_point(void * p1, void * p2, void * p3) {
         int err = 0;
 		err = pwm_set(devpwm0, 0, PWM_USEC(2000), PWM_USEC(servo_steering), 0);
         if (err) {
-            printf("Failed to set PWM pwm0 (err %d)\n",
+            printf("Failed to set PWM pwm2_0 (err %d)\n",
                     err);
         }
 
         err = pwm_set(devpwm1, 0, PWM_USEC(2000), PWM_USEC(servo_throttle), 0);
         if (err) {
-            printf("Failed to set PWM pwm1 (err %d)\n",
+            printf("Failed to set PWM pwm2_1 (err %d)\n",
                     err);
         }
 

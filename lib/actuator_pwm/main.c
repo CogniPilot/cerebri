@@ -4,12 +4,21 @@
  */
 #include <math.h>
 #include <zephyr/kernel.h>
+#include <zephyr/shell/shell.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <synapse_zbus/channels.h>
 #include <zephyr/drivers/pwm.h>
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
+
+const char* pwm_steering_name = "aux1";
+const char* pwm_throttle_name = "aux2";
+static const struct pwm_dt_spec pwm_steering = PWM_DT_SPEC_GET(
+    DT_CHILD(DT_NODELABEL(pwm_shell), aux1));
+static const struct pwm_dt_spec pwm_throttle = PWM_DT_SPEC_GET(
+    DT_CHILD(DT_NODELABEL(pwm_shell), aux2));
 
 static Actuators g_actuators = Actuators_init_zero;
 
@@ -22,36 +31,23 @@ static void listener_actuator_pwm_callback(const struct zbus_channel* chan)
 
 ZBUS_LISTENER_DEFINE(listener_actuator_pwm, listener_actuator_pwm_callback);
 
-void actuator_pwm_entry_point(void * p1, void * p2, void * p3) {
-    const struct device *devpwm0;
-    devpwm0 = device_get_binding("pwm2_0");
-    if (!devpwm0) {
-        printf("PWM device pwm2_0 not found\n");
-        return;
-    }
-
-    const struct device *devpwm1;
-    devpwm1 = device_get_binding("pwm2_1");
-    if (!devpwm1) {
-        printf("PWM device pwm2_1 not found\n");
-        return;
-    }
+void actuator_pwm_entry_point(const struct shell *sh) {
 
     while (true) {
         // turn angle
         uint32_t servo_steering = 1500 + g_actuators.normalized[0]*500;
         uint32_t servo_throttle = 1500 + g_actuators.normalized[1]*500;
         int err = 0;
-		err = pwm_set(devpwm0, 0, PWM_USEC(2000), PWM_USEC(servo_steering), 0);
+		err = pwm_set_pulse_dt(&pwm_steering, PWM_USEC(servo_steering));
         if (err) {
-            printf("Failed to set PWM pwm2_0 (err %d)\n",
-                    err);
+            shell_print(sh, "Failed to set pwm_steering on %s (err %d)",
+                    pwm_steering_name, err);
         }
 
-        err = pwm_set(devpwm1, 0, PWM_USEC(2000), PWM_USEC(servo_throttle), 0);
+        err = pwm_set_pulse_dt(&pwm_throttle, PWM_USEC(servo_throttle));
         if (err) {
-            printf("Failed to set PWM pwm2_1 (err %d)\n",
-                    err);
+            shell_print(sh, "Failed to set pwm_throttle on %s (err %d)",
+                    pwm_throttle_name, err);
         }
 
         // sleep to set control rate at 50 Hz

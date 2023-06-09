@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include <math.h>
-#include <zephyr/kernel.h>
-#include <zephyr/shell/shell.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <synapse_zbus/channels.h>
 #include <zephyr/drivers/pwm.h>
+#include <zephyr/kernel.h>
+#include <zephyr/shell/shell.h>
 
-#define MY_STACK_SIZE 4096
+#define MY_STACK_SIZE 1024
 #define MY_PRIORITY 4
 
 const char* pwm_steering_name = "aux1";
@@ -31,27 +31,36 @@ static void listener_actuator_pwm_callback(const struct zbus_channel* chan)
 
 ZBUS_LISTENER_DEFINE(listener_actuator_pwm, listener_actuator_pwm_callback);
 
-void actuator_pwm_entry_point(const struct shell *sh) {
+void actuator_pwm_entry_point(const struct shell* sh)
+{
+
+    int count = 0;
 
     while (true) {
         // turn angle
-        uint32_t servo_steering = 1500 + g_actuators.normalized[0]*500;
-        uint32_t servo_throttle = 1500 + g_actuators.normalized[1]*500;
+        uint32_t servo_steering = 1500 + g_actuators.normalized[0] * 500;
+        uint32_t servo_throttle = 1500 + g_actuators.normalized[1] * 500;
         int err = 0;
-		err = pwm_set_pulse_dt(&pwm_steering, PWM_USEC(servo_steering));
+        err = pwm_set_pulse_dt(&pwm_steering, PWM_USEC(servo_steering));
         if (err) {
             shell_print(sh, "Failed to set pwm_steering on %s (err %d)",
-                    pwm_steering_name, err);
+                pwm_steering_name, err);
         }
 
         err = pwm_set_pulse_dt(&pwm_throttle, PWM_USEC(servo_throttle));
         if (err) {
             shell_print(sh, "Failed to set pwm_throttle on %s (err %d)",
-                    pwm_throttle_name, err);
+                pwm_throttle_name, err);
+        }
+
+        if (count++ >= 100) {
+            count = 0;
+            // shell_print(sh, "steering %d throttle %d", servo_steering, servo_throttle);
+            printf("steering %d throttle %d\n", servo_steering, servo_throttle);
         }
 
         // sleep to set control rate at 50 Hz
-        k_usleep(1e6/50);
+        k_usleep(1e6 / 50);
     }
 }
 

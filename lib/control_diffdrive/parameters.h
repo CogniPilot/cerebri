@@ -1,7 +1,7 @@
 #ifndef CASADI_CONTROL_DIFFDRIVE_H__
 #define CASADI_CONTROL_DIFFDRIVE_H__
 
-//gains
+// gains
 const double gain_heading = 0.8;
 const double gain_cross_track = 1.0;
 const double gain_along_track = 1.0;

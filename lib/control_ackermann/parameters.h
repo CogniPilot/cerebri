@@ -1,7 +1,7 @@
 #ifndef CEREBRI_CONTROL_ACKERMANN_H__
 #define CEREBRI_CONTROL_ACKERMANN_H__
 
-//gains
+// gains
 const double gain_heading = 0.1;
 const double gain_cross_track = 0.1;
 const double gain_along_track = 0.1;

@@ -97,7 +97,7 @@ void mixer()
     /* ackermann_steering:(L,omega,V)->(delta) */
     if (g_mode == MODE_MANUAL) {
         turn_angle = max_turn_angle * g_joy.axes[3];
-        omega_fwd = max_velocity * g_joy.axes[1] / wheel_radius;
+        omega_fwd = 0.25 * max_velocity * g_joy.axes[1] / wheel_radius;
     } else {
         double V = g_cmd_vel.linear.x;
         double omega = g_cmd_vel.angular.z;
@@ -124,7 +124,7 @@ void mixer()
         actuators.position[0] = turn_angle;
         actuators.velocity[0] = omega_fwd;
         actuators.normalized[0] = turn_angle / max_turn_angle;
-        actuators.normalized[1] = omega_fwd * wheel_radius / max_velocity;
+        actuators.normalized[1] = 0.07 + omega_fwd * wheel_radius / max_velocity;
     }
     zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
 }

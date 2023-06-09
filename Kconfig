@@ -10,6 +10,24 @@ config CEREBRI_APP
   help
     This cerebri app name
 
+config CEREBRI_VERSION_MAJOR
+  int "major version"
+  default 0
+  help
+    This cerebri major version
+
+config CEREBRI_VERSION_MINOR
+  int "minor version"
+  default 1
+  help
+    This cerebri minor version
+
+config CEREBRI_VERSION_PATCH
+  int "patch version"
+  default 0
+  help
+    This cerebri patch version
+
 
 rsource "drivers/Kconfig"
 rsource "lib/Kconfig"

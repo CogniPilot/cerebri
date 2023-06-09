@@ -24,4 +24,3 @@ set(SOURCE_FILES
   )
 
 target_sources(app PRIVATE ${SOURCE_FILES})
-

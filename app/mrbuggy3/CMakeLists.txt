@@ -12,7 +12,7 @@ endif()
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
-project(mrbuggy LANGUAGES C VERSION 0.0.1)
+project(mrbuggy3 LANGUAGES C VERSION 0.0.1)
 
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 

@@ -13,12 +13,16 @@
 #define MY_STACK_SIZE 1024
 #define MY_PRIORITY 4
 
+#define PWM_SHELL_NODE DT_NODE_EXISTS(DT_NODELABEL(pwm_shell))
+
+#if PWM_SHELL_NODE
 const char* pwm_steering_name = "aux1";
 const char* pwm_throttle_name = "aux2";
 static const struct pwm_dt_spec pwm_steering = PWM_DT_SPEC_GET(
     DT_CHILD(DT_NODELABEL(pwm_shell), aux1));
 static const struct pwm_dt_spec pwm_throttle = PWM_DT_SPEC_GET(
     DT_CHILD(DT_NODELABEL(pwm_shell), aux2));
+#endif
 
 static Actuators g_actuators = Actuators_init_zero;
 
@@ -34,12 +38,12 @@ ZBUS_LISTENER_DEFINE(listener_actuator_pwm, listener_actuator_pwm_callback);
 void actuator_pwm_entry_point(const struct shell* sh)
 {
 
-    int count = 0;
-
     while (true) {
+#if PWM_SHELL_NODE
         // turn angle
         uint32_t servo_steering = 1500 + g_actuators.normalized[0] * 500;
         uint32_t servo_throttle = 1500 + g_actuators.normalized[1] * 500;
+
         int err = 0;
         err = pwm_set_pulse_dt(&pwm_steering, PWM_USEC(servo_steering));
         if (err) {
@@ -52,12 +56,7 @@ void actuator_pwm_entry_point(const struct shell* sh)
             shell_print(sh, "Failed to set pwm_throttle on %s (err %d)",
                 pwm_throttle_name, err);
         }
-
-        if (count++ >= 100) {
-            count = 0;
-            // shell_print(sh, "steering %d throttle %d", servo_steering, servo_throttle);
-            printf("steering %d throttle %d\n", servo_steering, servo_throttle);
-        }
+#endif
 
         // sleep to set control rate at 50 Hz
         k_usleep(1e6 / 50);

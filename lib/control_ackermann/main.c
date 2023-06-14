@@ -32,6 +32,35 @@ static Twist g_cmd_vel = Twist_init_zero;
 static Joy g_joy = Joy_init_zero;
 static BezierTrajectory g_bezier_trajectory = BezierTrajectory_init_zero;
 
+struct timer_t {
+    uint64_t time_last; // time stamp in millisecoonds
+    uint32_t interval; // interval in milliseconds
+};
+
+typedef struct timer_t timer_t;
+
+timer_t g_timer_joy = { 0, 1000 };
+timer_t g_timer_bezier = { 0, 1000 };
+timer_t g_timer_cmd_vel = { 0, 1000 };
+timer_t g_timer_pose = { 0, 1000 };
+
+bool timer_expired(timer_t* data)
+{
+    int64_t elapsed = k_uptime_get() - data->time_last;
+    return elapsed > data->interval;
+};
+
+void timer_reset(timer_t* data)
+{
+    data->time_last = k_uptime_get();
+};
+
+void disarm()
+{
+    g_mode = MODE_INIT;
+    g_armed = false;
+}
+
 static void handle_joy()
 {
     // arming
@@ -72,13 +101,17 @@ static void listener_control_ackermann_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_in_joy) {
         g_joy = *(Joy*)(chan->message);
+        timer_reset(&g_timer_joy);
         handle_joy();
     } else if (chan == &chan_in_odometry) {
         g_pose = *(Odometry*)(chan->message);
+        timer_reset(&g_timer_pose);
     } else if (g_mode == MODE_CMD_VEL && chan == &chan_in_cmd_vel) {
         g_cmd_vel = *(Twist*)(chan->message);
+        timer_reset(&g_timer_cmd_vel);
     } else if (chan == &chan_in_bezier_trajectory) {
         g_bezier_trajectory = *(BezierTrajectory*)(chan->message);
+        timer_reset(&g_timer_bezier);
     }
 }
 
@@ -217,10 +250,22 @@ void ackermann_entry_point(void* p1, void* p2, void* p3)
 {
 
     while (true) {
+
+        // check for timeout
+        if (g_mode == MODE_MANUAL && timer_expired(&g_timer_joy)) {
+            disarm();
+        } else if (g_mode == MODE_CMD_VEL && timer_expired(&g_timer_cmd_vel)) {
+            disarm();
+        } else if (g_mode == MODE_AUTO && timer_expired(&g_timer_bezier)) {
+            disarm();
+        }
+
+        // perform auto mode
         if (g_mode == MODE_AUTO) {
             auto_mode();
         }
 
+        // perform mixer
         mixer();
 
         // sleep to set control rate at 50 Hz

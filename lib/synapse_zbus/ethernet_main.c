@@ -40,6 +40,8 @@ static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
         out_len = zsock_send(g_client, p, len, 0);
         if (out_len < 0) {
             printf("synapse_zbus: error: send: %d\n", errno);
+            // trigger reconnect
+            g_client = 0;
             return;
         }
         p += out_len;
@@ -153,6 +155,9 @@ static void ethernet_entry_point(void)
             int len = zsock_recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
             if (len < 0) {
                 continue;
+            }
+            if (g_client == 0) {
+                break;
             }
             TF_Accept(&g_tf, rx1_buf, len);
             TF_Tick(&g_tf);

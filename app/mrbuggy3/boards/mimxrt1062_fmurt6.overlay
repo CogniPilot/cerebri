@@ -28,36 +28,36 @@
 			pwms = <&flexpwm4_pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 	};
+};
 
-	flexpwm2_pwm0 {
-		nxp,prescaler = <8>;
-	};
+&flexpwm2_pwm0 {
+	nxp,prescaler = <8>;
+};
 
-	flexpwm2_pwm1 {
-		nxp,prescaler = <8>;
-	};
+&flexpwm2_pwm1 {
+	nxp,prescaler = <8>;
+};
 
-	flexpwm2_pwm2 {
-		nxp,prescaler = <8>;
-	};
+&flexpwm2_pwm2 {
+	nxp,prescaler = <8>;
+};
 
-	flexpwm2_pwm3 {
-		nxp,prescaler = <8>;
-	};
+&flexpwm2_pwm3 {
+	nxp,prescaler = <8>;
+};
 
-	flexpwm3_pwm2 {
-		nxp,prescaler = <8>;
-	};
+&flexpwm3_pwm2 {
+	nxp,prescaler = <8>;
+};
 
-	flexpwm3_pwm0 {
-		nxp,prescaler = <8>;
-	};
+&flexpwm3_pwm0 {
+	nxp,prescaler = <8>;
+};
 
-	flexpwm4_pwm2 {
-		nxp,prescaler = <8>;
-	};
+&flexpwm4_pwm2 {
+	nxp,prescaler = <8>;
+};
 
-	flexpwm4_pwm0 {
-		nxp,prescaler = <8>;
-	};
+&flexpwm4_pwm0 {
+	nxp,prescaler = <8>;
 };

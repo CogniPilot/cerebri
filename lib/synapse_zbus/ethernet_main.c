@@ -25,7 +25,7 @@
 
 #define BIND_PORT 4242
 
-static int g_client = -1;
+static volatile int g_client = -1;
 
 static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {
@@ -41,7 +41,7 @@ static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
         if (out_len < 0) {
             printf("synapse_zbus: error: send: %d\n", errno);
             // trigger reconnect
-            g_client = 0;
+            g_client = -1;
             return;
         }
         p += out_len;
@@ -150,17 +150,19 @@ static void ethernet_entry_point(void)
         printf("synapse_zbus: connection #%d from %s\n", counter++, addr_str);
 
         while (1) {
+            if (g_client < 0) {
+                printf("triggering reconnect.\n");
+                break;
+            }
             // printf("synapse_zbus: receiving\n");
-            k_msleep(1);
             int len = zsock_recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
             if (len < 0) {
                 continue;
             }
-            if (g_client == 0) {
-                break;
-            }
+
             TF_Accept(&g_tf, rx1_buf, len);
             TF_Tick(&g_tf);
+            k_msleep(1);
         }
     }
 }

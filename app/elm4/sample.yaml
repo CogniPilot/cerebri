@@ -1,0 +1,13 @@
+sample:
+  description: ELM4
+  name: ELM4
+common:
+  build_only: true
+  integration_platforms:
+    - native_posix_64
+    - mimxrt1062_fmurt6
+tests:
+  elm4.default: {}
+  elm4.debug:
+    extra_overlay_confs:
+      - debug.conf

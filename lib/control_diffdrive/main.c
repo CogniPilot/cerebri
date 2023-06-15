@@ -107,18 +107,20 @@ void mixer()
         differential_steering(args, res, iw, w, mem);
         double omega_fwd = V / wheel_radius;
         double omega_turn = Vw / wheel_radius;
+        if (!g_armed) {
+            omega_fwd = 0;
+            omega_turn = 0;
+        }
         actuators.velocity_count = 4;
         actuators.normalized_count = 4;
-        if (g_armed) {
-            actuators.velocity[0] = omega_fwd + omega_turn;
-            actuators.velocity[1] = omega_fwd - omega_turn;
-            actuators.velocity[2] = omega_fwd - omega_turn;
-            actuators.velocity[3] = omega_fwd + omega_turn;
-            actuators.normalized[0] = actuators.velocity[0] / max_omega;
-            actuators.normalized[1] = actuators.velocity[1] / max_omega;
-            actuators.normalized[2] = actuators.velocity[2] / max_omega;
-            actuators.normalized[3] = actuators.velocity[3] / max_omega;
-        }
+        actuators.velocity[0] = omega_fwd + omega_turn;
+        actuators.velocity[1] = omega_fwd - omega_turn;
+        actuators.velocity[2] = omega_fwd - omega_turn;
+        actuators.velocity[3] = omega_fwd + omega_turn;
+        actuators.normalized[0] = actuators.velocity[0] / max_omega;
+        actuators.normalized[1] = actuators.velocity[1] / max_omega;
+        actuators.normalized[2] = actuators.velocity[2] / max_omega;
+        actuators.normalized[3] = actuators.velocity[3] / max_omega;
     }
     zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
 }

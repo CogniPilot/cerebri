@@ -117,15 +117,17 @@ void mixer()
             turn_angle = delta;
         }
     }
-    if (g_armed) {
-        actuators.position_count = 1;
-        actuators.velocity_count = 1;
-        actuators.normalized_count = 2;
-        actuators.position[0] = turn_angle;
-        actuators.velocity[0] = omega_fwd;
-        actuators.normalized[0] = turn_angle / max_turn_angle;
-        actuators.normalized[1] = 0.07 + omega_fwd * wheel_radius / max_velocity;
+    if (!g_armed) {
+        omega_fwd = 0;
+        turn_angle = 0;
     }
+    actuators.position_count = 1;
+    actuators.velocity_count = 1;
+    actuators.normalized_count = 2;
+    actuators.position[0] = turn_angle;
+    actuators.velocity[0] = omega_fwd;
+    actuators.normalized[0] = turn_angle / max_turn_angle;
+    actuators.normalized[1] = 0.07 + omega_fwd * wheel_radius / max_velocity;
     zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
 }
 

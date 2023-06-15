@@ -1,16 +1,19 @@
 name: Build
 
-on: [push, pull_request]
+on:
+  pull_request:
+  schedule:
+    - cron: "0 10 * * *"
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container: zephyrprojectrtos/ci:latest
+    runs-on: ubuntu-22.04
+    container: ghcr.io/zephyrproject-rtos/ci:v0.26.2 
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: example-application
 
@@ -20,18 +23,8 @@ jobs:
           west init -l .
           west update
 
-      - name: Build firmware
-        working-directory: example-application
-        run: |
-          west build -b native_posix_64 app
-
+      # this also builds the firmware
       - name: Twister Tests
         working-directory: example-application
         run: |
           west test
-
-      - name: Archive firmware
-        uses: actions/upload-artifact@v2
-        with:
-          name: firmware
-          path: example-application/build/zephyr/zephyr.*

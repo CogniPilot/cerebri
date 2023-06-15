@@ -47,8 +47,12 @@ Runs twister and other tests as necessary
         #   required is BAR
         #log.inf('--optional is', args.optional)
         #log.inf('required is', args.required)
-        log.inf('running project tests')
-        cmd_str = 'west twister -G ' \
-            '--board-root boards/ --testsuite-root ./tests/'
+
+        log.inf('building firmware')
+        cmd_str = 'west twister -T app -v --inline-logs --integration'
+        subprocess.run(cmd_str, shell=True)
+
+        log.inf('running unit tests')
+        cmd_str = 'west twister -T tests --integration'
         subprocess.run(cmd_str, shell=True)
 

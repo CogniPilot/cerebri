@@ -61,3 +61,18 @@
 &flexpwm4_pwm0 {
 	nxp,prescaler = <64>;
 };
+
+&flexcan3 {
+	status = "okay";
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
+};
+
+&flexcan1 {
+	status = "disabled";
+};
+
+/ { chosen {
+		zephyr,canbus = &flexcan3;
+	};
+};

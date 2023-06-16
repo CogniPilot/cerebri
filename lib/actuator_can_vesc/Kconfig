@@ -1,0 +1,367 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config VESC_CAN
+  bool "enable configuring VESC CAN"
+  default n
+  depends on CAN
+  help
+    This option enables configuring VESC CAN
+
+if VESC_CAN
+
+menu "VESC_CAN"
+
+config VESC_CAN_ACTUATOR
+  bool "CAN VESC based actuators"
+  default n
+  depends on CAN
+  help
+    This option enables CAN VESC actuators
+
+config VESC_CAN_STATUS
+  bool "VESC CAN based status"
+  default n
+  depends on CAN
+  help
+    This option enables status messages for CAN VESC
+
+config VESC_ACTUATORS_NUMBER
+  int "Number of VESC CAN actuators"
+  default 1
+  range 1 8
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    Defines number of VESC CAN actuators 1-8
+
+if VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+
+menu "VESC_CAN_0"
+
+config VESC_POLE_PAIR_0
+  int "Number of Pole Pairs of motor attached to VESC 0"
+  default 14
+  range 1 128
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    Number of Pole Pairs of motor attached to VESC 0.
+
+config VESC_CAN_ID_0
+  int "ID of VESC 0"
+  default 0
+  range 0 255
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    ID assigned to VESC 0.
+
+config VESC_ACTUATOR_VELOCITY_INDEX_0
+  int "Actuator velocity index for VESC 0"
+  default 0
+  range 0 15
+  depends on VESC_CAN_ACTUATOR
+  help
+    Actuator velocity index for VESC 0.
+
+config VESC_STATUS_BITMASK_0
+  int "bitmask for VESC status message subscription"
+  default 1
+  range 0 63
+  depends on VESC_CAN_STATUS
+  help
+    bitmask for VESC CAN status messages [ STAT6 STAT5 STAT4 STAT3 STAT2 STAT1 ]
+    IE setting status message 4 and 1 would be 0b001001 = 9
+
+endmenu
+
+endif
+
+if VESC_ACTUATORS_NUMBER > 1
+
+menu "VESC_CAN_1"
+
+config VESC_POLE_PAIR_1
+  int "Number of Pole Pairs of motor attached to VESC 1"
+  default 14
+  range 1 128
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    Number of Pole Pairs of motor attached to VESC 1.
+
+config VESC_CAN_ID_1
+  int "ID of VESC 1"
+  default 1
+  range 0 255
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    ID assigned to VESC 1.
+
+config VESC_ACTUATOR_VELOCITY_INDEX_1
+  int "Actuator velocity index for VESC 1"
+  default 1
+  range 0 15
+  depends on VESC_CAN_ACTUATOR
+  help
+    Actuator velocity index for VESC 1.
+
+config VESC_STATUS_BITMASK_1
+  int "bitmask for VESC status message subscription"
+  default 1
+  range 0 63
+  depends on VESC_CAN_STATUS
+  help
+    bitmask for VESC CAN 1 status messages [ STAT6 STAT5 STAT4 STAT3 STAT2 STAT1 ]
+    IE setting status message 4 and 1 would be 0b001001 = 9
+
+endmenu
+
+endif # VESC_ACTUATORS_NUMBER > 1
+
+if VESC_ACTUATORS_NUMBER > 2
+
+menu "VESC_CAN_2"
+
+config VESC_POLE_PAIR_2
+  int "Number of Pole Pairs of motor attached to VESC 2"
+  default 14
+  range 1 128
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    Number of Pole Pairs of motor attached to VESC 2.
+
+config VESC_CAN_ID_2
+  int "ID of VESC 2"
+  default 2
+  range 0 255
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    ID assigned to VESC 2.
+
+config VESC_ACTUATOR_VELOCITY_INDEX_2
+  int "Actuator velocity index for VESC 2"
+  default 2
+  range 0 15
+  depends on VESC_CAN_ACTUATOR
+  help
+    Actuator velocity index for VESC 2.
+
+config VESC_STATUS_BITMASK_2
+  int "bitmask for VESC status message subscription"
+  default 1
+  range 0 63
+  depends on VESC_CAN_STATUS
+  help
+    bitmask for VESC CAN 2 status messages [ STAT6 STAT5 STAT4 STAT3 STAT2 STAT1 ]
+    IE setting status message 4 and 1 would be 0b001001 = 9
+
+endmenu
+
+endif # VESC_ACTUATORS_NUMBER > 2
+
+if VESC_ACTUATORS_NUMBER > 3
+
+menu "VESC_CAN_3"
+
+config VESC_POLE_PAIR_3
+  int "Number of Pole Pairs of motor attached to VESC 3"
+  default 14
+  range 1 128
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    Number of Pole Pairs of motor attached to VESC 3.
+
+config VESC_CAN_ID_2
+  int "ID of VESC 3"
+  default 3
+  range 0 255
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    ID assigned to VESC 3.
+
+config VESC_ACTUATOR_VELOCITY_INDEX_3
+  int "Actuator velocity index for VESC 3"
+  default 3
+  range 0 15
+  depends on VESC_CAN_ACTUATOR
+  help
+    Actuator velocity index for VESC 3.
+
+config VESC_STATUS_BITMASK_3
+  int "bitmask for VESC status message subscription"
+  default 1
+  range 0 63
+  depends on VESC_CAN_STATUS
+  help
+    bitmask for VESC CAN 3 status messages [ STAT6 STAT5 STAT4 STAT3 STAT2 STAT1 ]
+    IE setting status message 4 and 1 would be 0b001001 = 9
+
+endmenu
+
+endif # VESC_ACTUATORS_NUMBER > 3
+
+if VESC_ACTUATORS_NUMBER > 4
+
+menu "VESC_CAN_4"
+
+config VESC_POLE_PAIR_4
+  int "Number of Pole Pairs of motor attached to VESC 4"
+  default 14
+  range 1 128
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    Number of Pole Pairs of motor attached to VESC 4.
+
+config VESC_CAN_ID_4
+  int "ID of VESC 4"
+  default 4
+  range 0 255
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    ID assigned to VESC 4.
+
+config VESC_ACTUATOR_VELOCITY_INDEX_4
+  int "Actuator velocity index for VESC 4"
+  default 4
+  range 0 15
+  depends on VESC_CAN_ACTUATOR
+  help
+    Actuator velocity index for VESC 4.
+
+config VESC_STATUS_BITMASK_4
+  int "bitmask for VESC status message subscription"
+  default 1
+  range 0 63
+  depends on VESC_CAN_STATUS
+  help
+    bitmask for VESC CAN 4 status messages [ STAT6 STAT5 STAT4 STAT3 STAT2 STAT1 ]
+    IE setting status message 4 and 1 would be 0b001001 = 9
+
+endmenu
+
+endif # VESC_ACTUATORS_NUMBER > 4
+
+if VESC_ACTUATORS_NUMBER > 5
+
+menu "VESC_CAN_5"
+
+config VESC_POLE_PAIR_5
+  int "Number of Pole Pairs of motor attached to VESC 5"
+  default 14
+  range 1 128
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    Number of Pole Pairs of motor attached to VESC 5.
+
+config VESC_CAN_ID_5
+  int "ID of VESC 5"
+  default 5
+  range 0 255
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    ID assigned to VESC 5.
+
+config VESC_ACTUATOR_VELOCITY_INDEX_5
+  int "Actuator velocity index for VESC 5"
+  default 5
+  range 0 15
+  depends on VESC_CAN_ACTUATOR
+  help
+    Actuator velocity index for VESC 5.
+
+config VESC_STATUS_BITMASK_5
+  int "bitmask for VESC status message subscription"
+  default 1
+  range 0 63
+  depends on VESC_CAN_STATUS
+  help
+    bitmask for VESC CAN 5 status messages [ STAT6 STAT5 STAT4 STAT3 STAT2 STAT1 ]
+    IE setting status message 4 and 1 would be 0b001001 = 9
+
+endmenu
+
+endif # VESC_ACTUATORS_NUMBER > 5
+
+if VESC_ACTUATORS_NUMBER > 6
+
+menu "VESC_CAN_6"
+
+config VESC_POLE_PAIR_6
+  int "Number of Pole Pairs of motor attached to VESC 6"
+  default 14
+  range 1 128
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    Number of Pole Pairs of motor attached to VESC 6.
+
+config VESC_CAN_ID_6
+  int "ID of VESC 6"
+  default 6
+  range 0 255
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    ID assigned to VESC 6.
+
+config VESC_ACTUATOR_VELOCITY_INDEX_6
+  int "Actuator velocity index for VESC 6"
+  default 6
+  range 0 15
+  depends on VESC_CAN_ACTUATOR
+  help
+    Actuator velocity index for VESC 6.
+
+config VESC_STATUS_BITMASK_6
+  int "bitmask for VESC status message subscription"
+  default 1
+  range 0 63
+  depends on VESC_CAN_STATUS
+  help
+    bitmask for VESC CAN 6 status messages [ STAT6 STAT5 STAT4 STAT3 STAT2 STAT1 ]
+    IE setting status message 4 and 1 would be 0b001001 = 9
+
+endmenu
+
+endif # VESC_ACTUATORS_NUMBER > 6
+
+if VESC_ACTUATORS_NUMBER > 7
+
+menu "VESC_CAN_7"
+
+config VESC_POLE_PAIR_7
+  int "Number of Pole Pairs of motor attached to VESC 7"
+  default 14
+  range 1 128
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    Number of Pole Pairs of motor attached to VESC 7.
+
+config VESC_CAN_ID_7
+  int "ID of VESC 7"
+  default 7
+  range 0 255
+  depends on VESC_CAN_ACTUATOR || VESC_CAN_STATUS
+  help
+    ID assigned to VESC 7.
+
+config VESC_ACTUATOR_VELOCITY_INDEX_7
+  int "Actuator velocity index for VESC 7"
+  default 7
+  range 0 15
+  depends on VESC_CAN_ACTUATOR
+  help
+    Actuator velocity index for VESC 7.
+
+config VESC_STATUS_BITMASK_7
+  int "bitmask for VESC status message subscription"
+  default 1
+  range 0 63
+  depends on VESC_CAN_STATUS
+  help
+    bitmask for VESC CAN 7 status messages [ STAT6 STAT5 STAT4 STAT3 STAT2 STAT1 ]
+    IE setting status message 4 and 1 would be 0b001001 = 9
+
+endmenu
+
+endif # VESC_ACTUATORS_NUMBER > 7
+
+endmenu
+
+endif

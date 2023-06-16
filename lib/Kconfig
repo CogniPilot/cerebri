@@ -9,5 +9,6 @@ rsource "cerebri_sim/Kconfig"
 rsource "control_ackermann/Kconfig"
 rsource "control_diffdrive/Kconfig"
 rsource "actuator_pwm/Kconfig"
+rsource "actuator_can_vesc/Kconfig"
 
 endmenu

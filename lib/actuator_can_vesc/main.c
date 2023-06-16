@@ -12,7 +12,6 @@
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
 
-
 static Actuators g_actuators = Actuators_init_zero;
 
 static void listener_actuator_vesc_can_callback(const struct zbus_channel* chan)

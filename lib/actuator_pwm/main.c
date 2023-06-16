@@ -2,6 +2,7 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
+#include "actuator_pwm.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,14 +16,7 @@
 
 #define PWM_SHELL_NODE DT_NODE_EXISTS(DT_NODELABEL(pwm_shell))
 
-#if PWM_SHELL_NODE
-const char* pwm_steering_name = "aux1";
-const char* pwm_throttle_name = "aux2";
-static const struct pwm_dt_spec pwm_steering = PWM_DT_SPEC_GET(
-    DT_CHILD(DT_NODELABEL(pwm_shell), aux1));
-static const struct pwm_dt_spec pwm_throttle = PWM_DT_SPEC_GET(
-    DT_CHILD(DT_NODELABEL(pwm_shell), aux2));
-#endif
+extern actuator_pwm_t actuator_pwms[];
 
 static Actuators g_actuators = Actuators_init_zero;
 
@@ -39,24 +33,59 @@ void actuator_pwm_entry_point(const struct shell* sh)
 {
 
     while (true) {
-#if PWM_SHELL_NODE
-        // turn angle
-        uint32_t servo_steering = 1500 + g_actuators.normalized[0] * 500;
-        uint32_t servo_throttle = 1500 + g_actuators.normalized[1] * 500;
 
-        int err = 0;
-        err = pwm_set_pulse_dt(&pwm_steering, PWM_USEC(servo_steering));
-        if (err) {
-            shell_print(sh, "Failed to set pwm_steering on %s (err %d)",
-                pwm_steering_name, err);
+        for (int i = 0; i < CONFIG_ACTUATOR_PWM_NUMBER; i++) {
+            actuator_pwm_t pwm = actuator_pwms[i];
+            if (pwm.max < pwm.center || pwm.min > pwm.center || pwm.max > pwm.min) {
+                shell_print(sh, "actuator_pwm: config pwm_%d min, center, "
+                                "max must monotonically increase",
+                    i);
+                continue;
+            }
+            uint16_t pulse = pwm.center;
+            if (pwm.type == PWM_TYPE_NORMALIZED) {
+                float input = g_actuators.normalized[pwm.index];
+                if (input < -1 || input > 1) {
+                    shell_print(sh, "actuator_pwm: normalized input out of bounds");
+                    continue;
+                }
+                if (input > 0) {
+                    pulse += input * (pwm.max - pwm.center);
+                } else {
+                    pulse += input * (pwm.center - pwm.min);
+                }
+            } else if (pwm.type == PWM_TYPE_POSITION) {
+                float input = g_actuators.position[pwm.index];
+                float output = pwm.slope * input + pwm.intercept;
+                if (output > pwm.max) {
+                    pulse = pwm.max;
+                    shell_print(sh, "actuator_pwm: position command saturated");
+                } else if (output < pwm.min) {
+                    pulse = pwm.min;
+                    shell_print(sh, "actuator_pwm: position command saturated");
+                } else {
+                    pulse = output;
+                }
+            } else if (pwm.type == PWM_TYPE_VELOCITY) {
+                float input = g_actuators.velocity[pwm.index];
+                float output = pwm.slope * input + pwm.intercept;
+                if (output > pwm.max) {
+                    pulse = pwm.max;
+                    shell_print(sh, "actuator_pwm: velocity command saturated");
+                } else if (output < pwm.min) {
+                    pulse = pwm.min;
+                    shell_print(sh, "actuator_pwm: velocity command saturated");
+                } else {
+                    pulse = output;
+                }
+            }
+            int err = 0;
+            err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pulse));
+            if (err) {
+                shell_print(sh, "actuator_pwm: failed to set pulse %d on %s (err %d)",
+                    pulse, pwm.alias, err);
+            }
         }
-
-        err = pwm_set_pulse_dt(&pwm_throttle, PWM_USEC(servo_throttle));
-        if (err) {
-            shell_print(sh, "Failed to set pwm_throttle on %s (err %d)",
-                pwm_throttle_name, err);
-        }
-#endif
 
         // sleep to set control rate at 50 Hz
         k_usleep(1e6 / 50);

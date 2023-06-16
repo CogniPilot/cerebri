@@ -1,121 +1,121 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-config PWM_ACTUATOR
+config ACTUATOR_PWM
   bool "pwm based actuators"
   default n  
   depends on PWM
   help
     This option enables pwm actuators
 
-if PWM_ACTUATOR
+if ACTUATOR_PWM
 
-menu "PWM_ACTUATOR"
+menu "ACTUATOR_PWM"
 
-config PWM_ACTUATOR_NUMBER
+config ACTUATOR_PWM_NUMBER
   int "Number of PWM actuators"
   default 1
   range 1 8
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Defines number of PWM actuators 1-8
 
 menu "PWM_0"
 
-config PWM_ACTUATOR_OUTPUT_0
+config ACTUATOR_PWM_OUTPUT_0
   string "Aliased output device PWM 0"
   default "aux0"
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Aliased name of PWM output device used for PWM 0
 
-config PWM_ACTUATOR_PULSE_US_MIN_0
+config ACTUATOR_PWM_PULSE_US_MIN_0
   int "Min usec pulse width PWM 0"
   default 1100
   range 0 4999
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Minimum allowed pulse width in micro seconds for PWM 0
 
-config PWM_ACTUATOR_PULSE_US_MAX_0
+config ACTUATOR_PWM_PULSE_US_MAX_0
   int "Max usec pulse width PWM 0"
   default 1900
   range 1 5000
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Maximum allowed pulse width in micro seconds for PWM 0
 
-config PWM_ACTUATOR_PULSE_US_CENTER_0
+config ACTUATOR_PWM_PULSE_US_CENTER_0
   int "Center of usec pulse width PWM 0"
   default 1500
   range 2 4998
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Center of pulse width in micro seconds for PWM 0
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config PWM_ACTUATOR_LINEAR_0
+config ACTUATOR_PWM_LINEAR_0
   bool "Use linear approximation PWM 0"
   default n
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
     micro seconds with a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if PWM_ACTUATOR_LINEAR_0
+if ACTUATOR_PWM_LINEAR_0
 
 menu "LINEAR_PWM_0"
 
-config PWM_ACTUATOR_USE_POS_0
+config ACTUATOR_PWM_USE_POS_0
   bool "Use actuator position PWM 0"
   default n
-  depends on PWM_ACTUATOR_LINEAR_0
+  depends on ACTUATOR_PWM_LINEAR_0
   help
     Use actuator message position instead of velocity for
-    PWM_ACTUATOR_INDEX_0
+    ACTUATOR_PWM_INDEX_0
 
-config PWM_ACTUATOR_LINEAR_M_DIV_0
+config ACTUATOR_PWM_LINEAR_M_DIV_0
   int "divisor to divide linear slope M"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_0
+  depends on ACTUATOR_PWM_LINEAR_0
   help
     The divisor value to divide slope constant M value of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_M_0
+config ACTUATOR_PWM_LINEAR_M_0
   int "linear slope M (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_0
+  depends on ACTUATOR_PWM_LINEAR_0
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_M_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_M_DIV (default 1000)
 
-config PWM_ACTUATOR_LINEAR_C_DIV_0
+config ACTUATOR_PWM_LINEAR_C_DIV_0
   int "divisor to divide linear intercept C"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_0
+  depends on ACTUATOR_PWM_LINEAR_0
   help
     The divisor value to divide intercept constant C of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_C_0
+config ACTUATOR_PWM_LINEAR_C_0
   int "linear intercept C (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_0
+  depends on ACTUATOR_PWM_LINEAR_0
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_C_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_C_DIV (default 1000)
 
 endmenu #LINEAR_PWM_0
 
-endif #PWM_ACTUATOR_LINEAR_0
+endif #ACTUATOR_PWM_LINEAR_0
 
-config PWM_ACTUATOR_INDEX_0
+config ACTUATOR_PWM_INDEX_0
   int "actuator index for PWM 0"
   default 0
   help
@@ -124,104 +124,104 @@ config PWM_ACTUATOR_INDEX_0
 
 endmenu #PWM_0
 
-if PWM_ACTUATOR_NUMBER > 1
+if ACTUATOR_PWM_NUMBER > 1
 
 menu "PWM_1"
 
-config PWM_ACTUATOR_OUTPUT_1
+config ACTUATOR_PWM_OUTPUT_1
   string "Aliased output device PWM 1"
   default "aux1"
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Aliased name of PWM output device used for PWM 1
 
-config PWM_ACTUATOR_PULSE_US_MIN_1
+config ACTUATOR_PWM_PULSE_US_MIN_1
   int "Min usec pulse width PWM 1"
   default 1100
   range 0 4999
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Minimum allowed pulse width in micro seconds for PWM 1
 
-config PWM_ACTUATOR_PULSE_US_MAX_1
+config ACTUATOR_PWM_PULSE_US_MAX_1
   int "Max usec pulse width PWM 1"
   default 1900
   range 1 5000
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Maximum allowed pulse width in micro seconds for PWM 1
 
-config PWM_ACTUATOR_PULSE_US_CENTER_1
+config ACTUATOR_PWM_PULSE_US_CENTER_1
   int "Center of usec pulse width PWM 1"
   default 1500
   range 2 4998
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Center of pulse width in micro seconds for PWM 1
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config PWM_ACTUATOR_LINEAR_1
+config ACTUATOR_PWM_LINEAR_1
   bool "Use linear approximation PWM 1"
   default n
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
     micro seconds with a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if PWM_ACTUATOR_LINEAR_1
+if ACTUATOR_PWM_LINEAR_1
 
 menu "LINEAR_PWM_1"
 
-config PWM_ACTUATOR_USE_POS_1
+config ACTUATOR_PWM_USE_POS_1
   bool "Use actuator position PWM 1"
   default n
-  depends on PWM_ACTUATOR_LINEAR_1
+  depends on ACTUATOR_PWM_LINEAR_1
   help
     Use actuator message position instead of velocity for
-    PWM_ACTUATOR_INDEX_1
+    ACTUATOR_PWM_INDEX_1
 
-config PWM_ACTUATOR_LINEAR_M_DIV_1
+config ACTUATOR_PWM_LINEAR_M_DIV_1
   int "divisor to divide linear slope M"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_1
+  depends on ACTUATOR_PWM_LINEAR_1
   help
     The divisor value to divide slope constant M value of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_M_1
+config ACTUATOR_PWM_LINEAR_M_1
   int "linear slope M (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_1
+  depends on ACTUATOR_PWM_LINEAR_1
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_M_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_M_DIV (default 1000)
 
-config PWM_ACTUATOR_LINEAR_C_DIV_1
+config ACTUATOR_PWM_LINEAR_C_DIV_1
   int "divisor to divide linear intercept C"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_1
+  depends on ACTUATOR_PWM_LINEAR_1
   help
     The divisor value to divide intercept constant C of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_C_1
+config ACTUATOR_PWM_LINEAR_C_1
   int "linear intercept C (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_1
+  depends on ACTUATOR_PWM_LINEAR_1
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_C_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_C_DIV (default 1000)
 
 endmenu #LINEAR_PWM_1
 
-endif #PWM_ACTUATOR_LINEAR_1
+endif #ACTUATOR_PWM_LINEAR_1
 
-config PWM_ACTUATOR_INDEX_1
+config ACTUATOR_PWM_INDEX_1
   int "actuator index for PWM 1"
   default 1
   help
@@ -230,106 +230,106 @@ config PWM_ACTUATOR_INDEX_1
 
 endmenu #PWM_1
 
-endif #PWM_ACTUATOR_NUMBER > 1
+endif #ACTUATOR_PWM_NUMBER > 1
 
-if PWM_ACTUATOR_NUMBER > 2
+if ACTUATOR_PWM_NUMBER > 2
 
 menu "PWM_2"
 
-config PWM_ACTUATOR_OUTPUT_2
+config ACTUATOR_PWM_OUTPUT_2
   string "Aliased output device PWM 2"
   default "aux2"
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Aliased name of PWM output device used for PWM 2
 
-config PWM_ACTUATOR_PULSE_US_MIN_2
+config ACTUATOR_PWM_PULSE_US_MIN_2
   int "Min usec pulse width PWM 2"
   default 1100
   range 0 4999
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Minimum allowed pulse width in micro seconds for PWM 2
 
-config PWM_ACTUATOR_PULSE_US_MAX_2
+config ACTUATOR_PWM_PULSE_US_MAX_2
   int "Max usec pulse width PWM 2"
   default 1900
   range 1 5000
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Maximum allowed pulse width in micro seconds for PWM 2
 
-config PWM_ACTUATOR_PULSE_US_CENTER_2
+config ACTUATOR_PWM_PULSE_US_CENTER_2
   int "Center of usec pulse width PWM 2"
   default 1500
   range 2 4998
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Center of pulse width in micro seconds for PWM 2
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config PWM_ACTUATOR_LINEAR_2
+config ACTUATOR_PWM_LINEAR_2
   bool "Use linear approximation PWM 2"
   default n
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
     micro seconds with a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if PWM_ACTUATOR_LINEAR_2
+if ACTUATOR_PWM_LINEAR_2
 
 menu "LINEAR_PWM_2"
 
-config PWM_ACTUATOR_USE_POS_2
+config ACTUATOR_PWM_USE_POS_2
   bool "Use actuator position PWM 2"
   default n
-  depends on PWM_ACTUATOR_LINEAR_2
+  depends on ACTUATOR_PWM_LINEAR_2
   help
     Use actuator message position instead of velocity for
-    PWM_ACTUATOR_INDEX_2
+    ACTUATOR_PWM_INDEX_2
 
-config PWM_ACTUATOR_LINEAR_M_DIV_2
+config ACTUATOR_PWM_LINEAR_M_DIV_2
   int "divisor to divide linear slope M"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_2
+  depends on ACTUATOR_PWM_LINEAR_2
   help
     The divisor value to divide slope constant M value of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_M_2
+config ACTUATOR_PWM_LINEAR_M_2
   int "linear slope M (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_2
+  depends on ACTUATOR_PWM_LINEAR_2
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_M_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_M_DIV (default 1000)
 
-config PWM_ACTUATOR_LINEAR_C_DIV_2
+config ACTUATOR_PWM_LINEAR_C_DIV_2
   int "divisor to divide linear intercept C"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_2
+  depends on ACTUATOR_PWM_LINEAR_2
   help
     The divisor value to divide intercept constant C of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_C_2
+config ACTUATOR_PWM_LINEAR_C_2
   int "linear intercept C (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_2
+  depends on ACTUATOR_PWM_LINEAR_2
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_C_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_C_DIV (default 1000)
 
 endmenu #LINEAR_PWM_2
 
-endif #PWM_ACTUATOR_LINEAR_2
+endif #ACTUATOR_PWM_LINEAR_2
 
-config PWM_ACTUATOR_INDEX_2
+config ACTUATOR_PWM_INDEX_2
   int "actuator index for PWM 2"
   default 2
   help
@@ -338,106 +338,106 @@ config PWM_ACTUATOR_INDEX_2
 
 endmenu #PWM_2
 
-endif #PWM_ACTUATOR_NUMBER > 2
+endif #ACTUATOR_PWM_NUMBER > 2
 
-if PWM_ACTUATOR_NUMBER > 3
+if ACTUATOR_PWM_NUMBER > 3
 
 menu "PWM_3"
 
-config PWM_ACTUATOR_OUTPUT_3
+config ACTUATOR_PWM_OUTPUT_3
   string "Aliased output device PWM 3"
   default "aux3"
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Aliased name of PWM output device used for PWM 3
 
-config PWM_ACTUATOR_PULSE_US_MIN_3
+config ACTUATOR_PWM_PULSE_US_MIN_3
   int "Min usec pulse width PWM 3"
   default 1100
   range 0 4999
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Minimum allowed pulse width in micro seconds for PWM 3
 
-config PWM_ACTUATOR_PULSE_US_MAX_3
+config ACTUATOR_PWM_PULSE_US_MAX_3
   int "Max usec pulse width PWM 3"
   default 1900
   range 1 5000
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Maximum allowed pulse width in micro seconds for PWM 3
 
-config PWM_ACTUATOR_PULSE_US_CENTER_3
+config ACTUATOR_PWM_PULSE_US_CENTER_3
   int "Center of usec pulse width PWM 3"
   default 1500
   range 2 4998
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Center of pulse width in micro seconds for PWM 3
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config PWM_ACTUATOR_LINEAR_3
+config ACTUATOR_PWM_LINEAR_3
   bool "Use linear approximation PWM 3"
   default n
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
     micro seconds with a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if PWM_ACTUATOR_LINEAR_3
+if ACTUATOR_PWM_LINEAR_3
 
 menu "LINEAR_PWM_3"
 
-config PWM_ACTUATOR_USE_POS_3
+config ACTUATOR_PWM_USE_POS_3
   bool "Use actuator position PWM 3"
   default n
-  depends on PWM_ACTUATOR_LINEAR_3
+  depends on ACTUATOR_PWM_LINEAR_3
   help
     Use actuator message position instead of velocity for
-    PWM_ACTUATOR_INDEX_3
+    ACTUATOR_PWM_INDEX_3
 
-config PWM_ACTUATOR_LINEAR_M_DIV_3
+config ACTUATOR_PWM_LINEAR_M_DIV_3
   int "divisor to divide linear slope M"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_3
+  depends on ACTUATOR_PWM_LINEAR_3
   help
     The divisor value to divide slope constant M value of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_M_3
+config ACTUATOR_PWM_LINEAR_M_3
   int "linear slope M (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_3
+  depends on ACTUATOR_PWM_LINEAR_3
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_M_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_M_DIV (default 1000)
 
-config PWM_ACTUATOR_LINEAR_C_DIV_3
+config ACTUATOR_PWM_LINEAR_C_DIV_3
   int "divisor to divide linear intercept C"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_3
+  depends on ACTUATOR_PWM_LINEAR_3
   help
     The divisor value to divide intercept constant C of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_C_3
+config ACTUATOR_PWM_LINEAR_C_3
   int "linear intercept C (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_3
+  depends on ACTUATOR_PWM_LINEAR_3
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_C_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_C_DIV (default 1000)
 
 endmenu #LINEAR_PWM_3
 
-endif #PWM_ACTUATOR_LINEAR_3
+endif #ACTUATOR_PWM_LINEAR_3
 
-config PWM_ACTUATOR_INDEX_3
+config ACTUATOR_PWM_INDEX_3
   int "actuator index for PWM 3"
   default 3
   help
@@ -446,106 +446,106 @@ config PWM_ACTUATOR_INDEX_3
 
 endmenu #PWM_3
 
-endif #PWM_ACTUATOR_NUMBER > 3
+endif #ACTUATOR_PWM_NUMBER > 3
 
-if PWM_ACTUATOR_NUMBER > 4
+if ACTUATOR_PWM_NUMBER > 4
 
 menu "PWM_4"
 
-config PWM_ACTUATOR_OUTPUT_4
+config ACTUATOR_PWM_OUTPUT_4
   string "Aliased output device PWM 4"
   default "aux4"
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Aliased name of PWM output device used for PWM 4
 
-config PWM_ACTUATOR_PULSE_US_MIN_4
+config ACTUATOR_PWM_PULSE_US_MIN_4
   int "Min usec pulse width PWM 4"
   default 1100
   range 0 4999
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Minimum allowed pulse width in micro seconds for PWM 4
 
-config PWM_ACTUATOR_PULSE_US_MAX_4
+config ACTUATOR_PWM_PULSE_US_MAX_4
   int "Max usec pulse width PWM 4"
   default 1900
   range 1 5000
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Maximum allowed pulse width in micro seconds for PWM 4
 
-config PWM_ACTUATOR_PULSE_US_CENTER_4
+config ACTUATOR_PWM_PULSE_US_CENTER_4
   int "Center of usec pulse width PWM 4"
   default 1500
   range 2 4998
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Center of pulse width in micro seconds for PWM 4
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config PWM_ACTUATOR_LINEAR_4
+config ACTUATOR_PWM_LINEAR_4
   bool "Use linear approximation PWM 4"
   default n
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
     micro seconds with a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if PWM_ACTUATOR_LINEAR_4
+if ACTUATOR_PWM_LINEAR_4
 
 menu "LINEAR_PWM_4"
 
-config PWM_ACTUATOR_USE_POS_4
+config ACTUATOR_PWM_USE_POS_4
   bool "Use actuator position PWM 4"
   default n
-  depends on PWM_ACTUATOR_LINEAR_4
+  depends on ACTUATOR_PWM_LINEAR_4
   help
     Use actuator message position instead of velocity for
-    PWM_ACTUATOR_INDEX_4
+    ACTUATOR_PWM_INDEX_4
 
-config PWM_ACTUATOR_LINEAR_M_DIV_4
+config ACTUATOR_PWM_LINEAR_M_DIV_4
   int "divisor to divide linear slope M"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_4
+  depends on ACTUATOR_PWM_LINEAR_4
   help
     The divisor value to divide slope constant M value of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_M_4
+config ACTUATOR_PWM_LINEAR_M_4
   int "linear slope M (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_4
+  depends on ACTUATOR_PWM_LINEAR_4
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_M_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_M_DIV (default 1000)
 
-config PWM_ACTUATOR_LINEAR_C_DIV_4
+config ACTUATOR_PWM_LINEAR_C_DIV_4
   int "divisor to divide linear intercept C"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_4
+  depends on ACTUATOR_PWM_LINEAR_4
   help
     The divisor value to divide intercept constant C of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_C_4
+config ACTUATOR_PWM_LINEAR_C_4
   int "linear intercept C (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_4
+  depends on ACTUATOR_PWM_LINEAR_4
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_C_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_C_DIV (default 1000)
 
 endmenu #LINEAR_PWM_4
 
-endif #PWM_ACTUATOR_LINEAR_4
+endif #ACTUATOR_PWM_LINEAR_4
 
-config PWM_ACTUATOR_INDEX_4
+config ACTUATOR_PWM_INDEX_4
   int "actuator index for PWM 4"
   default 4
   help
@@ -554,106 +554,106 @@ config PWM_ACTUATOR_INDEX_4
 
 endmenu #PWM_4
 
-endif #PWM_ACTUATOR_NUMBER > 4
+endif #ACTUATOR_PWM_NUMBER > 4
 
-if PWM_ACTUATOR_NUMBER > 5
+if ACTUATOR_PWM_NUMBER > 5
 
 menu "PWM_5"
 
-config PWM_ACTUATOR_OUTPUT_5
+config ACTUATOR_PWM_OUTPUT_5
   string "Aliased output device PWM 5"
   default "aux5"
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Aliased name of PWM output device used for PWM 5
 
-config PWM_ACTUATOR_PULSE_US_MIN_5
+config ACTUATOR_PWM_PULSE_US_MIN_5
   int "Min usec pulse width PWM 5"
   default 1100
   range 0 4999
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Minimum allowed pulse width in micro seconds for PWM 5
 
-config PWM_ACTUATOR_PULSE_US_MAX_5
+config ACTUATOR_PWM_PULSE_US_MAX_5
   int "Max usec pulse width PWM 5"
   default 1900
   range 1 5000
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Maximum allowed pulse width in micro seconds for PWM 5
 
-config PWM_ACTUATOR_PULSE_US_CENTER_5
+config ACTUATOR_PWM_PULSE_US_CENTER_5
   int "Center of usec pulse width PWM 5"
   default 1500
   range 2 4998
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Center of pulse width in micro seconds for PWM 5
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config PWM_ACTUATOR_LINEAR_5
+config ACTUATOR_PWM_LINEAR_5
   bool "Use linear approximation PWM 5"
   default n
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
     micro seconds with a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if PWM_ACTUATOR_LINEAR_5
+if ACTUATOR_PWM_LINEAR_5
 
 menu "LINEAR_PWM_5"
 
-config PWM_ACTUATOR_USE_POS_5
+config ACTUATOR_PWM_USE_POS_5
   bool "Use actuator position PWM 5"
   default n
-  depends on PWM_ACTUATOR_LINEAR_5
+  depends on ACTUATOR_PWM_LINEAR_5
   help
     Use actuator message position instead of velocity for
-    PWM_ACTUATOR_INDEX_5
+    ACTUATOR_PWM_INDEX_5
 
-config PWM_ACTUATOR_LINEAR_M_DIV_5
+config ACTUATOR_PWM_LINEAR_M_DIV_5
   int "divisor to divide linear slope M"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_5
+  depends on ACTUATOR_PWM_LINEAR_5
   help
     The divisor value to divide slope constant M value of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_M_5
+config ACTUATOR_PWM_LINEAR_M_5
   int "linear slope M (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_5
+  depends on ACTUATOR_PWM_LINEAR_5
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_M_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_M_DIV (default 1000)
 
-config PWM_ACTUATOR_LINEAR_C_DIV_5
+config ACTUATOR_PWM_LINEAR_C_DIV_5
   int "divisor to divide linear intercept C"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_5
+  depends on ACTUATOR_PWM_LINEAR_5
   help
     The divisor value to divide intercept constant C of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_C_5
+config ACTUATOR_PWM_LINEAR_C_5
   int "linear intercept C (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_5
+  depends on ACTUATOR_PWM_LINEAR_5
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_C_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_C_DIV (default 1000)
 
 endmenu #LINEAR_PWM_5
 
-endif #PWM_ACTUATOR_LINEAR_5
+endif #ACTUATOR_PWM_LINEAR_5
 
-config PWM_ACTUATOR_INDEX_5
+config ACTUATOR_PWM_INDEX_5
   int "actuator index for PWM 5"
   default 5
   help
@@ -662,106 +662,106 @@ config PWM_ACTUATOR_INDEX_5
 
 endmenu #PWM_5
 
-endif #PWM_ACTUATOR_NUMBER > 5
+endif #ACTUATOR_PWM_NUMBER > 5
 
-if PWM_ACTUATOR_NUMBER > 6
+if ACTUATOR_PWM_NUMBER > 6
 
 menu "PWM_6"
 
-config PWM_ACTUATOR_OUTPUT_6
+config ACTUATOR_PWM_OUTPUT_6
   string "Aliased output device PWM 6"
   default "aux6"
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Aliased name of PWM output device used for PWM 6
 
-config PWM_ACTUATOR_PULSE_US_MIN_6
+config ACTUATOR_PWM_PULSE_US_MIN_6
   int "Min usec pulse width PWM 6"
   default 1100
   range 0 4999
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Minimum allowed pulse width in micro seconds for PWM 6
 
-config PWM_ACTUATOR_PULSE_US_MAX_6
+config ACTUATOR_PWM_PULSE_US_MAX_6
   int "Max usec pulse width PWM 6"
   default 1900
   range 1 5000
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Maximum allowed pulse width in micro seconds for PWM 6
 
-config PWM_ACTUATOR_PULSE_US_CENTER_6
+config ACTUATOR_PWM_PULSE_US_CENTER_6
   int "Center of usec pulse width PWM 6"
   default 1500
   range 2 4998
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Center of pulse width in micro seconds for PWM 6
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config PWM_ACTUATOR_LINEAR_6
+config ACTUATOR_PWM_LINEAR_6
   bool "Use linear approximation PWM 6"
   default n
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
     micro seconds with a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if PWM_ACTUATOR_LINEAR_6
+if ACTUATOR_PWM_LINEAR_6
 
 menu "LINEAR_PWM_6"
 
-config PWM_ACTUATOR_USE_POS_6
+config ACTUATOR_PWM_USE_POS_6
   bool "Use actuator position PWM 6"
   default n
-  depends on PWM_ACTUATOR_LINEAR_6
+  depends on ACTUATOR_PWM_LINEAR_6
   help
     Use actuator message position instead of velocity for
-    PWM_ACTUATOR_INDEX_6
+    ACTUATOR_PWM_INDEX_6
 
-config PWM_ACTUATOR_LINEAR_M_DIV_6
+config ACTUATOR_PWM_LINEAR_M_DIV_6
   int "divisor to divide linear slope M"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_6
+  depends on ACTUATOR_PWM_LINEAR_6
   help
     The divisor value to divide slope constant M value of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_M_6
+config ACTUATOR_PWM_LINEAR_M_6
   int "linear slope M (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_6
+  depends on ACTUATOR_PWM_LINEAR_6
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_M_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_M_DIV (default 1000)
 
-config PWM_ACTUATOR_LINEAR_C_DIV_6
+config ACTUATOR_PWM_LINEAR_C_DIV_6
   int "divisor to divide linear intercept C"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_6
+  depends on ACTUATOR_PWM_LINEAR_6
   help
     The divisor value to divide intercept constant C of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_C_6
+config ACTUATOR_PWM_LINEAR_C_6
   int "linear intercept C (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_6
+  depends on ACTUATOR_PWM_LINEAR_6
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_C_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_C_DIV (default 1000)
 
 endmenu #LINEAR_PWM_6
 
-endif #PWM_ACTUATOR_LINEAR_6
+endif #ACTUATOR_PWM_LINEAR_6
 
-config PWM_ACTUATOR_INDEX_6
+config ACTUATOR_PWM_INDEX_6
   int "actuator index for PWM 6"
   default 6
   help
@@ -770,106 +770,106 @@ config PWM_ACTUATOR_INDEX_6
 
 endmenu #PWM_6
 
-endif #PWM_ACTUATOR_NUMBER > 6
+endif #ACTUATOR_PWM_NUMBER > 6
 
-if PWM_ACTUATOR_NUMBER > 7
+if ACTUATOR_PWM_NUMBER > 7
 
 menu "PWM_7"
 
-config PWM_ACTUATOR_OUTPUT_7
+config ACTUATOR_PWM_OUTPUT_7
   string "Aliased output device PWM 7"
   default "aux7"
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Aliased name of PWM output device used for PWM 7
 
-config PWM_ACTUATOR_PULSE_US_MIN_7
+config ACTUATOR_PWM_PULSE_US_MIN_7
   int "Min usec pulse width PWM 7"
   default 1100
   range 0 4999
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Minimum allowed pulse width in micro seconds for PWM 7
 
-config PWM_ACTUATOR_PULSE_US_MAX_7
+config ACTUATOR_PWM_PULSE_US_MAX_7
   int "Max usec pulse width PWM 7"
   default 1900
   range 1 5000
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Maximum allowed pulse width in micro seconds for PWM 7
 
-config PWM_ACTUATOR_PULSE_US_CENTER_7
+config ACTUATOR_PWM_PULSE_US_CENTER_7
   int "Center of usec pulse width PWM 7"
   default 1500
   range 2 4998
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Center of pulse width in micro seconds for PWM 7
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config PWM_ACTUATOR_LINEAR_7
+config ACTUATOR_PWM_LINEAR_7
   bool "Use linear approximation PWM 7"
   default n
-  depends on PWM_ACTUATOR
+  depends on ACTUATOR_PWM
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
     micro seconds with a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if PWM_ACTUATOR_LINEAR_7
+if ACTUATOR_PWM_LINEAR_7
 
 menu "LINEAR_PWM_7"
 
-config PWM_ACTUATOR_USE_POS_7
+config ACTUATOR_PWM_USE_POS_7
   bool "Use actuator position PWM 7"
   default n
-  depends on PWM_ACTUATOR_LINEAR_7
+  depends on ACTUATOR_PWM_LINEAR_7
   help
     Use actuator message position instead of velocity for
-    PWM_ACTUATOR_INDEX_7
+    ACTUATOR_PWM_INDEX_7
 
-config PWM_ACTUATOR_LINEAR_M_DIV_7
+config ACTUATOR_PWM_LINEAR_M_DIV_7
   int "divisor to divide linear slope M"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_7
+  depends on ACTUATOR_PWM_LINEAR_7
   help
     The divisor value to divide slope constant M value of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_M_7
+config ACTUATOR_PWM_LINEAR_M_7
   int "linear slope M (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_7
+  depends on ACTUATOR_PWM_LINEAR_7
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_M_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_M_DIV (default 1000)
 
-config PWM_ACTUATOR_LINEAR_C_DIV_7
+config ACTUATOR_PWM_LINEAR_C_DIV_7
   int "divisor to divide linear intercept C"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_7
+  depends on ACTUATOR_PWM_LINEAR_7
   help
     The divisor value to divide intercept constant C of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config PWM_ACTUATOR_LINEAR_C_7
+config ACTUATOR_PWM_LINEAR_C_7
   int "linear intercept C (divisor scaled)"
   default 1000
-  depends on PWM_ACTUATOR_LINEAR_7
+  depends on ACTUATOR_PWM_LINEAR_7
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor PWM_ACTUATOR_LINEAR_C_DIV (default 1000)
+    divided by the divisor ACTUATOR_PWM_LINEAR_C_DIV (default 1000)
 
 endmenu #LINEAR_PWM_7
 
-endif #PWM_ACTUATOR_LINEAR_7
+endif #ACTUATOR_PWM_LINEAR_7
 
-config PWM_ACTUATOR_INDEX_7
+config ACTUATOR_PWM_INDEX_7
   int "actuator index for PWM 7"
   default 7
   help
@@ -878,8 +878,8 @@ config PWM_ACTUATOR_INDEX_7
 
 endmenu #PWM_7
 
-endif #PWM_ACTUATOR_NUMBER > 7
+endif #ACTUATOR_PWM_NUMBER > 7
 
-endmenu #PWM_ACTUATOR
+endmenu #ACTUATOR_PWM
 
-endif #PWM_ACTUATOR
+endif #ACTUATOR_PWM

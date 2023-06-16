@@ -9,6 +9,7 @@ zephyr_include_directories()
 
 zephyr_library_sources(
   main.c
+  actuator_pwm.c
   )
 
 add_dependencies(actuator_pwm synapse_protobuf)

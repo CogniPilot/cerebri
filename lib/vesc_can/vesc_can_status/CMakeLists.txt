@@ -1,7 +1,7 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-zephyr_library_named(actuator_can_vesc)
+zephyr_library_named(vesc_can_status)
 
 
 # we need to be able to include generated header files
@@ -11,4 +11,4 @@ zephyr_library_sources(
   main.c
   )
 
-add_dependencies(actuator_can_vesc synapse_protobuf)
+add_dependencies(vesc_can_status synapse_protobuf)

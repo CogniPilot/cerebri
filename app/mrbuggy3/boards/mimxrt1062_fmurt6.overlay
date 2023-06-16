@@ -1,0 +1,78 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2023 CogniPilot Foundation */
+/ {
+	pwm_shell: pwm_shell {
+		compatible = "pwm-leds";
+		aux0: aux0 {
+			pwms = <&flexpwm2_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux1: aux1 {
+			pwms = <&flexpwm2_pwm1 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux2: aux2 {
+			pwms = <&flexpwm2_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux3: aux3 {
+			pwms = <&flexpwm2_pwm3 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux4: aux4 {
+			pwms = <&flexpwm3_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux5: aux5 {
+			pwms = <&flexpwm3_pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux6: aux6 {
+			pwms = <&flexpwm4_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux7: aux7 {
+			pwms = <&flexpwm4_pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+	};
+};
+
+&flexpwm2_pwm0 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm2_pwm1 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm2_pwm2 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm2_pwm3 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm3_pwm2 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm3_pwm0 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm4_pwm2 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm4_pwm0 {
+	nxp,prescaler = <64>;
+};
+
+&flexcan3 {
+	status = "okay";
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
+};
+
+&flexcan1 {
+	status = "disabled";
+};
+
+/ { chosen {
+		zephyr,canbus = &flexcan3;
+	};
+};

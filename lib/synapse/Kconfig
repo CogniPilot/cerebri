@@ -1,0 +1,12 @@
+# Copyright (c) 2023 CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+menu "Synapse"
+
+rsource "can/Kconfig"
+rsource "ethernet/Kconfig"
+rsource "uart/Kconfig"
+rsource "vesc_can/Kconfig"
+rsource "zbus/Kconfig"
+
+endmenu

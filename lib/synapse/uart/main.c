@@ -18,7 +18,7 @@
 
 #define RX_BUF_SIZE 100
 
-static const char * module_name = "synapse_uart";
+static const char* module_name = "synapse_uart";
 static const struct device* const uart_dev = DEVICE_DT_GET(DT_ALIAS(telem1));
 
 static void write_uart(TinyFrame* tf, const uint8_t* buf, uint32_t len)

@@ -59,19 +59,19 @@ static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 }
 
 // ROS -> cerebri
-TOPIC_LISTENER(in_actuators, Actuators)
-TOPIC_LISTENER(in_bezier_trajectory, BezierTrajectory)
-TOPIC_LISTENER(in_cmd_vel, Twist)
-TOPIC_LISTENER(in_joy, Joy)
-TOPIC_LISTENER(in_odometry, Odometry)
+TOPIC_LISTENER(in_actuators, synapse_msgs_Actuators)
+TOPIC_LISTENER(in_bezier_trajectory, synapse_msgs_BezierTrajectory)
+TOPIC_LISTENER(in_cmd_vel, synapse_msgs_Twist)
+TOPIC_LISTENER(in_joy, synapse_msgs_Joy)
+TOPIC_LISTENER(in_odometry, synapse_msgs_Odometry)
 
 void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
 {
     if (chan == NULL) { // start of if else statements for channel type
     }
     // cerebri -> ROS
-    TOPIC_PUBLISHER(out_actuators, Actuators, SYNAPSE_OUT_ACTUATORS_TOPIC)
-    TOPIC_PUBLISHER(out_odometry, Odometry, SYNAPSE_OUT_ODOMETRY_TOPIC)
+    TOPIC_PUBLISHER(out_actuators, synapse_msgs_Actuators, SYNAPSE_OUT_ACTUATORS_TOPIC)
+    TOPIC_PUBLISHER(out_odometry, synapse_msgs_Odometry, SYNAPSE_OUT_ODOMETRY_TOPIC)
 }
 
 ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callback);

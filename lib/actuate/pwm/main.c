@@ -18,12 +18,12 @@
 
 extern actuator_pwm_t actuator_pwms[];
 
-static Actuators g_actuators = Actuators_init_zero;
+static synapse_msgs_Actuators g_actuators = synapse_msgs_Actuators_init_zero;
 
 static void listener_actuator_pwm_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_out_actuators) {
-        g_actuators = *(Actuators*)(chan->message);
+        g_actuators = *(synapse_msgs_Actuators*)(chan->message);
     }
 }
 

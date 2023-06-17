@@ -6,10 +6,6 @@
 
 cmake_minimum_required(VERSION 3.13.1)
 
-if (NOT DEFINED BOARD)
-  set(BOARD "native_posix_64")
-endif()
-
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(elm4 LANGUAGES C VERSION 0.0.1)

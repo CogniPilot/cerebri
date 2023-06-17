@@ -1,0 +1,21 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config COMMUNICATE_SYNAPSE
+  bool "synapse zbus interface"
+  help
+    This option enables the synapse zbus interface
+
+if COMMUNICATE_SYNAPSE
+
+config COMMUNICATE_SYNAPSE_ZBUS_UART
+  bool "synapse protobuf uart thread"
+  help
+    This option enables the synapse protobuf uart thread
+
+config COMMUNICATE_SYNAPSE_ZBUS_ETHERNET
+  bool "synapse protobuf ethernet thread"
+  help
+    This option enables the synapse protobuf ethernet thread
+
+endif  # COMMUNICATE_SYNAPSE

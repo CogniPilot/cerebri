@@ -1,9 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
-add_subdirectory_ifdef(CONFIG_CUSTOM_LIB custom_lib)
-add_subdirectory_ifdef(CONFIG_SYNAPSE_ZBUS synapse_zbus)
-add_subdirectory_ifdef(CONFIG_CEREBRI_SIM cerebri_sim)
-add_subdirectory_ifdef(CONFIG_CONTROL_ACKERMANN control_ackermann)
-add_subdirectory_ifdef(CONFIG_CONTROL_DIFFDRIVE control_diffdrive)
-add_subdirectory_ifdef(CONFIG_ACTUATOR_PWM actuator_pwm)
-add_subdirectory_ifdef(CONFIG_VESC_CAN vesc_can)
+add_subdirectory(actuate)
+add_subdirectory(communicate)
+add_subdirectory(control)
+add_subdirectory(estimate)
+add_subdirectory(sense)
+add_subdirectory(simulate)

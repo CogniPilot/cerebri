@@ -1,0 +1,9 @@
+# Copyright (c) 2023 CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+menu "Actuate"
+
+rsource "pwm/Kconfig"
+rsource "vesc_can/Kconfig"
+
+endmenu

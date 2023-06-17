@@ -3,12 +3,11 @@
 
 menu "Libraries"
 
-rsource "custom_lib/Kconfig"
-rsource "synapse_zbus/Kconfig"
-rsource "cerebri_sim/Kconfig"
-rsource "control_ackermann/Kconfig"
-rsource "control_diffdrive/Kconfig"
-rsource "actuator_pwm/Kconfig"
-rsource "vesc_can/Kconfig"
+rsource "actuate/Kconfig"
+rsource "communicate/Kconfig"
+rsource "control/Kconfig"
+rsource "estimate/Kconfig"
+rsource "sense/Kconfig"
+rsource "simulate/Kconfig"
 
 endmenu

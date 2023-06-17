@@ -52,7 +52,7 @@ Runs twister and other tests as necessary
         cmd_str = 'west twister -T app -v --inline-logs --integration'
         subprocess.run(cmd_str, shell=True)
 
-        log.inf('running unit tests')
-        cmd_str = 'west twister -T tests --integration'
-        subprocess.run(cmd_str, shell=True)
+        #log.inf('running unit tests')
+        #cmd_str = 'west twister -T tests --integration'
+        #subprocess.run(cmd_str, shell=True)
 

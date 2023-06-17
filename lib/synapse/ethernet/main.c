@@ -22,7 +22,7 @@
 
 #define BIND_PORT 4242
 
-static const char * module_name = "synapse_ethernet";
+static const char* module_name = "synapse_ethernet";
 static volatile int g_client = -1;
 
 static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
@@ -118,7 +118,8 @@ static void ethernet_entry_point(void)
     }
 
     printf("%s: TCP server waits for a connection on "
-           "port %d...\n", module_name,
+           "port %d...\n",
+        module_name,
         BIND_PORT);
 
     // ros -> cerebri
@@ -131,7 +132,7 @@ static void ethernet_entry_point(void)
 
     while (1) {
         printf("%s: socket waiting for connection on port: %d\n",
-                module_name, BIND_PORT);
+            module_name, BIND_PORT);
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
@@ -146,7 +147,7 @@ static void ethernet_entry_point(void)
         zsock_inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
             addr_str, sizeof(addr_str));
         printf("%s: connection #%d from %s\n",
-                module_name, counter++, addr_str);
+            module_name, counter++, addr_str);
 
         while (1) {
             if (g_client < 0) {

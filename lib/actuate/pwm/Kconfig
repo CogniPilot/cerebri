@@ -105,7 +105,7 @@ config ACTUATE_PWM_LINEAR_C_DIV_0
 
 config ACTUATE_PWM_LINEAR_C_0
   int "linear intercept C (divisor scaled)"
-  default 1000
+  default 1500000
   depends on ACTUATE_PWM_LINEAR_0
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
@@ -211,7 +211,7 @@ config ACTUATE_PWM_LINEAR_C_DIV_1
 
 config ACTUATE_PWM_LINEAR_C_1
   int "linear intercept C (divisor scaled)"
-  default 1000
+  default 1500000
   depends on ACTUATE_PWM_LINEAR_1
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
@@ -319,7 +319,7 @@ config ACTUATE_PWM_LINEAR_C_DIV_2
 
 config ACTUATE_PWM_LINEAR_C_2
   int "linear intercept C (divisor scaled)"
-  default 1000
+  default 1500000
   depends on ACTUATE_PWM_LINEAR_2
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
@@ -427,7 +427,7 @@ config ACTUATE_PWM_LINEAR_C_DIV_3
 
 config ACTUATE_PWM_LINEAR_C_3
   int "linear intercept C (divisor scaled)"
-  default 1000
+  default 1500000
   depends on ACTUATE_PWM_LINEAR_3
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
@@ -535,7 +535,7 @@ config ACTUATE_PWM_LINEAR_C_DIV_4
 
 config ACTUATE_PWM_LINEAR_C_4
   int "linear intercept C (divisor scaled)"
-  default 1000
+  default 1500000
   depends on ACTUATE_PWM_LINEAR_4
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
@@ -643,7 +643,7 @@ config ACTUATE_PWM_LINEAR_C_DIV_5
 
 config ACTUATE_PWM_LINEAR_C_5
   int "linear intercept C (divisor scaled)"
-  default 1000
+  default 1500000
   depends on ACTUATE_PWM_LINEAR_5
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
@@ -751,7 +751,7 @@ config ACTUATE_PWM_LINEAR_C_DIV_6
 
 config ACTUATE_PWM_LINEAR_C_6
   int "linear intercept C (divisor scaled)"
-  default 1000
+  default 1500000
   depends on ACTUATE_PWM_LINEAR_6
   help
     The intercept constant C value of the linearized PWM/[vel or pos]
@@ -859,7 +859,7 @@ config ACTUATE_PWM_LINEAR_C_DIV_7
 
 config ACTUATE_PWM_LINEAR_C_7
   int "linear intercept C (divisor scaled)"
-  default 1000
+  default 1500000
   depends on ACTUATE_PWM_LINEAR_7
   help
     The intercept constant C value of the linearized PWM/[vel or pos]

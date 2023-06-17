@@ -12,9 +12,6 @@ project(mrbuggy3 LANGUAGES C)
 
 target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 
-configure_file(app_version.h.in ${CMAKE_BINARY_DIR}/app/include/app_version.h)
-target_include_directories(app PRIVATE ${CMAKE_BINARY_DIR}/app/include src)
-
 set(SOURCE_FILES
   src/main.c
   )

@@ -2,12 +2,9 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
-#if defined(CONFIG_COMMUNICATE_SYNAPSE_ZBUS_ETHERNET)
-
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
-#include <zephyr/sys/printk.h>
 
 #include <fcntl.h>
 
@@ -16,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common.h"
+#include "synapse/zbus/common.h"
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 5
@@ -25,6 +22,7 @@
 
 #define BIND_PORT 4242
 
+static const char * module_name = "synapse_ethernet";
 static volatile int g_client = -1;
 
 static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
@@ -39,7 +37,7 @@ static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
     do {
         out_len = zsock_send(g_client, p, len, 0);
         if (out_len < 0) {
-            printf("synapse_zbus: error: send: %d\n", errno);
+            printf("%s: error: send: %d\n", module_name, errno);
             // trigger reconnect
             g_client = -1;
             return;
@@ -67,7 +65,7 @@ TOPIC_LISTENER(in_cmd_vel, Twist)
 TOPIC_LISTENER(in_joy, Joy)
 TOPIC_LISTENER(in_odometry, Odometry)
 
-void listener_synapse_zbus_ethernet_callback(const struct zbus_channel* chan)
+void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
 {
     if (chan == NULL) { // start of if else statements for channel type
     }
@@ -76,7 +74,7 @@ void listener_synapse_zbus_ethernet_callback(const struct zbus_channel* chan)
     TOPIC_PUBLISHER(out_odometry, Odometry, SYNAPSE_OUT_ODOMETRY_TOPIC)
 }
 
-ZBUS_LISTENER_DEFINE(listener_synapse_zbus_ethernet, listener_synapse_zbus_ethernet_callback);
+ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callback);
 
 static bool set_blocking_enabled(int fd, bool blocking)
 {
@@ -101,7 +99,7 @@ static void ethernet_entry_point(void)
     set_blocking_enabled(serv, true);
 
     if (serv < 0) {
-        printf("synapse_zbus: error: socket: %d\n", errno);
+        printf("%s: error: socket: %d\n", module_name, errno);
         exit(1);
     }
 
@@ -110,17 +108,17 @@ static void ethernet_entry_point(void)
     bind_addr.sin_port = htons(BIND_PORT);
 
     if (zsock_bind(serv, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
-        printf("synapse_zbus: error: bind: %d\n", errno);
+        printf("%s: error: bind: %d\n", module_name, errno);
         exit(1);
     }
 
     if (zsock_listen(serv, 5) < 0) {
-        printf("synapse_zbus: error: listen: %d\n", errno);
+        printf("%s: error: listen: %d\n", module_name, errno);
         exit(1);
     }
 
-    printf("synapse_zbus: TCP server waits for a connection on "
-           "port %d...\n",
+    printf("%s: TCP server waits for a connection on "
+           "port %d...\n", module_name,
         BIND_PORT);
 
     // ros -> cerebri
@@ -132,7 +130,8 @@ static void ethernet_entry_point(void)
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
 
     while (1) {
-        printf("synapse_zbus: socket waiting for connection on port: %d\n", BIND_PORT);
+        printf("%s: socket waiting for connection on port: %d\n",
+                module_name, BIND_PORT);
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
@@ -141,20 +140,19 @@ static void ethernet_entry_point(void)
         k_msleep(1000);
 
         if (g_client < 0) {
-            // printf("error: accept: %d\n", errno);
             continue;
         }
 
         zsock_inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
             addr_str, sizeof(addr_str));
-        printf("synapse_zbus: connection #%d from %s\n", counter++, addr_str);
+        printf("%s: connection #%d from %s\n",
+                module_name, counter++, addr_str);
 
         while (1) {
             if (g_client < 0) {
-                printf("triggering reconnect.\n");
+                printf("%s: triggering reconnect.\n", module_name);
                 break;
             }
-            // printf("synapse_zbus: receiving\n");
             int len = zsock_recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
             if (len < 0) {
                 continue;
@@ -167,8 +165,6 @@ static void ethernet_entry_point(void)
     }
 }
 
-K_THREAD_DEFINE(synapse_zbus_ethernet, MY_STACK_SIZE, ethernet_entry_point,
+K_THREAD_DEFINE(synapse_ethernet, MY_STACK_SIZE, ethernet_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
-
-#endif // defined(CONFIG_COMMUNICATE_SYNAPSE_ZBUS_ETHERNET)
 /* vi: ts=4 sw=4 et */

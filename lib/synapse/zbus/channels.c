@@ -1,4 +1,4 @@
-#include "synapse_zbus/channels.h"
+#include "synapse/zbus/channels.h"
 
 ZBUS_CHAN_DEFINE(chan_in_actuators, // Name
     Actuators, // Message type
@@ -72,14 +72,14 @@ ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
 #if defined(CONFIG_ACTUATE_PWM)
         listener_actuator_pwm,
 #endif
-#if defined(CONFIG_SIM_SITL)
-        listener_sim_sitl,
+#if defined(CONFIG_DREAM_SITL)
+        listener_dream_sitl,
 #endif
-#if defined(CONFIG_COMMUNICATE_SYNAPSE_ZBUS_ETHERNET)
-        listener_synapse_zbus_ethernet,
+#if defined(CONFIG_SYNAPSE_ETHERNET)
+        listener_synapse_ethernet,
 #endif
-#if defined(CONFIG_COMMUNICATE_SYNAPSE_ZBUS_UART)
-        listener_synapse_zbus_uart,
+#if defined(CONFIG_SYNAPSE_UART)
+        listener_synapse_uart,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
@@ -90,11 +90,11 @@ ZBUS_CHAN_DEFINE(chan_out_odometry, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
-#if defined(CONFIG_COMMUNICATE_SYNAPSE_ZBUS_ETHERNET)
-        listener_synapse_zbus_ethernet,
+#if defined(CONFIG_SYNAPSE_ETHERNET)
+        listener_synapse_ethernet,
 #endif
-#if defined(CONFIG_COMMUNICATE_SYNAPSE_ZBUS_UART)
-        listener_synapse_zbus_uart,
+#if defined(CONFIG_SYNAPSE_UART)
+        listener_synapse_uart,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}

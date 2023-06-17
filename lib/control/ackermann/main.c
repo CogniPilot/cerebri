@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-#include <synapse_zbus/channels.h>
+#include <synapse/zbus/channels.h>
 
 #include "casadi/rover.h"
 #include "parameters.h"

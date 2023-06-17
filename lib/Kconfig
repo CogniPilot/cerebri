@@ -4,10 +4,10 @@
 menu "Libraries"
 
 rsource "actuate/Kconfig"
-rsource "communicate/Kconfig"
 rsource "control/Kconfig"
+rsource "dream/Kconfig"
 rsource "estimate/Kconfig"
 rsource "sense/Kconfig"
-rsource "simulate/Kconfig"
+rsource "synapse/Kconfig"
 
 endmenu

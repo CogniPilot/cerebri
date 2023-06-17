@@ -15,7 +15,7 @@
 #include "app_version.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
+LOG_MODULE_REGISTER(main, CONFIG_CEREBRI_LOG_LEVEL);
 
 static volatile int keepRunning = 1;
 
@@ -57,7 +57,7 @@ int main(void)
                           "       ┃┃ ┏┓┃┏━┛ ┃┏┓┏┛┃┏━┛ ┃┏━┓┃┃┏┓┏┛ ┃┃ \n"
                           "       ┃┗━┛┃┃┗━━┓┃┃┃┗┓┃┗━━┓┃┗━┛┃┃┃┃┗┓┏┫┣┓\n"
                           "       ┗━━━┛┗━━━┛┗┛┗━┛┗━━━┛┗━━━┛┗┛┗━┛┗━━┛\n\033[0m";
-    printk("Cerebri %s\n", APP_VERSION_STR);
+    printk("Cerebri %s\n", APP_VERSION_STRING);
     printf("%s\n", banner);
 #endif
 

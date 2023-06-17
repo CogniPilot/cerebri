@@ -3,7 +3,6 @@
 
 menu "Synapse"
 
-rsource "can/Kconfig"
 rsource "ethernet/Kconfig"
 rsource "uart/Kconfig"
 rsource "vesc_can/Kconfig"

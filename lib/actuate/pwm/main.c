@@ -16,26 +16,26 @@
 
 #define PWM_SHELL_NODE DT_NODE_EXISTS(DT_NODELABEL(pwm_shell))
 
-extern actuator_pwm_t actuator_pwms[];
+extern actuator_pwm_t g_actuator_pwms[];
 
-static Actuators g_actuators = Actuators_init_zero;
+static synapse_msgs_Actuators g_actuators = synapse_msgs_Actuators_init_zero;
 
 static void listener_actuator_pwm_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_out_actuators) {
-        g_actuators = *(Actuators*)(chan->message);
+        g_actuators = *(synapse_msgs_Actuators*)(chan->message);
     }
 }
 
 ZBUS_LISTENER_DEFINE(listener_actuator_pwm, listener_actuator_pwm_callback);
 
-void actuator_pwm_entry_point(const struct shell* sh)
+void actuator_pwm_entry_point()
 {
 
     while (true) {
 
         for (int i = 0; i < CONFIG_ACTUATE_PWM_NUMBER; i++) {
-            actuator_pwm_t pwm = actuator_pwms[i];
+            actuator_pwm_t pwm = g_actuator_pwms[i];
             if (pwm.max < pwm.center || pwm.min > pwm.center) {
                 /*
                 printf("actuator_pwm: config pwm_%d min, center, "

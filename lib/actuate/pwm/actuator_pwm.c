@@ -11,7 +11,7 @@
 #if PWM_SHELL_NODE
 
 actuator_pwm_t actuator_pwms[] = {
-#if CONFIG_ACTUATE_NUMBER > 0
+#if CONFIG_ACTUATE_PWM_NUMBER > 0
     {
         .min = CONFIG_ACTUATE_PWM_PULSE_US_MIN_0,
         .max = CONFIG_ACTUATE_PWM_PULSE_US_MAX_0,
@@ -32,10 +32,10 @@ actuator_pwm_t actuator_pwms[] = {
         .intercept = 0,
 #endif
         .index = CONFIG_ACTUATE_PWM_INDEX_0,
-        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), CONFIG_ACTUATE_PWM_OUTPUT_0)),
+        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux0)),
     },
 #endif
-#if CONFIG_ACTUATE_NUMBER > 1
+#if CONFIG_ACTUATE_PWM_NUMBER > 1
     {
         .min = CONFIG_ACTUATE_PWM_PULSE_US_MIN_1,
         .max = CONFIG_ACTUATE_PWM_PULSE_US_MAX_1,
@@ -56,10 +56,10 @@ actuator_pwm_t actuator_pwms[] = {
         .intercept = 0,
 #endif
         .index = CONFIG_ACTUATE_PWM_INDEX_1,
-        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), CONFIG_ACTUATE_PWM_OUTPUT_1)),
+        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux1)),
     },
 #endif
-#if CONFIG_ACTUATE_NUMBER > 2
+#if CONFIG_ACTUATE_PWM_NUMBER > 2
     {
         .min = CONFIG_ACTUATE_PWM_PULSE_US_MIN_2,
         .max = CONFIG_ACTUATE_PWM_PULSE_US_MAX_2,
@@ -80,10 +80,10 @@ actuator_pwm_t actuator_pwms[] = {
         .intercept = 0,
 #endif
         .index = CONFIG_ACTUATE_PWM_INDEX_2,
-        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), CONFIG_ACTUATE_PWM_OUTPUT_2)),
+        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux2)),
     },
 #endif
-#if CONFIG_ACTUATE_NUMBER > 3
+#if CONFIG_ACTUATE_PWM_NUMBER > 3
     {
         .min = CONFIG_ACTUATE_PWM_PULSE_US_MIN_3,
         .max = CONFIG_ACTUATE_PWM_PULSE_US_MAX_3,
@@ -104,10 +104,10 @@ actuator_pwm_t actuator_pwms[] = {
         .intercept = 0,
 #endif
         .index = CONFIG_ACTUATE_PWM_INDEX_3,
-        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), CONFIG_ACTUATE_PWM_OUTPUT_3)),
+        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux3)),
     },
 #endif
-#if CONFIG_ACTUATE_NUMBER > 4
+#if CONFIG_ACTUATE_PWM_NUMBER > 4
     {
         .min = CONFIG_ACTUATE_PWM_PULSE_US_MIN_4,
         .max = CONFIG_ACTUATE_PWM_PULSE_US_MAX_4,
@@ -128,10 +128,10 @@ actuator_pwm_t actuator_pwms[] = {
         .intercept = 0,
 #endif
         .index = CONFIG_ACTUATE_PWM_INDEX_4,
-        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), CONFIG_ACTUATE_PWM_OUTPUT_4)),
+        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux4)),
     },
 #endif
-#if CONFIG_ACTUATE_NUMBER > 5
+#if CONFIG_ACTUATE_PWM_NUMBER > 5
     {
         .min = CONFIG_ACTUATE_PWM_PULSE_US_MIN_5,
         .max = CONFIG_ACTUATE_PWM_PULSE_US_MAX_5,
@@ -152,10 +152,10 @@ actuator_pwm_t actuator_pwms[] = {
         .intercept = 0,
 #endif
         .index = CONFIG_ACTUATE_PWM_INDEX_5,
-        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), CONFIG_ACTUATE_PWM_OUTPUT_5)),
+        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux5)),
     },
 #endif
-#if CONFIG_ACTUATE_NUMBER > 6
+#if CONFIG_ACTUATE_PWM_NUMBER > 6
     {
         .min = CONFIG_ACTUATE_PWM_PULSE_US_MIN_6,
         .max = CONFIG_ACTUATE_PWM_PULSE_US_MAX_6,
@@ -176,10 +176,10 @@ actuator_pwm_t actuator_pwms[] = {
         .intercept = 0,
 #endif
         .index = CONFIG_ACTUATE_PWM_INDEX_6,
-        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), CONFIG_ACTUATE_PWM_OUTPUT_6)),
+        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux6)),
     },
 #endif
-#if CONFIG_ACTUATE_NUMBER > 7
+#if CONFIG_ACTUATE_PWM_NUMBER > 7
     {
         .min = CONFIG_ACTUATE_PWM_PULSE_US_MIN_7,
         .max = CONFIG_ACTUATE_PWM_PULSE_US_MAX_7,
@@ -200,7 +200,7 @@ actuator_pwm_t actuator_pwms[] = {
         .intercept = 0,
 #endif
         .index = CONFIG_ACTUATE_PWM_INDEX_7,
-        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), CONFIG_ACTUATE_PWM_OUTPUT_7)),
+        .device = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux7)),
     },
 #endif
 };

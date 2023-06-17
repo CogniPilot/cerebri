@@ -11,7 +11,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>
 
-#define MY_STACK_SIZE 1024
+#define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
 
 #define PWM_SHELL_NODE DT_NODE_EXISTS(DT_NODELABEL(pwm_shell))
@@ -36,17 +36,19 @@ void actuator_pwm_entry_point(const struct shell* sh)
 
         for (int i = 0; i < CONFIG_ACTUATE_PWM_NUMBER; i++) {
             actuator_pwm_t pwm = actuator_pwms[i];
-            if (pwm.max < pwm.center || pwm.min > pwm.center || pwm.max > pwm.min) {
-                shell_print(sh, "actuator_pwm: config pwm_%d min, center, "
-                                "max must monotonically increase",
+            if (pwm.max < pwm.center || pwm.min > pwm.center) {
+                /*
+                printf("actuator_pwm: config pwm_%d min, center, "
+                                "max must monotonically increase\n",
                     i);
+                    */
                 continue;
             }
             uint16_t pulse = pwm.center;
             if (pwm.type == PWM_TYPE_NORMALIZED) {
                 float input = g_actuators.normalized[pwm.index];
                 if (input < -1 || input > 1) {
-                    shell_print(sh, "actuator_pwm: normalized input out of bounds");
+                    // printf("actuator_pwm: normalized input out of bounds\n");
                     continue;
                 }
                 if (input > 0) {
@@ -56,25 +58,27 @@ void actuator_pwm_entry_point(const struct shell* sh)
                 }
             } else if (pwm.type == PWM_TYPE_POSITION) {
                 float input = g_actuators.position[pwm.index];
-                float output = pwm.slope * input + pwm.intercept;
+                uint16_t output = (uint16_t)((pwm.slope * input) + pwm.intercept);
+                // printf("actuator_pwm: %s position index %d with input %f output %d\n", pwm.alias, pwm.index, input, output);
                 if (output > pwm.max) {
                     pulse = pwm.max;
-                    shell_print(sh, "actuator_pwm: position command saturated");
+                    // printf("actuator_pwm: %s  position command saturated, requested %d > %d\n", pwm.alias, output, pwm.max);
                 } else if (output < pwm.min) {
                     pulse = pwm.min;
-                    shell_print(sh, "actuator_pwm: position command saturated");
+                    // printf("actuator_pwm: %s  position command saturated, requested %d < %d\n", pwm.alias, output, pwm.min);
                 } else {
                     pulse = output;
                 }
             } else if (pwm.type == PWM_TYPE_VELOCITY) {
                 float input = g_actuators.velocity[pwm.index];
-                float output = pwm.slope * input + pwm.intercept;
+                uint16_t output = (uint16_t)((pwm.slope * input) + pwm.intercept);
+                // printf("actuator_pwm: %s  velocity index %d with input %f output %d\n", pwm.alias, pwm.index, input, output);
                 if (output > pwm.max) {
                     pulse = pwm.max;
-                    shell_print(sh, "actuator_pwm: velocity command saturated");
+                    // printf("actuator_pwm: %s velocity command saturated, requested %d > %d\n", pwm.alias, output, pwm.max);
                 } else if (output < pwm.min) {
                     pulse = pwm.min;
-                    shell_print(sh, "actuator_pwm: velocity command saturated");
+                    // printf("actuator_pwm: %s  velocity command saturated, requested %d < %d\n", pwm.alias, output, pwm.min);
                 } else {
                     pulse = output;
                 }
@@ -82,8 +86,8 @@ void actuator_pwm_entry_point(const struct shell* sh)
             int err = 0;
             err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pulse));
             if (err) {
-                shell_print(sh, "actuator_pwm: failed to set pulse %d on %s (err %d)",
-                    pulse, pwm.alias, err);
+                // printf("actuator_pwm: failed to set pulse %d on %s (err %d)\n",
+                //    pulse, pwm.alias, err);
             }
         }
 

@@ -3,28 +3,28 @@
 / {
 	pwm_shell: pwm_shell {
 		compatible = "pwm-leds";
-		aux1: aux1 {
+		aux0: aux0 {
 			pwms = <&flexpwm2_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
-		aux2: aux2 {
+		aux1: aux1 {
 			pwms = <&flexpwm2_pwm1 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
-		aux3: aux3 {
+		aux2: aux2 {
 			pwms = <&flexpwm2_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
-		aux4: aux4 {
+		aux3: aux3 {
 			pwms = <&flexpwm2_pwm3 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
-		aux5: aux5 {
+		aux4: aux4 {
 			pwms = <&flexpwm3_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
-		aux6: aux6 {
+		aux5: aux5 {
 			pwms = <&flexpwm3_pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
-		aux7: aux7 {
+		aux6: aux6 {
 			pwms = <&flexpwm4_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
-		aux8: aux8 {
+		aux7: aux7 {
 			pwms = <&flexpwm4_pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 	};

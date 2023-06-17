@@ -1,0 +1,9 @@
+# Copyright (c) 2023 CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+menu "Control"
+
+rsource "ackermann/Kconfig"
+rsource "diffdrive/Kconfig"
+
+endmenu

@@ -5,10 +5,9 @@
 # options can be defined here or included via other application Kconfig files.
 # You can browse these options using the west targets menuconfig (terminal) or
 # guiconfig (GUI).
-menu "Cerebri"
+mainmenu "CogniPilot - Cerebri - ELM4"
 source "Kconfig.zephyr"
-endmenu
 
-module = APP
-module-str = APP
+module = CEREBRI
+module-str = CEREBRI
 source "subsys/logging/Kconfig.template.log_config"

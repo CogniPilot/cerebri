@@ -26,7 +26,7 @@
 #include <synapse_tinyframe/TinyFrame.h>
 #include <synapse_tinyframe/utils.h>
 
-#include <synapse_zbus/channels.h>
+#include <synapse/zbus/channels.h>
 
 #include <zephyr/sys/ring_buffer.h>
 
@@ -57,7 +57,7 @@ static TinyFrame g_tf = {
 
 pthread_t thread1;
 
-void listener_sim_sitl_callback(const struct zbus_channel* chan)
+void listener_dream_sitl_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_out_actuators) {
         TF_Msg msg;
@@ -71,11 +71,11 @@ void listener_sim_sitl_callback(const struct zbus_channel* chan)
             msg.len = stream.bytes_written;
             TF_Send(&g_tf, &msg);
         } else {
-            printf("sim_sitl: encoding failed: %s\n", PB_GET_ERROR(&stream));
+            printf("dream_sitl: encoding failed: %s\n", PB_GET_ERROR(&stream));
         }
     }
 }
-ZBUS_LISTENER_DEFINE(listener_sim_sitl, listener_sim_sitl_callback);
+ZBUS_LISTENER_DEFINE(listener_dream_sitl, listener_dream_sitl_callback);
 
 static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
 {
@@ -87,7 +87,7 @@ static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
         g_sim_clock = msg;
         pthread_mutex_unlock(&g_lock_sim_clock);
     } else {
-        printf("sim_sitl: decoding failed: %s\n", PB_GET_ERROR(&stream));
+        printf("dream_sitl: decoding failed: %s\n", PB_GET_ERROR(&stream));
     }
     return TF_STAY;
 }
@@ -99,7 +99,7 @@ TF_Result generic_listener(TinyFrame* tf, TF_Msg* frame)
 
 void* native_sim_entry_point(void* data)
 {
-    printf("sim_sitl: sim core running\n");
+    printf("dream_sitl: sim core running\n");
 
     // setup tinyframe
     TF_AddGenericListener(&g_tf, generic_listener);
@@ -110,7 +110,7 @@ void* native_sim_entry_point(void* data)
 
     serv = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (serv < 0) {
-        printf("sim_sitl: error: socket: %d\n", errno);
+        printf("dream_sitl: error: socket: %d\n", errno);
         exit(1);
     }
 
@@ -125,20 +125,20 @@ void* native_sim_entry_point(void* data)
     bind_addr.sin_port = htons(BIND_PORT);
 
     if (bind(serv, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
-        printf("sim_sitl: bind() failed: %d\n", errno);
+        printf("dream_sitl: bind() failed: %d\n", errno);
         exit(1);
     }
 
     if (listen(serv, 5) < 0) {
-        printf("sim_sitl: error: listen: %d\n", errno);
+        printf("dream_sitl: error: listen: %d\n", errno);
         exit(1);
     }
 
-    printf("sim_sitl: listening to server on port: %d\n", BIND_PORT);
+    printf("dream_sitl: listening to server on port: %d\n", BIND_PORT);
 
     struct timespec remaining, request;
 
-    printf("sim_sitl: waiting for client connection\n");
+    printf("dream_sitl: waiting for client connection\n");
     while (true) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
@@ -156,7 +156,7 @@ void* native_sim_entry_point(void* data)
 
         inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
             addr_str, sizeof(addr_str));
-        printf("sim_sitl: connection #%d from %s\n", counter++, addr_str);
+        printf("dream_sitl: connection #%d from %s\n", counter++, addr_str);
 
         while (true) {
             // write received data to sim_rx_buf
@@ -184,7 +184,7 @@ void native_sim_stop_task(void)
 
 static void zephyr_sim_entry_point(void)
 {
-    printf("sim_sitl: zephyr sim entry point\n");
+    printf("dream_sitl: zephyr sim entry point\n");
     while (true) {
         int64_t uptime = k_uptime_get();
         int64_t sec = uptime / 1.0e3;

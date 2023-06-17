@@ -44,7 +44,7 @@ const char banner_name[] = "╔═══╗╔═══╗╔═══╗╔═�
                            "       ┗━━━┛┗━━━┛┗┛┗━┛┗━━━┛┗━━━┛┗┛┗━┛┗━━┛\n\033[0m";
 #endif
 
-LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
+LOG_MODULE_REGISTER(main, CONFIG_CEREBRI_LOG_LEVEL);
 
 static volatile int keepRunning = 1;
 
@@ -63,7 +63,7 @@ int main(void)
 #if defined(CONFIG_BOOT_BANNER)
     printf("%s%s\n", banner_brain, banner_name);
 #endif
-    printf("Cerebri %s\n", APP_VERSION_STR);
+    printf("Cerebri %s\n", APP_VERSION_STRING);
 
 #if defined(CONFIG_ARCH_POSIX)
     signal(SIGINT, intHandler);

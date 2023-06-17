@@ -1,0 +1,11 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config SYNAPSE_ETHERNET
+  bool "synapse ethernet interface"
+  help
+    This option enables the synapse ethernet interface
+
+if SYNAPSE_ETHERNET
+
+endif  # SYNAPSE_ETHERNET

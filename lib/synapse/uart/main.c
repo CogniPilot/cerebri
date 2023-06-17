@@ -2,25 +2,23 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
-#if defined(CONFIG_COMMUNICATE_SYNAPSE_ZBUS_UART)
-
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
-#include <zephyr/sys/printk.h>
 
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "common.h"
+#include "synapse/zbus/common.h"
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 5
 
 #define RX_BUF_SIZE 100
 
+static const char * module_name = "synapse_uart";
 static const struct device* const uart_dev = DEVICE_DT_GET(DT_ALIAS(telem1));
 
 static void write_uart(TinyFrame* tf, const uint8_t* buf, uint32_t len)
@@ -72,7 +70,7 @@ TOPIC_LISTENER(in_cmd_vel, Twist)
 TOPIC_LISTENER(in_joy, Joy)
 TOPIC_LISTENER(in_odometry, Odometry)
 
-void listener_synapse_zbus_uart_callback(const struct zbus_channel* chan)
+void listener_synapse_uart_callback(const struct zbus_channel* chan)
 {
     if (chan == NULL) { // start of if else statements for channel type
     }
@@ -81,7 +79,7 @@ void listener_synapse_zbus_uart_callback(const struct zbus_channel* chan)
     TOPIC_PUBLISHER(out_odometry, Odometry, SYNAPSE_OUT_ODOMETRY_TOPIC)
 }
 
-ZBUS_LISTENER_DEFINE(listener_synapse_zbus_uart, listener_synapse_zbus_uart_callback);
+ZBUS_LISTENER_DEFINE(listener_synapse_uart, listener_synapse_uart_callback);
 
 static void uart_entry_point(void)
 {
@@ -105,7 +103,7 @@ static void uart_entry_point(void)
     }
 #else // CONFIG_ARCH_POSIX
     if (!device_is_ready(uart_dev)) {
-        printk("UART device not found!");
+        printf("%s: UART device not found!", module_name);
         return;
     }
 
@@ -114,11 +112,11 @@ static void uart_entry_point(void)
 
     if (ret < 0) {
         if (ret == -ENOTSUP) {
-            printk("Interrupt-driven UART API support not enabled\n");
+            printf("%s: Interrupt-driven UART API support not enabled\n", module_name);
         } else if (ret == -ENOSYS) {
-            printk("UART device does not support interrupt-driven API\n");
+            printf("%s: UART device does not support interrupt-driven API\n", module_name);
         } else {
-            printk("Error setting UART callback: %d\n", ret);
+            printf("%s: Error setting UART callback: %d\n", module_name, ret);
         }
         return;
     }
@@ -131,8 +129,7 @@ static void uart_entry_point(void)
 #endif // CONFIG_ARCH_POSIX
 }
 
-K_THREAD_DEFINE(synapse_zbus_uart, MY_STACK_SIZE, uart_entry_point,
+K_THREAD_DEFINE(synapse_uart, MY_STACK_SIZE, uart_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
 
-#endif // defined(CONFIG_COMMUNICATE_SYNAPSE_ZBUS_UART)
 /* vi: ts=4 sw=4 et */

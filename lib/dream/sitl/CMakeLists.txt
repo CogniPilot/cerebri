@@ -1,7 +1,7 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-zephyr_library_named(sim_sitl)
+zephyr_library_named(dream_sitl)
 
 # we need to be able to include generated header files
 zephyr_include_directories()
@@ -19,6 +19,6 @@ zephyr_library_sources(
   ${SOURCE_FILES}
   )
 
-add_dependencies(sim_sitl synapse_protobuf)
+add_dependencies(dream_sitl synapse_protobuf)
 
 # vi: ts=2 sw=2 et

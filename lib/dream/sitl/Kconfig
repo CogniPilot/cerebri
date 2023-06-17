@@ -1,11 +1,11 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-config SIM_SITL
+config DREAM_SITL
   bool "enable sitl simulation"
   help
     This option enables the cerebri sitl sim
 
-if SIM_SITL
+if DREAM_SITL
 
-endif  # SIM_SITL
+endif  # DREAM_SITL

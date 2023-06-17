@@ -10,7 +10,7 @@
 
 #if PWM_SHELL_NODE
 
-actuator_pwm_t actuator_pwms[] = {
+actuator_pwm_t g_actuator_pwms[] = {
 #if CONFIG_ACTUATE_PWM_NUMBER > 0
     {
         .min = CONFIG_ACTUATE_PWM_PULSE_US_MIN_0,

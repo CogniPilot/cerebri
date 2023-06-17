@@ -36,7 +36,7 @@
 #define RX_BUF_SIZE 1024
 
 int64_t connect_time = 0;
-Clock g_sim_clock = Clock_init_default;
+synapse_msgs_Clock g_sim_clock = synapse_msgs_Clock_init_default;
 pthread_mutex_t g_lock_sim_clock;
 static int serv = 0;
 int client = 0;
@@ -64,7 +64,7 @@ void listener_dream_sitl_callback(const struct zbus_channel* chan)
         TF_ClearMsg(&msg);
         uint8_t buf[500];
         pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
-        int status = pb_encode(&stream, Actuators_fields, chan->message);
+        int status = pb_encode(&stream, synapse_msgs_Actuators_fields, chan->message);
         if (status) {
             msg.type = SYNAPSE_OUT_ACTUATORS_TOPIC;
             msg.data = buf;
@@ -79,9 +79,9 @@ ZBUS_LISTENER_DEFINE(listener_dream_sitl, listener_dream_sitl_callback);
 
 static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
 {
-    Clock msg = Clock_init_zero;
+    synapse_msgs_Clock msg = synapse_msgs_Clock_init_zero;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
-    int status = pb_decode(&stream, Clock_fields, &msg);
+    int status = pb_decode(&stream, synapse_msgs_Clock_fields, &msg);
     if (status) {
         pthread_mutex_lock(&g_lock_sim_clock);
         g_sim_clock = msg;
@@ -189,7 +189,7 @@ static void zephyr_sim_entry_point(void)
         int64_t uptime = k_uptime_get();
         int64_t sec = uptime / 1.0e3;
         int32_t nsec = (uptime - sec * 1e3) * 1e6;
-        Clock sim_clock;
+        synapse_msgs_Clock sim_clock;
 
         // fast forward zephyClock time to match sim
         pthread_mutex_lock(&g_lock_sim_clock);

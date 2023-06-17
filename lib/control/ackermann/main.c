@@ -27,10 +27,10 @@ char* mode_name[4] = { "init", "manual", "auto", "cmd_vel" };
 
 control_mode_t g_mode = { MODE_INIT };
 bool g_armed = false;
-static Odometry g_pose = Odometry_init_zero;
-static Twist g_cmd_vel = Twist_init_zero;
-static Joy g_joy = Joy_init_zero;
-static BezierTrajectory g_bezier_trajectory = BezierTrajectory_init_zero;
+static synapse_msgs_Odometry g_pose = synapse_msgs_Odometry_init_zero;
+static synapse_msgs_Twist g_cmd_vel = synapse_msgs_Twist_init_zero;
+static synapse_msgs_Joy g_joy = synapse_msgs_Joy_init_zero;
+static synapse_msgs_BezierTrajectory g_bezier_trajectory = synapse_msgs_BezierTrajectory_init_zero;
 
 static void handle_joy()
 {
@@ -71,14 +71,14 @@ static void handle_joy()
 static void listener_control_ackermann_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_in_joy) {
-        g_joy = *(Joy*)(chan->message);
+        g_joy = *(synapse_msgs_Joy*)(chan->message);
         handle_joy();
     } else if (chan == &chan_in_odometry) {
-        g_pose = *(Odometry*)(chan->message);
+        g_pose = *(synapse_msgs_Odometry*)(chan->message);
     } else if (g_mode == MODE_CMD_VEL && chan == &chan_in_cmd_vel) {
-        g_cmd_vel = *(Twist*)(chan->message);
+        g_cmd_vel = *(synapse_msgs_Twist*)(chan->message);
     } else if (chan == &chan_in_bezier_trajectory) {
-        g_bezier_trajectory = *(BezierTrajectory*)(chan->message);
+        g_bezier_trajectory = *(synapse_msgs_BezierTrajectory*)(chan->message);
     }
 }
 
@@ -89,7 +89,7 @@ void mixer()
 {
 
     // given cmd_vel, compute actuators
-    Actuators actuators = Actuators_init_zero;
+    synapse_msgs_Actuators actuators = synapse_msgs_Actuators_init_zero;
 
     double turn_angle = 0;
     double omega_fwd = 0;

@@ -42,8 +42,8 @@ static int stop_canbus(const actuator_vesc_can_t* actuator)
 {
     int err = can_stop(actuator->device);
     if (err != 0) {
-        printf("%s: %s - failed to stop (%d)\n", module_name,
-            actuator->bus_alias, err);
+        printf("%s: can%d - failed to stop (%d)\n", module_name,
+            actuator->bus_id, err);
         g_canbus_details[actuator->bus_id].ready = false;
         return err;
     }
@@ -61,7 +61,7 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
 
     // check if device ready
     if (!device_is_ready(vesc_canbus_init->device)) {
-        printf("%s: %s - device not ready\n", module_name, vesc_canbus_init->bus_alias);
+        printf("%s: can%d - device not ready\n", module_name, vesc_canbus_init->bus_id);
         g_canbus_details[vesc_canbus_init->bus_id].ready = false;
         return;
     }
@@ -69,8 +69,8 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
     // check state
     err = can_get_state(vesc_canbus_init->device, &state, &err_cnt);
     if (err != 0) {
-        printf("%s: %s - failed to get CAN controller state (%d)\n", module_name,
-            vesc_canbus_init->bus_alias, err);
+        printf("%s: can%d - failed to get CAN controller state (%d)\n", module_name,
+            vesc_canbus_init->bus_id, err);
         g_canbus_details[vesc_canbus_init->bus_id].ready = false;
         return;
     }
@@ -82,8 +82,8 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
         }
         err = can_set_mode(vesc_canbus_init->device, CAN_MODE_FD);
         if (err != 0) {
-            printf("%s: %s - set mode FD failed (%d)\n", module_name,
-                vesc_canbus_init->bus_alias, err);
+            printf("%s: can%d - set mode FD failed (%d)\n", module_name,
+                vesc_canbus_init->bus_id, err);
             stop_canbus(vesc_canbus_init);
             return;
         }
@@ -94,16 +94,16 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
 
         err = can_start(vesc_canbus_init->device);
         if (err != 0) {
-            printf("%s: %s - start failed\n", module_name,
-                vesc_canbus_init->bus_alias);
+            printf("%s: can%d - start failed\n", module_name,
+                vesc_canbus_init->bus_id);
             stop_canbus(vesc_canbus_init);
             return;
         }
     }
 
     g_canbus_details[vesc_canbus_init->bus_id].ready = true;
-    printf("%s: %s - connected and properly initialized.\n", module_name,
-        vesc_canbus_init->bus_alias);
+    printf("%s: can%d - connected and properly initialized.\n", module_name,
+        vesc_canbus_init->bus_id);
     return;
 }
 
@@ -118,6 +118,9 @@ void actuate_vesc_can_entry_point()
 
     while (true) {
 
+        // sleep to set control rate at 50 Hz
+        k_usleep(1e6 / 50);
+
         if (g_actuators.velocity_count < 1)
             continue;
 
@@ -128,13 +131,13 @@ void actuate_vesc_can_entry_point()
                 continue;
             }
             struct can_frame frame = {
-                .dlc = 4,
+                .dlc = can_bytes_to_dlc(4),
                 frame.flags = CAN_FRAME_IDE,
             };
-            if (vesc_can.fd) {
-                frame.flags = CAN_FRAME_FDF | CAN_FRAME_IDE;
-            }
-            uint32_t erpm = (uint32_t)(vesc_can.pole_pair * g_actuators.velocity[vesc_can.index] * 60 / (2 * M_PI));
+            // if (vesc_can.fd) {
+            //     frame.flags = CAN_FRAME_FDF | CAN_FRAME_IDE;
+            // }
+            int32_t erpm = vesc_can.pole_pair * g_actuators.velocity[vesc_can.index] * 60 / (2 * M_PI);
             frame.id = 768 + vesc_can.id;
             frame.data[0] = erpm >> 24 & 255;
             frame.data[1] = erpm >> 16 & 255;
@@ -145,13 +148,11 @@ void actuate_vesc_can_entry_point()
             err = can_send(vesc_can.device, &frame, K_NO_WAIT, NULL, NULL);
             if (err != 0) {
                 g_canbus_details[vesc_can.bus_id].ready = false;
-                printf("%s: %s - send failed to VESC ID: %d (%d)\n", module_name,
-                    vesc_can.bus_alias, vesc_can.id, err);
+                printf("%s: can%d - send failed to VESC ID: %d (%d)\n", module_name,
+                    vesc_can.bus_id, vesc_can.id, err);
                 continue;
             }
         }
-        // sleep to set control rate at 50 Hz
-        k_usleep(1e6 / 50);
     }
 }
 

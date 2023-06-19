@@ -7,7 +7,6 @@
 #include <zephyr/device.h>
 
 typedef struct actuator_vesc_can_t {
-    const char* bus_alias;
     bool fd;
     uint8_t id;
     uint8_t index;

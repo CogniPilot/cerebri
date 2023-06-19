@@ -72,6 +72,9 @@ ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
 #if defined(CONFIG_ACTUATE_PWM)
         listener_actuator_pwm,
 #endif
+#if defined(CONFIG_ACTUATE_VESC_CAN)
+        listener_actuate_vesc_can,
+#endif
 #if defined(CONFIG_DREAM_SITL)
         listener_dream_sitl,
 #endif

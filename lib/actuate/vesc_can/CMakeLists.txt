@@ -9,6 +9,7 @@ zephyr_include_directories()
 
 zephyr_library_sources(
   main.c
+  actuator_vesc_can.c
   )
 
 add_dependencies(actuator_vesc_can synapse_protobuf)

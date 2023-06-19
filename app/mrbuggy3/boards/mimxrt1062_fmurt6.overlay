@@ -76,3 +76,8 @@
 		zephyr,canbus = &flexcan3;
 	};
 };
+
+/ { aliases {
+		can0 = &flexcan3;
+	};
+};

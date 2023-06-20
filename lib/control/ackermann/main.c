@@ -16,6 +16,8 @@
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
 
+static const char* module_name = "control_ackermann";
+
 enum control_mode_t {
     MODE_INIT = 0,
     MODE_MANUAL = 1,
@@ -131,35 +133,61 @@ void mixer()
     zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
 }
 
+void stop()
+{
+    // stop
+    g_cmd_vel.linear.x = 0;
+    g_cmd_vel.angular.z = 0;
+}
+
 // computes thrust/steering in auto mode
 void auto_mode()
 {
     // goal -> given position goal, find cmd_vel
+    uint64_t time_start_nsec = g_bezier_trajectory.time_start;
+    uint64_t time_stop_nsec = time_start_nsec;
 
-    uint64_t time_start = g_bezier_trajectory.time_start;
-    uint64_t time_stop = g_bezier_trajectory.time_stop;
-
-    int64_t uptime = k_uptime_get() * 1e6;
-    int64_t T_nsec = time_stop - time_start;
-    int64_t t_nsec = uptime - time_start;
-    if (t_nsec > T_nsec) {
-        // stop
-        g_cmd_vel.linear.x = 0;
-        g_cmd_vel.angular.z = 0;
+    // get current time
+    int64_t time_nsec = k_uptime_get() * 1e6;
+    if (time_nsec < time_start_nsec) {
+        printf("%s: time out of range of trajectory\n", module_name);
+        stop();
         return;
     }
-    if (t_nsec < 0) {
-        t_nsec = 0;
+
+    // find current trajectory index, time_start, and time_stop
+    int curve_index = 0;
+    while (true) {
+
+        // check if time handled by current trajectory
+        if (time_nsec < g_bezier_trajectory.curves[curve_index].time_stop) {
+            time_stop_nsec = g_bezier_trajectory.curves[curve_index].time_stop;
+            if (curve_index > 0) {
+                time_start_nsec = g_bezier_trajectory.curves[curve_index - 1].time_stop;
+            }
+            break;
+        }
+
+        // next index
+        curve_index++;
+
+        // check if index exceeds bounds
+        if (curve_index >= g_bezier_trajectory.curves_count) {
+            printf("%s: time out of range of trajectory\n", module_name);
+            stop();
+            return;
+        }
     }
-    double t = t_nsec * 1e-9;
-    double T = T_nsec * 1e-9;
+
+    double T = (time_stop_nsec - time_start_nsec) * 1e-9;
+    double t = (time_nsec - time_start_nsec) * 1e-9;
     double x, y, psi, V, omega = 0;
     double e[3] = {}; // e_x, e_y, e_theta
 
     double PX[6], PY[6];
     for (int i = 0; i < 6; i++) {
-        PX[i] = g_bezier_trajectory.x[i];
-        PY[i] = g_bezier_trajectory.y[i];
+        PX[i] = g_bezier_trajectory.curves[curve_index].x[i];
+        PY[i] = g_bezier_trajectory.curves[curve_index].y[i];
     }
 
     // casadi mem args

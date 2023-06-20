@@ -1,0 +1,11 @@
+# Copyright (c) 2021 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+menu "Drivers"
+
+rsource "actuate/Kconfig"
+rsource "dream/Kconfig"
+rsource "sense/Kconfig"
+rsource "synapse/Kconfig"
+
+endmenu

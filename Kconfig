@@ -5,5 +5,33 @@
 # as the module Kconfig entry point (see zephyr/module.yml). You can browse
 # module options by going to Zephyr -> Modules in Kconfig.
 
-rsource "lib/Kconfig"
+menu "Version"
+
+config CEREBRI_APP_NAME
+  string "cerebri app name"
+  help
+    This cerebri app name
+
+config CEREBRI_VERSION_MAJOR
+  int "major version"
+  default 0
+  help
+    This cerebri major version
+
+config CEREBRI_VERSION_MINOR
+  int "minor version"
+  default 1
+  help
+    This cerebri minor version
+
+config CEREBRI_VERSION_PATCH
+  int "patch version"
+  default 0
+  help
+    This cerebri patch version
+
+endmenu
+
 rsource "drivers/Kconfig"
+rsource "lib/Kconfig"
+

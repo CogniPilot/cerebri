@@ -18,11 +18,11 @@ canbus_detail_t g_canbus_details[] = {
 actuator_vesc_can_t g_actuator_vesc_cans[] = {
 #if CONFIG_VESC_CAN_NUMBER > 0
     {
-        #ifdef CONFIG_VESC_CAN_BUS_FD_0
+#ifdef CONFIG_VESC_CAN_BUS_FD_0
         .fd = true,
-        #else
+#else
         .fd = false,
-        #endif
+#endif
         .id = CONFIG_VESC_CAN_ID_0,
         .index = CONFIG_VESC_CAN_ACTUATOR_VEL_IDX_0,
         .pole_pair = CONFIG_VESC_POLE_PAIR_0,
@@ -49,11 +49,11 @@ actuator_vesc_can_t g_actuator_vesc_cans[] = {
 #endif
 #if CONFIG_VESC_CAN_NUMBER > 1
     {
-        #ifdef CONFIG_VESC_CAN_BUS_FD_1
+#ifdef CONFIG_VESC_CAN_BUS_FD_1
         .fd = true,
-        #else
+#else
         .fd = false,
-        #endif
+#endif
         .id = CONFIG_VESC_CAN_ID_1,
         .index = CONFIG_VESC_CAN_ACTUATOR_VEL_IDX_1,
         .pole_pair = CONFIG_VESC_POLE_PAIR_1,
@@ -80,11 +80,11 @@ actuator_vesc_can_t g_actuator_vesc_cans[] = {
 #endif
 #if CONFIG_VESC_CAN_NUMBER > 2
     {
-        #ifdef CONFIG_VESC_CAN_BUS_FD_2
+#ifdef CONFIG_VESC_CAN_BUS_FD_2
         .fd = true,
-        #else
+#else
         .fd = false,
-        #endif
+#endif
         .id = CONFIG_VESC_CAN_ID_2,
         .index = CONFIG_VESC_CAN_ACTUATOR_VEL_IDX_2,
         .pole_pair = CONFIG_VESC_POLE_PAIR_2,
@@ -110,8 +110,7 @@ actuator_vesc_can_t g_actuator_vesc_cans[] = {
     },
 #endif
 #if CONFIG_VESC_CAN_NUMBER > 3
-    {
-        .fd = CONFIG_VESC_CAN_BUS_FD_3,
+    { .fd = CONFIG_VESC_CAN_BUS_FD_3,
         .id = CONFIG_VESC_CAN_ID_3,
         .index = CONFIG_VESC_CAN_ACTUATOR_VEL_IDX_3,
         .pole_pair = CONFIG_VESC_POLE_PAIR_3,
@@ -137,8 +136,7 @@ actuator_vesc_can_t g_actuator_vesc_cans[] = {
     },
 #endif
 #if CONFIG_VESC_CAN_NUMBER > 4
-    {
-        .fd = CONFIG_VESC_CAN_BUS_FD_4,
+    { .fd = CONFIG_VESC_CAN_BUS_FD_4,
         .id = CONFIG_VESC_CAN_ID_4,
         .index = CONFIG_VESC_CAN_ACTUATOR_VEL_IDX_4,
         .pole_pair = CONFIG_VESC_POLE_PAIR_4,
@@ -164,8 +162,7 @@ actuator_vesc_can_t g_actuator_vesc_cans[] = {
     },
 #endif
 #if CONFIG_VESC_CAN_NUMBER > 5
-    {
-        .fd = CONFIG_VESC_CAN_BUS_FD_5,
+    { .fd = CONFIG_VESC_CAN_BUS_FD_5,
         .id = CONFIG_VESC_CAN_ID_5,
         .index = CONFIG_VESC_CAN_ACTUATOR_VEL_IDX_5,
         .pole_pair = CONFIG_VESC_POLE_PAIR_5,
@@ -191,8 +188,7 @@ actuator_vesc_can_t g_actuator_vesc_cans[] = {
     },
 #endif
 #if CONFIG_VESC_CAN_NUMBER > 6
-    {
-        .fd = CONFIG_VESC_CAN_BUS_FD_6,
+    { .fd = CONFIG_VESC_CAN_BUS_FD_6,
         .id = CONFIG_VESC_CAN_ID_6,
         .index = CONFIG_VESC_CAN_ACTUATOR_VEL_IDX_6,
         .pole_pair = CONFIG_VESC_POLE_PAIR_6,
@@ -218,8 +214,7 @@ actuator_vesc_can_t g_actuator_vesc_cans[] = {
     },
 #endif
 #if CONFIG_VESC_CAN_NUMBER > 7
-    {
-        .fd = CONFIG_VESC_CAN_BUS_FD_7,
+    { .fd = CONFIG_VESC_CAN_BUS_FD_7,
         .id = CONFIG_VESC_CAN_ID_7,
         .index = CONFIG_VESC_CAN_ACTUATOR_VEL_IDX_7,
         .pole_pair = CONFIG_VESC_POLE_PAIR_7,

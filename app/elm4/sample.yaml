@@ -1,0 +1,10 @@
+sample:
+  description: ELM4
+  name: ELM4
+common:
+  build_only: true
+  integration_platforms:
+    - native_posix
+    - mimxrt1062_fmurt6
+tests:
+  elm4.default: {}

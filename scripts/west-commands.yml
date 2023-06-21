@@ -1,0 +1,21 @@
+west-commands:
+  - file: scripts/test_command.py
+    commands:
+      - name: test
+        class: TestCommand
+        help: runs tests on project
+  - file: scripts/format_command.py
+    commands:
+      - name: format
+        class: FormatCommand
+        help: runs code formatting
+  - file: scripts/tidy_command.py
+    commands:
+      - name: tidy
+        class: TidyCommand
+        help: runs clang tidy
+  - file: scripts/sitl_build_command.py
+    commands:
+      - name: sitl_build
+        class: SitlBuildCommand
+        help: sitl build

@@ -1,0 +1,17 @@
+# editors
+.vscode
+*.swp
+*~
+
+# python
+.venv
+
+# build
+build/
+install/
+
+__pycache__/
+
+manifest-tmp/
+twister-out*
+.cache/

@@ -1,0 +1,10 @@
+sample:
+  description: MrBuggy3
+  name: MrBuggy3
+common:
+  build_only: true
+  integration_platforms:
+    - native_posix
+    - mimxrt1062_fmurt6
+tests:
+  mrbuggy3.default: {}

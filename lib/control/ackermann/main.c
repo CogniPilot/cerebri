@@ -4,6 +4,7 @@
  */
 
 #include <math.h>
+#include <time.h>
 #include <zephyr/kernel.h>
 
 #include <stdio.h>
@@ -147,10 +148,18 @@ void auto_mode()
     uint64_t time_start_nsec = g_bezier_trajectory.time_start;
     uint64_t time_stop_nsec = time_start_nsec;
 
+    struct timespec tv;
+    int err = clock_gettime(CLOCK_REALTIME, &tv);
+    if (err < 0) {
+        printf("%s: failed to get clock time\n", module_name);
+        stop();
+        return;
+    }
+
     // get current time
-    int64_t time_nsec = k_uptime_get() * 1e6;
+    uint64_t time_nsec = tv.tv_sec * 1e9 + tv.tv_nsec;
     if (time_nsec < time_start_nsec) {
-        printf("%s: time out of range of trajectory\n", module_name);
+        printf("%s: time current: %lld ns < time start: %lld ns, time out of range of trajectory\n", module_name, time_nsec, time_start_nsec);
         stop();
         return;
     }
@@ -173,7 +182,7 @@ void auto_mode()
 
         // check if index exceeds bounds
         if (curve_index >= g_bezier_trajectory.curves_count) {
-            printf("%s: time out of range of trajectory\n", module_name);
+            //printf("%s: time out of range of trajectory\n", module_name);
             stop();
             return;
         }

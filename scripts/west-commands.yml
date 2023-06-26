@@ -14,3 +14,8 @@ west-commands:
       - name: tidy
         class: TidyCommand
         help: runs clang tidy
+  - file: scripts/sitl_build_command.py
+    commands:
+      - name: sitl_build
+        class: SitlBuildCommand
+        help: sitl build

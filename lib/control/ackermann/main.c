@@ -159,7 +159,11 @@ void auto_mode()
     // get current time
     uint64_t time_nsec = tv.tv_sec * 1e9 + tv.tv_nsec;
     if (time_nsec < time_start_nsec) {
+#ifdef CONFIG_NEWLIB_LIBC
         printf("%s: time current: %lld ns < time start: %lld ns, time out of range of trajectory\n", module_name, time_nsec, time_start_nsec);
+#else
+        printf("%s: time current: %ld ns < time start: %ld ns, time out of range of trajectory\n", module_name, time_nsec, time_start_nsec);
+#endif
         stop();
         return;
     }

@@ -33,7 +33,7 @@ class FormatCommand(WestCommand):
                                          description=self.description)
 
         # Add some example options using the standard argparse module API.
-        #parser.add_argument('-o', '--optional', help='an optional argument')
+        parser.add_argument('-c', '--check', help='run formatting in check mode', action='store_true')
         #parser.add_argument('required', help='a required argument')
 
         return parser           # gets stored as self.parser
@@ -49,17 +49,20 @@ class FormatCommand(WestCommand):
         log.inf('running clang-format')
 
         regex = re.compile('(.*\.c$)|(.*\.cpp$)|(.*\.h$)|(.*\.hpp$)')
+        format_ok = True
 
-        def format_dir_files(path):
+        for path in cerebri_common.source_paths:
             for root, dirs, files in os.walk(path):
                 for file in files:
                     if regex.match(file):
                         file_path = os.path.join(root, file)
-                        cmd_str = f'\tclang-format -i -style WebKit {file_path}'
-                        print(cmd_str)
-                        subprocess.run(cmd_str, shell=True)
-
-        for path in cerebri_common.source_paths:
-            print(f'formatting {path}')
-            format_dir_files(path)
-
+                        if args.check:
+                            cmd_str = ['clang-format', '--dry-run', '--Werror', '-style', 'WebKit', f'{file_path}']
+                        else:
+                            cmd_str = ['clang-format', '-i', '-style', 'WebKit', f'{file_path}']
+                        try:
+                            res = subprocess.run(cmd_str, capture_output=False, check=True)
+                        except Exception as e:
+                            format_ok = False
+        if not format_ok:
+            exit(1)

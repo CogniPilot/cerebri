@@ -12,14 +12,22 @@ manifest:
   projects:
     - name: zephyr
       url: https://github.com/CogniPilot/Zephyr
+      clone-depth: 1
       west-commands: scripts/west-commands.yml
       revision: dev
-      import: true
+      import:
+        - name-allowlist:
+          - nanopb
+          - mbedtls
+          - hal_nxp
+          - cmsis
     - name: synapse_tinyframe
       url: https://github.com/CogniPilot/synapse_tinyframe
+      clone-depth: 1
       revision: main
       path: modules/lib/synapse_tinyframe
     - name: synapse_protobuf
       url: https://github.com/CogniPilot/synapse_protobuf
+      clone-depth: 1
       revision: main
       path: modules/lib/synapse_protobuf

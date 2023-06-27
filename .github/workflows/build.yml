@@ -26,7 +26,11 @@ jobs:
           west init -l .
           west update
 
-      # this also builds the firmware
+      - name: Format Check
+        working-directory: example-application
+        run: |
+          west format -c
+
       - name: Twister Tests
         working-directory: example-application
         run: |

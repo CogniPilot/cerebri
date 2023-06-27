@@ -21,7 +21,7 @@ install(PROGRAMS ${CMAKE_BINARY_DIR}/zephyr/zephyr.exe
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 	RENAME cerebri_${CONFIG_CEREBRI_APP_NAME}_${BOARD} OPTIONAL)
 
-install(FILES ${CMAKE_SOURCE_DIR}/../../scripts/setup.bash
+install(FILES ${CMAKE_SOURCE_DIR}/../../scripts/setup.sh
 	DESTINATION ${CMAKE_INSTALL_PREFIX})
 
 

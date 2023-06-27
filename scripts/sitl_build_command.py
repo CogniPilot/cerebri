@@ -49,5 +49,5 @@ Runs twister and other tests as necessary
         #log.inf('required is', args.app)
 
         log.inf('sitl build and install')
-        cmd_str = f'west build {args.app:s} -t install -D CMAKE_INSTALL_PREFIX=$HOME'
-        subprocess.run(cmd_str, shell=True)
+        cmd_str = ['west', 'build', f'{args.app:s}', '-t', 'install', '-D', 'CMAKE_INSTALL_PREFIX=$HOME']
+        subprocess.run(cmd_str, shell=False)

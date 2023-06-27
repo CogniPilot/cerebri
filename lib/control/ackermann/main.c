@@ -186,7 +186,7 @@ void auto_mode()
 
         // check if index exceeds bounds
         if (curve_index >= g_bezier_trajectory.curves_count) {
-            //printf("%s: time out of range of trajectory\n", module_name);
+            // printf("%s: time out of range of trajectory\n", module_name);
             stop();
             return;
         }

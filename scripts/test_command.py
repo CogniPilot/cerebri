@@ -48,11 +48,12 @@ Runs twister and other tests as necessary
         #log.inf('--optional is', args.optional)
         #log.inf('required is', args.required)
 
-        log.inf('building firmware')
-        cmd_str = 'west twister -T app -v --inline-logs --integration'
-        subprocess.run(cmd_str, shell=True)
+        cmd_str = ['west', 'twister', '-T', 'app', '-v', '--inline-logs', '--integration']
+        res = subprocess.run(cmd_str, check=True)
 
         #log.inf('running unit tests')
         #cmd_str = 'west twister -T tests --integration'
-        #subprocess.run(cmd_str, shell=True)
+        #subprocess.run(cmd_str)
 
+        if (res.returncode != 0):
+            exit(res.returncode)

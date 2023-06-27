@@ -55,7 +55,7 @@ class TidyCommand(WestCommand):
                 for file in files:
                     if regex.match(file):
                         file_path = os.path.join(root, file)
-                        cmd_str = f'\tclang-tidy -p build/ {file_path}'
+                        cmd_str = ['clang-tidy', '-p', 'build/', f'{file_path}']
                         print(cmd_str)
                         subprocess.run(cmd_str, shell=True)
 

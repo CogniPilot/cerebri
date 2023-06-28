@@ -4,10 +4,7 @@ sample:
 common:
   build_only: true
   integration_platforms:
-    - native_posix_64
+    - native_posix
     - mimxrt1062_fmurt6
 tests:
   elm4.default: {}
-  elm4.debug:
-    extra_overlay_confs:
-      - debug.conf

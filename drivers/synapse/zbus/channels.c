@@ -22,6 +22,20 @@ ZBUS_CHAN_DEFINE(chan_in_bezier_trajectory, // Name
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
+ZBUS_CHAN_DEFINE(chan_in_clock_offset, // Name
+    synapse_msgs_Timestamp, // Message type
+    NULL, // Validator
+    NULL, // User Data
+    ZBUS_OBSERVERS(
+#if defined(CONFIG_CONTROL_ACKERMANN)
+        listener_control_ackermann,
+#elif defined(CONFIG_CONTROL_DIFFDRIVE)
+        listener_control_diffdrive,
+#endif
+        ), // observers
+    ZBUS_MSG_INIT(0) // Initial value {0}
+);
+
 ZBUS_CHAN_DEFINE(chan_in_cmd_vel, // Name
     synapse_msgs_Twist, // Message type
     NULL, // Validator
@@ -59,6 +73,18 @@ ZBUS_CHAN_DEFINE(chan_in_odometry, // Name
         listener_control_ackermann,
 #elif defined(CONFIG_CONTROL_DIFFDRIVE)
         listener_control_diffdrive,
+#endif
+        ), // observers
+    ZBUS_MSG_INIT(0) // Initial value {0}
+);
+
+ZBUS_CHAN_DEFINE(chan_in_nav_sat_fix, // Name
+    synapse_msgs_NavSatFix, // Message type
+    NULL, // Validator
+    NULL, // User Data
+    ZBUS_OBSERVERS(
+#if defined(CONFIG_ESTIMATE_IEKF)
+        listener_estimate_iekf,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}

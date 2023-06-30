@@ -1,8 +1,8 @@
 # Copyright (c) 2023 CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-menu "Estimator"
+menu "Estimate"
 
-#rsource "example/Kconfig"
+rsource "iekf/Kconfig"
 
 endmenu

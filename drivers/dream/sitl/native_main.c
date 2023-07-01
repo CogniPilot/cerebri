@@ -11,10 +11,13 @@
 #include <sys/socket.h>
 
 #include <pb_decode.h>
-#include <synapse_protobuf/clock.pb.h>
+#include <synapse_protobuf/imu.pb.h>
 #include <synapse_protobuf/nav_sat_fix.pb.h>
+#include <synapse_protobuf/sim_clock.pb.h>
 #include <synapse_tinyframe/SynapseTopics.h>
 #include <synapse_tinyframe/TinyFrame.h>
+
+#include <zephyr/sys/ring_buffer.h>
 
 #define BIND_PORT 4241
 #define RX_BUF_SIZE 1024
@@ -42,31 +45,34 @@ void write_sim(TinyFrame* tf, const uint8_t* buf, uint32_t len)
     }
 }
 
+RING_BUF_DECLARE(g_msg_updates, 120);
+
 // mutex locking is not necessary, as this is single threaded
 // and all consumers can only run while this process is sleeping
-synapse_msgs_Clock g_sim_clock = synapse_msgs_Clock_init_default;
+synapse_msgs_SimClock g_sim_clock = synapse_msgs_SimClock_init_default;
 bool g_clock_initialized = false;
-synapse_msgs_Timestamp g_clock_offset = synapse_msgs_Timestamp_init_default;
+synapse_msgs_Time g_clock_offset = synapse_msgs_Time_init_default;
 TinyFrame g_tf = {
     .peer_bit = TF_MASTER,
     .write = write_sim,
     .userdata = &g_priv.client,
 };
 synapse_msgs_NavSatFix g_in_nav_sat_fix = synapse_msgs_NavSatFix_init_default;
+synapse_msgs_Imu g_in_imu = synapse_msgs_Imu_init_default;
 
 static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
 {
-    synapse_msgs_Clock msg = synapse_msgs_Clock_init_zero;
+    synapse_msgs_SimClock msg = synapse_msgs_SimClock_init_zero;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
-    int status = pb_decode(&stream, synapse_msgs_Clock_fields, &msg);
+    int status = pb_decode(&stream, synapse_msgs_SimClock_fields, &msg);
     if (status) {
         g_sim_clock = msg;
         if (!g_clock_initialized) {
             g_clock_initialized = true;
             printf("%s: sim clock received sec: %lld nsec: %d\n",
-                g_priv.module_name, msg.sim.sec, msg.sim.nsec);
-            g_clock_offset.seconds = msg.sim.sec;
-            g_clock_offset.nanos = msg.sim.nsec;
+                g_priv.module_name, msg.sim.sec, msg.sim.nanosec);
+            g_clock_offset.sec = msg.sim.sec;
+            g_clock_offset.nanosec = msg.sim.nanosec;
         }
     } else {
         printf("dream_sitl: sim_clock decoding failed: %s\n", PB_GET_ERROR(&stream));
@@ -81,8 +87,26 @@ static TF_Result sim_nav_sat_fix_listener(TinyFrame* tf, TF_Msg* frame)
     int status = pb_decode(&stream, synapse_msgs_NavSatFix_fields, &msg);
     if (status) {
         g_in_nav_sat_fix = msg;
+        uint8_t topic = SYNAPSE_IN_NAVSAT_TOPIC;
+        ring_buf_put(&g_msg_updates, &topic, 1);
     } else {
         printf("%s: sim_clock decoding failed: %s\n",
+            g_priv.module_name, PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
+static TF_Result sim_imu_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    synapse_msgs_Imu msg = synapse_msgs_Imu_init_zero;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int status = pb_decode(&stream, synapse_msgs_Imu_fields, &msg);
+    if (status) {
+        g_in_imu = msg;
+        uint8_t topic = SYNAPSE_IN_IMU_TOPIC;
+        ring_buf_put(&g_msg_updates, &topic, 1);
+    } else {
+        printf("%s: sim_imudecoding failed: %s\n",
             g_priv.module_name, PB_GET_ERROR(&stream));
     }
     return TF_STAY;
@@ -99,8 +123,9 @@ void* native_sim_entry_point(void* data)
 
     // setup tinyframe
     TF_AddGenericListener(&g_tf, generic_listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IN_SIM_CLOCK_TOPIC, sim_clock_listener);
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_NAVSAT_TOPIC, sim_nav_sat_fix_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IN_IMU_TOPIC, sim_imu_listener);
     struct sockaddr_in bind_addr;
     static int counter;
 

@@ -34,7 +34,7 @@ static synapse_msgs_Odometry g_pose = synapse_msgs_Odometry_init_zero;
 static synapse_msgs_Twist g_cmd_vel = synapse_msgs_Twist_init_zero;
 static synapse_msgs_Joy g_joy = synapse_msgs_Joy_init_zero;
 static synapse_msgs_BezierTrajectory g_bezier_trajectory = synapse_msgs_BezierTrajectory_init_zero;
-static synapse_msgs_Timestamp g_clock_offset = synapse_msgs_Timestamp_init_zero;
+static synapse_msgs_Time g_clock_offset = synapse_msgs_Time_init_zero;
 
 static void handle_joy()
 {
@@ -84,7 +84,7 @@ static void listener_control_ackermann_callback(const struct zbus_channel* chan)
     } else if (chan == &chan_in_bezier_trajectory) {
         g_bezier_trajectory = *(synapse_msgs_BezierTrajectory*)(chan->message);
     } else if (chan == &chan_in_clock_offset) {
-        g_clock_offset = *(synapse_msgs_Timestamp*)(chan->message);
+        g_clock_offset = *(synapse_msgs_Time*)(chan->message);
     }
 }
 
@@ -152,7 +152,7 @@ void auto_mode()
     uint64_t time_stop_nsec = time_start_nsec;
 
     // get current time
-    uint64_t time_nsec = k_uptime_get() * 1e6 + g_clock_offset.seconds * 1e9 + g_clock_offset.nanos;
+    uint64_t time_nsec = k_uptime_get() * 1e6 + g_clock_offset.sec * 1e9 + g_clock_offset.nanosec;
 
     if (time_nsec < time_start_nsec) {
         printf("%s: time current: %lld ns < time start: %lld ns, time out of range of trajectory\n", module_name, time_nsec, time_start_nsec);

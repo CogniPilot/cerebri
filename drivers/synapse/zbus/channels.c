@@ -23,7 +23,7 @@ ZBUS_CHAN_DEFINE(chan_in_bezier_trajectory, // Name
 );
 
 ZBUS_CHAN_DEFINE(chan_in_clock_offset, // Name
-    synapse_msgs_Timestamp, // Message type
+    synapse_msgs_Time, // Message type
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
@@ -45,6 +45,18 @@ ZBUS_CHAN_DEFINE(chan_in_cmd_vel, // Name
         listener_control_ackermann,
 #elif defined(CONFIG_CONTROL_DIFFDRIVE)
         listener_control_diffdrive,
+#endif
+        ), // observers
+    ZBUS_MSG_INIT(0) // Initial value {0}
+);
+
+ZBUS_CHAN_DEFINE(chan_in_imu, // Name
+    synapse_msgs_Imu, // Message type
+    NULL, // Validator
+    NULL, // User Data
+    ZBUS_OBSERVERS(
+#if defined(CONFIG_DREAM_SITL)
+        listener_dream_sitl,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}

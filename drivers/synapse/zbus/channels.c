@@ -8,6 +8,20 @@ ZBUS_CHAN_DEFINE(chan_in_actuators, // Name
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
+ZBUS_CHAN_DEFINE(chan_in_battery_state, // Name
+    synapse_msgs_BatteryState, // Message type
+    NULL, // Validator
+    NULL, // User Data
+    ZBUS_OBSERVERS(
+#if defined(CONFIG_CONTROL_ACKERMANN)
+        listener_control_ackermann,
+#elif defined(CONFIG_CONTROL_DIFFDRIVE)
+        listener_control_diffdrive,
+#endif
+        ), // observers
+    ZBUS_MSG_INIT(0) // Initial value {0}
+);
+
 ZBUS_CHAN_DEFINE(chan_in_bezier_trajectory, // Name
     synapse_msgs_BezierTrajectory, // Message type
     NULL, // Validator

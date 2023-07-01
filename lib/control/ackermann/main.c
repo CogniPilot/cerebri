@@ -17,7 +17,7 @@
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
 
-static const char* module_name = "control_ackermann";
+static const char* g_module_name = "control_ackermann";
 
 enum control_mode_t {
     MODE_INIT = 0,
@@ -26,7 +26,7 @@ enum control_mode_t {
     MODE_CMD_VEL = 3,
 };
 typedef enum control_mode_t control_mode_t;
-char* mode_name[4] = { "init", "manual", "auto", "cmd_vel" };
+char* g_mode_name[4] = { "init", "manual", "auto", "cmd_vel" };
 
 control_mode_t g_mode = { MODE_INIT };
 bool g_armed = false;
@@ -35,19 +35,21 @@ static synapse_msgs_Twist g_cmd_vel = synapse_msgs_Twist_init_zero;
 static synapse_msgs_Joy g_joy = synapse_msgs_Joy_init_zero;
 static synapse_msgs_BezierTrajectory g_bezier_trajectory = synapse_msgs_BezierTrajectory_init_zero;
 static synapse_msgs_Time g_clock_offset = synapse_msgs_Time_init_zero;
+static synapse_msgs_BatteryState g_battery_state = synapse_msgs_BatteryState_init_zero;
 
 static void handle_joy()
 {
     // arming
     if (g_joy.buttons[7] == 1 && !g_armed) {
         if (g_mode == MODE_INIT) {
-            printf("Cannot arm until mode selected.\n");
+            printf("%s: cannot arm until mode selected\n", g_module_name);
             return;
         }
-        printf("Armed in mode: %s\n", mode_name[g_mode]);
+        printf("%s: armed in mode: %s\n", g_module_name, g_mode_name[g_mode]);
+        printf("%s: battery voltage: %f\n", g_module_name, g_battery_state.voltage);
         g_armed = true;
     } else if (g_joy.buttons[6] == 1 && g_armed) {
-        printf("Disarmed\n");
+        printf("%s: disarmed\n", g_module_name);
         g_armed = false;
         g_mode = MODE_INIT;
     }
@@ -57,18 +59,14 @@ static void handle_joy()
     if (g_joy.buttons[0] == 1) {
         g_mode = MODE_MANUAL;
     } else if (g_joy.buttons[1] == 1) {
-        if (g_bezier_trajectory.time_start != 0) {
-            g_mode = MODE_AUTO;
-        } else {
-            printf("Auto mode rejected: no valid trajectory\n");
-        }
+        g_mode = MODE_AUTO;
     } else if (g_joy.buttons[2] == 1) {
         g_mode = MODE_CMD_VEL;
     }
 
     // notify on mode change
     if (g_mode != prev_mode) {
-        printf("Mode changed to: %s!\n", mode_name[g_mode]);
+        printf("%s: mode changed to: %s!\n", g_module_name, g_mode_name[g_mode]);
     }
 }
 
@@ -85,6 +83,8 @@ static void listener_control_ackermann_callback(const struct zbus_channel* chan)
         g_bezier_trajectory = *(synapse_msgs_BezierTrajectory*)(chan->message);
     } else if (chan == &chan_in_clock_offset) {
         g_clock_offset = *(synapse_msgs_Time*)(chan->message);
+    } else if (chan == &chan_in_battery_state) {
+        g_battery_state = *(synapse_msgs_BatteryState*)(chan->message);
     }
 }
 
@@ -155,7 +155,7 @@ void auto_mode()
     uint64_t time_nsec = k_uptime_get() * 1e6 + g_clock_offset.sec * 1e9 + g_clock_offset.nanosec;
 
     if (time_nsec < time_start_nsec) {
-        printf("%s: time current: %lld ns < time start: %lld ns, time out of range of trajectory\n", module_name, time_nsec, time_start_nsec);
+        printf("%s: time current: %lld ns < time start: %lld ns, time out of range of trajectory\n", g_module_name, time_nsec, time_start_nsec);
         stop();
         return;
     }
@@ -178,7 +178,7 @@ void auto_mode()
 
         // check if index exceeds bounds
         if (curve_index >= g_bezier_trajectory.curves_count) {
-            // printf("%s: time out of range of trajectory\n", module_name);
+            // printf("%s: time out of range of trajectory\n", g_module_name);
             stop();
             return;
         }

@@ -30,6 +30,7 @@ extern TinyFrame g_tf;
 extern bool g_clock_initialized;
 extern synapse_msgs_Time g_clock_offset;
 extern synapse_msgs_NavSatFix g_in_nav_sat_fix;
+extern synapse_msgs_BatteryState g_in_battery_state;
 extern synapse_msgs_Imu g_in_imu;
 extern struct ring_buf g_msg_updates;
 
@@ -89,6 +90,8 @@ static void zephyr_sim_entry_point(void)
                 // zbus_chan_pub(&chan_in_mag, &g_in_mag, K_NO_WAIT);
             } else if (topic == SYNAPSE_IN_IMU_TOPIC) {
                 zbus_chan_pub(&chan_in_imu, &g_in_imu, K_NO_WAIT);
+            } else if (topic == SYNAPSE_IN_BATTERY_STATE_TOPIC) {
+                zbus_chan_pub(&chan_in_battery_state, &g_in_battery_state, K_NO_WAIT);
             }
         }
 

@@ -4,6 +4,7 @@
 #include <zephyr/zbus/zbus.h>
 
 #include "synapse_protobuf/actuators.pb.h"
+#include "synapse_protobuf/battery_state.pb.h"
 #include "synapse_protobuf/bezier_trajectory.pb.h"
 #include "synapse_protobuf/imu.pb.h"
 #include "synapse_protobuf/joy.pb.h"
@@ -13,6 +14,7 @@
 #include "synapse_protobuf/twist.pb.h"
 
 ZBUS_CHAN_DECLARE(chan_in_actuators);
+ZBUS_CHAN_DECLARE(chan_in_battery_state);
 ZBUS_CHAN_DECLARE(chan_in_bezier_trajectory);
 ZBUS_CHAN_DECLARE(chan_in_clock_offset);
 ZBUS_CHAN_DECLARE(chan_in_cmd_vel);

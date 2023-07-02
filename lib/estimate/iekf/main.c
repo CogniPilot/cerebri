@@ -19,6 +19,7 @@ static const char* module_name = "estimate_iekf";
 static synapse_msgs_NavSatFix g_nav_sat_fix = synapse_msgs_NavSatFix_init_default;
 static synapse_msgs_Imu g_imu = synapse_msgs_Imu_init_default;
 static synapse_msgs_MagneticField g_mag = synapse_msgs_MagneticField_init_default;
+static synapse_msgs_Altimeter g_alt = synapse_msgs_Altimeter_init_default;
 
 void listener_estimate_iekf_callback(const struct zbus_channel* chan)
 {
@@ -26,6 +27,8 @@ void listener_estimate_iekf_callback(const struct zbus_channel* chan)
         g_nav_sat_fix = *(synapse_msgs_NavSatFix*)(chan->message);
     } else if (chan == &chan_in_imu) {
         g_imu = *(synapse_msgs_Imu*)(chan->message);
+    } else if (chan == &chan_in_altimeter) {
+        g_alt = *(synapse_msgs_Altimeter*)(chan->message);
     }
 }
 
@@ -60,6 +63,11 @@ void estimate_iekf_entry_point(void* p1, void* p2, void* p3)
             g_imu.angular_velocity.x,
             g_imu.angular_velocity.y,
             g_imu.angular_velocity.z);
+
+        // altimeter
+        printf("%s: alt z: %15.7f\n",
+            module_name,
+            g_alt.vertical_position);
     }
 }
 

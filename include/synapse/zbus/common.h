@@ -17,7 +17,7 @@
 #define TOPIC_LISTENER(CHANNEL, CLASS)                                           \
     static TF_Result CHANNEL##_Listener(TinyFrame* tf, TF_Msg* frame)            \
     {                                                                            \
-        CLASS msg = CLASS##_init_zero;                                           \
+        CLASS msg = CLASS##_init_default;                                        \
         pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);   \
         int status = pb_decode(&stream, CLASS##_fields, &msg);                   \
         if (status) {                                                            \

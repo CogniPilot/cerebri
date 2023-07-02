@@ -30,12 +30,12 @@ char* g_mode_name[4] = { "init", "manual", "auto", "cmd_vel" };
 
 control_mode_t g_mode = { MODE_INIT };
 bool g_armed = false;
-static synapse_msgs_Odometry g_pose = synapse_msgs_Odometry_init_zero;
-static synapse_msgs_Twist g_cmd_vel = synapse_msgs_Twist_init_zero;
-static synapse_msgs_Joy g_joy = synapse_msgs_Joy_init_zero;
-static synapse_msgs_BezierTrajectory g_bezier_trajectory = synapse_msgs_BezierTrajectory_init_zero;
-static synapse_msgs_Time g_clock_offset = synapse_msgs_Time_init_zero;
-static synapse_msgs_BatteryState g_battery_state = synapse_msgs_BatteryState_init_zero;
+static synapse_msgs_Odometry g_pose = synapse_msgs_Odometry_init_default;
+static synapse_msgs_Twist g_cmd_vel = synapse_msgs_Twist_init_default;
+static synapse_msgs_Joy g_joy = synapse_msgs_Joy_init_default;
+static synapse_msgs_BezierTrajectory g_bezier_trajectory = synapse_msgs_BezierTrajectory_init_default;
+static synapse_msgs_Time g_clock_offset = synapse_msgs_Time_init_default;
+static synapse_msgs_BatteryState g_battery_state = synapse_msgs_BatteryState_init_default;
 
 static void handle_joy()
 {
@@ -95,7 +95,7 @@ void mixer()
 {
 
     // given cmd_vel, compute actuators
-    synapse_msgs_Actuators actuators = synapse_msgs_Actuators_init_zero;
+    synapse_msgs_Actuators actuators = synapse_msgs_Actuators_init_default;
 
     double turn_angle = 0;
     double omega_fwd = 0;

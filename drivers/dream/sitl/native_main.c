@@ -11,10 +11,14 @@
 #include <sys/socket.h>
 
 #include <pb_decode.h>
+
+#include <synapse_protobuf/altimeter.pb.h>
 #include <synapse_protobuf/battery_state.pb.h>
 #include <synapse_protobuf/imu.pb.h>
+#include <synapse_protobuf/magnetic_field.pb.h>
 #include <synapse_protobuf/nav_sat_fix.pb.h>
 #include <synapse_protobuf/sim_clock.pb.h>
+
 #include <synapse_tinyframe/SynapseTopics.h>
 #include <synapse_tinyframe/TinyFrame.h>
 
@@ -60,11 +64,13 @@ TinyFrame g_tf = {
 };
 synapse_msgs_NavSatFix g_in_nav_sat_fix = synapse_msgs_NavSatFix_init_default;
 synapse_msgs_Imu g_in_imu = synapse_msgs_Imu_init_default;
+synapse_msgs_MagneticField g_in_magnetic_field = synapse_msgs_MagneticField_init_default;
 synapse_msgs_BatteryState g_in_battery_state = synapse_msgs_BatteryState_init_default;
+synapse_msgs_Altimeter g_in_altimeter = synapse_msgs_Altimeter_init_default;
 
 static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
 {
-    synapse_msgs_SimClock msg = synapse_msgs_SimClock_init_zero;
+    synapse_msgs_SimClock msg = synapse_msgs_SimClock_init_default;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
     int status = pb_decode(&stream, synapse_msgs_SimClock_fields, &msg);
     if (status) {
@@ -84,12 +90,12 @@ static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
 
 static TF_Result nav_sat_fix_listener(TinyFrame* tf, TF_Msg* frame)
 {
-    synapse_msgs_NavSatFix msg = synapse_msgs_NavSatFix_init_zero;
+    synapse_msgs_NavSatFix msg = synapse_msgs_NavSatFix_init_default;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
     int status = pb_decode(&stream, synapse_msgs_NavSatFix_fields, &msg);
     if (status) {
         g_in_nav_sat_fix = msg;
-        uint8_t topic = SYNAPSE_IN_NAVSAT_TOPIC;
+        uint8_t topic = SYNAPSE_IN_NAV_SAT_FIX_TOPIC;
         ring_buf_put(&g_msg_updates, &topic, 1);
     } else {
         printf("%s: navsat decoding failed: %s\n",
@@ -100,7 +106,7 @@ static TF_Result nav_sat_fix_listener(TinyFrame* tf, TF_Msg* frame)
 
 static TF_Result imu_listener(TinyFrame* tf, TF_Msg* frame)
 {
-    synapse_msgs_Imu msg = synapse_msgs_Imu_init_zero;
+    synapse_msgs_Imu msg = synapse_msgs_Imu_init_default;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
     int status = pb_decode(&stream, synapse_msgs_Imu_fields, &msg);
     if (status) {
@@ -114,9 +120,25 @@ static TF_Result imu_listener(TinyFrame* tf, TF_Msg* frame)
     return TF_STAY;
 }
 
+static TF_Result magnetic_field_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    synapse_msgs_MagneticField msg = synapse_msgs_MagneticField_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int status = pb_decode(&stream, synapse_msgs_MagneticField_fields, &msg);
+    if (status) {
+        g_in_magnetic_field = msg;
+        uint8_t topic = SYNAPSE_IN_MAGNETIC_FIELD_TOPIC;
+        ring_buf_put(&g_msg_updates, &topic, 1);
+    } else {
+        printf("%s: magnetic field decoding failed: %s\n",
+            g_priv.module_name, PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
 static TF_Result battery_state_listener(TinyFrame* tf, TF_Msg* frame)
 {
-    synapse_msgs_BatteryState msg = synapse_msgs_BatteryState_init_zero;
+    synapse_msgs_BatteryState msg = synapse_msgs_BatteryState_init_default;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
     int status = pb_decode(&stream, synapse_msgs_BatteryState_fields, &msg);
     if (status) {
@@ -142,9 +164,11 @@ void* native_sim_entry_point(void* data)
     // setup tinyframe
     TF_AddGenericListener(&g_tf, generic_listener);
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_SIM_CLOCK_TOPIC, sim_clock_listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_NAVSAT_TOPIC, nav_sat_fix_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IN_NAV_SAT_FIX_TOPIC, nav_sat_fix_listener);
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_IMU_TOPIC, imu_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IN_MAGNETIC_FIELD_TOPIC, magnetic_field_listener);
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_BATTERY_STATE_TOPIC, battery_state_listener);
+
     struct sockaddr_in bind_addr;
     static int counter;
 

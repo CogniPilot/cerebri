@@ -1,5 +1,17 @@
 #include "synapse/zbus/channels.h"
 
+ZBUS_CHAN_DEFINE(chan_in_altimeter, // Name
+    synapse_msgs_Altimeter, // Message type
+    NULL, // Validator
+    NULL, // User Data
+    ZBUS_OBSERVERS(
+#if defined(CONFIG_ESTIMATE_IEKF)
+        listener_estimate_iekf,
+#endif
+        ), // observers
+    ZBUS_MSG_INIT(0) // Initial value {0}
+);
+
 ZBUS_CHAN_DEFINE(chan_in_actuators, // Name
     synapse_msgs_Actuators, // Message type
     NULL, // Validator
@@ -69,8 +81,8 @@ ZBUS_CHAN_DEFINE(chan_in_imu, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
-#if defined(CONFIG_DREAM_SITL)
-        listener_dream_sitl,
+#if defined(CONFIG_ESTIMATE_IEKF)
+        listener_estimate_iekf,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
@@ -85,6 +97,18 @@ ZBUS_CHAN_DEFINE(chan_in_joy, // Name
         listener_control_ackermann,
 #elif defined(CONFIG_CONTROL_DIFFDRIVE)
         listener_control_diffdrive,
+#endif
+        ), // observers
+    ZBUS_MSG_INIT(0) // Initial value {0}
+);
+
+ZBUS_CHAN_DEFINE(chan_in_magnetic_field, // Name
+    synapse_msgs_MagneticField, // Message type
+    NULL, // Validator
+    NULL, // User Data
+    ZBUS_OBSERVERS(
+#if defined(CONFIG_ESTIMATE_IEKF)
+        listener_estimate_iekf,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}

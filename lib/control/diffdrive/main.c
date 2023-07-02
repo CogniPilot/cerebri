@@ -27,8 +27,8 @@ char* mode_name[4] = { "init", "manual", "auto", "cmd_vel" };
 
 control_mode_t g_mode = { MODE_INIT };
 bool g_armed = false;
-static Odometry g_pose = Odometry_init_zero;
-static Twist g_cmd_vel = Twist_init_zero;
+static Odometry g_pose = Odometry_init_default;
+static Twist g_cmd_vel = Twist_init_default;
 
 static void handle_joy(Joy* joy)
 {
@@ -88,7 +88,7 @@ void mixer()
     // given cmd_vel, compute actuators
     double V = g_cmd_vel.linear.x;
     double omega = g_cmd_vel.angular.z;
-    Actuators actuators = Actuators_init_zero;
+    Actuators actuators = Actuators_init_default;
 
     // casadi mem args
     casadi_int* iw = NULL;

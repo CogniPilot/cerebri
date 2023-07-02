@@ -27,6 +27,8 @@ void listener_estimate_iekf_callback(const struct zbus_channel* chan)
         g_nav_sat_fix = *(synapse_msgs_NavSatFix*)(chan->message);
     } else if (chan == &chan_in_imu) {
         g_imu = *(synapse_msgs_Imu*)(chan->message);
+    } else if (chan == &chan_in_magnetic_field) {
+        g_mag = *(synapse_msgs_MagneticField*)(chan->message);
     } else if (chan == &chan_in_altimeter) {
         g_alt = *(synapse_msgs_Altimeter*)(chan->message);
     }

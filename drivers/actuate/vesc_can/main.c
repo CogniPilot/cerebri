@@ -27,7 +27,7 @@ extern canbus_detail_t g_canbus_details[];
 extern actuator_vesc_can_t g_actuator_vesc_cans[];
 
 static const char* module_name = "actuate_vesc_can";
-static synapse_msgs_Actuators g_actuators = synapse_msgs_Actuators_init_zero;
+static synapse_msgs_Actuators g_actuators = synapse_msgs_Actuators_init_default;
 
 static void listener_actuate_vesc_can_callback(const struct zbus_channel* chan)
 {

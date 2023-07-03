@@ -18,7 +18,7 @@
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 5
 
-#define RX_BUF_SIZE 100
+#define RX_BUF_SIZE 1024
 
 #define BIND_PORT 4242
 
@@ -67,9 +67,8 @@ TOPIC_LISTENER(in_odometry, synapse_msgs_Odometry)
 
 void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
 {
-    if (chan == NULL) { // start of if else statements for channel type
-    }
     // cerebri -> ROS
+    if (chan == NULL) { } // start of if else statements for channel type
     TOPIC_PUBLISHER(out_actuators, synapse_msgs_Actuators, SYNAPSE_OUT_ACTUATORS_TOPIC)
     TOPIC_PUBLISHER(out_odometry, synapse_msgs_Odometry, SYNAPSE_OUT_ODOMETRY_TOPIC)
 }

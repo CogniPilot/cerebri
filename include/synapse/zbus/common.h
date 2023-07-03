@@ -33,7 +33,7 @@
     {                                                                            \
         TF_Msg msg;                                                              \
         TF_ClearMsg(&msg);                                                       \
-        uint8_t buf[500];                                                        \
+        uint8_t buf[CLASS##_size];                                               \
         pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));     \
         int status = pb_encode(&stream, CLASS##_fields, chan->message);          \
         if (status) {                                                            \

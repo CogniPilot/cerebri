@@ -1,0 +1,8 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config SENSE_INA226
+  bool "Use sensor INA226"
+  default n  
+  help
+    This option enables INA226 battery sensor.

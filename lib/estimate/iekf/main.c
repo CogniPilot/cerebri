@@ -52,15 +52,20 @@ ZBUS_LISTENER_DEFINE(listener_estimate_iekf, listener_estimate_iekf_callback);
 void estimate_iekf_entry_point(void* p1, void* p2, void* p3)
 {
     double dt = 1.0 / 50;
-    double theta = 1.0;
+    double theta = 0;
 
     while (true) {
         // sleep to set rate
         k_usleep(dt * 1e6);
 
-        // theta += dt*ctx.sub_imu.angular_velocity.z;
+        theta += dt * ctx.sub_imu.angular_velocity.z;
 
         // xyz
+        ctx.pub_odometry.has_header = true;
+        const char frame_id[] = "map";
+        const char child_frame_id[] = "base_link";
+        strncpy(ctx.pub_odometry.header.frame_id, frame_id, sizeof(ctx.pub_odometry.header.frame_id));
+        strncpy(ctx.pub_odometry.child_frame_id, child_frame_id, sizeof(ctx.pub_odometry.child_frame_id));
         ctx.pub_odometry.has_pose = true;
         ctx.pub_odometry.pose.has_pose = true;
         ctx.pub_odometry.pose.pose.has_orientation = true;

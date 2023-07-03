@@ -14,23 +14,36 @@
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
 
-static const char* module_name = "estimate_iekf";
+// private context
+typedef struct ctx_ {
+    const char* module_name;
+    synapse_msgs_NavSatFix sub_nav_sat_fix;
+    synapse_msgs_Imu sub_imu;
+    synapse_msgs_MagneticField sub_magnetic_field;
+    synapse_msgs_Altimeter sub_altimeter;
+    synapse_msgs_Odometry pub_odometry;
+} ctx_t;
 
-static synapse_msgs_NavSatFix g_nav_sat_fix = synapse_msgs_NavSatFix_init_default;
-static synapse_msgs_Imu g_imu = synapse_msgs_Imu_init_default;
-static synapse_msgs_MagneticField g_mag = synapse_msgs_MagneticField_init_default;
-static synapse_msgs_Altimeter g_alt = synapse_msgs_Altimeter_init_default;
+// private initialization
+static ctx_t ctx = {
+    .module_name = "estimate_iekf",
+    .sub_nav_sat_fix = synapse_msgs_NavSatFix_init_default,
+    .sub_imu = synapse_msgs_Imu_init_default,
+    .sub_magnetic_field = synapse_msgs_MagneticField_init_default,
+    .sub_altimeter = synapse_msgs_Altimeter_init_default,
+    .pub_odometry = synapse_msgs_Odometry_init_default
+};
 
 void listener_estimate_iekf_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_in_nav_sat_fix) {
-        g_nav_sat_fix = *(synapse_msgs_NavSatFix*)(chan->message);
+        ctx.sub_nav_sat_fix = *(synapse_msgs_NavSatFix*)(chan->message);
     } else if (chan == &chan_in_imu) {
-        g_imu = *(synapse_msgs_Imu*)(chan->message);
+        ctx.sub_imu = *(synapse_msgs_Imu*)(chan->message);
     } else if (chan == &chan_in_magnetic_field) {
-        g_mag = *(synapse_msgs_MagneticField*)(chan->message);
+        ctx.sub_magnetic_field = *(synapse_msgs_MagneticField*)(chan->message);
     } else if (chan == &chan_in_altimeter) {
-        g_alt = *(synapse_msgs_Altimeter*)(chan->message);
+        ctx.sub_altimeter = *(synapse_msgs_Altimeter*)(chan->message);
     }
 }
 
@@ -38,38 +51,25 @@ ZBUS_LISTENER_DEFINE(listener_estimate_iekf, listener_estimate_iekf_callback);
 
 void estimate_iekf_entry_point(void* p1, void* p2, void* p3)
 {
+    double dt = 1.0 / 50;
+    double theta = 1.0;
+
     while (true) {
         // sleep to set rate
-        k_usleep(1e6 / 1);
+        k_usleep(dt * 1e6);
 
-        // gps
-        printf("%s: lat: %15.7f long: %15.7f alt: %15.1f\n",
-            module_name,
-            g_nav_sat_fix.latitude,
-            g_nav_sat_fix.longitude,
-            g_nav_sat_fix.altitude);
+        // theta += dt*ctx.sub_imu.angular_velocity.z;
 
-        // mag
-        printf("%s: mag x: %15.7f y: %15.7f z: %15.7f\n",
-            module_name,
-            g_mag.magnetic_field.x,
-            g_mag.magnetic_field.y,
-            g_mag.magnetic_field.z);
-
-        // imu
-        printf("%s: imu ax: %15.7f ay: %15.7f az: %15.7f gx: %15.7f gy: %15.7f gz: %15.7f\n",
-            module_name,
-            g_imu.linear_acceleration.x,
-            g_imu.linear_acceleration.y,
-            g_imu.linear_acceleration.z,
-            g_imu.angular_velocity.x,
-            g_imu.angular_velocity.y,
-            g_imu.angular_velocity.z);
-
-        // altimeter
-        printf("%s: alt z: %15.7f\n",
-            module_name,
-            g_alt.vertical_position);
+        // xyz
+        ctx.pub_odometry.has_pose = true;
+        ctx.pub_odometry.pose.has_pose = true;
+        ctx.pub_odometry.pose.pose.has_orientation = true;
+        ctx.pub_odometry.pose.pose.has_position = true;
+        ctx.pub_odometry.pose.pose.orientation.x = 0;
+        ctx.pub_odometry.pose.pose.orientation.y = 0;
+        ctx.pub_odometry.pose.pose.orientation.z = cos(theta / 2.0);
+        ctx.pub_odometry.pose.pose.orientation.w = sin(theta / 2.0);
+        zbus_chan_pub(&chan_out_odometry, &ctx.pub_odometry, K_NO_WAIT);
     }
 }
 

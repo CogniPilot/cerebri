@@ -4,5 +4,6 @@
 menu "Sense"
 
 rsource "vesc_can_status/Kconfig"
+rsource "ina226/Kconfig"
 
 endmenu

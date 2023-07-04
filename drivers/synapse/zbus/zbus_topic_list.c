@@ -13,7 +13,7 @@
 #define MY_STACK_SIZE 500
 #define MY_PRIORITY 5
 
-LOG_MODULE_DECLARE(zbus_topic_list, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(zbus_topic_list, LOG_LEVEL_INF);
 static int count = 0;
 
 #if defined(CONFIG_ZBUS_STRUCTS_ITERABLE_ACCESS)

@@ -6,5 +6,6 @@ common:
   integration_platforms:
     - native_posix
     - mimxrt1062_fmurt6
+    - mimxrt1170_fmurt7
 tests:
   mrbuggy3.default: {}

@@ -32,7 +32,7 @@
 	};
 
 	chosen {
-		zephyr,canbus = &flexcan1;
+		zephyr,canbus = &flexcan3;
 	};
 
 	aliases {
@@ -107,17 +107,5 @@
 								INA230_AVG_MODE_64)>;
 		current-lsb-microamps = <5000>;
 		rshunt-micro-ohms = <500>;
-	};
-};
-
-&lpi2c2 {
-	status = "disabled";
-	pinctrl-0 = <&pinmux_lpi2c2>;
-	pinctrl-names = "default";
-
-	bmp388: bmp388@76 {
-		compatible = "bosch,bmp388";
-		reg = <0x76>;
-		status = "disabled";
 	};
 };

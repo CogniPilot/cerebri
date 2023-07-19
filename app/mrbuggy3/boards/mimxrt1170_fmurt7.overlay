@@ -32,13 +32,14 @@
 	};
 
 	chosen {
-		zephyr,canbus = &flexcan1;
+		zephyr,canbus = &flexcan3;
 	};
 
 	aliases {
 		can0 = &flexcan1;
 		can1 = &flexcan2;
 		can2 = &flexcan3;
+		telem1 = &lpuart4;
 	};
 };
 
@@ -110,14 +111,8 @@
 	};
 };
 
-&lpi2c2 {
-	status = "disabled";
-	pinctrl-0 = <&pinmux_lpi2c2>;
-	pinctrl-names = "default";
-
-	bmp388: bmp388@76 {
-		compatible = "bosch,bmp388";
-		reg = <0x76>;
-		status = "disabled";
-	};
+/* GNSS */
+uart0: &lpuart3 {
+       status = "okay";
+       current-speed = <38400>;
 };

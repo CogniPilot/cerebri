@@ -48,6 +48,7 @@ class FormatCommand(WestCommand):
         #log.inf('required is', args.required)
         log.inf('running clang-format')
 
+        # check version
         regex = re.compile('(.*\.c$)|(.*\.cpp$)|(.*\.h$)|(.*\.hpp$)')
         format_ok = True
 
@@ -57,12 +58,13 @@ class FormatCommand(WestCommand):
                     if regex.match(file):
                         file_path = os.path.join(root, file)
                         if args.check:
-                            cmd_str = ['clang-format', '--dry-run', '--Werror', '-style', 'WebKit', f'{file_path}']
+                            cmd_str = ['clang-format-14', '--dry-run', '--Werror', '-style', 'WebKit', f'{file_path}']
                         else:
-                            cmd_str = ['clang-format', '-i', '-style', 'WebKit', f'{file_path}']
+                            cmd_str = ['clang-format-14', '-i', '-style', 'WebKit', f'{file_path}']
                         try:
                             res = subprocess.run(cmd_str, capture_output=False, check=True)
                         except Exception as e:
+                            print(e)
                             format_ok = False
         if not format_ok:
             exit(1)

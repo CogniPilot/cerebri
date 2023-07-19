@@ -11,10 +11,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    container: ghcr.io/zephyrproject-rtos/ci:v0.26.2 
+    container: ghcr.io/zephyrproject-rtos/ci:v0.26.4
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
+      - name: Install Clang
+        run: |
+          apt update
+          apt install clang-format-14 -y
+
       - name: Checkout
         uses: actions/checkout@v3
         with:

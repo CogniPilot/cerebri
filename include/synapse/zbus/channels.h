@@ -29,5 +29,6 @@ ZBUS_CHAN_DECLARE(chan_in_odometry);
 
 ZBUS_CHAN_DECLARE(chan_out_actuators);
 ZBUS_CHAN_DECLARE(chan_out_odometry);
+ZBUS_CHAN_DECLARE(chan_out_nav_sat_fix);
 
 #endif // SYNAPSE_ZBUS_CHANNELS_H

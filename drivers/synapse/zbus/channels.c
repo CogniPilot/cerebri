@@ -178,3 +178,18 @@ ZBUS_CHAN_DEFINE(chan_out_odometry, // Name
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
+
+ZBUS_CHAN_DEFINE(chan_out_nav_sat_fix, // Name
+    synapse_msgs_NavSatFix, // Message type
+    NULL, // Validator
+    NULL, // User Data
+    ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_ETHERNET)
+        listener_synapse_ethernet,
+#endif
+#if defined(CONFIG_SYNAPSE_UART)
+        listener_synapse_uart,
+#endif
+        ), // observers
+    ZBUS_MSG_INIT(0) // Initial value {0}
+);

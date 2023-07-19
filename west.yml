@@ -8,6 +8,8 @@ manifest:
   remotes:
     - name: zephyrproject-rtos
       url-base: https://github.com/zephyrproject-rtos
+    - name: cogniPilot
+      url-base: https://github.com/cogniPilot
 
   projects:
     - name: zephyr
@@ -21,6 +23,7 @@ manifest:
           - mbedtls
           - hal_nxp
           - cmsis
+          - ubxlib
     - name: synapse_tinyframe
       url: https://github.com/CogniPilot/synapse_tinyframe
       clone-depth: 1
@@ -31,3 +34,8 @@ manifest:
       clone-depth: 1
       revision: main
       path: modules/lib/synapse_protobuf
+    - name: ubxlib
+      remote: cogniPilot
+      path: ubxlib
+      revision: zephyr-3.4-compile-fix
+      clone-depth: 1

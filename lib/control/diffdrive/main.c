@@ -16,6 +16,8 @@
 #define MY_STACK_SIZE 1024
 #define MY_PRIORITY 4
 
+LOG_MODULE_REGISTER(zbus_topic_list, LOG_LEVEL_INF);
+
 enum control_mode_t {
     MODE_INIT = 0,
     MODE_MANUAL = 1,

@@ -111,8 +111,13 @@
 	};
 };
 
-/* GNSS */
+/* GNSS 1 */
 uart0: &lpuart3 {
+       status = "okay";
+       current-speed = <38400>;
+};
+/* GNSS 2 */
+uart1: &lpuart5 {
        status = "okay";
        current-speed = <38400>;
 };

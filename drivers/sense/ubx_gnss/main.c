@@ -46,7 +46,7 @@ void publish_gnss_data_zbus(uDeviceHandle_t devHandle,
         zbus_chan_pub(&chan_out_nav_sat_fix, &nav_sat_fix, K_NO_WAIT);
         printf("lat %f long %f\n", nav_sat_fix.latitude, nav_sat_fix.longitude);
     } else if (errorCode == U_ERROR_COMMON_TIMEOUT) {
-        LOG_ERR("Tiemout error");
+        // LOG_ERR("Tiemout error");
     } else {
         LOG_ERR("GNSS error %i", errorCode);
         running = false;
@@ -89,7 +89,7 @@ void sense_ubx_gnss_entry_point()
                 while (running) {
                     uPortTaskBlock(1000);
                     /* If cb didnt set isAlive to true hw is malfunctioning reset */
-                    if(!isAlive) {
+                    if (!isAlive) {
                         break;
                     }
                     /* Challange cb to set alive to ture */
@@ -98,9 +98,9 @@ void sense_ubx_gnss_entry_point()
 
                 uLocationGetStop(deviceHandle);
 
-            LOG_DBG("Taking down GNSS...\n");
-            uNetworkInterfaceDown(deviceHandle, U_NETWORK_TYPE_GNSS);
-            uDeviceClose(deviceHandle, false);
+                LOG_DBG("Taking down GNSS...\n");
+                uNetworkInterfaceDown(deviceHandle, U_NETWORK_TYPE_GNSS);
+                uDeviceClose(deviceHandle, false);
             } else {
                 LOG_ERR("Unable to bring up GNSS!\n");
             }

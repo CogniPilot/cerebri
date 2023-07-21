@@ -6,6 +6,6 @@ config SYNAPSE_ETHERNET
   help
     This option enables the synapse ethernet interface
 
-if SYNAPSE_ETHERNET
-
-endif  # SYNAPSE_ETHERNET
+module = SYNAPSE_ETHERNET
+module-str = synapse_ethernet
+source "subsys/logging/Kconfig.template.log_config"

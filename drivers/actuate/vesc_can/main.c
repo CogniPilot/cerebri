@@ -8,12 +8,15 @@
 #include <synapse/zbus/channels.h>
 #include <zephyr/drivers/can.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/socketcan.h>
 #include <zephyr/net/socketcan_utils.h>
 #include <zephyr/shell/shell.h>
 
 #include "actuator_vesc_can.h"
+
+LOG_MODULE_REGISTER(actuate_vesc_can, CONFIG_ACTUATE_VESC_CAN_LOG_LEVEL);
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
@@ -26,7 +29,6 @@ extern canbus_detail_t g_canbus_details[];
 
 extern actuator_vesc_can_t g_actuator_vesc_cans[];
 
-static const char* module_name = "actuate_vesc_can";
 static synapse_msgs_Actuators g_actuators = synapse_msgs_Actuators_init_default;
 
 static void listener_actuate_vesc_can_callback(const struct zbus_channel* chan)
@@ -42,7 +44,7 @@ static int stop_canbus(const actuator_vesc_can_t* actuator)
 {
     int err = can_stop(actuator->device);
     if (err != 0) {
-        printf("%s: can%d - failed to stop (%d)\n", module_name,
+        LOG_ERR("can%d - failed to stop (%d)\n",
             actuator->bus_id, err);
         g_canbus_details[actuator->bus_id].ready = false;
         return err;
@@ -61,7 +63,7 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
 
     // check if device ready
     if (!device_is_ready(vesc_canbus_init->device)) {
-        printf("%s: can%d - device not ready\n", module_name, vesc_canbus_init->bus_id);
+        LOG_ERR("can%d - device not ready\n", vesc_canbus_init->bus_id);
         g_canbus_details[vesc_canbus_init->bus_id].ready = false;
         return;
     }
@@ -69,7 +71,7 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
     // check state
     err = can_get_state(vesc_canbus_init->device, &state, &err_cnt);
     if (err != 0) {
-        printf("%s: can%d - failed to get CAN controller state (%d)\n", module_name,
+        LOG_ERR("can%d - failed to get CAN controller state (%d)\n",
             vesc_canbus_init->bus_id, err);
         g_canbus_details[vesc_canbus_init->bus_id].ready = false;
         return;
@@ -82,7 +84,7 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
         }
         err = can_set_mode(vesc_canbus_init->device, CAN_MODE_FD);
         if (err != 0) {
-            printf("%s: can%d - set mode FD failed (%d)\n", module_name,
+            LOG_ERR("can%d - set mode FD failed (%d)\n",
                 vesc_canbus_init->bus_id, err);
             stop_canbus(vesc_canbus_init);
             return;
@@ -94,7 +96,7 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
 
         err = can_start(vesc_canbus_init->device);
         if (err != 0) {
-            printf("%s: can%d - start failed\n", module_name,
+            LOG_ERR("can%d - start failed\n",
                 vesc_canbus_init->bus_id);
             stop_canbus(vesc_canbus_init);
             return;
@@ -102,7 +104,7 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
     }
 
     g_canbus_details[vesc_canbus_init->bus_id].ready = true;
-    printf("%s: can%d - connected and properly initialized.\n", module_name,
+    LOG_DBG("can%d - connected and properly initialized.\n",
         vesc_canbus_init->bus_id);
     return;
 }
@@ -148,7 +150,7 @@ void actuate_vesc_can_entry_point()
             err = can_send(vesc_can.device, &frame, K_NO_WAIT, NULL, NULL);
             if (err != 0) {
                 g_canbus_details[vesc_can.bus_id].ready = false;
-                printf("%s: can%d - send failed to VESC ID: %d (%d)\n", module_name,
+                LOG_ERR("can%d - send failed to VESC ID: %d (%d)\n",
                     vesc_can.bus_id, vesc_can.id, err);
                 continue;
             }

@@ -3,6 +3,7 @@
 
 menu "Estimate"
 
-rsource "iekf/Kconfig"
+rsource "attitude/Kconfig"
+rsource "rover2d/Kconfig"
 
 endmenu

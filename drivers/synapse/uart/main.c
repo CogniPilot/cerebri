@@ -5,6 +5,7 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -13,12 +14,13 @@
 
 #include "synapse/zbus/common.h"
 
+LOG_MODULE_REGISTER(synapse_uart, CONFIG_SYNAPSE_UART_LOG_LEVEL);
+
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 5
 
 #define RX_BUF_SIZE 100
 
-static const char* module_name = "synapse_uart";
 static const struct device* const uart_dev = DEVICE_DT_GET(DT_ALIAS(telem1));
 
 static void write_uart(TinyFrame* tf, const uint8_t* buf, uint32_t len)
@@ -103,7 +105,7 @@ static void uart_entry_point(void)
     }
 #else // CONFIG_ARCH_POSIX
     if (!device_is_ready(uart_dev)) {
-        printf("%s: UART device not found!", module_name);
+        LOG_ERR("UART device not found");
         return;
     }
 
@@ -112,11 +114,11 @@ static void uart_entry_point(void)
 
     if (ret < 0) {
         if (ret == -ENOTSUP) {
-            printf("%s: Interrupt-driven UART API support not enabled\n", module_name);
+            LOG_ERR("interrupt-driven UART API support not enabled");
         } else if (ret == -ENOSYS) {
-            printf("%s: UART device does not support interrupt-driven API\n", module_name);
+            LOG_ERR("UART device does not support interrupt-driven API");
         } else {
-            printf("%s: Error setting UART callback: %d\n", module_name, ret);
+            LOG_ERR("Error setting UART callback: %d", ret);
         }
         return;
     }

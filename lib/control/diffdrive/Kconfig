@@ -1,0 +1,11 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config CONTROL_DIFFDRIVE
+  bool "rover diffdrive control lib"
+  help
+    This option enables the rover diffdrive lib.
+
+module = CONTROL_DIFFDRIVE
+module-str = control_diffdrive
+source "subsys/logging/Kconfig.template.log_config"

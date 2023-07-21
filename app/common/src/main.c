@@ -50,7 +50,7 @@ void intHandler(int dummy)
 {
     (void)dummy;
     keepRunning = 0;
-    printf("sigint caught\n");
+    LOG_INF("sigint caught");
     exit(0);
 }
 #endif
@@ -60,19 +60,13 @@ int main(void)
 #if defined(CONFIG_BOOT_BANNER)
     printf("%s%s\n", banner_brain, banner_name);
 #endif
-    printf("Cerebri %d.%d.%d\n", CONFIG_CEREBRI_VERSION_MAJOR, CONFIG_CEREBRI_VERSION_MINOR, CONFIG_CEREBRI_VERSION_PATCH);
+    LOG_INF("Cerebri %d.%d.%d", CONFIG_CEREBRI_VERSION_MAJOR, CONFIG_CEREBRI_VERSION_MINOR, CONFIG_CEREBRI_VERSION_PATCH);
 
 #if defined(CONFIG_ARCH_POSIX)
     signal(SIGINT, intHandler);
 #endif
     while (keepRunning) {
-        k_msleep(10000);
-        // int64_t uptime = k_uptime_get() / 1e3;
-#if defined(CONFIG_ARCH_POSIX)
-        // printf("\nuptime: %ld sec\n", uptime);
-#else
-        // printf("\nuptime: %lld sec\n", uptime);
-#endif
+        k_msleep(1000);
     }
 
     return 0;

@@ -1,0 +1,10 @@
+sample:
+  description: RDDRONE
+  name: RDDRONE
+common:
+  build_only: true
+  integration_platforms:
+    - native_posix
+    - mimxrt1170_fmurt7
+tests:
+  rddrone.default: {}

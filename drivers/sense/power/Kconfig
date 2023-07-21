@@ -1,0 +1,12 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config SENSE_POWER
+  bool "Use power sensor"
+  default n  
+  help
+    This option enables power sensor.
+
+module = SENSE_POWER
+module-str = sense_power
+source "subsys/logging/Kconfig.template.log_config"

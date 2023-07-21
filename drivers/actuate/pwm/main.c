@@ -9,7 +9,10 @@
 #include <synapse/zbus/channels.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
+
+LOG_MODULE_REGISTER(actuate_pwm, CONFIG_ACTUATE_PWM_LOG_LEVEL);
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
@@ -37,18 +40,16 @@ void actuator_pwm_entry_point()
         for (int i = 0; i < CONFIG_ACTUATE_PWM_NUMBER; i++) {
             actuator_pwm_t pwm = g_actuator_pwms[i];
             if (pwm.max < pwm.center || pwm.min > pwm.center) {
-                /*
-                printf("actuator_pwm: config pwm_%d min, center, "
-                                "max must monotonically increase\n",
+                LOG_ERR("config pwm_%d min, center, "
+                        "max must monotonically increase",
                     i);
-                    */
                 continue;
             }
             uint16_t pulse = pwm.center;
             if (pwm.type == PWM_TYPE_NORMALIZED) {
                 float input = g_actuators.normalized[pwm.index];
                 if (input < -1 || input > 1) {
-                    // printf("actuator_pwm: normalized input out of bounds\n");
+                    LOG_ERR("normalized input out of bounds");
                     continue;
                 }
                 if (input > 0) {
@@ -59,26 +60,26 @@ void actuator_pwm_entry_point()
             } else if (pwm.type == PWM_TYPE_POSITION) {
                 float input = g_actuators.position[pwm.index];
                 uint16_t output = (uint16_t)((pwm.slope * input) + pwm.intercept);
-                // printf("actuator_pwm: %s position index %d with input %f output %d\n", pwm.alias, pwm.index, input, output);
+                LOG_DBG("%s position index %d with input %f output %d", pwm.alias, pwm.index, input, output);
                 if (output > pwm.max) {
                     pulse = pwm.max;
-                    // printf("actuator_pwm: %s  position command saturated, requested %d > %d\n", pwm.alias, output, pwm.max);
+                    LOG_DBG("%s  position command saturated, requested %d > %d", pwm.alias, output, pwm.max);
                 } else if (output < pwm.min) {
                     pulse = pwm.min;
-                    // printf("actuator_pwm: %s  position command saturated, requested %d < %d\n", pwm.alias, output, pwm.min);
+                    LOG_DBG("%s  position command saturated, requested %d < %d", pwm.alias, output, pwm.min);
                 } else {
                     pulse = output;
                 }
             } else if (pwm.type == PWM_TYPE_VELOCITY) {
                 float input = g_actuators.velocity[pwm.index];
                 uint16_t output = (uint16_t)((pwm.slope * input) + pwm.intercept);
-                // printf("actuator_pwm: %s  velocity index %d with input %f output %d\n", pwm.alias, pwm.index, input, output);
+                LOG_DBG("%s  velocity index %d with input %f output %d\n", pwm.alias, pwm.index, input, output);
                 if (output > pwm.max) {
                     pulse = pwm.max;
-                    // printf("actuator_pwm: %s velocity command saturated, requested %d > %d\n", pwm.alias, output, pwm.max);
+                    LOG_DBG("%s velocity command saturated, requested %d > %d\n", pwm.alias, output, pwm.max);
                 } else if (output < pwm.min) {
                     pulse = pwm.min;
-                    // printf("actuator_pwm: %s  velocity command saturated, requested %d < %d\n", pwm.alias, output, pwm.min);
+                    LOG_DBG("%s  velocity command saturated, requested %d < %d\n", pwm.alias, output, pwm.min);
                 } else {
                     pulse = output;
                 }
@@ -86,8 +87,7 @@ void actuator_pwm_entry_point()
             int err = 0;
             err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pulse));
             if (err) {
-                // printf("actuator_pwm: failed to set pulse %d on %s (err %d)\n",
-                //    pulse, pwm.alias, err);
+                LOG_ERR("failed to set pulse %d on %s (err %d)", pulse, pwm.alias, err);
             }
         }
 

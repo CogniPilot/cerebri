@@ -9,3 +9,7 @@ config SYNAPSE_UART
 if SYNAPSE_UART
 
 endif  # SYNAPSE_UART
+
+module = SYNAPSE_UART
+module-str = synapse_uart
+source "subsys/logging/Kconfig.template.log_config"

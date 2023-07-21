@@ -4,6 +4,7 @@
  */
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/net/socket.h>
 
 #include <fcntl.h>
@@ -15,6 +16,8 @@
 
 #include "synapse/zbus/common.h"
 
+LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_SYNAPSE_ETHERNET_LOG_LEVEL);
+
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 5
 
@@ -22,7 +25,6 @@
 
 #define BIND_PORT 4242
 
-static const char* module_name = "synapse_ethernet";
 static volatile int g_client = -1;
 
 static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
@@ -37,7 +39,7 @@ static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
     do {
         out_len = zsock_send(g_client, p, len, 0);
         if (out_len < 0) {
-            printf("%s: error: send: %d\n", module_name, errno);
+            LOG_ERR("send: %d\n", errno);
             // trigger reconnect
             g_client = -1;
             return;
@@ -71,6 +73,7 @@ void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
     if (chan == NULL) { } // start of if else statements for channel type
     TOPIC_PUBLISHER(out_actuators, synapse_msgs_Actuators, SYNAPSE_OUT_ACTUATORS_TOPIC)
     TOPIC_PUBLISHER(out_odometry, synapse_msgs_Odometry, SYNAPSE_OUT_ODOMETRY_TOPIC)
+    TOPIC_PUBLISHER(out_wheel_odometry, synapse_msgs_WheelOdometry, SYNAPSE_OUT_WHEEL_ODOMETRY_TOPIC)
 }
 
 ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callback);
@@ -98,7 +101,7 @@ static void ethernet_entry_point(void)
     set_blocking_enabled(serv, true);
 
     if (serv < 0) {
-        printf("%s: error: socket: %d\n", module_name, errno);
+        LOG_ERR("socket: %d", errno);
         exit(1);
     }
 
@@ -107,19 +110,14 @@ static void ethernet_entry_point(void)
     bind_addr.sin_port = htons(BIND_PORT);
 
     if (zsock_bind(serv, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
-        printf("%s: error: bind: %d\n", module_name, errno);
+        LOG_ERR("bind: %d", errno);
         exit(1);
     }
 
     if (zsock_listen(serv, 5) < 0) {
-        printf("%s: error: listen: %d\n", module_name, errno);
+        LOG_ERR("listen: %d", errno);
         exit(1);
     }
-
-    printf("%s: TCP server waits for a connection on "
-           "port %d...\n",
-        module_name,
-        BIND_PORT);
 
     // ros -> cerebri
     TF_AddGenericListener(&g_tf, genericListener);
@@ -130,8 +128,7 @@ static void ethernet_entry_point(void)
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
 
     while (1) {
-        printf("%s: socket waiting for connection on port: %d\n",
-            module_name, BIND_PORT);
+        LOG_INF("socket waiting for connection on port: %d", BIND_PORT);
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
@@ -145,22 +142,20 @@ static void ethernet_entry_point(void)
 
         zsock_inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
             addr_str, sizeof(addr_str));
-        printf("%s: connection #%d from %s\n",
-            module_name, counter++, addr_str);
+        LOG_INF("connection #%d from %s", counter++, addr_str);
 
         while (1) {
+            k_msleep(1);
             if (g_client < 0) {
-                printf("%s: triggering reconnect.\n", module_name);
+                LOG_ERR("no client, triggering reconnect");
                 break;
             }
             int len = zsock_recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
             if (len < 0) {
                 continue;
             }
-
             TF_Accept(&g_tf, rx1_buf, len);
             TF_Tick(&g_tf);
-            k_msleep(1);
         }
     }
 }

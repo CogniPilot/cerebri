@@ -1,0 +1,12 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config ESTIMATE_ROVER2D
+  bool "Enable rover2d estimator"
+  default n
+  help
+    This option enables the rover2d estimator
+
+module = ESTIMATE_ROVER2D
+module-str = estimate_rover2d
+source "subsys/logging/Kconfig.template.log_config"

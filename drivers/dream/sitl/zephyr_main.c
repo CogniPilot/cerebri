@@ -11,19 +11,13 @@
 #include <synapse_protobuf/sim_clock.pb.h>
 #include <synapse_tinyframe/utils.h>
 
+#include <zephyr/logging/log.h>
 #include <zephyr/sys/ring_buffer.h>
+
+LOG_MODULE_REGISTER(dream_sitl, CONFIG_DREAM_SITL_LOG_LEVEL);
 
 #define MY_STACK_SIZE 500
 #define MY_PRIORITY -10
-
-// private data
-struct private_module_context {
-    const char* module_name;
-};
-
-static struct private_module_context g_priv = {
-    .module_name = "dream_sitl_zephyr",
-};
 
 extern synapse_msgs_SimClock g_sim_clock;
 extern TinyFrame g_tf;
@@ -50,7 +44,7 @@ void listener_dream_sitl_callback(const struct zbus_channel* chan)
             msg.len = stream.bytes_written;
             TF_Send(&g_tf, &msg);
         } else {
-            printf("dream_sitl: encoding failed: %s\n", PB_GET_ERROR(&stream));
+            LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
         }
     }
 }
@@ -58,8 +52,8 @@ ZBUS_LISTENER_DEFINE(listener_dream_sitl, listener_dream_sitl_callback);
 
 static void zephyr_sim_entry_point(void)
 {
-    printf("%s: zephyr sim entry point\n", g_priv.module_name);
-    printf("%s: waiting for sim clock\n", g_priv.module_name);
+    LOG_INF("zephyr sim entry point");
+    LOG_INF("waiting for sim clock");
     while (true) {
         synapse_msgs_SimClock sim_clock;
         struct timespec request, remaining;
@@ -73,13 +67,13 @@ static void zephyr_sim_entry_point(void)
 
         // if clock not initialized, wait 1 second
         if (clock_init) {
-            printf("%s: sim clock initialized\n", g_priv.module_name);
+            LOG_DBG("sim clock initialized");
             zbus_chan_pub(&chan_in_clock_offset, &g_clock_offset, K_NO_WAIT);
             break;
         }
     }
 
-    printf("%s: running main loop\n", g_priv.module_name);
+    LOG_DBG("running main loop");
     while (true) {
 
         //  publish new messages
@@ -87,15 +81,15 @@ static void zephyr_sim_entry_point(void)
         while (!ring_buf_is_empty(&g_msg_updates)) {
             ring_buf_get(&g_msg_updates, &topic, 1);
             if (topic == SYNAPSE_IN_NAV_SAT_FIX_TOPIC) {
-                zbus_chan_pub(&chan_in_nav_sat_fix, &g_in_nav_sat_fix, K_NO_WAIT);
+                zbus_chan_pub(&chan_out_nav_sat_fix, &g_in_nav_sat_fix, K_NO_WAIT);
             } else if (topic == SYNAPSE_IN_MAGNETIC_FIELD_TOPIC) {
-                zbus_chan_pub(&chan_in_magnetic_field, &g_in_magnetic_field, K_NO_WAIT);
+                zbus_chan_pub(&chan_out_magnetic_field, &g_in_magnetic_field, K_NO_WAIT);
             } else if (topic == SYNAPSE_IN_IMU_TOPIC) {
-                zbus_chan_pub(&chan_in_imu, &g_in_imu, K_NO_WAIT);
+                zbus_chan_pub(&chan_out_imu, &g_in_imu, K_NO_WAIT);
             } else if (topic == SYNAPSE_IN_ALTIMETER_TOPIC) {
-                zbus_chan_pub(&chan_in_altimeter, &g_in_altimeter, K_NO_WAIT);
+                zbus_chan_pub(&chan_out_altimeter, &g_in_altimeter, K_NO_WAIT);
             } else if (topic == SYNAPSE_IN_BATTERY_STATE_TOPIC) {
-                zbus_chan_pub(&chan_in_battery_state, &g_in_battery_state, K_NO_WAIT);
+                zbus_chan_pub(&chan_out_battery_state, &g_in_battery_state, K_NO_WAIT);
             }
         }
 
@@ -112,13 +106,11 @@ static void zephyr_sim_entry_point(void)
         int32_t delta_nsec = g_sim_clock.sim.nanosec - ts_board.tv_nsec;
         int64_t wait_msec = delta_sec * 1e3 + delta_nsec * 1e-6;
 
-        /*
-        printf("%s, sim: sec %lld nsec %d\n",
-                g_priv.module_name, g_sim_clock.sim.sec, g_sim_clock.sim.nsec);
-        printf("%s, board: sec %ld nsec %ld\n",
-                g_priv.module_name, ts_board.tv_sec, ts_board.tv_nsec);
-        printf("%s, wait: msec %lld\n", g_priv.module_name, wait_msec);
-        */
+        LOG_DBG("sim: sec %lld nsec %d\n",
+            g_sim_clock.sim.sec, g_sim_clock.sim.nanosec);
+        LOG_DBG("board: sec %lld nsec %ld\n",
+            ts_board.tv_sec, ts_board.tv_nsec);
+        LOG_DBG("wait: msec %lld\n", wait_msec);
 
         // sleep to match clocks
         if (wait_msec > 0) {

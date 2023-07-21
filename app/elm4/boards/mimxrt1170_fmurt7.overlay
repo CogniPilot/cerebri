@@ -6,28 +6,28 @@
 	pwm_shell: pwm_shell {
 		compatible = "pwm-leds";
 		aux0: aux0 {
-			pwms = <&flexpwm2_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+			pwms = <&flexpwm1_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 		aux1: aux1 {
-			pwms = <&flexpwm2_pwm1 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+			pwms = <&flexpwm1_pwm1 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 		aux2: aux2 {
-			pwms = <&flexpwm2_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+			pwms = <&flexpwm1_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 		aux3: aux3 {
-			pwms = <&flexpwm2_pwm3 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+			pwms = <&flexpwm2_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 		aux4: aux4 {
-			pwms = <&flexpwm3_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+			pwms = <&flexpwm2_pwm1 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 		aux5: aux5 {
-			pwms = <&flexpwm3_pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+			pwms = <&flexpwm2_pwm2 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 		aux6: aux6 {
-			pwms = <&flexpwm4_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+			pwms = <&flexpwm2_pwm3 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 		aux7: aux7 {
-			pwms = <&flexpwm4_pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+			pwms = <&flexpwm3_pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 	};
 
@@ -36,8 +36,23 @@
 	};
 
 	aliases {
-		can0 = &flexcan3;
+		can0 = &flexcan1;
+		can1 = &flexcan2;
+		can2 = &flexcan3;
+		telem1 = &lpuart4;
 	};
+};
+
+&flexpwm1_pwm0 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm1_pwm1 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm1_pwm2 {
+	nxp,prescaler = <64>;
 };
 
 &flexpwm2_pwm0 {
@@ -56,30 +71,26 @@
 	nxp,prescaler = <64>;
 };
 
-&flexpwm3_pwm2 {
-	nxp,prescaler = <64>;
-};
-
 &flexpwm3_pwm0 {
 	nxp,prescaler = <64>;
 };
 
-&flexpwm4_pwm2 {
-	nxp,prescaler = <64>;
+&flexcan1 {
+	status = "okay";
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
 };
 
-&flexpwm4_pwm0 {
-	nxp,prescaler = <64>;
+&flexcan2 {
+	status = "okay";
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
 };
 
 &flexcan3 {
 	status = "okay";
 	bus-speed = <1000000>;
 	bus-speed-data = <4000000>;
-};
-
-&flexcan1 {
-	status = "disabled";
 };
 
 &lpi2c1 {
@@ -100,14 +111,8 @@
 	};
 };
 
-&lpi2c2 {
-	status = "disabled";
-	pinctrl-0 = <&pinmux_lpi2c2>;
-	pinctrl-names = "default";
-
-	bmp388: bmp388@76 {
-		compatible = "bosch,bmp388";
-		reg = <0x76>;
-		status = "disabled";
-	};
+/* GNSS */
+uart0: &lpuart3 {
+       status = "okay";
+       current-speed = <38400>;
 };

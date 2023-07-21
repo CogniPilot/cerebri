@@ -51,3 +51,7 @@ config CONTROL_ACKERMANN_WHEEL_BASE_MM
     Wheel radius in mm
 
 endif  # CONTROL_ACKERMANN
+
+module = CONTROL_ACKERMANN
+module-str = control_ackermann
+source "subsys/logging/Kconfig.template.log_config"

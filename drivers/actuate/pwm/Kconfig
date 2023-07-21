@@ -883,3 +883,7 @@ endif #ACTUATE_PWM_NUMBER > 7
 endmenu #ACTUATE_PWM
 
 endif #ACTUATE_PWM
+
+module = ACTUATE_PWM
+module-str = actuate_pwm
+source "subsys/logging/Kconfig.template.log_config"

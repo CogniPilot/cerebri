@@ -3,8 +3,11 @@
 
 menu "Sense"
 
-rsource "vesc_can_status/Kconfig"
-rsource "ina226/Kconfig"
+rsource "imu/Kconfig"
+rsource "mag/Kconfig"
+rsource "power/Kconfig"
 rsource "ubx_gnss/Kconfig"
+rsource "vesc_can_status/Kconfig"
+rsource "wheel_odometry/Kconfig"
 
 endmenu

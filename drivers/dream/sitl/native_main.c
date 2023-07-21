@@ -83,7 +83,7 @@ static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
             g_clock_offset.nanosec = msg.sim.nanosec;
         }
     } else {
-        printf("dream_sitl: sim_clock decoding failed: %s\n", PB_GET_ERROR(&stream));
+        printf("%s: sim_clock decoding failed: %s\n", g_priv.module_name, PB_GET_ERROR(&stream));
     }
     return TF_STAY;
 }

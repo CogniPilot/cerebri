@@ -9,3 +9,7 @@ config DREAM_SITL
 if DREAM_SITL
 
 endif  # DREAM_SITL
+
+module = DREAM_SITL
+module-str = dream_sitl
+source "subsys/logging/Kconfig.template.log_config"

@@ -5,6 +5,7 @@
 
 #include <math.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #include <stdio.h>
 
@@ -12,6 +13,8 @@
 
 #include "casadi/rover.h"
 #include "parameters.h"
+
+LOG_MODULE_REGISTER(control_diffdrive, CONFIG_CONTROL_DIFFDRIVE_LOG_LEVEL);
 
 #define MY_STACK_SIZE 1024
 #define MY_PRIORITY 4
@@ -37,13 +40,13 @@ static void handle_joy(Joy* joy)
     // arming
     if (joy->buttons[7] == 1 && !g_armed) {
         if (g_mode == MODE_INIT) {
-            printf("Cannot arm until mode selected.\n");
+            LOG_WRN("Cannot arm until mode selected");
             return;
         }
-        printf("Armed in mode: %s\n", mode_name[g_mode]);
+        LOG_INF("Armed in mode: %s\n", mode_name[g_mode]);
         g_armed = true;
     } else if (joy->buttons[6] == 1 && g_armed) {
-        printf("Disarmed\n");
+        LOG_INF("Disarmed");
         g_armed = false;
         g_mode = MODE_INIT;
     }
@@ -53,14 +56,14 @@ static void handle_joy(Joy* joy)
     if (joy->buttons[0] == 1) {
         g_mode = MODE_MANUAL;
     } else if (joy->buttons[1] == 1) {
-        printf("Auto mode rejected: unsupported for diffdrive.\n");
+        LOG_WRN("Auto mode rejected: unsupported for diffdrive");
     } else if (joy->buttons[2] == 1) {
         g_mode = MODE_CMD_VEL;
     }
 
     // notify on mode change
     if (g_mode != prev_mode) {
-        printf("Mode changed to: %s!\n", mode_name[g_mode]);
+        LOG_INF("Mode changed to: %s!\n", mode_name[g_mode]);
     }
 
     // translate joystick to twist message

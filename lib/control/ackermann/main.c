@@ -6,6 +6,7 @@
 #include <math.h>
 #include <time.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 
 #include <stdio.h>
 
@@ -14,10 +15,10 @@
 #include "casadi/rover.h"
 #include "parameters.h"
 
+LOG_MODULE_REGISTER(control_ackermann, CONFIG_CONTROL_ACKERMANN_LOG_LEVEL);
+
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
-
-static const char* g_module_name = "control_ackermann";
 
 enum control_mode_t {
     MODE_INIT = 0,
@@ -42,14 +43,14 @@ static void handle_joy()
     // arming
     if (g_joy.buttons[7] == 1 && !g_armed) {
         if (g_mode == MODE_INIT) {
-            printf("%s: cannot arm until mode selected\n", g_module_name);
+            LOG_WRN("cannot arm until mode selected");
             return;
         }
-        printf("%s: armed in mode: %s\n", g_module_name, g_mode_name[g_mode]);
-        printf("%s: battery voltage: %f\n", g_module_name, g_battery_state.voltage);
+        LOG_INF("armed in mode: %s", g_mode_name[g_mode]);
+        LOG_INF("battery voltage: %f", g_battery_state.voltage);
         g_armed = true;
     } else if (g_joy.buttons[6] == 1 && g_armed) {
-        printf("%s: disarmed\n", g_module_name);
+        LOG_INF("disarmed");
         g_armed = false;
         g_mode = MODE_INIT;
     }
@@ -66,7 +67,7 @@ static void handle_joy()
 
     // notify on mode change
     if (g_mode != prev_mode) {
-        printf("%s: mode changed to: %s!\n", g_module_name, g_mode_name[g_mode]);
+        LOG_INF("mode changed to: %s", g_mode_name[g_mode]);
     }
 }
 
@@ -83,7 +84,7 @@ static void listener_control_ackermann_callback(const struct zbus_channel* chan)
         g_bezier_trajectory = *(synapse_msgs_BezierTrajectory*)(chan->message);
     } else if (chan == &chan_in_clock_offset) {
         g_clock_offset = *(synapse_msgs_Time*)(chan->message);
-    } else if (chan == &chan_in_battery_state) {
+    } else if (chan == &chan_out_battery_state) {
         g_battery_state = *(synapse_msgs_BatteryState*)(chan->message);
     }
 }
@@ -134,7 +135,7 @@ void mixer()
     actuators.velocity[0] = omega_fwd;
     actuators.normalized[0] = turn_angle / max_turn_angle;
     actuators.normalized[1] = 0.07 + omega_fwd * wheel_radius / max_velocity;
-    zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
+    zbus_chan_pub(&chan_in_actuators, &actuators, K_NO_WAIT);
 }
 
 void stop()
@@ -155,7 +156,10 @@ void auto_mode()
     uint64_t time_nsec = k_uptime_get() * 1e6 + g_clock_offset.sec * 1e9 + g_clock_offset.nanosec;
 
     if (time_nsec < time_start_nsec) {
-        printf("%s: time current: %lld ns < time start: %lld ns, time out of range of trajectory\n", g_module_name, time_nsec, time_start_nsec);
+        LOG_INF("time current: %" PRIu64
+                " ns < time start: %" PRIu64
+                "  ns, time out of range of trajectory\n",
+            time_nsec, time_start_nsec);
         stop();
         return;
     }
@@ -178,7 +182,6 @@ void auto_mode()
 
         // check if index exceeds bounds
         if (curve_index >= g_bezier_trajectory.curves_count) {
-            // printf("%s: time out of range of trajectory\n", g_module_name);
             stop();
             return;
         }

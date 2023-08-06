@@ -120,6 +120,9 @@ ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
 #if defined(CONFIG_SYNAPSE_UART)
         listener_synapse_uart,
 #endif
+#if defined(CONFIG_ESTIMATE_ROVER2D)
+        listener_estimate_rover2d,
+#endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );

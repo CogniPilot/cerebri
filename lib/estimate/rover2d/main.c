@@ -20,6 +20,10 @@ LOG_MODULE_REGISTER(estimate_rover2d, CONFIG_ESTIMATE_ROVER2D_LOG_LEVEL);
 #define MY_STACK_SIZE 2130
 #define MY_PRIORITY 4
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 // private context
 typedef struct ctx_ {
     synapse_msgs_WheelOdometry sub_wheel_odometry;
@@ -27,6 +31,7 @@ typedef struct ctx_ {
     synapse_msgs_Odometry pub_odometry;
     bool wheel_odometry_updated;
     bool actuators_updated;
+    bool initialized;
     double x[3];
 } ctx_t;
 
@@ -37,6 +42,7 @@ static ctx_t ctx = {
     .pub_odometry = synapse_msgs_Odometry_init_default,
     .wheel_odometry_updated = false,
     .actuators_updated = false,
+    .initialized = false,
     .x = { 0 },
 };
 
@@ -69,7 +75,7 @@ bool all_finite(double* src, size_t n)
     return true;
 }
 
-void handle_update(double* x1, double* W1)
+void handle_update(double* x1)
 {
     bool x1_finite = all_finite(x1, sizeof(ctx.x));
 
@@ -90,6 +96,8 @@ static void estimate_rover2d_entry_point(void* p1, void* p2, void* p3)
 
     // variables
     double dt = 1.0 / 1.0;
+    double rotation = 0;
+    double rotation_last = 0;
 
     // estimator state and sqrt covariance
     while (true) {
@@ -104,41 +112,55 @@ static void estimate_rover2d_entry_point(void* p1, void* p2, void* p3)
 
         // get data
         if (ctx.wheel_odometry_updated) {
-            double rotation = ctx.sub_wheel_odometry.rotation;
-            LOG_DBG("rotation: %10.4f", rotation);
+            rotation = ctx.sub_wheel_odometry.rotation;
+            // LOG_DBG("rotation: %10.4f", rotation);
         }
 
-        // predict:(t,x[7],W[6x6,21nz],omega_m[3],std_gyro,sn_gyro_rw,dt)->
-        //     (x1[7],W1[6x6,21nz]) */
-        if (ctx.wheel_odometry_updated) {
-            LOG_DBG("predict");
+        // wait for valid steering angle and odometry to initialize
+        if (!ctx.initialized) {
+            if (ctx.actuators_updated) {
+                rotation_last = ctx.sub_wheel_odometry.rotation;
+                ctx.initialized = true;
+                LOG_DBG("initialized: %d", ctx.initialized);
+            } else {
+                // wait for actuators update
+                continue;
+            }
+        }
 
-            /*
+        /* predict:(x0[3],delta,u,l)->(x1[3]) */
+        if (ctx.wheel_odometry_updated) {
+            // LOG_DBG("predict");
+
+            static const double l = 0.23; // distance between axles
+            static const double D = 0.08; // wheel diameter
+            double delta = ctx.sub_actuators.position[0];
+            double u = -(rotation - rotation_last) * M_PI * D;
+            rotation_last = rotation;
 
             // memory
             static casadi_int iw[predict_SZ_IW];
             static casadi_real w[predict_SZ_W];
 
             // input
-            const double* args[] = { &dt, ctx.x, ctx.W, y_gyro, &std_gyro, &sn_gyro_rw, &dt };
+            LOG_DBG("delta: %10.4f u: %10.4f l: %10.4f", delta, u, l);
+            const double* args[predict_SZ_ARG] = { ctx.x, &delta, &u, &l };
 
             // output
-            double x1[7];
-            double W1[21];
-            double* res[] = { x1, W1 };
+            double x1[3];
+            double* res[predict_SZ_RES] = { x1 };
 
             // evaluate
             predict(args, res, iw, w, 0);
 
             // update x, W
-            handle_update(x1, W1);
-            */
+            handle_update(x1);
         }
 
         // publish odometry
         {
             ctx.pub_odometry.has_header = true;
-            const char frame_id[] = "map";
+            const char frame_id[] = "odom";
             const char child_frame_id[] = "base_link";
             strncpy(
                 ctx.pub_odometry.header.frame_id,

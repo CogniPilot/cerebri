@@ -50,7 +50,7 @@ casadi_real casadi_sq(casadi_real x) { return x * x; }
 static const casadi_int casadi_s0[7] = { 3, 1, 0, 3, 0, 1, 2 };
 static const casadi_int casadi_s1[5] = { 1, 1, 0, 1, 0 };
 
-/* predict:(i0[3],i1,i2,i3)->(o0[3]) */
+/* predict:(x0[3],delta,u,l)->(x1[3]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
     w[0] = arg[0] ? arg[0][2] : 0;
@@ -177,13 +177,13 @@ const char* predict_name_in(casadi_int i)
 {
     switch (i) {
     case 0:
-        return "i0";
+        return "x0";
     case 1:
-        return "i1";
+        return "delta";
     case 2:
-        return "i2";
+        return "u";
     case 3:
-        return "i3";
+        return "l";
     default:
         return 0;
     }
@@ -193,7 +193,7 @@ const char* predict_name_out(casadi_int i)
 {
     switch (i) {
     case 0:
-        return "o0";
+        return "x1";
     default:
         return 0;
     }

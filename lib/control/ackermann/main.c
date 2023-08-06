@@ -17,7 +17,7 @@
 
 LOG_MODULE_REGISTER(control_ackermann, CONFIG_CONTROL_ACKERMANN_LOG_LEVEL);
 
-#define MY_STACK_SIZE 850
+#define MY_STACK_SIZE 1024
 #define MY_PRIORITY 4
 
 enum control_mode_t {
@@ -135,7 +135,7 @@ void mixer()
     actuators.velocity[0] = omega_fwd;
     actuators.normalized[0] = turn_angle / max_turn_angle;
     actuators.normalized[1] = 0.07 + omega_fwd * wheel_radius / max_velocity;
-    zbus_chan_pub(&chan_in_actuators, &actuators, K_NO_WAIT);
+    zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
 }
 
 void stop()

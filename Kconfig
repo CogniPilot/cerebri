@@ -32,6 +32,5 @@ config CEREBRI_VERSION_PATCH
 
 endmenu
 
-rsource "drivers/Kconfig"
 rsource "lib/Kconfig"
 

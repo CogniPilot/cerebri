@@ -17,7 +17,7 @@
 
 LOG_MODULE_REGISTER(control_ackermann, CONFIG_CONTROL_ACKERMANN_LOG_LEVEL);
 
-#define MY_STACK_SIZE 4096
+#define MY_STACK_SIZE 850
 #define MY_PRIORITY 4
 
 enum control_mode_t {
@@ -249,7 +249,7 @@ void auto_mode()
     g_cmd_vel.angular.z = omega + gain_cross_track * e[1] + gain_heading * e[2];
 }
 
-void ackermann_entry_point(void* p1, void* p2, void* p3)
+void control_ackermann_entry_point(void* p1, void* p2, void* p3)
 {
 
     while (true) {
@@ -264,8 +264,8 @@ void ackermann_entry_point(void* p1, void* p2, void* p3)
     }
 }
 
-K_THREAD_DEFINE(control_thread, MY_STACK_SIZE,
-    ackermann_entry_point, NULL, NULL, NULL,
+K_THREAD_DEFINE(control_ackermann, MY_STACK_SIZE,
+    control_ackermann_entry_point, NULL, NULL, NULL,
     MY_PRIORITY, 0, 0);
 
 /* vi: ts=4 sw=4 et */

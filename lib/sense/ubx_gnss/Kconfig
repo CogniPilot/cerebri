@@ -1,0 +1,14 @@
+config SENSE_UBX_GNSS
+  bool "Use U-blox GNSS"
+  default n
+  select UBXLIB
+  help
+    This option enables U-blox GNSS driver.
+
+if SENSE_UBX_GNSS
+
+module = UBX_GNSS
+module-str = ubx_gnss
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # SENSE_UBX_GNSS

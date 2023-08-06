@@ -1,0 +1,15 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+menuconfig SENSE_IMU
+  bool "IMU"
+  default n
+  help
+    This option enables the IMU driver interface
+
+if SENSE_IMU
+
+module = SENSE_IMU
+module-str = sense_imu
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # SENSE_IMU

@@ -1,0 +1,15 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig DREAM_SITL
+  bool "SITL"
+  help
+    This option enables the cerebri sitl sim
+
+if DREAM_SITL
+
+module = DREAM_SITL
+module-str = dream_sitl
+source "subsys/logging/Kconfig.template.log_config"
+
+endif  # DREAM_SITL

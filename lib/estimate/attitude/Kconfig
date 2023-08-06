@@ -1,12 +1,16 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-config ESTIMATE_ATTITUDE
-  bool "Enable attitude estimator"
+menuconfig ESTIMATE_ATTITUDE
+  bool "attitude"
   default n
   help
     This option enables the attitude estimator
 
+if ESTIMATE_ATTITUDE
+
 module = ESTIMATE_ATTITUDE
 module-str = estimate_attitude
 source "subsys/logging/Kconfig.template.log_config"
+
+endif # ESTIMATE_ATTITUDE

@@ -9,6 +9,7 @@ zephyr_include_directories()
 
 zephyr_library_sources(
   main.c
+  casadi/rover2d.c
   )
 
 add_dependencies(estimate_rover2d synapse_protobuf)

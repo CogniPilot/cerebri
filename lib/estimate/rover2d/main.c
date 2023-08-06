@@ -13,11 +13,11 @@
 #define casadi_real double
 #define casadi_int int64_t
 
-#include "casadi/casadi_mrp.h"
+#include "casadi/rover2d.h"
 
 LOG_MODULE_REGISTER(estimate_rover2d, CONFIG_ESTIMATE_ROVER2D_LOG_LEVEL);
 
-#define MY_STACK_SIZE 4096
+#define MY_STACK_SIZE 2130
 #define MY_PRIORITY 4
 
 // private context

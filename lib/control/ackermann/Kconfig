@@ -1,8 +1,8 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-config CONTROL_ACKERMANN
-  bool "rover ackermann control lib"
+menuconfig CONTROL_ACKERMANN
+  bool "ackermann"
   help
     This option enables the rover ackermamnn lib.
 
@@ -50,8 +50,8 @@ config CONTROL_ACKERMANN_WHEEL_BASE_MM
   help
     Wheel radius in mm
 
-endif  # CONTROL_ACKERMANN
-
 module = CONTROL_ACKERMANN
 module-str = control_ackermann
 source "subsys/logging/Kconfig.template.log_config"
+
+endif  # CONTROL_ACKERMANN

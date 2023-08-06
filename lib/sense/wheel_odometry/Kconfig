@@ -1,0 +1,15 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+menuconfig SENSE_WHEEL_ODOMETRY
+  bool "Use wheel odometry"
+  default n
+  help
+    This option enables the wheel odometry driver interface
+
+if SENSE_WHEEL_ODOMETRY
+
+module = SENSE_WHEEL_ODOMETRY
+module-str = sense_wheel_odometry
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # SENSE_WHEEL_ODOMETRY

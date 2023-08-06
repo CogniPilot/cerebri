@@ -1,0 +1,15 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+menuconfig SENSE_MAG
+  bool "MAG"
+  default n
+  help
+    This option enables the MAG driver interface
+
+if SENSE_MAG
+
+module = SENSE_MAG
+module-str = sense_mag
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # SENSE_MAG

@@ -18,7 +18,7 @@
 
 LOG_MODULE_REGISTER(actuate_vesc_can, CONFIG_ACTUATE_VESC_CAN_LOG_LEVEL);
 
-#define MY_STACK_SIZE 310
+#define MY_STACK_SIZE 500
 #define MY_PRIORITY 4
 
 #ifndef M_PI

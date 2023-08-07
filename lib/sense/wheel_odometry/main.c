@@ -64,7 +64,7 @@ int sense_wheel_odometry_entry_point(void)
 
         // publish mag to zbus
         synapse_msgs_WheelOdometry msg;
-        msg.rotation = rotation;
+        msg.rotation = -rotation; // account for negative rotation of encoder
         zbus_chan_pub(&chan_out_wheel_odometry, &msg, K_NO_WAIT);
 
         // 200 Hz

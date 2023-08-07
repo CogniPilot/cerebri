@@ -25,6 +25,7 @@ extern bool g_clock_initialized;
 extern synapse_msgs_Time g_clock_offset;
 extern synapse_msgs_NavSatFix g_in_nav_sat_fix;
 extern synapse_msgs_BatteryState g_in_battery_state;
+extern synapse_msgs_WheelOdometry g_in_wheel_odometry;
 extern synapse_msgs_Imu g_in_imu;
 extern synapse_msgs_MagneticField g_in_magnetic_field;
 extern synapse_msgs_Altimeter g_in_altimeter;
@@ -90,6 +91,8 @@ static void zephyr_sim_entry_point(void)
                 zbus_chan_pub(&chan_out_altimeter, &g_in_altimeter, K_NO_WAIT);
             } else if (topic == SYNAPSE_IN_BATTERY_STATE_TOPIC) {
                 zbus_chan_pub(&chan_out_battery_state, &g_in_battery_state, K_NO_WAIT);
+            } else if (topic == SYNAPSE_IN_WHEEL_ODOMETRY_TOPIC) {
+                zbus_chan_pub(&chan_out_wheel_odometry, &g_in_wheel_odometry, K_NO_WAIT);
             }
         }
 

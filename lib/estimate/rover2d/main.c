@@ -92,10 +92,10 @@ ZBUS_LISTENER_DEFINE(listener_estimate_rover2d, listener_estimate_rover2d_callba
 
 static void estimate_rover2d_entry_point(void* p1, void* p2, void* p3)
 {
-    LOG_DBG("started");
+    // LOG_DBG("started");
 
     // variables
-    double dt = 1.0 / 1.0;
+    double dt = 1.0 / 200.0;
     double rotation = 0;
     double rotation_last = 0;
 
@@ -103,8 +103,6 @@ static void estimate_rover2d_entry_point(void* p1, void* p2, void* p3)
     while (true) {
         // sleep to set rate
         k_usleep(dt * 1e6);
-
-        LOG_DBG("update");
 
         // continue if no new data
         if (!ctx.wheel_odometry_updated)
@@ -132,10 +130,15 @@ static void estimate_rover2d_entry_point(void* p1, void* p2, void* p3)
         if (ctx.wheel_odometry_updated) {
             // LOG_DBG("predict");
 
-            static const double l = 0.23; // distance between axles
-            static const double D = 0.08; // wheel diameter
+#ifdef CONFIG_DREAM_SITL
+            static const double l = 0.3; // adjusted distance to account for wheel slip in sim
+#else
+            static const double l = 0.2255; // distance between axles
+#endif
+            static const double D = 0.073; // wheel diameter
             double delta = ctx.sub_actuators.position[0];
-            double u = -(rotation - rotation_last) * M_PI * D;
+            // negative sign due to current gearing, should be in driver
+            double u = (rotation - rotation_last) * D / 2;
             rotation_last = rotation;
 
             // memory

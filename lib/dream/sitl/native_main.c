@@ -18,6 +18,7 @@
 #include <synapse_protobuf/magnetic_field.pb.h>
 #include <synapse_protobuf/nav_sat_fix.pb.h>
 #include <synapse_protobuf/sim_clock.pb.h>
+#include <synapse_protobuf/wheel_odometry.pb.h>
 
 #include <synapse_tinyframe/SynapseTopics.h>
 #include <synapse_tinyframe/TinyFrame.h>
@@ -67,6 +68,7 @@ synapse_msgs_Imu g_in_imu = synapse_msgs_Imu_init_default;
 synapse_msgs_MagneticField g_in_magnetic_field = synapse_msgs_MagneticField_init_default;
 synapse_msgs_BatteryState g_in_battery_state = synapse_msgs_BatteryState_init_default;
 synapse_msgs_Altimeter g_in_altimeter = synapse_msgs_Altimeter_init_default;
+synapse_msgs_WheelOdometry g_in_wheel_odometry = synapse_msgs_WheelOdometry_init_default;
 
 static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
 {
@@ -152,6 +154,22 @@ static TF_Result battery_state_listener(TinyFrame* tf, TF_Msg* frame)
     return TF_STAY;
 }
 
+static TF_Result wheel_odometry_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    synapse_msgs_WheelOdometry msg = synapse_msgs_WheelOdometry_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int status = pb_decode(&stream, synapse_msgs_WheelOdometry_fields, &msg);
+    if (status) {
+        g_in_wheel_odometry = msg;
+        uint8_t topic = SYNAPSE_IN_WHEEL_ODOMETRY_TOPIC;
+        ring_buf_put(&g_msg_updates, &topic, 1);
+    } else {
+        printf("%s: wheel odometry decoding failed: %s\n",
+            g_priv.module_name, PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
 TF_Result generic_listener(TinyFrame* tf, TF_Msg* frame)
 {
     return TF_STAY;
@@ -168,6 +186,7 @@ void* native_sim_entry_point(void* data)
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_IMU_TOPIC, imu_listener);
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_MAGNETIC_FIELD_TOPIC, magnetic_field_listener);
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_BATTERY_STATE_TOPIC, battery_state_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IN_WHEEL_ODOMETRY_TOPIC, wheel_odometry_listener);
 
     struct sockaddr_in bind_addr;
     static int counter;

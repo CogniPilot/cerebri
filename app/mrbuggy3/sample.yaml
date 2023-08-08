@@ -5,6 +5,6 @@ common:
   build_only: true
   integration_platforms:
     - native_posix
-    - mimxrt1170_fmurt7
+    - vmu_rt1170
 tests:
   mrbuggy3.default: {}

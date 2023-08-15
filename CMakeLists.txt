@@ -9,6 +9,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 zephyr_include_directories(include)
 
 add_subdirectory(lib)
+add_subdirectory(drivers)
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/../install)
 

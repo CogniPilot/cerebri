@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2023 CogniPilot Foundation */
 #include <zephyr/dt-bindings/sensor/ina230.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
 
 / {
 	pwm_shell: pwm_shell {
@@ -156,6 +157,38 @@ lpuart4: &lpuart4 {
 		};
 	};
 };
+
+&gpt5 {
+    compatible = "nxp,gpt-ppm-input";
+    pinctrl-0 = <&pinmux_gpt_ppm>;
+    pinctrl-names = "default";
+    capture-channel = <1>;
+    right_stick_x {
+        channel = <1>;
+        label = "Right stick x";
+        type = <INPUT_EV_ABS>;
+        zephyr,code = <INPUT_ABS_RX>;
+    };
+    right_stick_y {
+        channel = <2>;
+        label = "Right stick y";
+        type = <INPUT_EV_ABS>;
+        zephyr,code = <INPUT_ABS_RY>;
+    };
+    left_stick_x {
+        channel = <3>;
+        label = "Left stick x";
+        type = <INPUT_EV_ABS>;
+        zephyr,code = <INPUT_ABS_X>;
+    };
+    left_stick_y {
+        channel = <4>;
+        label = "Left stick y";
+        type = <INPUT_EV_ABS>;
+        zephyr,code = <INPUT_ABS_Y>;
+    };
+};
+
 
 &qdec1 {
 	status = "okay";

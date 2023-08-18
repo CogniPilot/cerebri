@@ -9,10 +9,10 @@
 			pwms = <&flexpwm1_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 		aux1: aux1 {
-			pwms = <&flexpwm1_pwm1 0 PWM_HZ(18000) PWM_POLARITY_NORMAL>;
+			pwms = <&flexpwm1_pwm1 0 PWM_HZ(20000) PWM_POLARITY_NORMAL>;
 		};
 		aux2: aux2 {
-			pwms = <&flexpwm1_pwm2 0 PWM_HZ(18000) PWM_POLARITY_NORMAL>;
+			pwms = <&flexpwm1_pwm2 0 PWM_HZ(20000) PWM_POLARITY_NORMAL>;
 		};
 		aux3: aux3 {
 			pwms = <&flexpwm2_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
@@ -66,11 +66,11 @@
 };
 
 &flexpwm1_pwm1 {
-	nxp,prescaler = <32>;
+	nxp,prescaler = <8>;
 };
 
 &flexpwm1_pwm2 {
-	nxp,prescaler = <32>;
+	nxp,prescaler = <8>;
 };
 
 &flexpwm2_pwm0 {

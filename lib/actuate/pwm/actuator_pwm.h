@@ -13,9 +13,10 @@ typedef enum pwm_type_t {
 } pwm_type_t;
 
 typedef struct actuator_pwm_t {
-    uint16_t min;
-    uint16_t max;
-    uint16_t center;
+    uint32_t min;
+    uint32_t max;
+    uint32_t center;
+    bool use_nano_seconds;
     const char* alias;
     pwm_type_t type;
     float slope;

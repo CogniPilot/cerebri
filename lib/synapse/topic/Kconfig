@@ -1,0 +1,15 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config SYNAPSE_TOPIC
+  bool "Enable synapse topic shell"
+  help
+    This option enables the synapse topic shell
+
+if SYNAPSE_TOPIC
+
+module = SYNAPSE_TOPIC
+module-str = synapse_topic
+source "subsys/logging/Kconfig.template.log_config"
+
+endif  # SYNAPSE_TOPIC

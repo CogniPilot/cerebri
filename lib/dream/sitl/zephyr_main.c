@@ -50,6 +50,7 @@ void listener_dream_sitl_callback(const struct zbus_channel* chan)
     }
 }
 ZBUS_LISTENER_DEFINE(listener_dream_sitl, listener_dream_sitl_callback);
+ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_dream_sitl, 1);
 
 static void zephyr_sim_entry_point(void)
 {
@@ -109,14 +110,13 @@ static void zephyr_sim_entry_point(void)
         int32_t delta_nsec = g_sim_clock.sim.nanosec - ts_board.tv_nsec;
         int64_t wait_msec = delta_sec * 1e3 + delta_nsec * 1e-6;
 
-        LOG_DBG("sim: sec %lld nsec %d\n",
-            g_sim_clock.sim.sec, g_sim_clock.sim.nanosec);
-        LOG_DBG("board: sec %lld nsec %ld\n",
-            ts_board.tv_sec, ts_board.tv_nsec);
-        LOG_DBG("wait: msec %lld\n", wait_msec);
-
         // sleep to match clocks
         if (wait_msec > 0) {
+            LOG_DBG("sim: sec %lld nsec %d\n",
+                g_sim_clock.sim.sec, g_sim_clock.sim.nanosec);
+            LOG_DBG("board: sec %ld nsec %ld\n",
+                ts_board.tv_sec, ts_board.tv_nsec);
+            LOG_DBG("wait: msec %lld\n", wait_msec);
             k_msleep(wait_msec);
         } else {
             struct timespec request, remaining;
@@ -128,7 +128,7 @@ static void zephyr_sim_entry_point(void)
 }
 
 // zephyr threads
-K_THREAD_DEFINE(zephyr_sim_thread, MY_STACK_SIZE, zephyr_sim_entry_point,
+K_THREAD_DEFINE(zephyr_sim, MY_STACK_SIZE, zephyr_sim_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
 
 // vi: ts=4 sw=4 et

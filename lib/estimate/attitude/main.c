@@ -54,6 +54,9 @@ void listener_estimate_attitude_callback(const struct zbus_channel* chan)
         // LOG_DBG("mag updated");
     }
 }
+ZBUS_LISTENER_DEFINE(listener_estimate_attitude, listener_estimate_attitude_callback);
+ZBUS_CHAN_ADD_OBS(chan_out_imu, listener_estimate_attitude, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_magnetic_field, listener_estimate_attitude, 1);
 
 void log_x(double* x)
 {
@@ -96,13 +99,12 @@ void handle_update(double* x1, double* W1)
     }
 }
 
-ZBUS_LISTENER_DEFINE(listener_estimate_attitude, listener_estimate_attitude_callback);
-
 static void estimate_attitude_entry_point(void* p1, void* p2, void* p3)
 {
     // variables
     double dt = 1.0 / 1.0;
     bool initialized = false;
+    int32_t seq = 0;
 
     // parameters
     const double decl = 0;
@@ -292,6 +294,16 @@ static void estimate_attitude_entry_point(void* p1, void* p2, void* p3)
             strncpy(
                 ctx.pub_odometry.child_frame_id,
                 child_frame_id, sizeof(ctx.pub_odometry.child_frame_id) - 1);
+
+            ctx.pub_odometry.has_header = true;
+            int64_t uptime_ticks = k_uptime_ticks();
+            int64_t sec = uptime_ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+            int32_t nanosec = (uptime_ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+            ctx.pub_odometry.header.seq = seq++;
+            ctx.pub_odometry.header.has_stamp = true;
+            ctx.pub_odometry.header.stamp.sec = sec;
+            ctx.pub_odometry.header.stamp.nanosec = nanosec;
+
             ctx.pub_odometry.has_pose = true;
             ctx.pub_odometry.pose.has_pose = true;
             ctx.pub_odometry.pose.pose.has_orientation = true;
@@ -314,7 +326,7 @@ static void estimate_attitude_entry_point(void* p1, void* p2, void* p3)
     }
 }
 
-K_THREAD_DEFINE(estimate_attitude_thread, MY_STACK_SIZE,
+K_THREAD_DEFINE(estimate_attitude, MY_STACK_SIZE,
     estimate_attitude_entry_point, NULL, NULL, NULL,
     MY_PRIORITY, 0, 0);
 

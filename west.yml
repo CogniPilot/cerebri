@@ -8,15 +8,14 @@ manifest:
   remotes:
     - name: zephyrproject-rtos
       url-base: https://github.com/zephyrproject-rtos
-    - name: cogniPilot
-      url-base: https://github.com/cogniPilot
+    - name: cognipilot
+      url-base: https://github.com/CogniPilot
 
   projects:
     - name: zephyr
-      url: https://github.com/CogniPilot/Zephyr
-      clone-depth: 1
+      remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: dev
+      revision: zbus_update
       import:
         - name-allowlist:
           - nanopb
@@ -25,17 +24,14 @@ manifest:
           - cmsis
           - ubxlib
     - name: synapse_tinyframe
-      url: https://github.com/CogniPilot/synapse_tinyframe
-      clone-depth: 1
+      remote: cognipilot
       revision: main
       path: modules/lib/synapse_tinyframe
     - name: synapse_protobuf
-      url: https://github.com/CogniPilot/synapse_protobuf
-      clone-depth: 1
+      remote: cognipilot
       revision: main
       path: modules/lib/synapse_protobuf
     - name: ubxlib
-      remote: cogniPilot
+      remote: cognipilot
       path: ubxlib
       revision: zephyr-3.4-compile-fix
-      clone-depth: 1

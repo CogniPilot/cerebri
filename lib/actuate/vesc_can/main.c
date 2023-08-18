@@ -37,8 +37,8 @@ static void listener_actuate_vesc_can_callback(const struct zbus_channel* chan)
         g_actuators = *(synapse_msgs_Actuators*)(chan->message);
     }
 }
-
 ZBUS_LISTENER_DEFINE(listener_actuate_vesc_can, listener_actuate_vesc_can_callback);
+ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_actuate_vesc_can, 1);
 
 static int stop_canbus(const actuator_vesc_can_t* actuator)
 {
@@ -158,7 +158,7 @@ void actuate_vesc_can_entry_point()
     }
 }
 
-K_THREAD_DEFINE(actuate_vesc_can_thread, MY_STACK_SIZE,
+K_THREAD_DEFINE(actuate_vesc_can, MY_STACK_SIZE,
     actuate_vesc_can_entry_point, NULL, NULL, NULL,
     MY_PRIORITY, 0, 0);
 

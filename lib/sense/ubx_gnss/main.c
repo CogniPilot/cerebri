@@ -27,6 +27,7 @@ LOG_MODULE_REGISTER(ubx_gnss, CONFIG_UBX_GNSS_LOG_LEVEL);
 static int32_t gMeasurementPeriodMs = 100;
 static bool running = false;
 static bool isAlive = false;
+static int32_t g_seq = 0;
 
 void publish_gnss_data_zbus(uDeviceHandle_t devHandle,
     int32_t errorCode,
@@ -35,16 +36,26 @@ void publish_gnss_data_zbus(uDeviceHandle_t devHandle,
     isAlive = true;
 
     if (errorCode == 0) {
-        synapse_msgs_NavSatFix nav_sat_fix;
+        synapse_msgs_NavSatFix msg = synapse_msgs_NavSatFix_init_default;
 
-        nav_sat_fix.latitude = pLocation->latitudeX1e7 / 1e7;
-        nav_sat_fix.longitude = pLocation->longitudeX1e7 / 1e7;
-        nav_sat_fix.altitude = pLocation->altitudeMillimetres / 1e3;
+        msg.has_header = true;
+        strncpy(msg.header.frame_id, "map", sizeof(msg.header.frame_id) - 1);
+        msg.header.has_stamp = true;
+        msg.latitude = pLocation->latitudeX1e7 / 1e7;
+        msg.longitude = pLocation->longitudeX1e7 / 1e7;
+        msg.altitude = pLocation->altitudeMillimetres / 1e3;
+        int64_t uptime_ticks = k_uptime_ticks();
+        int64_t sec = uptime_ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        int32_t nanosec = (uptime_ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        msg.header.seq = g_seq++;
+        msg.header.has_stamp = true;
+        msg.header.stamp.sec = sec;
+        msg.header.stamp.nanosec = nanosec;
 
         // TODO Covariance
 
-        zbus_chan_pub(&chan_out_nav_sat_fix, &nav_sat_fix, K_NO_WAIT);
-        LOG_DBG("lat %f long %f\n", nav_sat_fix.latitude, nav_sat_fix.longitude);
+        zbus_chan_pub(&chan_out_nav_sat_fix, &msg, K_NO_WAIT);
+        LOG_DBG("lat %f long %f\n", msg.latitude, msg.longitude);
     } else if (errorCode == U_ERROR_COMMON_TIMEOUT) {
         // LOG_ERR("Tiemout error");
     } else {
@@ -56,6 +67,7 @@ void publish_gnss_data_zbus(uDeviceHandle_t devHandle,
 void sense_ubx_gnss_entry_point()
 {
     int32_t errorCode;
+    g_seq = 0;
 
     // Remove the line below if you want the log printouts from ubxlib
     uPortLogOff();
@@ -115,6 +127,6 @@ void sense_ubx_gnss_entry_point()
     }
 }
 
-K_THREAD_DEFINE(ubx_gnss_thread, MY_STACK_SIZE,
+K_THREAD_DEFINE(ubx_gnss, MY_STACK_SIZE,
     sense_ubx_gnss_entry_point, NULL, NULL, NULL,
     MY_PRIORITY, 0, 0);

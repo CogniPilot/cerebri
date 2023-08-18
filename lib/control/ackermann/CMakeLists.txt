@@ -1,14 +1,18 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-zephyr_library_named(synapse_zbus)
+zephyr_library_named(control_ackermann)
+
 
 # we need to be able to include generated header files
 zephyr_include_directories()
 
 zephyr_library_sources(
-  syn_pub_sub.c
-  channels.c
+  #joy.c
+  fsm.c
+  velocity.c
+  position.c
+  casadi/rover.c
   )
 
-add_dependencies(synapse_zbus synapse_protobuf)
+add_dependencies(control_ackermann synapse_protobuf)

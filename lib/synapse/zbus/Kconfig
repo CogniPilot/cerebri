@@ -2,10 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 config SYNAPSE_ZBUS
-  bool "ZBUS"
+  bool "Enables zbus channels"
   help
-    This option enables the synapse zbus interface
+    This option enables the synapse zbus channels
 
 if SYNAPSE_ZBUS
+
+module = SYNAPSE_ZBUS
+module-str = synapse_zbus
+source "subsys/logging/Kconfig.template.log_config"
 
 endif  # SYNAPSE_ZBUS

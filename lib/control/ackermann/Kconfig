@@ -50,6 +50,13 @@ config CONTROL_ACKERMANN_WHEEL_BASE_MM
   help
     Wheel radius in mm
 
+config BUGGY3_MOTOR_ENB_REQUIRED
+  bool "Buggy3 motor ENB line required"
+  default n
+  help
+    Set the enable line for the Buggy3 motor
+    using normalized actuator message.
+
 module = CONTROL_ACKERMANN
 module-str = control_ackermann
 source "subsys/logging/Kconfig.template.log_config"

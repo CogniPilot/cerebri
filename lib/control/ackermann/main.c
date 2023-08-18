@@ -133,8 +133,9 @@ void mixer()
     actuators.normalized_count = 2;
     actuators.position[0] = turn_angle;
     actuators.velocity[0] = omega_fwd;
-    actuators.normalized[0] = turn_angle / max_turn_angle;
-    actuators.normalized[1] = 0.07 + omega_fwd * wheel_radius / max_velocity;
+#ifdef CONFIG_BUGGY3_MOTOR_ENB_REQUIRED
+    actuators.normalized[0] = -1;
+#endif
     zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
 }
 

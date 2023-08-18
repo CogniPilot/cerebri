@@ -35,7 +35,7 @@ void vesc_can_entry_point(const struct shell* sh)
     }
 }
 
-K_THREAD_DEFINE(can_vesc_thread, MY_STACK_SIZE,
+K_THREAD_DEFINE(can_vesc, MY_STACK_SIZE,
     vesc_can_entry_point, NULL, NULL, NULL,
     MY_PRIORITY, 0, 0);
 

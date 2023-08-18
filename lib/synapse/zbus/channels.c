@@ -7,7 +7,11 @@ ZBUS_CHAN_DEFINE(chan_in_actuators, // Name
     synapse_msgs_Actuators, // Message type
     NULL, // Validator
     NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
+    ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
+        ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
@@ -16,6 +20,9 @@ ZBUS_CHAN_DEFINE(chan_in_bezier_trajectory, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_CONTROL_ACKERMANN)
         listener_control_ackermann,
 #elif defined(CONFIG_CONTROL_DIFFDRIVE)
@@ -30,6 +37,9 @@ ZBUS_CHAN_DEFINE(chan_in_clock_offset, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_CONTROL_ACKERMANN)
         listener_control_ackermann,
 #elif defined(CONFIG_CONTROL_DIFFDRIVE)
@@ -44,6 +54,9 @@ ZBUS_CHAN_DEFINE(chan_in_cmd_vel, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_CONTROL_ACKERMANN)
         listener_control_ackermann,
 #elif defined(CONFIG_CONTROL_DIFFDRIVE)
@@ -58,6 +71,9 @@ ZBUS_CHAN_DEFINE(chan_in_joy, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_CONTROL_ACKERMANN)
         listener_control_ackermann,
 #elif defined(CONFIG_CONTROL_DIFFDRIVE)
@@ -72,11 +88,11 @@ ZBUS_CHAN_DEFINE(chan_in_nav_sat_fix, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_SYNAPSE_ETHERNET)
         listener_synapse_ethernet,
-#endif
-#if defined(CONFIG_SYNAPSE_UART)
-        listener_synapse_uart,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
@@ -87,6 +103,9 @@ ZBUS_CHAN_DEFINE(chan_in_odometry, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_CONTROL_ACKERMANN)
         listener_control_ackermann,
 #elif defined(CONFIG_CONTROL_DIFFDRIVE)
@@ -105,6 +124,9 @@ ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_ACTUATE_PWM)
         listener_actuator_pwm,
 #endif
@@ -116,9 +138,6 @@ ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
 #endif
 #if defined(CONFIG_SYNAPSE_ETHERNET)
         listener_synapse_ethernet,
-#endif
-#if defined(CONFIG_SYNAPSE_UART)
-        listener_synapse_uart,
 #endif
 #if defined(CONFIG_ESTIMATE_ROVER2D)
         listener_estimate_rover2d,
@@ -132,6 +151,9 @@ ZBUS_CHAN_DEFINE(chan_out_altimeter, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_ESTIMATE_ATTITUDE)
         listener_estimate_attitude,
 #endif
@@ -144,6 +166,9 @@ ZBUS_CHAN_DEFINE(chan_out_battery_state, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_CONTROL_ACKERMANN)
         listener_control_ackermann,
 #elif defined(CONFIG_CONTROL_DIFFDRIVE)
@@ -158,6 +183,9 @@ ZBUS_CHAN_DEFINE(chan_out_imu, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_ESTIMATE_ATTITUDE)
         listener_estimate_attitude,
 #endif
@@ -170,6 +198,9 @@ ZBUS_CHAN_DEFINE(chan_out_magnetic_field, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_ESTIMATE_ATTITUDE)
         listener_estimate_attitude,
 #endif
@@ -182,6 +213,9 @@ ZBUS_CHAN_DEFINE(chan_out_nav_sat_fix, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_ESTIMATE_ATTITUDE)
         listener_estimate_attitude,
 #endif
@@ -194,11 +228,11 @@ ZBUS_CHAN_DEFINE(chan_out_odometry, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_SYNAPSE_ETHERNET)
         listener_synapse_ethernet,
-#endif
-#if defined(CONFIG_SYNAPSE_UART)
-        listener_synapse_uart,
 #endif
         ), // observers
     ZBUS_MSG_INIT(0) // Initial value {0}
@@ -209,6 +243,9 @@ ZBUS_CHAN_DEFINE(chan_out_wheel_odometry, // Name
     NULL, // Validator
     NULL, // User Data
     ZBUS_OBSERVERS(
+#if defined(CONFIG_SYNAPSE_TOPIC)
+        listener_synapse_topic,
+#endif
 #if defined(CONFIG_ESTIMATE_ROVER2D)
         listener_estimate_rover2d,
 #endif

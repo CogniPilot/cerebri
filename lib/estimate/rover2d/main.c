@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <synapse/zbus/channels.h>
+#include <synapse/zbus/common.h>
 #include <time.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -29,18 +30,18 @@ typedef struct ctx_ {
     synapse_msgs_WheelOdometry sub_wheel_odometry;
     synapse_msgs_Actuators sub_actuators;
     synapse_msgs_Odometry pub_odometry;
-    bool wheel_odometry_updated;
-    bool actuators_updated;
+    volatile bool actuators_updated;
     bool initialized;
     double x[3];
 } ctx_t;
+
+struct k_poll_signal signal;
 
 // private initialization
 static ctx_t ctx = {
     .sub_wheel_odometry = synapse_msgs_WheelOdometry_init_default,
     .sub_actuators = synapse_msgs_Actuators_init_default,
     .pub_odometry = synapse_msgs_Odometry_init_default,
-    .wheel_odometry_updated = false,
     .actuators_updated = false,
     .initialized = false,
     .x = { 0 },
@@ -50,7 +51,7 @@ void listener_estimate_rover2d_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_out_wheel_odometry) {
         ctx.sub_wheel_odometry = *(synapse_msgs_WheelOdometry*)(chan->message);
-        ctx.wheel_odometry_updated = true;
+        k_poll_signal_raise(&signal, 0x1337);
         // LOG_DBG("wheel odometry updated");
     } else if (chan == &chan_out_actuators) {
         ctx.sub_actuators = *(synapse_msgs_Actuators*)(chan->message);
@@ -88,31 +89,42 @@ void handle_update(double* x1)
     }
 }
 
-ZBUS_LISTENER_DEFINE(listener_estimate_rover2d, listener_estimate_rover2d_callback);
+ZBUS_LISTENER_DEFINE_DISABLED(listener_estimate_rover2d, listener_estimate_rover2d_callback);
 
 static void estimate_rover2d_entry_point(void* p1, void* p2, void* p3)
 {
     // LOG_DBG("started");
 
     // variables
-    double dt = 1.0 / 200.0;
-    double rotation = 0;
+    int32_t seq = 0;
     double rotation_last = 0;
+    k_poll_signal_init(&signal);
+
+    struct k_poll_event events[1] = {
+        K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
+            K_POLL_MODE_NOTIFY_ONLY,
+            &signal),
+    };
+
+    // enable the zbus listener
+    int ret = zbus_obs_set_enable(&listener_estimate_rover2d, true);
+    if (ret != 0) {
+        LOG_ERR("could not enable observer: %d", ret);
+    }
 
     // estimator state and sqrt covariance
     while (true) {
-        // sleep to set rate
-        k_usleep(dt * 1e6);
-
-        // continue if no new data
-        if (!ctx.wheel_odometry_updated)
+        int ret = k_poll(events, 1, K_MSEC(1000));
+        events[0].signal->signaled = 0;
+        events[0].state = K_POLL_STATE_NOT_READY;
+        if (ret != 0) {
+            LOG_ERR("not receiving wheel odometry");
+            k_usleep(1000);
             continue;
+        }
 
         // get data
-        if (ctx.wheel_odometry_updated) {
-            rotation = ctx.sub_wheel_odometry.rotation;
-            // LOG_DBG("rotation: %10.4f", rotation);
-        }
+        double rotation = ctx.sub_wheel_odometry.rotation;
 
         // wait for valid steering angle and odometry to initialize
         if (!ctx.initialized) {
@@ -127,7 +139,7 @@ static void estimate_rover2d_entry_point(void* p1, void* p2, void* p3)
         }
 
         /* predict:(x0[3],delta,u,l)->(x1[3]) */
-        if (ctx.wheel_odometry_updated) {
+        {
             // LOG_DBG("predict");
 
 #ifdef CONFIG_DREAM_SITL
@@ -171,6 +183,17 @@ static void estimate_rover2d_entry_point(void* p1, void* p2, void* p3)
             strncpy(
                 ctx.pub_odometry.child_frame_id,
                 child_frame_id, sizeof(ctx.pub_odometry.child_frame_id) - 1);
+
+            ctx.pub_odometry.has_header = true;
+            int64_t uptime_ticks = k_uptime_ticks();
+            int64_t sec = uptime_ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+            int32_t nanosec = (uptime_ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+
+            ctx.pub_odometry.header.seq = seq++;
+            ctx.pub_odometry.header.has_stamp = true;
+            ctx.pub_odometry.header.stamp.sec = sec;
+            ctx.pub_odometry.header.stamp.nanosec = nanosec;
+
             ctx.pub_odometry.has_pose = true;
             ctx.pub_odometry.pose.has_pose = true;
             ctx.pub_odometry.pose.pose.has_orientation = true;
@@ -184,16 +207,16 @@ static void estimate_rover2d_entry_point(void* p1, void* p2, void* p3)
             ctx.pub_odometry.pose.pose.orientation.y = 0;
             ctx.pub_odometry.pose.pose.orientation.z = sin(theta / 2);
             ctx.pub_odometry.pose.pose.orientation.w = cos(theta / 2);
+
             zbus_chan_pub(&chan_out_odometry, &ctx.pub_odometry, K_NO_WAIT);
         }
 
         log_x(ctx.x);
 
         // set data as old now
-        ctx.wheel_odometry_updated = false;
         ctx.actuators_updated = false;
     }
 }
 
-K_THREAD_DEFINE(estimate_rover2d_thread, MY_STACK_SIZE, estimate_rover2d_entry_point, NULL, NULL, NULL, MY_PRIORITY, 0, 0);
+K_THREAD_DEFINE(estimate_rover2d, MY_STACK_SIZE, estimate_rover2d_entry_point, NULL, NULL, NULL, MY_PRIORITY, 0, 0);
 /* vi: ts=4 sw=4 et */

@@ -17,7 +17,7 @@
 
 LOG_MODULE_REGISTER(control_ackermann, CONFIG_CONTROL_ACKERMANN_LOG_LEVEL);
 
-#define MY_STACK_SIZE 1024
+#define MY_STACK_SIZE 3072
 #define MY_PRIORITY 4
 
 enum control_mode_t {
@@ -27,9 +27,10 @@ enum control_mode_t {
     MODE_CMD_VEL = 3,
 };
 typedef enum control_mode_t control_mode_t;
-char* g_mode_name[4] = { "init", "manual", "auto", "cmd_vel" };
+static char* g_mode_name[4] = { "init", "manual", "auto", "cmd_vel" };
+static int32_t g_seq = 0;
 
-control_mode_t g_mode = { MODE_INIT };
+control_mode_t g_mode = MODE_INIT;
 bool g_armed = false;
 static synapse_msgs_Odometry g_pose = synapse_msgs_Odometry_init_default;
 static synapse_msgs_Twist g_cmd_vel = synapse_msgs_Twist_init_default;
@@ -96,7 +97,7 @@ void mixer()
 {
 
     // given cmd_vel, compute actuators
-    synapse_msgs_Actuators actuators = synapse_msgs_Actuators_init_default;
+    synapse_msgs_Actuators msg = synapse_msgs_Actuators_init_default;
 
     double turn_angle = 0;
     double omega_fwd = 0;
@@ -128,15 +129,26 @@ void mixer()
         omega_fwd = 0;
         turn_angle = 0;
     }
-    actuators.position_count = 1;
-    actuators.velocity_count = 1;
-    actuators.normalized_count = 2;
-    actuators.position[0] = turn_angle;
-    actuators.velocity[0] = omega_fwd;
+
+    msg.has_header = true;
+    int64_t uptime_ticks = k_uptime_ticks();
+    int64_t sec = uptime_ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+    int32_t nanosec = (uptime_ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+    msg.header.seq = g_seq++;
+    msg.header.has_stamp = true;
+    msg.header.stamp.sec = sec;
+    msg.header.stamp.nanosec = nanosec;
+    strncpy(msg.header.frame_id, "map", sizeof(msg.header.frame_id) - 1);
+
+    msg.position_count = 1;
+    msg.velocity_count = 1;
+    msg.normalized_count = 2;
+    msg.position[0] = turn_angle;
+    msg.velocity[0] = omega_fwd;
 #ifdef CONFIG_BUGGY3_MOTOR_ENB_REQUIRED
-    actuators.normalized[0] = -1;
+    msg.normalized[0] = -1;
 #endif
-    zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
+    zbus_chan_pub(&chan_out_actuators, &msg, K_NO_WAIT);
 }
 
 void stop()

@@ -101,7 +101,7 @@ void actuator_pwm_entry_point()
     }
 }
 
-K_THREAD_DEFINE(actuator_pwm_thread, MY_STACK_SIZE,
+K_THREAD_DEFINE(actuator_pwm, MY_STACK_SIZE,
     actuator_pwm_entry_point, NULL, NULL, NULL,
     MY_PRIORITY, 0, 0);
 

@@ -5,6 +5,7 @@ menu "Libraries"
 
 rsource "actuate/Kconfig"
 rsource "control/Kconfig"
+rsource "core/Kconfig"
 rsource "dream/Kconfig"
 rsource "estimate/Kconfig"
 rsource "sense/Kconfig"

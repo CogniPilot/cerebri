@@ -158,7 +158,7 @@ void actuate_vesc_can_entry_point()
     }
 }
 
-K_THREAD_DEFINE(actuate_vesc_can_thread, MY_STACK_SIZE,
+K_THREAD_DEFINE(actuate_vesc_can, MY_STACK_SIZE,
     actuate_vesc_can_entry_point, NULL, NULL, NULL,
     MY_PRIORITY, 0, 0);
 

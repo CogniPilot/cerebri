@@ -1,0 +1,15 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+menuconfig SENSE_BARO
+  bool "Enable Baro"
+  default n
+  help
+    This option enables the barometric altimeter driver interface
+
+if SENSE_BARO
+
+module = SENSE_BARO
+module-str = sense_baro
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # SENSE_BARO

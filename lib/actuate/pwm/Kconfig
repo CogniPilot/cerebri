@@ -25,26 +25,35 @@ config ACTUATE_PWM_OUTPUT_0
   help
     Aliased name of PWM output device used for PWM 0
 
-config ACTUATE_PWM_PULSE_US_MIN_0
-  int "Min usec pulse width PWM 0"
+config ACTUATE_PWM_USE_NANO_SECONDS_0
+  bool "Use nano seconds for PWM 0"
+  default n
+  help
+    Enable to use nanoseconds for the pulse widths of PWM 0.
+
+config ACTUATE_PWM_PULSE_MIN_0
+  int "Min pulse width PWM 0"
   default 1100
-  range 0 4999
+  range 0 9999999
   help
-    Minimum allowed pulse width in micro seconds for PWM 0
+    Minimum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 0
 
-config ACTUATE_PWM_PULSE_US_MAX_0
-  int "Max usec pulse width PWM 0"
+config ACTUATE_PWM_PULSE_MAX_0
+  int "Max pulse width PWM 0"
   default 1900
-  range 1 5000
+  range 1 10000000
   help
-    Maximum allowed pulse width in micro seconds for PWM 0
+    Maximum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 0
 
-config ACTUATE_PWM_PULSE_US_CENTER_0
-  int "Center of usec pulse width PWM 0"
+config ACTUATE_PWM_PULSE_CENTER_0
+  int "Center of pulse width PWM 0"
   default 1500
-  range 2 4998
+  range 2 9999998
   help
-    Center of pulse width in micro seconds for PWM 0
+    Center of pulse width in micro
+    (or nano if selected) seconds for PWM 0
     This is the value it also uses on startup before
     getting message signals or arming.
 
@@ -54,7 +63,8 @@ config ACTUATE_PWM_LINEAR_0
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
-    micro seconds with a linear approximation using slope
+    micro (or nano if selected) seconds with
+    a linear approximation using slope
     intercept formula to best fit your actuator.
 
 if ACTUATE_PWM_LINEAR_0
@@ -83,20 +93,20 @@ config ACTUATE_PWM_LINEAR_M_0
     The slope constant M value of the linearized PWM/[vel or pos]
     divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_C_DIV_0
-  int "divisor to divide linear intercept C"
+config ACTUATE_PWM_LINEAR_B_DIV_0
+  int "divisor to divide linear intercept B"
   default 1000
   help
-    The divisor value to divide intercept constant C of the
+    The divisor value to divide intercept constant B of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_C_0
-  int "linear intercept C (divisor scaled)"
+config ACTUATE_PWM_LINEAR_B_0
+  int "linear intercept B (divisor scaled)"
   default 1500000
   help
-    The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_C_DIV (default 1000)
+    The intercept constant B value of the linearized PWM/[vel or pos]
+    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
 endmenu #LINEAR_PWM_0
 
@@ -121,26 +131,35 @@ config ACTUATE_PWM_OUTPUT_1
   help
     Aliased name of PWM output device used for PWM 1
 
-config ACTUATE_PWM_PULSE_US_MIN_1
-  int "Min usec pulse width PWM 1"
+config ACTUATE_PWM_USE_NANO_SECONDS_1
+  bool "Use nano seconds for PWM 1"
+  default n
+  help
+    Enable to use nanoseconds for the pulse widths of PWM 1.
+
+config ACTUATE_PWM_PULSE_MIN_1
+  int "Min pulse width PWM 1"
   default 1100
-  range 0 4999
+  range 0 9999999
   help
-    Minimum allowed pulse width in micro seconds for PWM 1
+    Minimum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 1
 
-config ACTUATE_PWM_PULSE_US_MAX_1
-  int "Max usec pulse width PWM 1"
+config ACTUATE_PWM_PULSE_MAX_1
+  int "Max pulse width PWM 1"
   default 1900
-  range 1 5000
+  range 1 10000000
   help
-    Maximum allowed pulse width in micro seconds for PWM 1
+    Maximum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 1
 
-config ACTUATE_PWM_PULSE_US_CENTER_1
-  int "Center of usec pulse width PWM 1"
+config ACTUATE_PWM_PULSE_CENTER_1
+  int "Center of pulse width PWM 1"
   default 1500
-  range 2 4998
+  range 2 9999998
   help
-    Center of pulse width in micro seconds for PWM 1
+    Center of pulse width in micro
+    (or nano if selected) seconds for PWM 1
     This is the value it also uses on startup before
     getting message signals or arming.
 
@@ -150,7 +169,8 @@ config ACTUATE_PWM_LINEAR_1
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
-    micro seconds with a linear approximation using slope
+    micro (or nano if selected) seconds with
+    a linear approximation using slope
     intercept formula to best fit your actuator.
 
 if ACTUATE_PWM_LINEAR_1
@@ -179,20 +199,20 @@ config ACTUATE_PWM_LINEAR_M_1
     The slope constant M value of the linearized PWM/[vel or pos]
     divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_C_DIV_1
-  int "divisor to divide linear intercept C"
+config ACTUATE_PWM_LINEAR_B_DIV_1
+  int "divisor to divide linear intercept B"
   default 1000
   help
-    The divisor value to divide intercept constant C of the
+    The divisor value to divide intercept constant B of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_C_1
-  int "linear intercept C (divisor scaled)"
+config ACTUATE_PWM_LINEAR_B_1
+  int "linear intercept B (divisor scaled)"
   default 1500000
   help
-    The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_C_DIV (default 1000)
+    The intercept constant B value of the linearized PWM/[vel or pos]
+    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
 endmenu #LINEAR_PWM_1
 
@@ -219,26 +239,35 @@ config ACTUATE_PWM_OUTPUT_2
   help
     Aliased name of PWM output device used for PWM 2
 
-config ACTUATE_PWM_PULSE_US_MIN_2
-  int "Min usec pulse width PWM 2"
+config ACTUATE_PWM_USE_NANO_SECONDS_2
+  bool "Use nano seconds for PWM 2"
+  default n
+  help
+    Enable to use nanoseconds for the pulse widths of PWM 2.
+
+config ACTUATE_PWM_PULSE_MIN_2
+  int "Min pulse width PWM 2"
   default 1100
-  range 0 4999
+  range 0 9999999
   help
-    Minimum allowed pulse width in micro seconds for PWM 2
+    Minimum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 2
 
-config ACTUATE_PWM_PULSE_US_MAX_2
-  int "Max usec pulse width PWM 2"
+config ACTUATE_PWM_PULSE_MAX_2
+  int "Max pulse width PWM 2"
   default 1900
-  range 1 5000
+  range 1 10000000
   help
-    Maximum allowed pulse width in micro seconds for PWM 2
+    Maximum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 2
 
-config ACTUATE_PWM_PULSE_US_CENTER_2
-  int "Center of usec pulse width PWM 2"
+config ACTUATE_PWM_PULSE_CENTER_2
+  int "Center of pulse width PWM 2"
   default 1500
-  range 2 4998
+  range 2 9999998
   help
-    Center of pulse width in micro seconds for PWM 2
+    Center of pulse width in micro
+    (or nano if selected) seconds for PWM 2
     This is the value it also uses on startup before
     getting message signals or arming.
 
@@ -248,7 +277,8 @@ config ACTUATE_PWM_LINEAR_2
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
-    micro seconds with a linear approximation using slope
+    micro (or nano if selected) seconds with
+    a linear approximation using slope
     intercept formula to best fit your actuator.
 
 if ACTUATE_PWM_LINEAR_2
@@ -277,20 +307,20 @@ config ACTUATE_PWM_LINEAR_M_2
     The slope constant M value of the linearized PWM/[vel or pos]
     divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_C_DIV_2
-  int "divisor to divide linear intercept C"
+config ACTUATE_PWM_LINEAR_B_DIV_2
+  int "divisor to divide linear intercept B"
   default 1000
   help
-    The divisor value to divide intercept constant C of the
+    The divisor value to divide intercept constant B of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_C_2
-  int "linear intercept C (divisor scaled)"
+config ACTUATE_PWM_LINEAR_B_2
+  int "linear intercept B (divisor scaled)"
   default 1500000
   help
-    The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_C_DIV (default 1000)
+    The intercept constant B value of the linearized PWM/[vel or pos]
+    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
 endmenu #LINEAR_PWM_2
 
@@ -317,26 +347,35 @@ config ACTUATE_PWM_OUTPUT_3
   help
     Aliased name of PWM output device used for PWM 3
 
-config ACTUATE_PWM_PULSE_US_MIN_3
-  int "Min usec pulse width PWM 3"
+config ACTUATE_PWM_USE_NANO_SECONDS_3
+  bool "Use nano seconds for PWM 3"
+  default n
+  help
+    Enable to use nanoseconds for the pulse widths of PWM 3.
+
+config ACTUATE_PWM_PULSE_MIN_3
+  int "Min pulse width PWM 3"
   default 1100
-  range 0 4999
+  range 0 9999999
   help
-    Minimum allowed pulse width in micro seconds for PWM 3
+    Minimum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 3
 
-config ACTUATE_PWM_PULSE_US_MAX_3
-  int "Max usec pulse width PWM 3"
+config ACTUATE_PWM_PULSE_MAX_3
+  int "Max pulse width PWM 3"
   default 1900
-  range 1 5000
+  range 1 10000000
   help
-    Maximum allowed pulse width in micro seconds for PWM 3
+    Maximum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 3
 
-config ACTUATE_PWM_PULSE_US_CENTER_3
-  int "Center of usec pulse width PWM 3"
+config ACTUATE_PWM_PULSE_CENTER_3
+  int "Center of pulse width PWM 3"
   default 1500
-  range 2 4998
+  range 2 9999998
   help
-    Center of pulse width in micro seconds for PWM 3
+    Center of pulse width in micro
+    (or nano if selected) seconds for PWM 3
     This is the value it also uses on startup before
     getting message signals or arming.
 
@@ -346,7 +385,8 @@ config ACTUATE_PWM_LINEAR_3
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
-    micro seconds with a linear approximation using slope
+    micro (or nano if selected) seconds with
+    a linear approximation using slope
     intercept formula to best fit your actuator.
 
 if ACTUATE_PWM_LINEAR_3
@@ -375,20 +415,20 @@ config ACTUATE_PWM_LINEAR_M_3
     The slope constant M value of the linearized PWM/[vel or pos]
     divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_C_DIV_3
-  int "divisor to divide linear intercept C"
+config ACTUATE_PWM_LINEAR_B_DIV_3
+  int "divisor to divide linear intercept B"
   default 1000
   help
-    The divisor value to divide intercept constant C of the
+    The divisor value to divide intercept constant B of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_C_3
-  int "linear intercept C (divisor scaled)"
+config ACTUATE_PWM_LINEAR_B_3
+  int "linear intercept B (divisor scaled)"
   default 1500000
   help
-    The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_C_DIV (default 1000)
+    The intercept constant B value of the linearized PWM/[vel or pos]
+    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
 endmenu #LINEAR_PWM_3
 
@@ -415,26 +455,35 @@ config ACTUATE_PWM_OUTPUT_4
   help
     Aliased name of PWM output device used for PWM 4
 
-config ACTUATE_PWM_PULSE_US_MIN_4
-  int "Min usec pulse width PWM 4"
+config ACTUATE_PWM_USE_NANO_SECONDS_4
+  bool "Use nano seconds for PWM 4"
+  default n
+  help
+    Enable to use nanoseconds for the pulse widths of PWM 4.
+
+config ACTUATE_PWM_PULSE_MIN_4
+  int "Min pulse width PWM 4"
   default 1100
-  range 0 4999
+  range 0 9999999
   help
-    Minimum allowed pulse width in micro seconds for PWM 4
+    Minimum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 4
 
-config ACTUATE_PWM_PULSE_US_MAX_4
-  int "Max usec pulse width PWM 4"
+config ACTUATE_PWM_PULSE_MAX_4
+  int "Max pulse width PWM 4"
   default 1900
-  range 1 5000
+  range 1 10000000
   help
-    Maximum allowed pulse width in micro seconds for PWM 4
+    Maximum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 4
 
-config ACTUATE_PWM_PULSE_US_CENTER_4
-  int "Center of usec pulse width PWM 4"
+config ACTUATE_PWM_PULSE_CENTER_4
+  int "Center of pulse width PWM 4"
   default 1500
-  range 2 4998
+  range 2 9999998
   help
-    Center of pulse width in micro seconds for PWM 4
+    Center of pulse width in micro
+    (or nano if selected) seconds for PWM 4
     This is the value it also uses on startup before
     getting message signals or arming.
 
@@ -444,7 +493,8 @@ config ACTUATE_PWM_LINEAR_4
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
-    micro seconds with a linear approximation using slope
+    micro (or nano if selected) seconds with
+    a linear approximation using slope
     intercept formula to best fit your actuator.
 
 if ACTUATE_PWM_LINEAR_4
@@ -473,20 +523,20 @@ config ACTUATE_PWM_LINEAR_M_4
     The slope constant M value of the linearized PWM/[vel or pos]
     divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_C_DIV_4
-  int "divisor to divide linear intercept C"
+config ACTUATE_PWM_LINEAR_B_DIV_4
+  int "divisor to divide linear intercept B"
   default 1000
   help
-    The divisor value to divide intercept constant C of the
+    The divisor value to divide intercept constant B of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_C_4
-  int "linear intercept C (divisor scaled)"
+config ACTUATE_PWM_LINEAR_B_4
+  int "linear intercept B (divisor scaled)"
   default 1500000
   help
-    The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_C_DIV (default 1000)
+    The intercept constant B value of the linearized PWM/[vel or pos]
+    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
 endmenu #LINEAR_PWM_4
 
@@ -513,26 +563,35 @@ config ACTUATE_PWM_OUTPUT_5
   help
     Aliased name of PWM output device used for PWM 5
 
-config ACTUATE_PWM_PULSE_US_MIN_5
-  int "Min usec pulse width PWM 5"
+config ACTUATE_PWM_USE_NANO_SECONDS_5
+  bool "Use nano seconds for PWM 5"
+  default n
+  help
+    Enable to use nanoseconds for the pulse widths of PWM 5.
+
+config ACTUATE_PWM_PULSE_MIN_5
+  int "Min pulse width PWM 5"
   default 1100
-  range 0 4999
+  range 0 9999999
   help
-    Minimum allowed pulse width in micro seconds for PWM 5
+    Minimum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 5
 
-config ACTUATE_PWM_PULSE_US_MAX_5
-  int "Max usec pulse width PWM 5"
+config ACTUATE_PWM_PULSE_MAX_5
+  int "Max pulse width PWM 5"
   default 1900
-  range 1 5000
+  range 1 10000000
   help
-    Maximum allowed pulse width in micro seconds for PWM 5
+    Maximum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 5
 
-config ACTUATE_PWM_PULSE_US_CENTER_5
-  int "Center of usec pulse width PWM 5"
+config ACTUATE_PWM_PULSE_CENTER_5
+  int "Center of pulse width PWM 5"
   default 1500
-  range 2 4998
+  range 2 9999998
   help
-    Center of pulse width in micro seconds for PWM 5
+    Center of pulse width in micro
+    (or nano if selected) seconds for PWM 5
     This is the value it also uses on startup before
     getting message signals or arming.
 
@@ -542,7 +601,8 @@ config ACTUATE_PWM_LINEAR_5
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
-    micro seconds with a linear approximation using slope
+    micro (or nano if selected) seconds with
+    a linear approximation using slope
     intercept formula to best fit your actuator.
 
 if ACTUATE_PWM_LINEAR_5
@@ -571,20 +631,20 @@ config ACTUATE_PWM_LINEAR_M_5
     The slope constant M value of the linearized PWM/[vel or pos]
     divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_C_DIV_5
-  int "divisor to divide linear intercept C"
+config ACTUATE_PWM_LINEAR_B_DIV_5
+  int "divisor to divide linear intercept B"
   default 1000
   help
-    The divisor value to divide intercept constant C of the
+    The divisor value to divide intercept constant B of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_C_5
-  int "linear intercept C (divisor scaled)"
+config ACTUATE_PWM_LINEAR_B_5
+  int "linear intercept B (divisor scaled)"
   default 1500000
   help
-    The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_C_DIV (default 1000)
+    The intercept constant B value of the linearized PWM/[vel or pos]
+    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
 endmenu #LINEAR_PWM_5
 
@@ -611,26 +671,35 @@ config ACTUATE_PWM_OUTPUT_6
   help
     Aliased name of PWM output device used for PWM 6
 
-config ACTUATE_PWM_PULSE_US_MIN_6
-  int "Min usec pulse width PWM 6"
+config ACTUATE_PWM_USE_NANO_SECONDS_6
+  bool "Use nano seconds for PWM 6"
+  default n
+  help
+    Enable to use nanoseconds for the pulse widths of PWM 6.
+
+config ACTUATE_PWM_PULSE_MIN_6
+  int "Min pulse width PWM 6"
   default 1100
-  range 0 4999
+  range 0 9999999
   help
-    Minimum allowed pulse width in micro seconds for PWM 6
+    Minimum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 6
 
-config ACTUATE_PWM_PULSE_US_MAX_6
-  int "Max usec pulse width PWM 6"
+config ACTUATE_PWM_PULSE_MAX_6
+  int "Max pulse width PWM 6"
   default 1900
-  range 1 5000
+  range 1 10000000
   help
-    Maximum allowed pulse width in micro seconds for PWM 6
+    Maximum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 6
 
-config ACTUATE_PWM_PULSE_US_CENTER_6
-  int "Center of usec pulse width PWM 6"
+config ACTUATE_PWM_PULSE_CENTER_6
+  int "Center of pulse width PWM 6"
   default 1500
-  range 2 4998
+  range 2 9999998
   help
-    Center of pulse width in micro seconds for PWM 6
+    Center of pulse width in micro
+    (or nano if selected) seconds for PWM 6
     This is the value it also uses on startup before
     getting message signals or arming.
 
@@ -640,7 +709,8 @@ config ACTUATE_PWM_LINEAR_6
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
-    micro seconds with a linear approximation using slope
+    micro (or nano if selected) seconds with
+    a linear approximation using slope
     intercept formula to best fit your actuator.
 
 if ACTUATE_PWM_LINEAR_6
@@ -669,20 +739,20 @@ config ACTUATE_PWM_LINEAR_M_6
     The slope constant M value of the linearized PWM/[vel or pos]
     divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_C_DIV_6
-  int "divisor to divide linear intercept C"
+config ACTUATE_PWM_LINEAR_B_DIV_6
+  int "divisor to divide linear intercept B"
   default 1000
   help
-    The divisor value to divide intercept constant C of the
+    The divisor value to divide intercept constant B of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_C_6
-  int "linear intercept C (divisor scaled)"
+config ACTUATE_PWM_LINEAR_B_6
+  int "linear intercept B (divisor scaled)"
   default 1500000
   help
-    The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_C_DIV (default 1000)
+    The intercept constant B value of the linearized PWM/[vel or pos]
+    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
 endmenu #LINEAR_PWM_6
 
@@ -709,26 +779,35 @@ config ACTUATE_PWM_OUTPUT_7
   help
     Aliased name of PWM output device used for PWM 7
 
-config ACTUATE_PWM_PULSE_US_MIN_7
-  int "Min usec pulse width PWM 7"
+config ACTUATE_PWM_USE_NANO_SECONDS_7
+  bool "Use nano seconds for PWM 7"
+  default n
+  help
+    Enable to use nanoseconds for the pulse widths of PWM 7.
+
+config ACTUATE_PWM_PULSE_MIN_7
+  int "Min pulse width PWM 7"
   default 1100
-  range 0 4999
+  range 0 9999999
   help
-    Minimum allowed pulse width in micro seconds for PWM 7
+    Minimum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 7
 
-config ACTUATE_PWM_PULSE_US_MAX_7
-  int "Max usec pulse width PWM 7"
+config ACTUATE_PWM_PULSE_MAX_7
+  int "Max pulse width PWM 7"
   default 1900
-  range 1 5000
+  range 1 10000000
   help
-    Maximum allowed pulse width in micro seconds for PWM 7
+    Maximum allowed pulse width in micro
+    (or nano if selected) seconds for PWM 7
 
-config ACTUATE_PWM_PULSE_US_CENTER_7
-  int "Center of usec pulse width PWM 7"
+config ACTUATE_PWM_PULSE_CENTER_7
+  int "Center of pulse width PWM 7"
   default 1500
-  range 2 4998
+  range 2 9999998
   help
-    Center of pulse width in micro seconds for PWM 7
+    Center of pulse width in micro
+    (or nano if selected) seconds for PWM 7
     This is the value it also uses on startup before
     getting message signals or arming.
 
@@ -738,7 +817,8 @@ config ACTUATE_PWM_LINEAR_7
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
-    micro seconds with a linear approximation using slope
+    micro (or nano if selected) seconds with
+    a linear approximation using slope
     intercept formula to best fit your actuator.
 
 if ACTUATE_PWM_LINEAR_7
@@ -767,20 +847,20 @@ config ACTUATE_PWM_LINEAR_M_7
     The slope constant M value of the linearized PWM/[vel or pos]
     divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_C_DIV_7
-  int "divisor to divide linear intercept C"
+config ACTUATE_PWM_LINEAR_B_DIV_7
+  int "divisor to divide linear intercept B"
   default 1000
   help
-    The divisor value to divide intercept constant C of the
+    The divisor value to divide intercept constant B of the
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_C_7
-  int "linear intercept C (divisor scaled)"
+config ACTUATE_PWM_LINEAR_B_7
+  int "linear intercept B (divisor scaled)"
   default 1500000
   help
-    The intercept constant C value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_C_DIV (default 1000)
+    The intercept constant B value of the linearized PWM/[vel or pos]
+    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
 endmenu #LINEAR_PWM_7
 

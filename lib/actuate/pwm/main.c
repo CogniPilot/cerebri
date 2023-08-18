@@ -45,7 +45,7 @@ void actuator_pwm_entry_point()
                     i);
                 continue;
             }
-            uint16_t pulse = pwm.center;
+            uint32_t pulse = pwm.center;
             if (pwm.type == PWM_TYPE_NORMALIZED) {
                 float input = g_actuators.normalized[pwm.index];
                 if (input < -1 || input > 1) {
@@ -59,7 +59,7 @@ void actuator_pwm_entry_point()
                 }
             } else if (pwm.type == PWM_TYPE_POSITION) {
                 float input = g_actuators.position[pwm.index];
-                uint16_t output = (uint16_t)((pwm.slope * input) + pwm.intercept);
+                uint32_t output = (uint32_t)((pwm.slope * input) + pwm.intercept);
                 LOG_DBG("%s position index %d with input %f output %d", pwm.alias, pwm.index, input, output);
                 if (output > pwm.max) {
                     pulse = pwm.max;
@@ -72,7 +72,7 @@ void actuator_pwm_entry_point()
                 }
             } else if (pwm.type == PWM_TYPE_VELOCITY) {
                 float input = g_actuators.velocity[pwm.index];
-                uint16_t output = (uint16_t)((pwm.slope * input) + pwm.intercept);
+                uint32_t output = (uint32_t)((pwm.slope * input) + pwm.intercept);
                 LOG_DBG("%s  velocity index %d with input %f output %d\n", pwm.alias, pwm.index, input, output);
                 if (output > pwm.max) {
                     pulse = pwm.max;
@@ -85,7 +85,12 @@ void actuator_pwm_entry_point()
                 }
             }
             int err = 0;
-            err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pulse));
+            if (pwm.use_nano_seconds) {
+                err = pwm_set_pulse_dt(&pwm.device, PWM_NSEC(pulse));
+            } else {
+                err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pulse));
+            }
+
             if (err) {
                 LOG_ERR("failed to set pulse %d on %s (err %d)", pulse, pwm.alias, err);
             }

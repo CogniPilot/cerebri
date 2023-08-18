@@ -14,6 +14,14 @@
 
 #include <synapse/zbus/channels.h>
 
+#define ZBUS_LISTENER_DEFINE_DISABLED(_name, _cb)           \
+    _ZBUS_STRUCT_DECLARE(zbus_observer,                     \
+        _name)                                              \
+        = { ZBUS_OBSERVER_NAME_INIT(_name) /* Name field */ \
+                  .enabled                                  \
+              = false,                                      \
+              .queue = NULL, .callback = (_cb) }
+
 #define TOPIC_LISTENER(CHANNEL, CLASS)                                           \
     static TF_Result CHANNEL##_Listener(TinyFrame* tf, TF_Msg* frame)            \
     {                                                                            \

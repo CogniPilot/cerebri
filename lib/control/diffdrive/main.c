@@ -141,7 +141,7 @@ void diffdrive_entry_point(void* p1, void* p2, void* p3)
     }
 }
 
-K_THREAD_DEFINE(diffdrive_thread, MY_STACK_SIZE,
+K_THREAD_DEFINE(diffdrive, MY_STACK_SIZE,
     diffdrive_entry_point, NULL, NULL, NULL,
     MY_PRIORITY, 0, 0);
 

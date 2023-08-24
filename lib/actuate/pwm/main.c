@@ -29,8 +29,8 @@ static void listener_actuator_pwm_callback(const struct zbus_channel* chan)
         g_actuators = *(synapse_msgs_Actuators*)(chan->message);
     }
 }
-
 ZBUS_LISTENER_DEFINE(listener_actuator_pwm, listener_actuator_pwm_callback);
+ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_actuator_pwm, 1);
 
 void actuator_pwm_entry_point()
 {

@@ -54,6 +54,9 @@ void listener_estimate_attitude_callback(const struct zbus_channel* chan)
         // LOG_DBG("mag updated");
     }
 }
+ZBUS_LISTENER_DEFINE(listener_estimate_attitude, listener_estimate_attitude_callback);
+ZBUS_CHAN_ADD_OBS(chan_out_imu, listener_estimate_attitude, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_magnetic_field, listener_estimate_attitude, 1);
 
 void log_x(double* x)
 {
@@ -95,8 +98,6 @@ void handle_update(double* x1, double* W1)
         memcpy(ctx.W, W1, sizeof(ctx.W));
     }
 }
-
-ZBUS_LISTENER_DEFINE(listener_estimate_attitude, listener_estimate_attitude_callback);
 
 static void estimate_attitude_entry_point(void* p1, void* p2, void* p3)
 {

@@ -8,7 +8,10 @@ zephyr_library_named(control_ackermann)
 zephyr_include_directories()
 
 zephyr_library_sources(
-  main.c
+  #joy.c
+  fsm.c
+  velocity.c
+  position.c
   casadi/rover.c
   )
 

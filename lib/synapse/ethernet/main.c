@@ -16,9 +16,41 @@
 
 #include "synapse/zbus/common.h"
 
+#define TOPIC_LISTENER(CHANNEL, CLASS)                                           \
+    static TF_Result CHANNEL##_Listener(TinyFrame* tf, TF_Msg* frame)            \
+    {                                                                            \
+        CLASS msg = CLASS##_init_default;                                        \
+        pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);   \
+        int status = pb_decode(&stream, CLASS##_fields, &msg);                   \
+        if (status) {                                                            \
+            zbus_chan_pub(&chan_##CHANNEL, &msg, K_FOREVER);                     \
+        } else {                                                                 \
+            printf("%s decoding failed: %s\n", #CHANNEL, PB_GET_ERROR(&stream)); \
+        }                                                                        \
+        return TF_STAY;                                                          \
+    }
+
+#define TOPIC_PUBLISHER(CHANNEL, CLASS, TOPIC)                                   \
+    else if (chan == &chan_##CHANNEL)                                            \
+    {                                                                            \
+        TF_Msg msg;                                                              \
+        TF_ClearMsg(&msg);                                                       \
+        uint8_t buf[CLASS##_size];                                               \
+        pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));     \
+        int status = pb_encode(&stream, CLASS##_fields, chan->message);          \
+        if (status) {                                                            \
+            msg.type = TOPIC;                                                    \
+            msg.data = buf;                                                      \
+            msg.len = stream.bytes_written;                                      \
+            TF_Send(&g_tf, &msg);                                                \
+        } else {                                                                 \
+            printf("%s encoding failed: %s\n", #CHANNEL, PB_GET_ERROR(&stream)); \
+        }                                                                        \
+    }
+
 LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_SYNAPSE_ETHERNET_LOG_LEVEL);
 
-#define MY_STACK_SIZE 500
+#define MY_STACK_SIZE 2048
 #define MY_PRIORITY 5
 
 #define RX_BUF_SIZE 1024
@@ -26,6 +58,7 @@ LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_SYNAPSE_ETHERNET_LOG_LEVEL);
 #define BIND_PORT 4242
 
 static volatile int g_client = -1;
+static int error_count = 0;
 
 static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {
@@ -40,9 +73,14 @@ static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
         out_len = zsock_send(g_client, p, len, 0);
         if (out_len < 0) {
             LOG_ERR("send: %d\n", errno);
-            // trigger reconnect
-            g_client = -1;
+            if (error_count++ > 10) {
+                // trigger reconnect
+                g_client = -1;
+            }
             return;
+        } else {
+            // reset error count
+            error_count = 0;
         }
         p += out_len;
         len -= out_len;
@@ -73,10 +111,13 @@ void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
     if (chan == NULL) { } // start of if else statements for channel type
     TOPIC_PUBLISHER(out_actuators, synapse_msgs_Actuators, SYNAPSE_OUT_ACTUATORS_TOPIC)
     TOPIC_PUBLISHER(out_odometry, synapse_msgs_Odometry, SYNAPSE_OUT_ODOMETRY_TOPIC)
-    TOPIC_PUBLISHER(out_wheel_odometry, synapse_msgs_WheelOdometry, SYNAPSE_OUT_WHEEL_ODOMETRY_TOPIC)
+    // TOPIC_PUBLISHER(out_wheel_odometry, synapse_msgs_WheelOdometry, SYNAPSE_OUT_WHEEL_ODOMETRY_TOPIC)
 }
 
 ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callback);
+ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_synapse_ethernet, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_odometry, listener_synapse_ethernet, 1);
+// ZBUS_CHAN_ADD_OBS(chan_out_wheel_odometry, listener_synapse_ethernet, 1);
 
 static bool set_blocking_enabled(int fd, bool blocking)
 {
@@ -162,4 +203,5 @@ static void ethernet_entry_point(void)
 
 K_THREAD_DEFINE(synapse_ethernet, MY_STACK_SIZE, ethernet_entry_point,
     NULL, NULL, NULL, MY_PRIORITY, 0, 0);
+
 /* vi: ts=4 sw=4 et */

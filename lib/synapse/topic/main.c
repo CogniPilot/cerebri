@@ -269,6 +269,15 @@ void print_MagneticField(synapse_msgs_MagneticField* msg)
     }
 }
 
+void print_Fsm(synapse_msgs_Fsm* msg)
+{
+    if (msg->has_header) {
+        print_Header(&msg->header);
+    }
+    shell_print(g_sh, "armed: %s, safety: %s, mode: %s",
+        fsm_armed_str(msg->armed), fsm_safety_str(msg->safety), fsm_mode_str(msg->mode));
+}
+
 void listener_synapse_topic_callback(const struct zbus_channel* chan)
 {
     // filter out channels we are not echoing
@@ -306,10 +315,13 @@ void listener_synapse_topic_callback(const struct zbus_channel* chan)
         } else if (chan == &chan_out_wheel_odometry) {
             synapse_msgs_WheelOdometry* msg = (synapse_msgs_WheelOdometry*)(chan->message);
             print_WheelOdometry(msg);
+        } else if (chan == &chan_out_fsm) {
+            synapse_msgs_Fsm* msg = (synapse_msgs_Fsm*)(chan->message);
+            print_Fsm(msg);
         } else if (chan == &chan_in_joy) {
             synapse_msgs_Joy* msg = (synapse_msgs_Joy*)(chan->message);
             print_Joy(msg);
-        } else if (chan == &chan_in_cmd_vel) {
+        } else if (chan == &chan_in_cmd_vel || chan == &chan_out_cmd_vel) {
             synapse_msgs_Twist msg = *(synapse_msgs_Twist*)(chan->message);
             print_Twist(&msg);
         } else if (chan == &chan_in_bezier_trajectory) {
@@ -354,6 +366,12 @@ static int topic_echo(const struct shell* sh,
     return 0;
 }
 
+static bool print_observer_name_iterator(const struct zbus_observer* obs)
+{
+    shell_print(g_sh, "      - %s", zbus_obs_name(obs));
+    return true;
+}
+
 static int topic_info(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
@@ -361,10 +379,7 @@ static int topic_info(const struct shell* sh,
     shell_print(sh, "channel %s:", zbus_chan_name(chan));
     shell_print(sh, "message size: %d", zbus_chan_msg_size(chan));
     shell_print(sh, "      observers:");
-    for (const struct zbus_observer* const* obs = chan->observers; *obs != NULL; ++obs) {
-        shell_print(sh, "      - %s", zbus_obs_name(*obs));
-    }
-
+    zbus_iterate_over_observers(&print_observer_name_iterator);
     return 0;
 }
 
@@ -395,6 +410,8 @@ static int topic_hz(const struct shell* sh,
         (out_actuators, &chan_out_actuators, "out_actuators"),                      \
         (out_altimeter, &chan_out_altimeter, "out_altimeter"),                      \
         (out_battery_state, &chan_out_battery_state, "out_battery_state"),          \
+        (out_cmd_vel, &chan_out_cmd_vel, "out_cmd_vel"),                            \
+        (out_fsm, &chan_out_fsm, "out_fsm"),                                        \
         (out_imu, &chan_out_imu, "out_imu"),                                        \
         (out_magnetic_field, &chan_out_magnetic_field, "out_magnetic_field"),       \
         (out_nav_sat_fix, &chan_out_nav_sat_fix, "out_nav_sat_fix"),                \
@@ -420,5 +437,24 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_topic,
 
 /* Creating root (level 0) command "topic" */
 SHELL_CMD_REGISTER(topic, &sub_topic, "topic command", NULL);
+
+/* add channel observer */
+ZBUS_CHAN_ADD_OBS(chan_in_actuators, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_in_bezier_trajectory, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_in_clock_offset, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_in_cmd_vel, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_in_joy, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_in_nav_sat_fix, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_in_odometry, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_altimeter, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_battery_state, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_cmd_vel, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_fsm, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_imu, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_magnetic_field, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_nav_sat_fix, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_odometry, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_wheel_odometry, listener_synapse_topic, 1);
 
 /* vi: ts=4 sw=4 et: */

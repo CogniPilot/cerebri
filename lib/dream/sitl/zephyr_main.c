@@ -50,6 +50,7 @@ void listener_dream_sitl_callback(const struct zbus_channel* chan)
     }
 }
 ZBUS_LISTENER_DEFINE(listener_dream_sitl, listener_dream_sitl_callback);
+ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_dream_sitl, 1);
 
 static void zephyr_sim_entry_point(void)
 {

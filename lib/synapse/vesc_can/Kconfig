@@ -3,7 +3,6 @@
 
 menuconfig VESC_CAN
   bool "VESC CAN"
-  default n
   depends on CAN
   help
     This option enables configuring VESC CAN
@@ -12,14 +11,12 @@ if VESC_CAN
 
 config ACTUATE_VESC_CAN
   bool "CAN VESC based actuators"
-  default n
   depends on CAN
   help
     This option enables CAN VESC actuators
 
 config VESC_CAN_STATUS
   bool "VESC CAN based status"
-  default n
   depends on CAN
   help
     This option enables status messages for CAN VESC
@@ -44,7 +41,6 @@ config VESC_CAN_BUS_ALIAS_CAN_N_0
 
 config VESC_CAN_BUS_FD_0
   bool "CAN bus is CANFD for VESC 0"
-  default n
   depends on ACTUATE_VESC_CAN || VESC_CAN_STATUS
   depends on CAN_FD_MODE
   help
@@ -102,7 +98,6 @@ config VESC_CAN_BUS_ALIAS_CAN_N_1
 
 config VESC_CAN_BUS_FD_1
   bool "CAN bus is CANFD for VESC 1"
-  default n
   depends on ACTUATE_VESC_CAN || VESC_CAN_STATUS
   depends on CAN_FD_MODE
   help
@@ -160,7 +155,6 @@ config VESC_CAN_BUS_ALIAS_CAN_N_2
 
 config VESC_CAN_BUS_FD_2
   bool "CAN bus is CANFD for VESC 2"
-  default n
   depends on ACTUATE_VESC_CAN || VESC_CAN_STATUS
   depends on CAN_FD_MODE
   help
@@ -218,7 +212,6 @@ config VESC_CAN_BUS_ALIAS_CAN_N_3
 
 config VESC_CAN_BUS_FD_3
   bool "CAN bus is CANFD for VESC 3"
-  default n
   depends on ACTUATE_VESC_CAN || VESC_CAN_STATUS
   depends on CAN_FD_MODE
   help
@@ -276,7 +269,6 @@ config VESC_CAN_BUS_ALIAS_CAN_N_4
 
 config VESC_CAN_BUS_FD_4
   bool "CAN bus is CANFD for VESC 4"
-  default n
   depends on ACTUATE_VESC_CAN || VESC_CAN_STATUS
   depends on CAN_FD_MODE
   help
@@ -334,7 +326,6 @@ config VESC_CAN_BUS_ALIAS_CAN_N_5
 
 config VESC_CAN_BUS_FD_5
   bool "CAN bus is CANFD for VESC 5"
-  default n
   depends on ACTUATE_VESC_CAN || VESC_CAN_STATUS
   depends on CAN_FD_MODE
   help
@@ -392,7 +383,6 @@ config VESC_CAN_BUS_ALIAS_CAN_N_6
 
 config VESC_CAN_BUS_FD_6
   bool "CAN bus is CANFD for VESC 6"
-  default n
   depends on ACTUATE_VESC_CAN || VESC_CAN_STATUS
   depends on CAN_FD_MODE
   help
@@ -450,7 +440,6 @@ config VESC_CAN_BUS_ALIAS_CAN_N_7
 
 config VESC_CAN_BUS_FD_7
   bool "CAN bus is CANFD for VESC 7"
-  default n
   depends on ACTUATE_VESC_CAN || VESC_CAN_STATUS
   depends on CAN_FD_MODE
   help

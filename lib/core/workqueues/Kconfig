@@ -1,15 +1,15 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
-menuconfig CORE_WORKQUEUES
+menuconfig CEREBRI_CORE_WORKQUEUES
   bool "Enable core work queues"
   default y
   help
     This option enables the system work queues
 
-if CORE_WORKQUEUES
+if CEREBRI_CORE_WORKQUEUES
 
-module = CORE_WORKQUEUES
+module = CEREBRI_CORE_WORKQUEUES
 module-str = core_workqueues
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # CORE_WORKQUEUES
+endif # CEREBRI_CORE_WORKQUEUES

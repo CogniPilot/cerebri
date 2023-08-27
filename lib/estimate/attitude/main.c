@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <cerebri/synapse/zbus/channels.h>
 #include <math.h>
 #include <stdio.h>
-#include <synapse/zbus/channels.h>
 #include <time.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -15,7 +15,7 @@
 
 #include "casadi/casadi_mrp.h"
 
-LOG_MODULE_REGISTER(estimate_attitude, CONFIG_ESTIMATE_ATTITUDE_LOG_LEVEL);
+LOG_MODULE_REGISTER(estimate_attitude, CONFIG_CEREBRI_ESTIMATE_ATTITUDE_LOG_LEVEL);
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
@@ -295,14 +295,9 @@ static void estimate_attitude_entry_point(void* p1, void* p2, void* p3)
                 ctx.pub_odometry.child_frame_id,
                 child_frame_id, sizeof(ctx.pub_odometry.child_frame_id) - 1);
 
+            stamp_header(&ctx.pub_odometry.header, k_uptime_ticks());
             ctx.pub_odometry.has_header = true;
-            int64_t uptime_ticks = k_uptime_ticks();
-            int64_t sec = uptime_ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-            int32_t nanosec = (uptime_ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
             ctx.pub_odometry.header.seq = seq++;
-            ctx.pub_odometry.header.has_stamp = true;
-            ctx.pub_odometry.header.stamp.sec = sec;
-            ctx.pub_odometry.header.stamp.nanosec = nanosec;
 
             ctx.pub_odometry.has_pose = true;
             ctx.pub_odometry.pose.has_pose = true;

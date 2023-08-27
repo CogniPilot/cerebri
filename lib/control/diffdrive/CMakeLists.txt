@@ -1,7 +1,7 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-zephyr_library_named(control_diffdrive)
+zephyr_library_named(cerebri_control_diff_drive)
 
 
 # we need to be able to include generated header files
@@ -12,4 +12,4 @@ zephyr_library_sources(
   casadi/rover.c
   )
 
-add_dependencies(control_diffdrive synapse_protobuf)
+add_dependencies(cerebri_control_diff_drive synapse_protobuf)

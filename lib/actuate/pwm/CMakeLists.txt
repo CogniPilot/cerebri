@@ -1,7 +1,7 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-zephyr_library_named(actuator_pwm)
+zephyr_library_named(cerebri_actuate_pwm)
 
 
 # we need to be able to include generated header files
@@ -12,4 +12,4 @@ zephyr_library_sources(
   actuator_pwm.c
   )
 
-add_dependencies(actuator_pwm synapse_protobuf)
+add_dependencies(cerebri_actuate_pwm synapse_protobuf)

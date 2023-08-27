@@ -5,14 +5,15 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <synapse/zbus/channels.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
-LOG_MODULE_REGISTER(sense_power, CONFIG_SENSE_POWER_LOG_LEVEL);
+#include <cerebri/synapse/zbus/channels.h>
+
+LOG_MODULE_REGISTER(sense_power, CONFIG_CEREBRI_SENSE_POWER_LOG_LEVEL);
 
 #define MY_STACK_SIZE 2048
 #define MY_PRIORITY 6
@@ -36,13 +37,8 @@ void power_work_handler(struct k_work* work)
     synapse_msgs_BatteryState msg = synapse_msgs_BatteryState_init_default;
 
     msg.has_header = true;
-    int64_t uptime_ticks = k_uptime_ticks();
-    int64_t sec = uptime_ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-    int32_t nanosec = (uptime_ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+    stamp_header(&msg.header, k_uptime_ticks());
     msg.header.seq = g_seq++;
-    msg.header.has_stamp = true;
-    msg.header.stamp.sec = sec;
-    msg.header.stamp.nanosec = nanosec;
     strncpy(msg.header.frame_id, "base_link", sizeof(msg.header.frame_id) - 1);
 
     msg.voltage = sensor_value_to_double(&voltage);

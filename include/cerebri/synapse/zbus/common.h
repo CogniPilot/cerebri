@@ -12,8 +12,8 @@
 #include <synapse_tinyframe/TinyFrame.h>
 #include <synapse_tinyframe/utils.h>
 
-#include <synapse/zbus/channels.h>
-#include <synapse/zbus/syn_pub_sub.h>
+#include <cerebri/synapse/zbus/channels.h>
+#include <cerebri/synapse/zbus/syn_pub_sub.h>
 
 #endif // SYNAPSE_ZBUS_COMMON_H
 /* vi: ts=4 sw=4 et */

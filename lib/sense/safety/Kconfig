@@ -1,0 +1,17 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+menuconfig CEREBRI_SENSE_SAFETY
+  bool "Safety"
+  default y
+  depends on CEREBRI_SYNAPSE_ZBUS
+  depends on CEREBRI_CORE_WORK_QUEUES
+  help
+    This option enables the safety interface
+
+if CEREBRI_SENSE_SAFETY
+
+module = CEREBRI_SENSE_SAFETY
+module-str = sense_safety
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # CEREBRI_SENSE_SAFETY

@@ -1,0 +1,15 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig CEREBRI_ACTUATE_STATUS_LED
+  bool "STATUS LED"
+  help
+    This option enables the status LED
+
+if CEREBRI_ACTUATE_STATUS_LED
+
+module = CEREBRI_ACTUATE_STATUS_LED
+module-str = actuate_status_led
+source "subsys/logging/Kconfig.template.log_config"
+
+endif #CEREBRI_ACTUATE_STATUS_LED

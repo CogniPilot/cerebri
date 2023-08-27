@@ -2,44 +2,75 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
-#include <synapse/zbus/channels.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(sense_imu, CONFIG_SENSE_IMU_LOG_LEVEL);
+#include <cerebri/core/common.h>
+#include <cerebri/synapse/zbus/channels.h>
+#include <cerebri/synapse/zbus/syn_pub_sub.h>
+
+LOG_MODULE_REGISTER(sense_imu, CONFIG_CEREBRI_SENSE_IMU_LOG_LEVEL);
 
 #define THREAD_STACK_SIZE 2048
 #define THREAD_PRIORITY 6
 
 extern struct k_work_q g_high_priority_work_q;
 
-static const struct device* g_accel_dev[3];
-static const struct device* g_gyro_dev[3];
-static int32_t g_seq = 0;
+typedef struct _context {
+    // node
+    syn_node_t node;
+    // data
+    synapse_msgs_Imu imu;
+    // publications
+    syn_pub_t pub_imu;
+    // devices
+    const struct device* accel_dev[3];
+    const struct device* gyro_dev[3];
+} context;
 
-static const struct device* sensor_check(const struct device* const dev)
+static context g_ctx = {
+    .node = { 0 },
+    .imu = {
+        .has_header = true,
+        .header = {
+            .frame_id = "base_link",
+            .has_stamp = true,
+            .seq = 0 },
+        .has_angular_velocity = true,
+        .angular_velocity = synapse_msgs_Vector3_init_default,
+        .has_linear_acceleration = true,
+        .linear_acceleration = synapse_msgs_Vector3_init_default,
+        .has_orientation = false,
+    },
+    .pub_imu = { 0 },
+    .accel_dev = { 0 },
+    .gyro_dev = { 0 },
+};
+
+static void imu_init(context* ctx)
 {
-    if (dev == NULL) {
-        /* No such node, or the node does not have status "okay". */
-        LOG_ERR("no device found");
-        return NULL;
-    }
+    // initialize node
+    syn_node_init(&ctx->node, "imu");
+    syn_node_add_pub(&ctx->node, &ctx->pub_imu, &ctx->imu, &chan_out_imu);
 
-    if (!device_is_ready(dev)) {
-        LOG_ERR("device %s is not ready, check the driver initialization logs for errors",
-            dev->name);
-        return NULL;
-    }
+    // setup accel devices
+    ctx->accel_dev[0] = get_device(DEVICE_DT_GET(DT_ALIAS(accel0)));
+    ctx->accel_dev[1] = get_device(DEVICE_DT_GET(DT_ALIAS(accel1)));
+    ctx->accel_dev[2] = get_device(DEVICE_DT_GET(DT_ALIAS(accel2)));
 
-    LOG_INF("imu found device %s", dev->name);
-    return dev;
+    // setup gyro devices
+    ctx->gyro_dev[0] = get_device(DEVICE_DT_GET(DT_ALIAS(gyro0)));
+    ctx->gyro_dev[1] = get_device(DEVICE_DT_GET(DT_ALIAS(gyro1)));
+    ctx->gyro_dev[2] = get_device(DEVICE_DT_GET(DT_ALIAS(gyro2)));
 }
 
 void imu_work_handler(struct k_work* work)
 {
-    double accel_data_array[3][3] = {};
-    double gyro_data_array[3][3] = {};
+    context* ctx = &g_ctx;
+
+    double accel_data_array[3][3] = { 0 };
+    double gyro_data_array[3][3] = { 0 };
 
     //        LOG_DBG("");
     for (int i = 0; i < 3; i++) {
@@ -48,9 +79,9 @@ void imu_work_handler(struct k_work* work)
         struct sensor_value gyro_value[3] = {};
 
         // get accel if device present
-        if (g_accel_dev[i] != NULL) {
-            sensor_sample_fetch(g_accel_dev[i]);
-            sensor_channel_get(g_accel_dev[i], SENSOR_CHAN_ACCEL_XYZ, accel_value);
+        if (ctx->accel_dev[i] != NULL) {
+            sensor_sample_fetch(ctx->accel_dev[i]);
+            sensor_channel_get(ctx->accel_dev[i], SENSOR_CHAN_ACCEL_XYZ, accel_value);
             LOG_DBG("accel %d: %d.%06d %d.%06d %d.%06d", i,
                 accel_value[0].val1, accel_value[0].val2,
                 accel_value[1].val1, accel_value[1].val2,
@@ -58,12 +89,12 @@ void imu_work_handler(struct k_work* work)
         }
 
         // get gyro if device present
-        if (g_gyro_dev[i] != NULL) {
+        if (ctx->gyro_dev[i] != NULL) {
             // don't resample if it is the same device as accel, want same timestamp
-            if (g_gyro_dev[i] != g_accel_dev[i]) {
-                sensor_sample_fetch(g_gyro_dev[i]);
+            if (ctx->gyro_dev[i] != ctx->accel_dev[i]) {
+                sensor_sample_fetch(ctx->gyro_dev[i]);
             }
-            sensor_channel_get(g_gyro_dev[i], SENSOR_CHAN_GYRO_XYZ, gyro_value);
+            sensor_channel_get(ctx->gyro_dev[i], SENSOR_CHAN_GYRO_XYZ, gyro_value);
             LOG_DBG("gyro %d: %d.%06d %d.%06d %d.%06d", i,
                 gyro_value[0].val1, gyro_value[0].val2,
                 gyro_value[1].val1, gyro_value[1].val2,
@@ -89,26 +120,25 @@ void imu_work_handler(struct k_work* work)
         gyro_data_array[0][2]
     };
 
-    // publish imu to zbus
-    synapse_msgs_Imu msg = synapse_msgs_Imu_init_default;
-    msg.has_header = true;
-    int64_t uptime_ticks = k_uptime_ticks();
-    int64_t sec = uptime_ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-    int32_t nanosec = (uptime_ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-    msg.header.seq = g_seq++;
-    msg.header.has_stamp = true;
-    msg.header.stamp.sec = sec;
-    msg.header.stamp.nanosec = nanosec;
-    strncpy(msg.header.frame_id, "base_link", sizeof(msg.header.frame_id) - 1);
-    msg.has_angular_velocity = true;
-    msg.angular_velocity.x = gyro[0];
-    msg.angular_velocity.y = gyro[1];
-    msg.angular_velocity.z = gyro[2];
-    msg.has_linear_acceleration = true;
-    msg.linear_acceleration.x = accel[0];
-    msg.linear_acceleration.y = accel[1];
-    msg.linear_acceleration.z = accel[2];
-    zbus_chan_pub(&chan_out_imu, &msg, K_NO_WAIT);
+    // lock message
+    syn_node_lock_all(&ctx->node, K_MSEC(1));
+
+    // update message
+    stamp_header(&ctx->imu.header, k_uptime_ticks());
+    ctx->imu.header.seq++;
+    ctx->imu.angular_velocity.x = gyro[0];
+    ctx->imu.angular_velocity.y = gyro[1];
+    ctx->imu.angular_velocity.z = gyro[2];
+    ctx->imu.linear_acceleration.x = accel[0];
+    ctx->imu.linear_acceleration.y = accel[1];
+    ctx->imu.linear_acceleration.z = accel[2];
+
+    // publish message
+    syn_node_publish_all(&ctx->node, K_MSEC(1));
+    // LOG_INF("publish imu");
+
+    // unlock message
+    syn_node_unlock_all(&ctx->node);
 }
 
 K_WORK_DEFINE(imu_work, imu_work_handler);
@@ -120,22 +150,15 @@ void imu_timer_handler(struct k_timer* dummy)
 
 K_TIMER_DEFINE(imu_timer, imu_timer_handler, NULL);
 
-int sense_imu_entry_point(void)
+int sense_imu_entry_point(context* ctx)
 {
-    g_accel_dev[0] = sensor_check(DEVICE_DT_GET(DT_ALIAS(accel0)));
-    g_accel_dev[1] = sensor_check(DEVICE_DT_GET(DT_ALIAS(accel1)));
-    g_accel_dev[2] = sensor_check(DEVICE_DT_GET(DT_ALIAS(accel2)));
-
-    g_gyro_dev[0] = sensor_check(DEVICE_DT_GET(DT_ALIAS(gyro0)));
-    g_gyro_dev[1] = sensor_check(DEVICE_DT_GET(DT_ALIAS(gyro1)));
-    g_gyro_dev[2] = sensor_check(DEVICE_DT_GET(DT_ALIAS(gyro2)));
-
+    imu_init(ctx);
     k_timer_start(&imu_timer, K_MSEC(5), K_MSEC(5));
     return 0;
 }
 
 K_THREAD_DEFINE(sense_imu, THREAD_STACK_SIZE,
-    sense_imu_entry_point, NULL, NULL, NULL,
+    sense_imu_entry_point, &g_ctx, NULL, NULL,
     THREAD_PRIORITY, 0, 0);
 
 // vi: ts=4 sw=4 et

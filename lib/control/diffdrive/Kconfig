@@ -1,15 +1,15 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-menuconfig CONTROL_DIFFDRIVE
+menuconfig CEREBRI_CONTROL_DIFFDRIVE
   bool "diffdrive"
   help
     This option enables the rover diffdrive lib.
 
-if CONTROL_DIFFDRIVE
+if CEREBRI_CONTROL_DIFFDRIVE
 
-module = CONTROL_DIFFDRIVE
+module = CEREBRI_CONTROL_DIFFDRIVE
 module-str = control_diffdrive
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # CONTROL_DIFFDRIVE
+endif # CEREBRI_CONTROL_DIFFDRIVE

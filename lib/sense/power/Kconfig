@@ -1,16 +1,16 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-menuconfig SENSE_POWER
+menuconfig CEREBRI_SENSE_POWER
   bool "Power"
-  default n  
+  depends on CEREBRI_SYNAPSE_ZBUS
   help
     This option enables power sensor.
 
-if SENSE_POWER
+if CEREBRI_SENSE_POWER
 
-module = SENSE_POWER
+module = CEREBRI_SENSE_POWER
 module-str = sense_power
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # SENSE_POWER
+endif # CEREBRI_SENSE_POWER

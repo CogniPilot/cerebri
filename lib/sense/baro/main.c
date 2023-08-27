@@ -69,13 +69,8 @@ void baro_work_handler(struct k_work* work)
     // publish mag to zbus
     synapse_msgs_Altimeter msg = synapse_msgs_Altimeter_init_default;
     msg.has_header = true;
-    int64_t uptime_ticks = k_uptime_ticks();
-    int64_t sec = uptime_ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-    int32_t nanosec = (uptime_ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+    stamp_header(&msg.header, k_uptime_ticks());
     msg.header.seq = g_seq++;
-    msg.header.has_stamp = true;
-    msg.header.stamp.sec = sec;
-    msg.header.stamp.nanosec = nanosec;
     strncpy(msg.header.frame_id, "map", sizeof(msg.header.frame_id) - 1);
     msg.vertical_position = alt;
     msg.vertical_velocity = 0;

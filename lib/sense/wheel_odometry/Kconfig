@@ -1,15 +1,17 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
-menuconfig SENSE_WHEEL_ODOMETRY
-  bool "Use wheel odometry"
-  default n
+menuconfig CEREBRI_SENSE_WHEEL_ODOMETRY
+  bool "Wheel Odometry"
+  depends on CEREBRI_SYNAPSE_ZBUS
+  depends on CEREBRI_CORE_COMMON
+  depends on SYNAPSE_PROTOBUF
   help
     This option enables the wheel odometry driver interface
 
-if SENSE_WHEEL_ODOMETRY
+if CEREBRI_SENSE_WHEEL_ODOMETRY
 
-module = SENSE_WHEEL_ODOMETRY
+module = CEREBRI_SENSE_WHEEL_ODOMETRY
 module-str = sense_wheel_odometry
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # SENSE_WHEEL_ODOMETRY
+endif # CEREBRI_SENSE_WHEEL_ODOMETRY

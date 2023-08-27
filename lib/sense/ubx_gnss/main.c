@@ -5,7 +5,6 @@
 #include "ubxlib.h"
 #include <stdio.h>
 #include <string.h>
-#include <synapse/zbus/channels.h>
 #include <time.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
@@ -13,13 +12,15 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
+#include <cerebri/synapse/zbus/channels.h>
+
 uDeviceCfg_t gDeviceCfg;
 
 uNetworkCfgGnss_t gNetworkCfg = {
     .type = U_NETWORK_TYPE_GNSS
 };
 
-LOG_MODULE_REGISTER(ubx_gnss, CONFIG_UBX_GNSS_LOG_LEVEL);
+LOG_MODULE_REGISTER(ubx_gnss, CONFIG_CEREBRI_SENSE_UBX_GNSS_LOG_LEVEL);
 
 #define MY_STACK_SIZE 2420
 #define MY_PRIORITY 6
@@ -44,13 +45,8 @@ void publish_gnss_data_zbus(uDeviceHandle_t devHandle,
         msg.latitude = pLocation->latitudeX1e7 / 1e7;
         msg.longitude = pLocation->longitudeX1e7 / 1e7;
         msg.altitude = pLocation->altitudeMillimetres / 1e3;
-        int64_t uptime_ticks = k_uptime_ticks();
-        int64_t sec = uptime_ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-        int32_t nanosec = (uptime_ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        stamp_header(&msg.header, k_uptime_ticks());
         msg.header.seq = g_seq++;
-        msg.header.has_stamp = true;
-        msg.header.stamp.sec = sec;
-        msg.header.stamp.nanosec = nanosec;
 
         // TODO Covariance
 

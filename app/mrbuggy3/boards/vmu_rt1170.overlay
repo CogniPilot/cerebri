@@ -58,6 +58,9 @@
 		power0 = &ina230;
 		/* wheel odometry */
 		wheel-odometry0 = &qdec1;
+		/* safety button */
+		safety-button = &arming_button;
+		status-led = &ncp5623c;
 	};
 };
 

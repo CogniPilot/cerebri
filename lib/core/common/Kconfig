@@ -1,0 +1,15 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+menuconfig CEREBRI_CORE_COMMON
+  bool "Enable core common"
+  default y
+  help
+     This option enables the core common library
+
+if CEREBRI_CORE_COMMON
+
+module = CEREBRI_CORE_COMMON
+module-str = core_common
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # CEREBRI_CORE_COMMON

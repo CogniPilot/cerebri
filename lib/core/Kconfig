@@ -4,5 +4,6 @@
 menu "Core"
 
 rsource "workqueues/Kconfig"
+rsource "common/Kconfig"
 
 endmenu

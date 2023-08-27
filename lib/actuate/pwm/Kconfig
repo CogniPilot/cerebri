@@ -1,37 +1,38 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-menuconfig ACTUATE_PWM
+menuconfig CEREBRI_ACTUATE_PWM
   bool "PWM"
-  default n  
   depends on PWM
+  depends on CEREBRI_SYNAPSE_ZBUS
   help
     This option enables pwm actuators
 
-if ACTUATE_PWM
+if CEREBRI_ACTUATE_PWM
 
-config ACTUATE_PWM_NUMBER
+config CEREBRI_ACTUATE_PWM_NUMBER
   int "Number of PWM actuators"
   default 1
   range 1 8
   help
     Defines number of PWM actuators 1-8
 
+###############################################################################
 menu "PWM_0"
+  visible if CEREBRI_ACTUATE_PWM_NUMBER > 0
 
-config ACTUATE_PWM_OUTPUT_0
+config CEREBRI_ACTUATE_PWM_OUTPUT_0
   string "Aliased output device PWM 0"
   default "aux0"
   help
     Aliased name of PWM output device used for PWM 0
 
-config ACTUATE_PWM_USE_NANO_SECONDS_0
+config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_0
   bool "Use nano seconds for PWM 0"
-  default n
   help
     Enable to use nanoseconds for the pulse widths of PWM 0.
 
-config ACTUATE_PWM_PULSE_MIN_0
+config CEREBRI_ACTUATE_PWM_PULSE_MIN_0
   int "Min pulse width PWM 0"
   default 1100
   range 0 9999999
@@ -39,7 +40,7 @@ config ACTUATE_PWM_PULSE_MIN_0
     Minimum allowed pulse width in micro
     (or nano if selected) seconds for PWM 0
 
-config ACTUATE_PWM_PULSE_MAX_0
+config CEREBRI_ACTUATE_PWM_PULSE_MAX_0
   int "Max pulse width PWM 0"
   default 1900
   range 1 10000000
@@ -47,7 +48,7 @@ config ACTUATE_PWM_PULSE_MAX_0
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 0
 
-config ACTUATE_PWM_PULSE_CENTER_0
+config CEREBRI_ACTUATE_PWM_PULSE_CENTER_0
   int "Center of pulse width PWM 0"
   default 1500
   range 2 9999998
@@ -57,9 +58,15 @@ config ACTUATE_PWM_PULSE_CENTER_0
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config ACTUATE_PWM_LINEAR_0
-  bool "Use linear approximation PWM 0"
-  default n
+config CEREBRI_ACTUATE_PWM_INDEX_0
+  int "actuator index for PWM 0"
+  default 0
+  help
+    The actuator message index to use for position,
+    velocity or nomalized fields
+
+menuconfig CEREBRI_ACTUATE_PWM_LINEAR_0
+  bool "LINEAR PWM 0"
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
@@ -67,18 +74,15 @@ config ACTUATE_PWM_LINEAR_0
     a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if ACTUATE_PWM_LINEAR_0
+if CEREBRI_ACTUATE_PWM_LINEAR_0
 
-menu "LINEAR_PWM_0"
-
-config ACTUATE_PWM_USE_POS_0
+config CEREBRI_ACTUATE_PWM_USE_POS_0
   bool "Use actuator position PWM 0"
-  default n
   help
     Use actuator message position instead of velocity for
-    ACTUATE_PWM_INDEX_0
+    CEREBRI_ACTUATE_PWM_INDEX_0
 
-config ACTUATE_PWM_LINEAR_M_DIV_0
+config CEREBRI_ACTUATE_PWM_LINEAR_M_DIV_0
   int "divisor to divide linear slope M"
   default 1000
   help
@@ -86,14 +90,14 @@ config ACTUATE_PWM_LINEAR_M_DIV_0
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_M_0
+config CEREBRI_ACTUATE_PWM_LINEAR_M_0
   int "linear slope M (divisor scaled)"
   default 1000
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_B_DIV_0
+config CEREBRI_ACTUATE_PWM_LINEAR_B_DIV_0
   int "divisor to divide linear intercept B"
   default 1000
   help
@@ -101,43 +105,33 @@ config ACTUATE_PWM_LINEAR_B_DIV_0
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_B_0
+config CEREBRI_ACTUATE_PWM_LINEAR_B_0
   int "linear intercept B (divisor scaled)"
   default 1500000
   help
     The intercept constant B value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
-endmenu #LINEAR_PWM_0
-
-endif #ACTUATE_PWM_LINEAR_0
-
-config ACTUATE_PWM_INDEX_0
-  int "actuator index for PWM 0"
-  default 0
-  help
-    The actuator message index to use for position,
-    velocity or nomalized fields
+endif #CEREBRI_ACTUATE_PWM_LINEAR_0
 
 endmenu #PWM_0
 
-if ACTUATE_PWM_NUMBER > 1
-
+###############################################################################
 menu "PWM_1"
+  visible if CEREBRI_ACTUATE_PWM_NUMBER > 1
 
-config ACTUATE_PWM_OUTPUT_1
+config CEREBRI_ACTUATE_PWM_OUTPUT_1
   string "Aliased output device PWM 1"
   default "aux1"
   help
     Aliased name of PWM output device used for PWM 1
 
-config ACTUATE_PWM_USE_NANO_SECONDS_1
+config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_1
   bool "Use nano seconds for PWM 1"
-  default n
   help
     Enable to use nanoseconds for the pulse widths of PWM 1.
 
-config ACTUATE_PWM_PULSE_MIN_1
+config CEREBRI_ACTUATE_PWM_PULSE_MIN_1
   int "Min pulse width PWM 1"
   default 1100
   range 0 9999999
@@ -145,7 +139,7 @@ config ACTUATE_PWM_PULSE_MIN_1
     Minimum allowed pulse width in micro
     (or nano if selected) seconds for PWM 1
 
-config ACTUATE_PWM_PULSE_MAX_1
+config CEREBRI_ACTUATE_PWM_PULSE_MAX_1
   int "Max pulse width PWM 1"
   default 1900
   range 1 10000000
@@ -153,7 +147,7 @@ config ACTUATE_PWM_PULSE_MAX_1
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 1
 
-config ACTUATE_PWM_PULSE_CENTER_1
+config CEREBRI_ACTUATE_PWM_PULSE_CENTER_1
   int "Center of pulse width PWM 1"
   default 1500
   range 2 9999998
@@ -163,9 +157,15 @@ config ACTUATE_PWM_PULSE_CENTER_1
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config ACTUATE_PWM_LINEAR_1
-  bool "Use linear approximation PWM 1"
-  default n
+config CEREBRI_ACTUATE_PWM_INDEX_1
+  int "actuator index for PWM 1"
+  default 1
+  help
+    The actuator message index to use for position,
+    velocity or nomalized fields
+
+menuconfig CEREBRI_ACTUATE_PWM_LINEAR_1
+  bool "LINEAR PWM 1"
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
@@ -173,18 +173,15 @@ config ACTUATE_PWM_LINEAR_1
     a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if ACTUATE_PWM_LINEAR_1
+if CEREBRI_ACTUATE_PWM_LINEAR_1
 
-menu "LINEAR_PWM_1"
-
-config ACTUATE_PWM_USE_POS_1
+config CEREBRI_ACTUATE_PWM_USE_POS_1
   bool "Use actuator position PWM 1"
-  default n
   help
     Use actuator message position instead of velocity for
-    ACTUATE_PWM_INDEX_1
+    CEREBRI_ACTUATE_PWM_INDEX_1
 
-config ACTUATE_PWM_LINEAR_M_DIV_1
+config CEREBRI_ACTUATE_PWM_LINEAR_M_DIV_1
   int "divisor to divide linear slope M"
   default 1000
   help
@@ -192,14 +189,14 @@ config ACTUATE_PWM_LINEAR_M_DIV_1
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_M_1
+config CEREBRI_ACTUATE_PWM_LINEAR_M_1
   int "linear slope M (divisor scaled)"
   default 1000
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_B_DIV_1
+config CEREBRI_ACTUATE_PWM_LINEAR_B_DIV_1
   int "divisor to divide linear intercept B"
   default 1000
   help
@@ -207,45 +204,33 @@ config ACTUATE_PWM_LINEAR_B_DIV_1
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_B_1
+config CEREBRI_ACTUATE_PWM_LINEAR_B_1
   int "linear intercept B (divisor scaled)"
   default 1500000
   help
     The intercept constant B value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
-endmenu #LINEAR_PWM_1
-
-endif #ACTUATE_PWM_LINEAR_1
-
-config ACTUATE_PWM_INDEX_1
-  int "actuator index for PWM 1"
-  default 1
-  help
-    The actuator message index to use for position,
-    velocity or nomalized fields
+endif #CEREBRI_ACTUATE_PWM_LINEAR_1
 
 endmenu #PWM_1
 
-endif #ACTUATE_PWM_NUMBER > 1
-
-if ACTUATE_PWM_NUMBER > 2
-
+###############################################################################
 menu "PWM_2"
+  visible if CEREBRI_ACTUATE_PWM_NUMBER > 2
 
-config ACTUATE_PWM_OUTPUT_2
+config CEREBRI_ACTUATE_PWM_OUTPUT_2
   string "Aliased output device PWM 2"
   default "aux2"
   help
     Aliased name of PWM output device used for PWM 2
 
-config ACTUATE_PWM_USE_NANO_SECONDS_2
+config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_2
   bool "Use nano seconds for PWM 2"
-  default n
   help
     Enable to use nanoseconds for the pulse widths of PWM 2.
 
-config ACTUATE_PWM_PULSE_MIN_2
+config CEREBRI_ACTUATE_PWM_PULSE_MIN_2
   int "Min pulse width PWM 2"
   default 1100
   range 0 9999999
@@ -253,7 +238,7 @@ config ACTUATE_PWM_PULSE_MIN_2
     Minimum allowed pulse width in micro
     (or nano if selected) seconds for PWM 2
 
-config ACTUATE_PWM_PULSE_MAX_2
+config CEREBRI_ACTUATE_PWM_PULSE_MAX_2
   int "Max pulse width PWM 2"
   default 1900
   range 1 10000000
@@ -261,7 +246,7 @@ config ACTUATE_PWM_PULSE_MAX_2
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 2
 
-config ACTUATE_PWM_PULSE_CENTER_2
+config CEREBRI_ACTUATE_PWM_PULSE_CENTER_2
   int "Center of pulse width PWM 2"
   default 1500
   range 2 9999998
@@ -271,9 +256,15 @@ config ACTUATE_PWM_PULSE_CENTER_2
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config ACTUATE_PWM_LINEAR_2
-  bool "Use linear approximation PWM 2"
-  default n
+config CEREBRI_ACTUATE_PWM_INDEX_2
+  int "actuator index for PWM 2"
+  default 2
+  help
+    The actuator message index to use for position,
+    velocity or nomalized fields
+
+menuconfig CEREBRI_ACTUATE_PWM_LINEAR_2
+  bool "LINEAR PWM 2"
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
@@ -281,18 +272,15 @@ config ACTUATE_PWM_LINEAR_2
     a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if ACTUATE_PWM_LINEAR_2
+if CEREBRI_ACTUATE_PWM_LINEAR_2
 
-menu "LINEAR_PWM_2"
-
-config ACTUATE_PWM_USE_POS_2
+config CEREBRI_ACTUATE_PWM_USE_POS_2
   bool "Use actuator position PWM 2"
-  default n
   help
     Use actuator message position instead of velocity for
-    ACTUATE_PWM_INDEX_2
+    CEREBRI_ACTUATE_PWM_INDEX_2
 
-config ACTUATE_PWM_LINEAR_M_DIV_2
+config CEREBRI_ACTUATE_PWM_LINEAR_M_DIV_2
   int "divisor to divide linear slope M"
   default 1000
   help
@@ -300,14 +288,14 @@ config ACTUATE_PWM_LINEAR_M_DIV_2
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_M_2
+config CEREBRI_ACTUATE_PWM_LINEAR_M_2
   int "linear slope M (divisor scaled)"
   default 1000
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_B_DIV_2
+config CEREBRI_ACTUATE_PWM_LINEAR_B_DIV_2
   int "divisor to divide linear intercept B"
   default 1000
   help
@@ -315,45 +303,33 @@ config ACTUATE_PWM_LINEAR_B_DIV_2
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_B_2
+config CEREBRI_ACTUATE_PWM_LINEAR_B_2
   int "linear intercept B (divisor scaled)"
   default 1500000
   help
     The intercept constant B value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
-endmenu #LINEAR_PWM_2
-
-endif #ACTUATE_PWM_LINEAR_2
-
-config ACTUATE_PWM_INDEX_2
-  int "actuator index for PWM 2"
-  default 2
-  help
-    The actuator message index to use for position,
-    velocity or nomalized fields
+endif #CEREBRI_ACTUATE_PWM_LINEAR_2
 
 endmenu #PWM_2
 
-endif #ACTUATE_PWM_NUMBER > 2
-
-if ACTUATE_PWM_NUMBER > 3
-
+###############################################################################
 menu "PWM_3"
+  visible if CEREBRI_ACTUATE_PWM_NUMBER > 3
 
-config ACTUATE_PWM_OUTPUT_3
+config CEREBRI_ACTUATE_PWM_OUTPUT_3
   string "Aliased output device PWM 3"
   default "aux3"
   help
     Aliased name of PWM output device used for PWM 3
 
-config ACTUATE_PWM_USE_NANO_SECONDS_3
+config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_3
   bool "Use nano seconds for PWM 3"
-  default n
   help
     Enable to use nanoseconds for the pulse widths of PWM 3.
 
-config ACTUATE_PWM_PULSE_MIN_3
+config CEREBRI_ACTUATE_PWM_PULSE_MIN_3
   int "Min pulse width PWM 3"
   default 1100
   range 0 9999999
@@ -361,7 +337,7 @@ config ACTUATE_PWM_PULSE_MIN_3
     Minimum allowed pulse width in micro
     (or nano if selected) seconds for PWM 3
 
-config ACTUATE_PWM_PULSE_MAX_3
+config CEREBRI_ACTUATE_PWM_PULSE_MAX_3
   int "Max pulse width PWM 3"
   default 1900
   range 1 10000000
@@ -369,7 +345,7 @@ config ACTUATE_PWM_PULSE_MAX_3
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 3
 
-config ACTUATE_PWM_PULSE_CENTER_3
+config CEREBRI_ACTUATE_PWM_PULSE_CENTER_3
   int "Center of pulse width PWM 3"
   default 1500
   range 2 9999998
@@ -379,9 +355,15 @@ config ACTUATE_PWM_PULSE_CENTER_3
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config ACTUATE_PWM_LINEAR_3
-  bool "Use linear approximation PWM 3"
-  default n
+config CEREBRI_ACTUATE_PWM_INDEX_3
+  int "actuator index for PWM 3"
+  default 3
+  help
+    The actuator message index to use for position,
+    velocity or nomalized fields
+
+menuconfig CEREBRI_ACTUATE_PWM_LINEAR_3
+  bool "LINEAR PWM 3"
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
@@ -389,18 +371,15 @@ config ACTUATE_PWM_LINEAR_3
     a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if ACTUATE_PWM_LINEAR_3
+if CEREBRI_ACTUATE_PWM_LINEAR_3
 
-menu "LINEAR_PWM_3"
-
-config ACTUATE_PWM_USE_POS_3
+config CEREBRI_ACTUATE_PWM_USE_POS_3
   bool "Use actuator position PWM 3"
-  default n
   help
     Use actuator message position instead of velocity for
-    ACTUATE_PWM_INDEX_3
+    CEREBRI_ACTUATE_PWM_INDEX_3
 
-config ACTUATE_PWM_LINEAR_M_DIV_3
+config CEREBRI_ACTUATE_PWM_LINEAR_M_DIV_3
   int "divisor to divide linear slope M"
   default 1000
   help
@@ -408,14 +387,14 @@ config ACTUATE_PWM_LINEAR_M_DIV_3
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_M_3
+config CEREBRI_ACTUATE_PWM_LINEAR_M_3
   int "linear slope M (divisor scaled)"
   default 1000
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_B_DIV_3
+config CEREBRI_ACTUATE_PWM_LINEAR_B_DIV_3
   int "divisor to divide linear intercept B"
   default 1000
   help
@@ -423,45 +402,33 @@ config ACTUATE_PWM_LINEAR_B_DIV_3
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_B_3
+config CEREBRI_ACTUATE_PWM_LINEAR_B_3
   int "linear intercept B (divisor scaled)"
   default 1500000
   help
     The intercept constant B value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
-endmenu #LINEAR_PWM_3
-
-endif #ACTUATE_PWM_LINEAR_3
-
-config ACTUATE_PWM_INDEX_3
-  int "actuator index for PWM 3"
-  default 3
-  help
-    The actuator message index to use for position,
-    velocity or nomalized fields
+endif #CEREBRI_ACTUATE_PWM_LINEAR_3
 
 endmenu #PWM_3
 
-endif #ACTUATE_PWM_NUMBER > 3
-
-if ACTUATE_PWM_NUMBER > 4
-
+###############################################################################
 menu "PWM_4"
+  visible if CEREBRI_ACTUATE_PWM_NUMBER > 4
 
-config ACTUATE_PWM_OUTPUT_4
+config CEREBRI_ACTUATE_PWM_OUTPUT_4
   string "Aliased output device PWM 4"
   default "aux4"
   help
     Aliased name of PWM output device used for PWM 4
 
-config ACTUATE_PWM_USE_NANO_SECONDS_4
+config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_4
   bool "Use nano seconds for PWM 4"
-  default n
   help
     Enable to use nanoseconds for the pulse widths of PWM 4.
 
-config ACTUATE_PWM_PULSE_MIN_4
+config CEREBRI_ACTUATE_PWM_PULSE_MIN_4
   int "Min pulse width PWM 4"
   default 1100
   range 0 9999999
@@ -469,7 +436,7 @@ config ACTUATE_PWM_PULSE_MIN_4
     Minimum allowed pulse width in micro
     (or nano if selected) seconds for PWM 4
 
-config ACTUATE_PWM_PULSE_MAX_4
+config CEREBRI_ACTUATE_PWM_PULSE_MAX_4
   int "Max pulse width PWM 4"
   default 1900
   range 1 10000000
@@ -477,7 +444,7 @@ config ACTUATE_PWM_PULSE_MAX_4
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 4
 
-config ACTUATE_PWM_PULSE_CENTER_4
+config CEREBRI_ACTUATE_PWM_PULSE_CENTER_4
   int "Center of pulse width PWM 4"
   default 1500
   range 2 9999998
@@ -487,9 +454,15 @@ config ACTUATE_PWM_PULSE_CENTER_4
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config ACTUATE_PWM_LINEAR_4
-  bool "Use linear approximation PWM 4"
-  default n
+config CEREBRI_ACTUATE_PWM_INDEX_4
+  int "actuator index for PWM 4"
+  default 4
+  help
+    The actuator message index to use for position,
+    velocity or nomalized fields
+
+menuconfig CEREBRI_ACTUATE_PWM_LINEAR_4
+  bool "LINEAR PWM 4"
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
@@ -497,18 +470,15 @@ config ACTUATE_PWM_LINEAR_4
     a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if ACTUATE_PWM_LINEAR_4
+if CEREBRI_ACTUATE_PWM_LINEAR_4
 
-menu "LINEAR_PWM_4"
-
-config ACTUATE_PWM_USE_POS_4
+config CEREBRI_ACTUATE_PWM_USE_POS_4
   bool "Use actuator position PWM 4"
-  default n
   help
     Use actuator message position instead of velocity for
-    ACTUATE_PWM_INDEX_4
+    CEREBRI_ACTUATE_PWM_INDEX_4
 
-config ACTUATE_PWM_LINEAR_M_DIV_4
+config CEREBRI_ACTUATE_PWM_LINEAR_M_DIV_4
   int "divisor to divide linear slope M"
   default 1000
   help
@@ -516,14 +486,14 @@ config ACTUATE_PWM_LINEAR_M_DIV_4
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_M_4
+config CEREBRI_ACTUATE_PWM_LINEAR_M_4
   int "linear slope M (divisor scaled)"
   default 1000
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_B_DIV_4
+config CEREBRI_ACTUATE_PWM_LINEAR_B_DIV_4
   int "divisor to divide linear intercept B"
   default 1000
   help
@@ -531,45 +501,33 @@ config ACTUATE_PWM_LINEAR_B_DIV_4
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_B_4
+config CEREBRI_ACTUATE_PWM_LINEAR_B_4
   int "linear intercept B (divisor scaled)"
   default 1500000
   help
     The intercept constant B value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
-endmenu #LINEAR_PWM_4
-
-endif #ACTUATE_PWM_LINEAR_4
-
-config ACTUATE_PWM_INDEX_4
-  int "actuator index for PWM 4"
-  default 4
-  help
-    The actuator message index to use for position,
-    velocity or nomalized fields
+endif #CEREBRI_ACTUATE_PWM_LINEAR_4
 
 endmenu #PWM_4
 
-endif #ACTUATE_PWM_NUMBER > 4
-
-if ACTUATE_PWM_NUMBER > 5
-
+###############################################################################
 menu "PWM_5"
+  visible if CEREBRI_ACTUATE_PWM_NUMBER > 5
 
-config ACTUATE_PWM_OUTPUT_5
+config CEREBRI_ACTUATE_PWM_OUTPUT_5
   string "Aliased output device PWM 5"
   default "aux5"
   help
     Aliased name of PWM output device used for PWM 5
 
-config ACTUATE_PWM_USE_NANO_SECONDS_5
+config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_5
   bool "Use nano seconds for PWM 5"
-  default n
   help
     Enable to use nanoseconds for the pulse widths of PWM 5.
 
-config ACTUATE_PWM_PULSE_MIN_5
+config CEREBRI_ACTUATE_PWM_PULSE_MIN_5
   int "Min pulse width PWM 5"
   default 1100
   range 0 9999999
@@ -577,7 +535,7 @@ config ACTUATE_PWM_PULSE_MIN_5
     Minimum allowed pulse width in micro
     (or nano if selected) seconds for PWM 5
 
-config ACTUATE_PWM_PULSE_MAX_5
+config CEREBRI_ACTUATE_PWM_PULSE_MAX_5
   int "Max pulse width PWM 5"
   default 1900
   range 1 10000000
@@ -585,7 +543,7 @@ config ACTUATE_PWM_PULSE_MAX_5
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 5
 
-config ACTUATE_PWM_PULSE_CENTER_5
+config CEREBRI_ACTUATE_PWM_PULSE_CENTER_5
   int "Center of pulse width PWM 5"
   default 1500
   range 2 9999998
@@ -595,9 +553,15 @@ config ACTUATE_PWM_PULSE_CENTER_5
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config ACTUATE_PWM_LINEAR_5
-  bool "Use linear approximation PWM 5"
-  default n
+config CEREBRI_ACTUATE_PWM_INDEX_5
+  int "actuator index for PWM 5"
+  default 5
+  help
+    The actuator message index to use for position,
+    velocity or nomalized fields
+
+menuconfig CEREBRI_ACTUATE_PWM_LINEAR_5
+  bool "LINEAR PWM 5"
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
@@ -605,18 +569,15 @@ config ACTUATE_PWM_LINEAR_5
     a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if ACTUATE_PWM_LINEAR_5
+if CEREBRI_ACTUATE_PWM_LINEAR_5
 
-menu "LINEAR_PWM_5"
-
-config ACTUATE_PWM_USE_POS_5
+config CEREBRI_ACTUATE_PWM_USE_POS_5
   bool "Use actuator position PWM 5"
-  default n
   help
     Use actuator message position instead of velocity for
-    ACTUATE_PWM_INDEX_5
+    CEREBRI_ACTUATE_PWM_INDEX_5
 
-config ACTUATE_PWM_LINEAR_M_DIV_5
+config CEREBRI_ACTUATE_PWM_LINEAR_M_DIV_5
   int "divisor to divide linear slope M"
   default 1000
   help
@@ -624,14 +585,14 @@ config ACTUATE_PWM_LINEAR_M_DIV_5
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_M_5
+config CEREBRI_ACTUATE_PWM_LINEAR_M_5
   int "linear slope M (divisor scaled)"
   default 1000
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_B_DIV_5
+config CEREBRI_ACTUATE_PWM_LINEAR_B_DIV_5
   int "divisor to divide linear intercept B"
   default 1000
   help
@@ -639,45 +600,33 @@ config ACTUATE_PWM_LINEAR_B_DIV_5
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_B_5
+config CEREBRI_ACTUATE_PWM_LINEAR_B_5
   int "linear intercept B (divisor scaled)"
   default 1500000
   help
     The intercept constant B value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
-endmenu #LINEAR_PWM_5
-
-endif #ACTUATE_PWM_LINEAR_5
-
-config ACTUATE_PWM_INDEX_5
-  int "actuator index for PWM 5"
-  default 5
-  help
-    The actuator message index to use for position,
-    velocity or nomalized fields
+endif #CEREBRI_ACTUATE_PWM_LINEAR_5
 
 endmenu #PWM_5
 
-endif #ACTUATE_PWM_NUMBER > 5
-
-if ACTUATE_PWM_NUMBER > 6
-
+###############################################################################
 menu "PWM_6"
+  visible if CEREBRI_ACTUATE_PWM_NUMBER > 6
 
-config ACTUATE_PWM_OUTPUT_6
+config CEREBRI_ACTUATE_PWM_OUTPUT_6
   string "Aliased output device PWM 6"
   default "aux6"
   help
     Aliased name of PWM output device used for PWM 6
 
-config ACTUATE_PWM_USE_NANO_SECONDS_6
+config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_6
   bool "Use nano seconds for PWM 6"
-  default n
   help
     Enable to use nanoseconds for the pulse widths of PWM 6.
 
-config ACTUATE_PWM_PULSE_MIN_6
+config CEREBRI_ACTUATE_PWM_PULSE_MIN_6
   int "Min pulse width PWM 6"
   default 1100
   range 0 9999999
@@ -685,7 +634,7 @@ config ACTUATE_PWM_PULSE_MIN_6
     Minimum allowed pulse width in micro
     (or nano if selected) seconds for PWM 6
 
-config ACTUATE_PWM_PULSE_MAX_6
+config CEREBRI_ACTUATE_PWM_PULSE_MAX_6
   int "Max pulse width PWM 6"
   default 1900
   range 1 10000000
@@ -693,7 +642,7 @@ config ACTUATE_PWM_PULSE_MAX_6
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 6
 
-config ACTUATE_PWM_PULSE_CENTER_6
+config CEREBRI_ACTUATE_PWM_PULSE_CENTER_6
   int "Center of pulse width PWM 6"
   default 1500
   range 2 9999998
@@ -703,9 +652,15 @@ config ACTUATE_PWM_PULSE_CENTER_6
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config ACTUATE_PWM_LINEAR_6
-  bool "Use linear approximation PWM 6"
-  default n
+config CEREBRI_ACTUATE_PWM_INDEX_6
+  int "actuator index for PWM 6"
+  default 6
+  help
+    The actuator message index to use for position,
+    velocity or nomalized fields
+
+menuconfig CEREBRI_ACTUATE_PWM_LINEAR_6
+  bool "LINEAR PWM 6"
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
@@ -713,18 +668,15 @@ config ACTUATE_PWM_LINEAR_6
     a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if ACTUATE_PWM_LINEAR_6
+if CEREBRI_ACTUATE_PWM_LINEAR_6
 
-menu "LINEAR_PWM_6"
-
-config ACTUATE_PWM_USE_POS_6
+config CEREBRI_ACTUATE_PWM_USE_POS_6
   bool "Use actuator position PWM 6"
-  default n
   help
     Use actuator message position instead of velocity for
-    ACTUATE_PWM_INDEX_6
+    CEREBRI_ACTUATE_PWM_INDEX_6
 
-config ACTUATE_PWM_LINEAR_M_DIV_6
+config CEREBRI_ACTUATE_PWM_LINEAR_M_DIV_6
   int "divisor to divide linear slope M"
   default 1000
   help
@@ -732,14 +684,14 @@ config ACTUATE_PWM_LINEAR_M_DIV_6
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_M_6
+config CEREBRI_ACTUATE_PWM_LINEAR_M_6
   int "linear slope M (divisor scaled)"
   default 1000
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_B_DIV_6
+config CEREBRI_ACTUATE_PWM_LINEAR_B_DIV_6
   int "divisor to divide linear intercept B"
   default 1000
   help
@@ -747,45 +699,33 @@ config ACTUATE_PWM_LINEAR_B_DIV_6
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_B_6
+config CEREBRI_ACTUATE_PWM_LINEAR_B_6
   int "linear intercept B (divisor scaled)"
   default 1500000
   help
     The intercept constant B value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
-endmenu #LINEAR_PWM_6
-
-endif #ACTUATE_PWM_LINEAR_6
-
-config ACTUATE_PWM_INDEX_6
-  int "actuator index for PWM 6"
-  default 6
-  help
-    The actuator message index to use for position,
-    velocity or nomalized fields
+endif #CEREBRI_ACTUATE_PWM_LINEAR_6
 
 endmenu #PWM_6
 
-endif #ACTUATE_PWM_NUMBER > 6
-
-if ACTUATE_PWM_NUMBER > 7
-
+###############################################################################
 menu "PWM_7"
+  visible if CEREBRI_ACTUATE_PWM_NUMBER > 7
 
-config ACTUATE_PWM_OUTPUT_7
+config CEREBRI_ACTUATE_PWM_OUTPUT_7
   string "Aliased output device PWM 7"
   default "aux7"
   help
     Aliased name of PWM output device used for PWM 7
 
-config ACTUATE_PWM_USE_NANO_SECONDS_7
+config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_7
   bool "Use nano seconds for PWM 7"
-  default n
   help
     Enable to use nanoseconds for the pulse widths of PWM 7.
 
-config ACTUATE_PWM_PULSE_MIN_7
+config CEREBRI_ACTUATE_PWM_PULSE_MIN_7
   int "Min pulse width PWM 7"
   default 1100
   range 0 9999999
@@ -793,7 +733,7 @@ config ACTUATE_PWM_PULSE_MIN_7
     Minimum allowed pulse width in micro
     (or nano if selected) seconds for PWM 7
 
-config ACTUATE_PWM_PULSE_MAX_7
+config CEREBRI_ACTUATE_PWM_PULSE_MAX_7
   int "Max pulse width PWM 7"
   default 1900
   range 1 10000000
@@ -801,7 +741,7 @@ config ACTUATE_PWM_PULSE_MAX_7
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 7
 
-config ACTUATE_PWM_PULSE_CENTER_7
+config CEREBRI_ACTUATE_PWM_PULSE_CENTER_7
   int "Center of pulse width PWM 7"
   default 1500
   range 2 9999998
@@ -811,9 +751,15 @@ config ACTUATE_PWM_PULSE_CENTER_7
     This is the value it also uses on startup before
     getting message signals or arming.
 
-config ACTUATE_PWM_LINEAR_7
-  bool "Use linear approximation PWM 7"
-  default n
+config CEREBRI_ACTUATE_PWM_INDEX_7
+  int "actuator index for PWM 7"
+  default 7
+  help
+    The actuator message index to use for position,
+    velocity or nomalized fields
+
+menuconfig CEREBRI_ACTUATE_PWM_LINEAR_7
+  bool "LINEAR PWM 7"
   help
     Allows you to take in an actuator position or velocity
     index and calculate [rad, m] or [rad/s, m/s] -> PWM
@@ -821,18 +767,15 @@ config ACTUATE_PWM_LINEAR_7
     a linear approximation using slope
     intercept formula to best fit your actuator.
 
-if ACTUATE_PWM_LINEAR_7
+if CEREBRI_ACTUATE_PWM_LINEAR_7
 
-menu "LINEAR_PWM_7"
-
-config ACTUATE_PWM_USE_POS_7
+config CEREBRI_ACTUATE_PWM_USE_POS_7
   bool "Use actuator position PWM 7"
-  default n
   help
     Use actuator message position instead of velocity for
-    ACTUATE_PWM_INDEX_7
+    CEREBRI_ACTUATE_PWM_INDEX_7
 
-config ACTUATE_PWM_LINEAR_M_DIV_7
+config CEREBRI_ACTUATE_PWM_LINEAR_M_DIV_7
   int "divisor to divide linear slope M"
   default 1000
   help
@@ -840,14 +783,14 @@ config ACTUATE_PWM_LINEAR_M_DIV_7
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default),
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_M_7
+config CEREBRI_ACTUATE_PWM_LINEAR_M_7
   int "linear slope M (divisor scaled)"
   default 1000
   help
     The slope constant M value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_M_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_M_DIV (default 1000)
 
-config ACTUATE_PWM_LINEAR_B_DIV_7
+config CEREBRI_ACTUATE_PWM_LINEAR_B_DIV_7
   int "divisor to divide linear intercept B"
   default 1000
   help
@@ -855,30 +798,19 @@ config ACTUATE_PWM_LINEAR_B_DIV_7
     linearized PWM/[vel or pos] by [1, 10, 100, 1000 (default), 
     10000, 100000, ...]
 
-config ACTUATE_PWM_LINEAR_B_7
+config CEREBRI_ACTUATE_PWM_LINEAR_B_7
   int "linear intercept B (divisor scaled)"
   default 1500000
   help
     The intercept constant B value of the linearized PWM/[vel or pos]
-    divided by the divisor ACTUATE_PWM_LINEAR_B_DIV (default 1000)
+    divided by the divisor CEREBRI_ACTUATE_PWM_LINEAR_B_DIV (default 1000)
 
-endmenu #LINEAR_PWM_7
-
-endif #ACTUATE_PWM_LINEAR_7
-
-config ACTUATE_PWM_INDEX_7
-  int "actuator index for PWM 7"
-  default 7
-  help
-    The actuator message index to use for position,
-    velocity or nomalized fields
+endif #CEREBRI_ACTUATE_PWM_LINEAR_7
 
 endmenu #PWM_7
 
-endif #ACTUATE_PWM_NUMBER > 7
-
-module = ACTUATE_PWM
+module = CEREBRI_ACTUATE_PWM
 module-str = actuate_pwm
 source "subsys/logging/Kconfig.template.log_config"
 
-endif #ACTUATE_PWM
+endif #CEREBRI_ACTUATE_PWM

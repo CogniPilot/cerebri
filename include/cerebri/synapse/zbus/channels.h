@@ -3,19 +3,20 @@
 
 #include <zephyr/zbus/zbus.h>
 
-#include "synapse_protobuf/actuators.pb.h"
-#include "synapse_protobuf/altimeter.pb.h"
-#include "synapse_protobuf/battery_state.pb.h"
-#include "synapse_protobuf/bezier_trajectory.pb.h"
-#include "synapse_protobuf/fsm.pb.h"
-#include "synapse_protobuf/imu.pb.h"
-#include "synapse_protobuf/joy.pb.h"
-#include "synapse_protobuf/magnetic_field.pb.h"
-#include "synapse_protobuf/nav_sat_fix.pb.h"
-#include "synapse_protobuf/odometry.pb.h"
-#include "synapse_protobuf/time.pb.h"
-#include "synapse_protobuf/twist.pb.h"
-#include "synapse_protobuf/wheel_odometry.pb.h"
+#include <synapse_protobuf/actuators.pb.h>
+#include <synapse_protobuf/altimeter.pb.h>
+#include <synapse_protobuf/battery_state.pb.h>
+#include <synapse_protobuf/bezier_trajectory.pb.h>
+#include <synapse_protobuf/fsm.pb.h>
+#include <synapse_protobuf/imu.pb.h>
+#include <synapse_protobuf/joy.pb.h>
+#include <synapse_protobuf/magnetic_field.pb.h>
+#include <synapse_protobuf/nav_sat_fix.pb.h>
+#include <synapse_protobuf/odometry.pb.h>
+#include <synapse_protobuf/safety.pb.h>
+#include <synapse_protobuf/time.pb.h>
+#include <synapse_protobuf/twist.pb.h>
+#include <synapse_protobuf/wheel_odometry.pb.h>
 
 //*******************************************************************
 // (chan_in) channels from ROS computer to cerebri
@@ -33,6 +34,7 @@ ZBUS_CHAN_DECLARE(chan_in_odometry);
 // on cerebri or to ROS computer
 //*******************************************************************
 ZBUS_CHAN_DECLARE(chan_out_actuators);
+ZBUS_CHAN_DECLARE(chan_out_actuators_manual);
 ZBUS_CHAN_DECLARE(chan_out_altimeter);
 ZBUS_CHAN_DECLARE(chan_out_battery_state);
 ZBUS_CHAN_DECLARE(chan_out_cmd_vel);
@@ -41,14 +43,16 @@ ZBUS_CHAN_DECLARE(chan_out_imu);
 ZBUS_CHAN_DECLARE(chan_out_magnetic_field);
 ZBUS_CHAN_DECLARE(chan_out_nav_sat_fix);
 ZBUS_CHAN_DECLARE(chan_out_odometry);
+ZBUS_CHAN_DECLARE(chan_out_safety);
 ZBUS_CHAN_DECLARE(chan_out_wheel_odometry);
 
 //*******************************************************************
 // helper functions and definitions
 //*******************************************************************
+void stamp_header(synapse_msgs_Header* hdr, int64_t ticks);
 const char* fsm_mode_str(synapse_msgs_Fsm_Mode mode);
 const char* fsm_armed_str(synapse_msgs_Fsm_Armed armed);
-const char* fsm_safety_str(synapse_msgs_Fsm_Safety safety);
+const char* safety_str(synapse_msgs_Safety_Status safety);
 
 enum {
     JOY_BUTTON_MANUAL = 0,

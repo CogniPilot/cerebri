@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "synapse/zbus/common.h"
+#include <cerebri/synapse/zbus/common.h>
 
 #define TOPIC_LISTENER(CHANNEL, CLASS)                                           \
     static TF_Result CHANNEL##_Listener(TinyFrame* tf, TF_Msg* frame)            \
@@ -48,7 +48,7 @@
         }                                                                        \
     }
 
-LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_SYNAPSE_ETHERNET_LOG_LEVEL);
+LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_CEREBRI_SYNAPSE_ETHERNET_LOG_LEVEL);
 
 #define MY_STACK_SIZE 2048
 #define MY_PRIORITY 5

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <cerebri/synapse/zbus/common.h>
+#include <cerebri/synapse/zbus/syn_pub_sub.h>
 #include <math.h>
-#include <synapse/zbus/common.h>
-#include <synapse/zbus/syn_pub_sub.h>
 #include <zephyr/logging/log.h>
 
 #include "casadi/rover.h"
@@ -16,13 +16,14 @@
 LOG_MODULE_DECLARE(control_ackermann);
 
 typedef struct _context {
+    syn_node_t node;
     synapse_msgs_Fsm fsm;
     synapse_msgs_BezierTrajectory bezier_trajectory;
     synapse_msgs_Time clock_offset;
     synapse_msgs_Odometry pose;
     synapse_msgs_Twist cmd_vel;
-    struct syn_sub sub_fsm, sub_clock_offset, sub_pose, sub_bezier_trajectory;
-    struct syn_pub pub_cmd_vel;
+    syn_sub_t sub_fsm, sub_clock_offset, sub_pose, sub_bezier_trajectory;
+    syn_pub_t pub_cmd_vel;
     const double wheel_base;
     const double gain_along_track;
     const double gain_cross_track;
@@ -45,19 +46,20 @@ static context g_ctx = {
     .sub_pose = { 0 },
     .sub_bezier_trajectory = { 0 },
     .pub_cmd_vel = { 0 },
-    .wheel_base = CONFIG_CONTROL_ACKERMANN_WHEEL_BASE_MM / 1000.0,
-    .gain_along_track = CONFIG_CONTROL_ACKERMANN_GAIN_ALONG_TRACK / 1000.0,
-    .gain_cross_track = CONFIG_CONTROL_ACKERMANN_GAIN_CROSS_TRACK / 1000.0,
-    .gain_heading = CONFIG_CONTROL_ACKERMANN_GAIN_HEADING / 1000.0,
+    .wheel_base = CONFIG_CEREBRI_CONTROL_ACKERMANN_WHEEL_BASE_MM / 1000.0,
+    .gain_along_track = CONFIG_CEREBRI_CONTROL_ACKERMANN_GAIN_ALONG_TRACK / 1000.0,
+    .gain_cross_track = CONFIG_CEREBRI_CONTROL_ACKERMANN_GAIN_CROSS_TRACK / 1000.0,
+    .gain_heading = CONFIG_CEREBRI_CONTROL_ACKERMANN_GAIN_HEADING / 1000.0,
 };
 
 static void init(context* ctx)
 {
-    syn_sub_init(&ctx->sub_fsm, &ctx->fsm, &chan_out_fsm);
-    syn_sub_init(&ctx->sub_clock_offset, &ctx->clock_offset, &chan_in_clock_offset);
-    syn_sub_init(&ctx->sub_pose, &ctx->pose, &chan_out_odometry);
-    syn_sub_init(&ctx->sub_bezier_trajectory, &ctx->bezier_trajectory, &chan_in_bezier_trajectory);
-    syn_pub_init(&ctx->pub_cmd_vel, &ctx->cmd_vel, &chan_out_cmd_vel);
+    syn_node_init(&ctx->node, "control_ackerman_pos");
+    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_out_fsm);
+    syn_node_add_sub(&ctx->node, &ctx->sub_clock_offset, &ctx->clock_offset, &chan_in_clock_offset);
+    syn_node_add_sub(&ctx->node, &ctx->sub_pose, &ctx->pose, &chan_out_odometry);
+    syn_node_add_sub(&ctx->node, &ctx->sub_bezier_trajectory, &ctx->bezier_trajectory, &chan_in_bezier_trajectory);
+    syn_node_add_pub(&ctx->node, &ctx->pub_cmd_vel, &ctx->cmd_vel, &chan_out_cmd_vel);
 }
 
 static void stop(context* ctx)
@@ -178,36 +180,17 @@ static void run(context* ctx)
     while (true) {
 
         // LOG_INF("polling on pose");
-        int ret = syn_sub_poll(&ctx->sub_pose, K_MSEC(1000));
+        RC(syn_sub_poll(&ctx->sub_pose, K_MSEC(1000)), LOG_DBG("pos not receiving  pose"); continue);
 
         if (ctx->fsm.mode != synapse_msgs_Fsm_Mode_AUTO) {
             // LOG_INF("not auto mode");
             continue;
         }
 
-        // LOG_INF("in auto mode");
-
-        // lock topics
-        syn_sub_claim(&ctx->sub_fsm, K_MSEC(1));
-        syn_sub_claim(&ctx->sub_clock_offset, K_MSEC(1));
-        syn_sub_claim(&ctx->sub_pose, K_MSEC(1));
-        syn_sub_claim(&ctx->sub_bezier_trajectory, K_MSEC(1));
-        syn_pub_claim(&ctx->pub_cmd_vel, K_MSEC(1));
-
-        if (ret != 0) {
-            LOG_ERR("not receiving odometry");
-            continue;
-        }
+        syn_node_lock_all(&ctx->node, K_MSEC(1));
         auto_mode(ctx);
-
-        // unlock topics
-        syn_sub_finish(&ctx->sub_fsm);
-        syn_sub_finish(&ctx->sub_clock_offset);
-        syn_sub_finish(&ctx->sub_pose);
-        syn_sub_finish(&ctx->sub_bezier_trajectory);
-        syn_pub_finish(&ctx->pub_cmd_vel);
-
-        syn_pub_publish(&ctx->pub_cmd_vel, K_MSEC(1));
+        syn_node_publish_all(&ctx->node, K_MSEC(1));
+        syn_node_unlock_all(&ctx->node);
     }
 }
 
@@ -217,15 +200,9 @@ K_THREAD_DEFINE(control_ackermann_pos, MY_STACK_SIZE,
 
 static void listener_control_ackermann_pos_callback(const struct zbus_channel* chan)
 {
-    syn_sub_listen(&g_ctx.sub_fsm, chan, K_MSEC(1));
-    syn_sub_listen(&g_ctx.sub_clock_offset, chan, K_MSEC(1));
-    syn_sub_listen(&g_ctx.sub_pose, chan, K_MSEC(1));
-    syn_sub_listen(&g_ctx.sub_bezier_trajectory, chan, K_MSEC(1));
-    if (chan == &chan_in_cmd_vel && g_ctx.fsm.mode == synapse_msgs_Fsm_Mode_CMD_VEL) {
-        syn_pub_claim(&g_ctx.pub_cmd_vel, K_MSEC(1));
-        memcpy(&g_ctx.cmd_vel, chan->message, chan->message_size);
-        syn_pub_finish(&g_ctx.pub_cmd_vel);
-        syn_pub_publish(&g_ctx.pub_cmd_vel, K_MSEC(1));
+    syn_node_listen(&g_ctx.node, chan, K_MSEC(1));
+    if (g_ctx.fsm.mode == synapse_msgs_Fsm_Mode_CMD_VEL) {
+        syn_pub_forward(&g_ctx.pub_cmd_vel, chan, &chan_in_cmd_vel, K_MSEC(1));
     }
 }
 ZBUS_LISTENER_DEFINE(listener_control_ackermann_pos, listener_control_ackermann_pos_callback);

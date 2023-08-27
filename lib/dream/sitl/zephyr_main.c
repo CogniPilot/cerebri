@@ -2,19 +2,20 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
+#include <zephyr/logging/log.h>
+#include <zephyr/sys/ring_buffer.h>
 
-#include <synapse/zbus/channels.h>
 #include <synapse_tinyframe/SynapseTopics.h>
 #include <synapse_tinyframe/TinyFrame.h>
 
 #include <pb_encode.h>
+
 #include <synapse_protobuf/sim_clock.pb.h>
 #include <synapse_tinyframe/utils.h>
 
-#include <zephyr/logging/log.h>
-#include <zephyr/sys/ring_buffer.h>
+#include <cerebri/synapse/zbus/channels.h>
 
-LOG_MODULE_REGISTER(dream_sitl, CONFIG_DREAM_SITL_LOG_LEVEL);
+LOG_MODULE_REGISTER(dream_sitl, CONFIG_CEREBRI_DREAM_SITL_LOG_LEVEL);
 
 #define MY_STACK_SIZE 500
 #define MY_PRIORITY -10

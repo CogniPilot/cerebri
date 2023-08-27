@@ -1,14 +1,14 @@
-config SENSE_UBX_GNSS
-  bool "Use U-blox GNSS"
-  default n
-  select UBXLIB
+config CEREBRI_SENSE_UBX_GNSS
+  bool "U-blox GNSS Interface"
+  depends on CEREBRI_SYNAPSE_ZBUS
+  depends on UBXLIB
   help
     This option enables U-blox GNSS driver.
 
-if SENSE_UBX_GNSS
+if CEREBRI_SENSE_UBX_GNSS
 
-module = UBX_GNSS
-module-str = ubx_gnss
+module = CEREBRI_SENSE_UBX_GNSS
+module-str = sense_ubx_gnss
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # SENSE_UBX_GNSS
+endif # CEREBRI_SENSE_UBX_GNSS

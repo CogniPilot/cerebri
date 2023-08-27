@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <cerebri/synapse/zbus/common.h>
+#include <cerebri/synapse/zbus/syn_pub_sub.h>
 #include <math.h>
 #include <stdio.h>
-#include <synapse/zbus/common.h>
-#include <synapse/zbus/syn_pub_sub.h>
 #include <time.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -16,7 +16,7 @@
 
 #include "casadi/rover2d.h"
 
-LOG_MODULE_REGISTER(estimate_rover2d, CONFIG_ESTIMATE_ROVER2D_LOG_LEVEL);
+LOG_MODULE_REGISTER(estimate_rover2d, CONFIG_CEREBRI_ESTIMATE_ROVER2D_LOG_LEVEL);
 
 #define MY_STACK_SIZE 2130
 #define MY_PRIORITY 4
@@ -27,32 +27,42 @@ LOG_MODULE_REGISTER(estimate_rover2d, CONFIG_ESTIMATE_ROVER2D_LOG_LEVEL);
 
 // private context
 typedef struct _context {
+    syn_node_t node;
     synapse_msgs_WheelOdometry wheel_odometry;
     synapse_msgs_Actuators actuators;
     synapse_msgs_Odometry odometry;
-    struct syn_sub sub_wheel_odometry, sub_actuators;
-    struct syn_pub pub_odometry;
-    bool initialized;
+    syn_sub_t sub_wheel_odometry, sub_actuators;
+    syn_pub_t pub_odometry;
     double x[3];
 } context;
 
 // private initialization
 static context g_ctx = {
+    .node = { 0 },
     .wheel_odometry = synapse_msgs_WheelOdometry_init_default,
     .actuators = synapse_msgs_Actuators_init_default,
-    .odometry = synapse_msgs_Odometry_init_default,
+    .odometry = {
+        .child_frame_id = "base_link",
+        .has_header = true,
+        .header.frame_id = "odom",
+        .has_pose = true,
+        .pose.has_pose = true,
+        .pose.pose.has_position = true,
+        .pose.pose.has_orientation = true,
+    },
     .sub_wheel_odometry = { 0 },
     .sub_actuators = { 0 },
     .pub_odometry = { 0 },
-    .initialized = false,
     .x = { 0 },
 };
 
-static void init(context* ctx)
+static void estimate_rover2d_init(context* ctx)
 {
-    syn_sub_init(&ctx->sub_actuators, &ctx->actuators, &chan_out_actuators);
-    syn_sub_init(&ctx->sub_wheel_odometry, &ctx->wheel_odometry, &chan_out_wheel_odometry);
-    syn_pub_init(&ctx->pub_odometry, &ctx->odometry, &chan_out_odometry);
+    syn_node_init(&ctx->node, "rover2d");
+    syn_node_add_sub(&ctx->node, &ctx->sub_actuators, &ctx->actuators, &chan_out_actuators);
+    syn_node_add_sub(&ctx->node, &ctx->sub_wheel_odometry,
+        &ctx->wheel_odometry, &chan_out_wheel_odometry);
+    syn_node_add_pub(&ctx->node, &ctx->pub_odometry, &ctx->odometry, &chan_out_odometry);
 }
 
 static void log_x(double* x)
@@ -86,17 +96,16 @@ static void handle_update(context* ctx, double* x1)
 
 static void listener_estimate_rover2d_callback(const struct zbus_channel* chan)
 {
-    syn_sub_listen(&g_ctx.sub_actuators, chan, K_MSEC(1));
-    syn_sub_listen(&g_ctx.sub_wheel_odometry, chan, K_MSEC(1));
+    syn_node_listen(&g_ctx.node, chan, K_MSEC(1));
 }
 ZBUS_LISTENER_DEFINE_WITH_ENABLE(listener_estimate_rover2d, listener_estimate_rover2d_callback, false);
 ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_estimate_rover2d, 1);
 ZBUS_CHAN_ADD_OBS(chan_out_wheel_odometry, listener_estimate_rover2d, 1);
 
-static void run(context* ctx)
+static void estimate_rover2d_run(context* ctx)
 {
     // LOG_DBG("started");
-    init(ctx);
+    estimate_rover2d_init(ctx);
 
     // variables
     int32_t seq = 0;
@@ -108,30 +117,29 @@ static void run(context* ctx)
         LOG_ERR("could not enable observer: %d", ret);
     }
 
-    // estimator state and sqrt covariance
+    // wait for actuators
+    LOG_DBG("waiting for actuators");
     while (true) {
+        int ret = syn_sub_poll(&ctx->sub_actuators, K_MSEC(100));
+        if (ret == 0) {
+            break;
+        }
+    }
+    LOG_DBG("received actuators");
 
+    // estimator state
+    while (true) {
+        // poll for wheel odometry
         int ret = syn_sub_poll(&ctx->sub_wheel_odometry, K_MSEC(1000));
         if (ret != 0) {
-            LOG_ERR("not receiving wheel odometry");
+            LOG_DBG("not receiving wheel odometry");
             continue;
         }
 
+        syn_node_lock_all(&ctx->node, K_MSEC(1));
+
         // get data
         double rotation = ctx->wheel_odometry.rotation;
-
-        // wait for valid steering angle and odometry to initialize
-        if (!ctx->initialized) {
-            if (ctx->actuators.header.seq != 0) {
-                rotation_last = ctx->wheel_odometry.rotation;
-                ctx->initialized = true;
-                LOG_DBG("initialized: %d", ctx->initialized);
-            } else {
-                // wait for actuators update
-                LOG_DBG("waiting for actuators update to initialize");
-                continue;
-            }
-        }
 
         /* predict:(x0[3],delta,u,l)->(x1[3]) */
         {
@@ -167,32 +175,10 @@ static void run(context* ctx)
             handle_update(ctx, x1);
         }
 
-        // publish odometry
+        // update odometry
         {
-            ctx->odometry.has_header = true;
-            const char frame_id[] = "odom";
-            const char child_frame_id[] = "base_link";
-            strncpy(
-                ctx->odometry.header.frame_id,
-                frame_id, sizeof(ctx->odometry.header.frame_id) - 1);
-            strncpy(
-                ctx->odometry.child_frame_id,
-                child_frame_id, sizeof(ctx->odometry.child_frame_id) - 1);
-
-            ctx->odometry.has_header = true;
-            int64_t uptime_ticks = k_uptime_ticks();
-            int64_t sec = uptime_ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-            int32_t nanosec = (uptime_ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-
+            stamp_header(&ctx->odometry.header, k_uptime_ticks());
             ctx->odometry.header.seq = seq++;
-            ctx->odometry.header.has_stamp = true;
-            ctx->odometry.header.stamp.sec = sec;
-            ctx->odometry.header.stamp.nanosec = nanosec;
-
-            ctx->odometry.has_pose = true;
-            ctx->odometry.pose.has_pose = true;
-            ctx->odometry.pose.pose.has_orientation = true;
-            ctx->odometry.pose.pose.has_position = true;
 
             double theta = ctx->x[2];
             ctx->odometry.pose.pose.position.x = ctx->x[0];
@@ -202,15 +188,14 @@ static void run(context* ctx)
             ctx->odometry.pose.pose.orientation.y = 0;
             ctx->odometry.pose.pose.orientation.z = sin(theta / 2);
             ctx->odometry.pose.pose.orientation.w = cos(theta / 2);
-
-            syn_pub_publish(&ctx->pub_odometry, K_MSEC(1));
         }
-
+        syn_node_publish_all(&ctx->node, K_MSEC(1));
+        syn_node_unlock_all(&ctx->node);
         log_x(ctx->x);
     }
 }
 
-K_THREAD_DEFINE(estimate_rover2d, MY_STACK_SIZE, run,
+K_THREAD_DEFINE(estimate_rover2d, MY_STACK_SIZE, estimate_rover2d_run,
     &g_ctx, NULL, NULL, MY_PRIORITY, 0, 0);
 
 /* vi: ts=4 sw=4 et */

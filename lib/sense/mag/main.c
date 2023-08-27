@@ -2,12 +2,14 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
-#include <synapse/zbus/channels.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(sense_mag, CONFIG_SENSE_MAG_LOG_LEVEL);
+#include <cerebri/core/common.h>
+#include <cerebri/synapse/zbus/channels.h>
+
+LOG_MODULE_REGISTER(sense_mag, CONFIG_CEREBRI_SENSE_MAG_LOG_LEVEL);
 
 #define MY_STACK_SIZE 2048
 #define MY_PRIORITY 6
@@ -15,24 +17,6 @@ LOG_MODULE_REGISTER(sense_mag, CONFIG_SENSE_MAG_LOG_LEVEL);
 extern struct k_work_q g_high_priority_work_q;
 static const struct device* g_mag_dev[2];
 static int32_t g_seq = 0;
-
-static const struct device* sensor_check(const struct device* const dev)
-{
-    if (dev == NULL) {
-        /* No such node, or the node does not have status "okay". */
-        LOG_ERR("no device found");
-        return NULL;
-    }
-
-    if (!device_is_ready(dev)) {
-        LOG_ERR("device %s is not ready, check the driver initialization logs for errors",
-            dev->name);
-        return NULL;
-    }
-
-    LOG_INF("mag found device %s", dev->name);
-    return dev;
-}
 
 void mag_work_handler(struct k_work* work)
 {
@@ -67,13 +51,8 @@ void mag_work_handler(struct k_work* work)
     // publish mag to zbus
     synapse_msgs_MagneticField msg = synapse_msgs_MagneticField_init_default;
     msg.has_header = true;
-    int64_t uptime_ticks = k_uptime_ticks();
-    int64_t sec = uptime_ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-    int32_t nanosec = (uptime_ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+    stamp_header(&msg.header, k_uptime_ticks());
     msg.header.seq = g_seq++;
-    msg.header.has_stamp = true;
-    msg.header.stamp.sec = sec;
-    msg.header.stamp.nanosec = nanosec;
     strncpy(msg.header.frame_id, "map", sizeof(msg.header.frame_id) - 1);
     msg.has_magnetic_field = true;
     msg.magnetic_field.x = mag[0];
@@ -93,8 +72,8 @@ K_TIMER_DEFINE(mag_timer, mag_timer_handler, NULL);
 
 int sense_mag_entry_point(void)
 {
-    g_mag_dev[0] = sensor_check(DEVICE_DT_GET(DT_ALIAS(mag0)));
-    g_mag_dev[1] = sensor_check(DEVICE_DT_GET(DT_ALIAS(mag1)));
+    g_mag_dev[0] = get_device(DEVICE_DT_GET(DT_ALIAS(mag0)));
+    g_mag_dev[1] = get_device(DEVICE_DT_GET(DT_ALIAS(mag1)));
     k_timer_start(&mag_timer, K_MSEC(20), K_MSEC(20));
     return 0;
 }

@@ -18,3 +18,12 @@ set(SOURCE_FILES
 
 target_sources(app PRIVATE ${SOURCE_FILES})
 
+#add_custom_target(install_files ALL
+#	DEPENDS ${ZEPHYR_FINAL_EXECUTABLE}
+#)
+
+#add_custom_command(
+#    TARGET install_files
+#    POST_BUILD
+#    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target install
+#    )

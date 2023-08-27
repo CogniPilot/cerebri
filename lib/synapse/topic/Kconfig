@@ -1,15 +1,18 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-config SYNAPSE_TOPIC
+config CEREBRI_SYNAPSE_TOPIC
   bool "Enable synapse topic shell"
+  default y
+  depends on CEREBRI_SYNAPSE_ZBUS
+  depends on SHELL
   help
     This option enables the synapse topic shell
 
-if SYNAPSE_TOPIC
+if CEREBRI_SYNAPSE_TOPIC
 
-module = SYNAPSE_TOPIC
+module = CEREBRI_SYNAPSE_TOPIC
 module-str = synapse_topic
 source "subsys/logging/Kconfig.template.log_config"
 
-endif  # SYNAPSE_TOPIC
+endif  # CEREBRI_SYNAPSE_TOPIC

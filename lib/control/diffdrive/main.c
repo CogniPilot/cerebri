@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 
-#include <synapse/zbus/channels.h>
+#include <cerebri/synapse/zbus/channels.h>
 
 #include "casadi/rover.h"
 #include "parameters.h"

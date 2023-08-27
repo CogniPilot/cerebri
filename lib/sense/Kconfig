@@ -10,5 +10,6 @@ rsource "power/Kconfig"
 rsource "ubx_gnss/Kconfig"
 rsource "vesc_can_status/Kconfig"
 rsource "wheel_odometry/Kconfig"
+rsource "safety/Kconfig"
 
 endmenu

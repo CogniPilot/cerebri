@@ -1,7 +1,7 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-zephyr_library_named(sense_power)
+zephyr_library_named(cerebri_sense_pose)
 
 
 # we need to be able to include generated header files
@@ -11,4 +11,4 @@ zephyr_library_sources(
   main.c
   )
 
-add_dependencies(sense_power synapse_protobuf)
+add_dependencies(cerebri_sense_pose synapse_protobuf)

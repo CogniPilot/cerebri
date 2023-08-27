@@ -1,16 +1,16 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-menuconfig ESTIMATE_ROVER2D
+menuconfig CEREBRI_ESTIMATE_ROVER2D
   bool "rover2d"
-  default n
+  depends on CEREBRI_SYNAPSE_ZBUS
   help
     This option enables the rover2d estimator
 
-if ESTIMATE_ROVER2D
+if CEREBRI_ESTIMATE_ROVER2D
 
-module = ESTIMATE_ROVER2D
+module = CEREBRI_ESTIMATE_ROVER2D
 module-str = estimate_rover2d
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # ESTIMATE_ROVER2D
+endif # CEREBRI_ESTIMATE_ROVER2D

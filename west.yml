@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 manifest:
+
+  group-filter:
+    - +optional
+
   self:
     west-commands: scripts/west-commands.yml
 
@@ -15,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 225aa039aed9a0e3875092b5cfe23fbc37db7476  # dev 8/26/23
+      revision: e09f7bd9efb5fc94672e61bcde35eb9b9c24982c # new_dev 10/6/23
       import:
         - name-allowlist:
           - nanopb
@@ -29,7 +33,7 @@ manifest:
       path: modules/lib/synapse_tinyframe
     - name: synapse_protobuf
       remote: cognipilot
-      revision: e40ad09f6ab2ff2fd71b1fb7b8621b474f43cc35 # main 9/1/23
+      revision: 2501f24d57a4a485cd745514287f927ed577e10e # main 10/6/23
       path: modules/lib/synapse_protobuf
     - name: ubxlib
       remote: cognipilot

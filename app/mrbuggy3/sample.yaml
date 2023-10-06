@@ -7,4 +7,11 @@ common:
     - native_posix
     - vmu_rt1170
 tests:
-  mrbuggy3.default: {}
+  mrbuggy3.default:
+    tags:
+      - mrbuggy3
+    integration_platforms:
+      - native_posix
+      - vmu_rt1170
+
+

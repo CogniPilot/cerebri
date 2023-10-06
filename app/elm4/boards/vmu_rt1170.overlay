@@ -118,10 +118,6 @@
 	ina230: ina230@41 {
 		compatible = "ti,ina230";
 		reg = <0x41>;
-		config = <INA230_CONFIG(INA230_OPER_MODE_SHUNT_BUS_VOLTAGE_CONT,
-								INA230_CONV_TIME_2116, 
-								INA230_CONV_TIME_2116, 
-								INA230_AVG_MODE_64)>;
 		current-lsb-microamps = <5000>;
 		rshunt-micro-ohms = <500>;
 	};

@@ -1,0 +1,12 @@
+# Copyright (c) 2023 CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+if INPUT
+
+menu "Input drivers"
+
+rsource "mcux_gpt_ppm/Kconfig"
+
+endmenu # Input Drivers
+
+endif # INPUT

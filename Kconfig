@@ -40,3 +40,4 @@ endmenu
 
 rsource "lib/Kconfig"
 
+rsource "drivers/Kconfig"

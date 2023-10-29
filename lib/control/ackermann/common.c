@@ -18,7 +18,7 @@ void ackermann_set_actuators(synapse_msgs_Actuators* msg, double turn_angle, dou
     msg->position[0] = turn_angle;
     msg->velocity[0] = omega_fwd;
 #ifdef CONFIG_BUGGY3_MOTOR_ENB_REQUIRED
-    msg->normalized[0] = -1;
+    msg->normalized[0] = 1;
 #endif
 }
 

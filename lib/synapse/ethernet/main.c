@@ -87,10 +87,7 @@ static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
     } while (len);
 }
 
-static TinyFrame g_tf = {
-    .write = write_ethernet,
-    .peer_bit = TF_MASTER,
-};
+static TinyFrame g_tf = { 0 };
 
 static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 {
@@ -137,6 +134,8 @@ static void ethernet_entry_point(void)
     int serv;
     struct sockaddr_in bind_addr;
     static int counter;
+
+    TF_InitStatic(&g_tf, TF_MASTER, write_ethernet);
 
     serv = zsock_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     set_blocking_enabled(serv, true);

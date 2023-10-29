@@ -128,7 +128,7 @@ int syn_node_add_sub(syn_node_t* node,
     __ASSERT(sub != NULL, "sub is null");
     __ASSERT(msg != NULL, "msg is null");
 
-    syn_sub_init(sub, msg, chan);
+    RC(syn_sub_init(sub, msg, chan), return rc);
     syn_sub_t* tail = node->sub_list_head;
     if (tail == NULL) {
         node->sub_list_head = sub;
@@ -158,7 +158,7 @@ int syn_node_add_pub(syn_node_t* node,
     __ASSERT(msg != NULL, "msg is null");
     __ASSERT(chan != NULL, "chan is null");
 
-    syn_pub_init(pub, msg, chan);
+    RC(syn_pub_init(pub, msg, chan), return rc);
     syn_pub_t* tail = node->pub_list_head;
     if (tail == NULL) {
         node->pub_list_head = pub;

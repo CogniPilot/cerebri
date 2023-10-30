@@ -10,6 +10,13 @@ menuconfig CEREBRI_SENSE_MAG
 
 if CEREBRI_SENSE_MAG
 
+config CEREBRI_SENSE_MAG_COUNT
+  int "Number of magnetometers"
+  default 1
+  range 1 4
+  help
+    Defines number of magnetometers 1-4
+
 module = CEREBRI_SENSE_MAG
 module-str = sense_mag
 source "subsys/logging/Kconfig.template.log_config"

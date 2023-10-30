@@ -116,12 +116,12 @@ static void run_control_ackermann_vel(context* ctx)
         // handle modes
         if (ret < 0) {
             stop(ctx);
-            LOG_INF("no data, stopped");
+            LOG_DBG("no data, stopped");
         } else if (ctx->fsm.armed != synapse_msgs_Fsm_Armed_ARMED) {
             stop(ctx);
-            LOG_INF("not armed, stopped");
+            LOG_DBG("not armed, stopped");
         } else if (ctx->fsm.mode == synapse_msgs_Fsm_Mode_MANUAL) {
-            LOG_INF("manual mode");
+            LOG_DBG("manual mode");
             ctx->actuators = ctx->actuators_manual;
         } else {
             update_cmd_vel(ctx);

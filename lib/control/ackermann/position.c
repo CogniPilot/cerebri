@@ -179,11 +179,11 @@ static void run(context* ctx)
 
     while (true) {
 
-        // LOG_INF("polling on pose");
+        // LOG_DBG("polling on pose");
         RC(syn_sub_poll(&ctx->sub_pose, K_MSEC(1000)), LOG_DBG("pos not receiving  pose"); continue);
 
         if (ctx->fsm.mode != synapse_msgs_Fsm_Mode_AUTO) {
-            // LOG_INF("not auto mode");
+            // LOG_DBG("not auto mode");
             continue;
         }
 

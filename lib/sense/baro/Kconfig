@@ -7,6 +7,13 @@ menuconfig CEREBRI_SENSE_BARO
 
 if CEREBRI_SENSE_BARO
 
+config CEREBRI_SENSE_BARO_COUNT
+  int "Number of barometers"
+  default 1
+  range 1 4
+  help
+    Defines number of barometers 1-4
+
 module = CEREBRI_SENSE_BARO
 module-str = sense_baro
 source "subsys/logging/Kconfig.template.log_config"

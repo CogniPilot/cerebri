@@ -15,14 +15,14 @@ LOG_MODULE_REGISTER(sense_mag, CONFIG_CEREBRI_SENSE_MAG_LOG_LEVEL);
 #define MY_PRIORITY 6
 
 extern struct k_work_q g_high_priority_work_q;
-static const struct device* g_mag_dev[2];
+static const struct device* g_mag_dev[CONFIG_CEREBRI_SENSE_MAG_COUNT];
 static int32_t g_seq = 0;
 
 void mag_work_handler(struct k_work* work)
 {
     LOG_DBG("");
-    double mag_data_array[2][3] = {};
-    for (int i = 0; i < 2; i++) {
+    double mag_data_array[CONFIG_CEREBRI_SENSE_MAG_COUNT][3] = {};
+    for (int i = 0; i < CONFIG_CEREBRI_SENSE_MAG_COUNT; i++) {
         // default all data to zero
         struct sensor_value mag_value[3] = {};
 
@@ -73,7 +73,14 @@ K_TIMER_DEFINE(mag_timer, mag_timer_handler, NULL);
 int sense_mag_entry_point(void)
 {
     g_mag_dev[0] = get_device(DEVICE_DT_GET(DT_ALIAS(mag0)));
+#if CONFIG_CEREBRI_SENSE_MAG_COUNT >= 2
     g_mag_dev[1] = get_device(DEVICE_DT_GET(DT_ALIAS(mag1)));
+#elif CONFIG_CEREBRI_SENSE_MAG_COUNT >= 3
+    g_mag_dev[2] = get_device(DEVICE_DT_GET(DT_ALIAS(mag2)));
+#elif CONFIG_CEREBRI_SENSE_MAG_COUNT >= 4
+    g_mag_dev[3] = get_device(DEVICE_DT_GET(DT_ALIAS(mag3)));
+#endif
+
     k_timer_start(&mag_timer, K_MSEC(20), K_MSEC(20));
     return 0;
 }

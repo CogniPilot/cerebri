@@ -9,13 +9,13 @@
 
 #include <math.h>
 
-LOG_MODULE_REGISTER(sense_baro, CONFIG_SENSE_BARO_LOG_LEVEL);
+LOG_MODULE_REGISTER(sense_baro, CONFIG_CEREBRI_SENSE_BARO_LOG_LEVEL);
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 6
 
 extern struct k_work_q g_low_priority_work_q;
-static const struct device* g_baro_dev[2];
+static const struct device* g_baro_dev[CONFIG_CEREBRI_SENSE_BARO_COUNT];
 static int32_t g_seq = 0;
 
 static const struct device* sensor_check(const struct device* const dev)
@@ -38,8 +38,8 @@ static const struct device* sensor_check(const struct device* const dev)
 
 void baro_work_handler(struct k_work* work)
 {
-    double baro_data_array[2][2] = {};
-    for (int i = 0; i < 2; i++) {
+    double baro_data_array[CONFIG_CEREBRI_SENSE_BARO_COUNT][2] = {};
+    for (int i = 0; i < CONFIG_CEREBRI_SENSE_BARO_COUNT; i++) {
         // default all data to zero
         struct sensor_value baro_press = {};
         struct sensor_value baro_temp = {};
@@ -90,7 +90,14 @@ K_TIMER_DEFINE(baro_timer, baro_timer_handler, NULL);
 int sense_baro_entry_point(void)
 {
     g_baro_dev[0] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro0)));
+#if CONFIG_CEREBRI_SENSE_BARO_COUNT >= 2
     g_baro_dev[1] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro1)));
+#elif CONFIG_CEREBRI_SENSE_BARO_COUNT >= 3
+    g_baro_dev[2] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro2)));
+#elif CONFIG_CEREBRI_SENSE_BARO_COUNT == 4
+    g_baro_dev[3] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro3)));
+#endif
+
     k_timer_start(&baro_timer, K_MSEC(1000), K_MSEC(1000));
     return 0;
 }

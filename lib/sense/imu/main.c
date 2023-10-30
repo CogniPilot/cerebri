@@ -25,8 +25,8 @@ typedef struct _context {
     // publications
     syn_pub_t pub_imu;
     // devices
-    const struct device* accel_dev[3];
-    const struct device* gyro_dev[3];
+    const struct device* accel_dev[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT];
+    const struct device* gyro_dev[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT];
 } context;
 
 static context g_ctx = {
@@ -55,55 +55,73 @@ static void imu_init(context* ctx)
     syn_node_add_pub(&ctx->node, &ctx->pub_imu, &ctx->imu, &chan_out_imu);
 
     // setup accel devices
+
     ctx->accel_dev[0] = get_device(DEVICE_DT_GET(DT_ALIAS(accel0)));
+#if CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT >= 2
     ctx->accel_dev[1] = get_device(DEVICE_DT_GET(DT_ALIAS(accel1)));
+#elif CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT >= 3
     ctx->accel_dev[2] = get_device(DEVICE_DT_GET(DT_ALIAS(accel2)));
+#elif CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT == 4
+    ctx->accel_dev[3] = get_device(DEVICE_DT_GET(DT_ALIAS(accel3)));
+#endif
 
     // setup gyro devices
     ctx->gyro_dev[0] = get_device(DEVICE_DT_GET(DT_ALIAS(gyro0)));
+#if CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT >= 2
     ctx->gyro_dev[1] = get_device(DEVICE_DT_GET(DT_ALIAS(gyro1)));
+#elif CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT >= 3
     ctx->gyro_dev[2] = get_device(DEVICE_DT_GET(DT_ALIAS(gyro2)));
+#elif CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT == 4
+    ctx->gyro_dev[3] = get_device(DEVICE_DT_GET(DT_ALIAS(gyro3)));
+#endif
 }
 
 void imu_work_handler(struct k_work* work)
 {
     context* ctx = &g_ctx;
 
-    double accel_data_array[3][3] = { 0 };
-    double gyro_data_array[3][3] = { 0 };
+    double accel_data_array[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3] = { 0 };
+    double gyro_data_array[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3] = { 0 };
 
     //        LOG_DBG("");
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < MAX(CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT,
+        CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT); i++) {
         // default all data to zero
         struct sensor_value accel_value[3] = {};
         struct sensor_value gyro_value[3] = {};
 
         // get accel if device present
-        if (ctx->accel_dev[i] != NULL) {
-            sensor_sample_fetch(ctx->accel_dev[i]);
-            sensor_channel_get(ctx->accel_dev[i], SENSOR_CHAN_ACCEL_XYZ, accel_value);
-            LOG_DBG("accel %d: %d.%06d %d.%06d %d.%06d", i,
-                accel_value[0].val1, accel_value[0].val2,
-                accel_value[1].val1, accel_value[1].val2,
-                accel_value[2].val1, accel_value[2].val2);
+        if (i < CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT) {
+            if (ctx->accel_dev[i] != NULL) {
+                sensor_sample_fetch(ctx->accel_dev[i]);
+                sensor_channel_get(ctx->accel_dev[i], SENSOR_CHAN_ACCEL_XYZ, accel_value);
+                for (int j = 0; j < 3; j++) {
+                    accel_data_array[i][j] = accel_value[j].val1 + accel_value[j].val2 * 1e-6;
+                }
+                LOG_DBG("accel %d: %d.%06d %d.%06d %d.%06d", i,
+                    accel_value[0].val1, accel_value[0].val2,
+                    accel_value[1].val1, accel_value[1].val2,
+                    accel_value[2].val1, accel_value[2].val2);
+
+            }
         }
 
         // get gyro if device present
-        if (ctx->gyro_dev[i] != NULL) {
-            // don't resample if it is the same device as accel, want same timestamp
-            if (ctx->gyro_dev[i] != ctx->accel_dev[i]) {
-                sensor_sample_fetch(ctx->gyro_dev[i]);
+        if (i < CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT) {
+            if (ctx->gyro_dev[i] != NULL) {
+                // don't resample if it is the same device as accel, want same timestamp
+                if (ctx->gyro_dev[i] != ctx->accel_dev[i]) {
+                    sensor_sample_fetch(ctx->gyro_dev[i]);
+                }
+                sensor_channel_get(ctx->gyro_dev[i], SENSOR_CHAN_GYRO_XYZ, gyro_value);
+                for (int j = 0; j < 3; j++) {
+                    gyro_data_array[i][j] = gyro_value[j].val1 + gyro_value[j].val2 * 1e-6;
+                }
+                LOG_DBG("gyro %d: %d.%06d %d.%06d %d.%06d", i,
+                    gyro_value[0].val1, gyro_value[0].val2,
+                    gyro_value[1].val1, gyro_value[1].val2,
+                    gyro_value[2].val1, gyro_value[2].val2);
             }
-            sensor_channel_get(ctx->gyro_dev[i], SENSOR_CHAN_GYRO_XYZ, gyro_value);
-            LOG_DBG("gyro %d: %d.%06d %d.%06d %d.%06d", i,
-                gyro_value[0].val1, gyro_value[0].val2,
-                gyro_value[1].val1, gyro_value[1].val2,
-                gyro_value[2].val1, gyro_value[2].val2);
-        }
-
-        for (int j = 0; j < 3; j++) {
-            accel_data_array[i][j] = accel_value[j].val1 + accel_value[j].val2 * 1e-6;
-            gyro_data_array[i][j] = gyro_value[j].val1 + gyro_value[j].val2 * 1e-6;
         }
     }
 

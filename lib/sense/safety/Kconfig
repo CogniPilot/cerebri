@@ -4,7 +4,7 @@ menuconfig CEREBRI_SENSE_SAFETY
   bool "Safety"
   default y
   depends on CEREBRI_SYNAPSE_ZBUS
-  depends on CEREBRI_CORE_WORK_QUEUES
+  depends on CEREBRI_CORE_WORKQUEUES
   help
     This option enables the safety interface
 

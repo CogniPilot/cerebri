@@ -2,6 +2,9 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
+
+#include <signal.h>
+
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/ring_buffer.h>
 
@@ -19,6 +22,8 @@ LOG_MODULE_REGISTER(dream_sitl, CONFIG_CEREBRI_DREAM_SITL_LOG_LEVEL);
 
 #define MY_STACK_SIZE 500
 #define MY_PRIORITY -10
+
+extern volatile sig_atomic_t cerebri_sitl_shutdown;
 
 extern synapse_msgs_SimClock g_sim_clock;
 extern TinyFrame g_tf;
@@ -57,7 +62,7 @@ static void zephyr_sim_entry_point(void)
 {
     LOG_INF("zephyr sim entry point");
     LOG_INF("waiting for sim clock");
-    while (true) {
+    while (!cerebri_sitl_shutdown) {
         synapse_msgs_SimClock sim_clock;
         struct timespec request, remaining;
         request.tv_sec = 1;
@@ -77,11 +82,11 @@ static void zephyr_sim_entry_point(void)
     }
 
     LOG_DBG("running main loop");
-    while (true) {
+    while (!cerebri_sitl_shutdown) {
 
         //  publish new messages
         uint8_t topic;
-        while (!ring_buf_is_empty(&g_msg_updates)) {
+        while (!cerebri_sitl_shutdown && !ring_buf_is_empty(&g_msg_updates)) {
             ring_buf_get(&g_msg_updates, &topic, 1);
             if (topic == SYNAPSE_IN_NAV_SAT_FIX_TOPIC) {
                 zbus_chan_pub(&chan_out_nav_sat_fix, &g_in_nav_sat_fix, K_NO_WAIT);
@@ -126,6 +131,7 @@ static void zephyr_sim_entry_point(void)
             nanosleep(&request, &remaining);
         }
     }
+    printf("zephyr main loop finished\n");
 }
 
 // zephyr threads

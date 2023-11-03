@@ -4,6 +4,8 @@
  */
 #include <soc.h>
 
+#include <signal.h>
+
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -27,6 +29,14 @@
 
 #define BIND_PORT 4241
 #define RX_BUF_SIZE 1024
+
+volatile sig_atomic_t cerebri_sitl_shutdown = 0;
+
+static void term(int signum)
+{
+    cerebri_sitl_shutdown = 1;
+    printf("handling term\n");
+}
 
 // private data
 struct private_module_context {
@@ -192,6 +202,12 @@ void* native_sim_entry_point(void* data)
     static int counter;
 
     g_priv.serv = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    const int trueFlag = 1;
+    if (setsockopt(g_priv.serv, SOL_SOCKET, SO_REUSEADDR, &trueFlag, sizeof(int)) < 0) {
+        printf("failed to set socket options\n");
+        exit(1);
+    };
+
     if (g_priv.serv < 0) {
         printf("%s: error: socket: %d\n", g_priv.module_name, errno);
         exit(1);
@@ -222,7 +238,13 @@ void* native_sim_entry_point(void* data)
     struct timespec remaining, request;
 
     printf("%s: waiting for client connection\n", g_priv.module_name);
-    while (true) {
+
+    struct sigaction action;
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = term;
+    sigaction(SIGINT, &action, NULL);
+
+    while (!cerebri_sitl_shutdown) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
@@ -242,7 +264,7 @@ void* native_sim_entry_point(void* data)
         printf("%s: connection #%d from %s\n", g_priv.module_name, counter++, addr_str);
 
         // process incoming messages
-        while (true) {
+        while (!cerebri_sitl_shutdown) {
             // write received data to sim_rx_buf
             uint8_t data[RX_BUF_SIZE];
             int len = recv(g_priv.client, data, RX_BUF_SIZE, 0);
@@ -254,20 +276,26 @@ void* native_sim_entry_point(void* data)
             nanosleep(&request, &remaining);
         }
     }
+
+    printf("native main exitting\n");
+    exit(0);
+    return 0;
 }
 
 void native_sim_start_task(void)
 {
+    printf("native sim start task\n");
     pthread_create(&g_priv.thread, NULL, native_sim_entry_point, NULL);
 }
 
 void native_sim_stop_task(void)
 {
+    printf("native sim stop task\n");
     pthread_join(g_priv.thread, NULL);
 }
 
 // native tasks
 NATIVE_TASK(native_sim_start_task, PRE_BOOT_1, 0);
-NATIVE_TASK(native_sim_stop_task, ON_EXIT, 0);
+NATIVE_TASK(native_sim_stop_task, ON_EXIT_PRE, 1);
 
 // vi: ts=4 sw=4 et

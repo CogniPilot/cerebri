@@ -23,12 +23,12 @@
 		aux5: aux5 {
 			pwms = <&emios0_pwm 5 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
-		aux6: aux6 {
-			pwms = <&emios0_pwm 6 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		/* aux6: aux6 {
+			pwms = <&flexio0 6 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
 		aux7: aux7 {
-			pwms = <&emios0_pwm 7 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-		};
+			pwms = <&flexio0 7 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		}; */
 	};
 
 	chosen {
@@ -43,6 +43,7 @@
 		can4 = &flexcan4;
 		can5 = &flexcan5;
 		/* safety button */
+		wheel-odometry0 = &qdec0;
 		safety-button = &arming_button_mr_canhubk3_adap;
 	};
 };
@@ -52,10 +53,10 @@
 		prescaler = <16>;
 	};
 	pwm_1 {
-		prescaler = <8>;
+		prescaler = <1>;
 	};
 	pwm_2 {
-		prescaler = <8>;
+		prescaler = <1>;
 		duty-cycle = <0>;
 	};
 	pwm_3 {
@@ -67,13 +68,16 @@
 	pwm_5 {
 		prescaler = <16>;
 	};
+};
+
+/*&flexio0 {
 	pwm_6 {
 		prescaler = <16>;
 	};
 	pwm_7 {
 		prescaler = <16>;
 	};
-};
+};*/
 
 &flexcan0 {
 	status = "okay";
@@ -113,6 +117,6 @@
 
 /* GNSS 1 */
 uart0: &lpuart7 {
-       status = "okay";
-       current-speed = <38400>;
+	status = "okay";
+	current-speed = <38400>;
 };

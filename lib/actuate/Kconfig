@@ -6,5 +6,6 @@ menu "Actuate"
 rsource "pwm/Kconfig"
 rsource "vesc_can/Kconfig"
 rsource "status_led/Kconfig"
+rsource "led_array/Kconfig"
 
 endmenu

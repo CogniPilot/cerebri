@@ -1,0 +1,15 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig CEREBRI_ACTUATE_LED_ARRAY
+  bool "LED ARRAY"
+  help
+    This option enables the LED ARRAY
+
+if CEREBRI_ACTUATE_LED_ARRAY
+
+module = CEREBRI_ACTUATE_LED_ARRAY
+module-str = actuate_led_array
+source "subsys/logging/Kconfig.template.log_config"
+
+endif #CEREBRI_ACTUATE_LED_ARRAY

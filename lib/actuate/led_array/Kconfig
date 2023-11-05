@@ -8,6 +8,15 @@ menuconfig CEREBRI_ACTUATE_LED_ARRAY
 
 if CEREBRI_ACTUATE_LED_ARRAY
 
+config CEREBRI_ACTUATE_LED_ARRAY_COUNT
+  int "Number of LEDs in array"
+  default 12
+  range 1 255
+  help
+    Defines number of LEDS in array
+
+
+
 module = CEREBRI_ACTUATE_LED_ARRAY
 module-str = actuate_led_array
 source "subsys/logging/Kconfig.template.log_config"

@@ -56,6 +56,9 @@
 		baro1 = &bmp388_1;
 		/* power sensors */
 		power0 = &ina230;
+		/* safety button */
+		safety-button = &arming_button;
+		status-led = &ncp5623c;
 	};
 };
 

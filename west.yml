@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 1d82a8353a42158722846d7b81b6104a5cf1641e
+      revision: 2700c09c5186da7a1a9f227297aef80083fb2b16 # qdec-tested 11/5/23
       import:
         - name-allowlist:
           - nanopb
@@ -29,11 +29,11 @@ manifest:
           - ubxlib
     - name: synapse_tinyframe
       remote: cognipilot
-      revision: a566447d677030975d398b23485d778b59c5325e # main 10/29/23
+      revision: db5a222aad74e260c21ba2c79b306be90da4cd63 # main 11/5/23
       path: modules/lib/synapse_tinyframe
     - name: synapse_protobuf
       remote: cognipilot
-      revision: 2501f24d57a4a485cd745514287f927ed577e10e # main 10/6/23
+      revision: f243208134024ceb350e7e6810edd03ed7b4054e # main 11/5/23
       path: modules/lib/synapse_protobuf
     - name: ubxlib
       remote: cognipilot

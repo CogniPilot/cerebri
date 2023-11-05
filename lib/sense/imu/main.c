@@ -85,7 +85,8 @@ void imu_work_handler(struct k_work* work)
 
     //        LOG_DBG("");
     for (int i = 0; i < MAX(CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT,
-        CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT); i++) {
+                        CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT);
+         i++) {
         // default all data to zero
         struct sensor_value accel_value[3] = {};
         struct sensor_value gyro_value[3] = {};
@@ -102,7 +103,6 @@ void imu_work_handler(struct k_work* work)
                     accel_value[0].val1, accel_value[0].val2,
                     accel_value[1].val1, accel_value[1].val2,
                     accel_value[2].val1, accel_value[2].val2);
-
             }
         }
 

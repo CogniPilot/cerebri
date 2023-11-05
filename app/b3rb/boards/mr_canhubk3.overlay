@@ -57,11 +57,10 @@
 	};
 	pwm_1 {
 		prescaler = <1>;
-		duty-cycle = <32768>;
 	};
 	pwm_2 {
 		prescaler = <1>;
-		duty-cycle = <65535>;
+		duty-cycle = <0>;
 	};
 	pwm_3 {
 		prescaler = <16>;

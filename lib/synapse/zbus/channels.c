@@ -47,6 +47,14 @@ ZBUS_CHAN_DEFINE(chan_in_joy, // Name
     ZBUS_MSG_INIT(0) // Initial value {0}
 );
 
+ZBUS_CHAN_DEFINE(chan_in_led_array, // Name
+    synapse_msgs_LEDArray, // Message type
+    NULL, // Validator
+    NULL, // User Data
+    ZBUS_OBSERVERS(), // observers
+    ZBUS_MSG_INIT(0) // Initial value {0}
+);
+
 ZBUS_CHAN_DEFINE(chan_in_nav_sat_fix, // Name
     synapse_msgs_NavSatFix, // Message type
     NULL, // Validator

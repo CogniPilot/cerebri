@@ -238,6 +238,18 @@ void print_Joy(synapse_msgs_Joy* msg)
     }
 }
 
+void print_LEDArray(synapse_msgs_LEDArray* msg)
+{
+    shell_print(g_ctx.sh, "axes");
+    for (int i = 0; i < msg->led_count; i++) {
+        shell_print(g_ctx.sh, "index: %4d rgb: %4d %4d %4d",
+            msg->led[i].index,
+            msg->led[i].r,
+            msg->led[i].g,
+            msg->led[i].b);
+    }
+}
+
 void print_BezierCurve(synapse_msgs_BezierCurve* msg)
 {
     shell_print(g_ctx.sh, "x");
@@ -362,6 +374,10 @@ void topic_work_handler(struct k_work* work)
         synapse_msgs_Joy msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Joy(&msg);
+    } else if (chan == &chan_in_led_array) {
+        synapse_msgs_LEDArray msg;
+        zbus_chan_read(chan, &msg, timeout);
+        print_LEDArray(&msg);
     } else if (chan == &chan_in_cmd_vel || chan == &chan_out_cmd_vel) {
         synapse_msgs_Twist msg;
         zbus_chan_read(chan, &msg, timeout);
@@ -468,6 +484,7 @@ static int topic_hz(const struct shell* sh,
         (in_clock_offset, &chan_in_clock_offset, "in_clock_offset"),                \
         (in_cmd_vel, &chan_in_cmd_vel, "in_cmd_vel"),                               \
         (in_joy, &chan_in_joy, "in_joy"),                                           \
+        (in_led_array, &chan_in_led_array, "in_led_array"),                         \
         (in_nav_sat_fix, &chan_in_nav_sat_fix, "in_nav_sat_fix"),                   \
         (in_odometry, &chan_in_odometry, "in_odometry"),                            \
         (out_actuators, &chan_out_actuators, "out_actuators"),                      \
@@ -509,6 +526,7 @@ ZBUS_CHAN_ADD_OBS(chan_in_bezier_trajectory, listener_synapse_topic, 1);
 ZBUS_CHAN_ADD_OBS(chan_in_clock_offset, listener_synapse_topic, 1);
 ZBUS_CHAN_ADD_OBS(chan_in_cmd_vel, listener_synapse_topic, 1);
 ZBUS_CHAN_ADD_OBS(chan_in_joy, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_in_led_array, listener_synapse_topic, 1);
 ZBUS_CHAN_ADD_OBS(chan_in_nav_sat_fix, listener_synapse_topic, 1);
 ZBUS_CHAN_ADD_OBS(chan_in_odometry, listener_synapse_topic, 1);
 ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_synapse_topic, 1);

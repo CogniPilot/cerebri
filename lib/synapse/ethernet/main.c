@@ -101,6 +101,7 @@ TOPIC_LISTENER(in_bezier_trajectory, synapse_msgs_BezierTrajectory)
 TOPIC_LISTENER(in_cmd_vel, synapse_msgs_Twist)
 TOPIC_LISTENER(in_joy, synapse_msgs_Joy)
 TOPIC_LISTENER(in_odometry, synapse_msgs_Odometry)
+TOPIC_LISTENER(in_led_array, synapse_msgs_LEDArray)
 
 void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
 {
@@ -166,6 +167,7 @@ static void ethernet_entry_point(void)
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
     TF_AddTypeListener(&g_tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IN_LED_ARRAY_TOPIC, in_led_array_Listener);
 
     while (1) {
         LOG_INF("socket waiting for connection on port: %d", BIND_PORT);

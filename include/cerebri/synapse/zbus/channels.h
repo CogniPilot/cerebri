@@ -10,6 +10,7 @@
 #include <synapse_protobuf/fsm.pb.h>
 #include <synapse_protobuf/imu.pb.h>
 #include <synapse_protobuf/joy.pb.h>
+#include <synapse_protobuf/led_array.pb.h>
 #include <synapse_protobuf/magnetic_field.pb.h>
 #include <synapse_protobuf/nav_sat_fix.pb.h>
 #include <synapse_protobuf/odometry.pb.h>
@@ -26,6 +27,7 @@ ZBUS_CHAN_DECLARE(chan_in_bezier_trajectory);
 ZBUS_CHAN_DECLARE(chan_in_clock_offset);
 ZBUS_CHAN_DECLARE(chan_in_cmd_vel);
 ZBUS_CHAN_DECLARE(chan_in_joy);
+ZBUS_CHAN_DECLARE(chan_in_led_array);
 ZBUS_CHAN_DECLARE(chan_in_nav_sat_fix);
 ZBUS_CHAN_DECLARE(chan_in_odometry);
 

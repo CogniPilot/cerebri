@@ -42,22 +42,26 @@
 		can3 = &flexcan3;
 		can4 = &flexcan4;
 		can5 = &flexcan5;
+		/* power sensors */
+		power0 = &ina230;
 		/* safety button */
-		wheel-odometry0 = &qdec0;
 		safety-button = &arming_button_mr_canhubk3_adap;
+		/* wheel odometry */
+		wheel-odometry0 = &qdec0;
 	};
 };
 
 &emios0_pwm {
 	pwm_0 {
-		prescaler = <16>;
+		prescaler = <8>;
 	};
 	pwm_1 {
 		prescaler = <1>;
+		duty-cycle = <32768>;
 	};
 	pwm_2 {
 		prescaler = <1>;
-		duty-cycle = <0>;
+		duty-cycle = <65535>;
 	};
 	pwm_3 {
 		prescaler = <16>;
@@ -70,14 +74,7 @@
 	};
 };
 
-/*&flexio0 {
-	pwm_6 {
-		prescaler = <16>;
-	};
-	pwm_7 {
-		prescaler = <16>;
-	};
-};*/
+
 
 &flexcan0 {
 	status = "okay";
@@ -114,6 +111,31 @@
 	bus-speed = <1000000>;
 	bus-speed-data = <4000000>;
 };
+
+&lpspi2 {
+	status = "okay";
+	apa102: apa102@0 {
+	compatible = "apa,apa102";
+		status = "okay";
+		reg = <0>;
+		spi-max-frequency = <100000>;
+	};
+};
+
+&lpi2c1 {
+	status = "okay";
+	pinctrl-0 = <&lpi2c1_default>;
+	pinctrl-names = "default";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+
+	ina230: ina230@41 {
+		compatible = "ti,ina230";
+		reg = <0x41>;
+		current-lsb-microamps = <5000>;
+		rshunt-micro-ohms = <500>;
+	};
+};
+
 
 /* GNSS 1 */
 uart0: &lpuart7 {

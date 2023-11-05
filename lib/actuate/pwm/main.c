@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include "actuator_pwm.h"
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <zephyr/drivers/pwm.h>
@@ -15,8 +14,6 @@
 #include <cerebri/synapse/zbus/syn_pub_sub.h>
 
 LOG_MODULE_REGISTER(actuate_pwm, CONFIG_CEREBRI_ACTUATE_PWM_LOG_LEVEL);
-
-extern struct k_work_q g_high_priority_work_q;
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
@@ -49,9 +46,9 @@ static void listener_actuate_pwm_callback(const struct zbus_channel* chan)
     syn_sub_listen(&g_ctx.sub_fsm, chan, K_MSEC(1));
 }
 
-ZBUS_LISTENER_DEFINE(listener_actuator_pwm, listener_actuate_pwm_callback);
-ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_actuator_pwm, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_fsm, listener_actuator_pwm, 1);
+ZBUS_LISTENER_DEFINE(listener_actuate_pwm, listener_actuate_pwm_callback);
+ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_actuate_pwm, 1);
+ZBUS_CHAN_ADD_OBS(chan_out_fsm, listener_actuate_pwm, 1);
 
 void pwm_update(const synapse_msgs_Fsm* fsm, const synapse_msgs_Actuators* actuators)
 {
@@ -117,7 +114,7 @@ void pwm_update(const synapse_msgs_Fsm* fsm, const synapse_msgs_Actuators* actua
     }
 }
 
-void actuator_pwm_entry_point(context* ctx)
+void actuate_pwm_entry_point(context* ctx)
 {
     init(ctx);
 
@@ -134,8 +131,8 @@ void actuator_pwm_entry_point(context* ctx)
     }
 }
 
-K_THREAD_DEFINE(actuator_pwm, MY_STACK_SIZE,
-    actuator_pwm_entry_point, &g_ctx, NULL, NULL,
+K_THREAD_DEFINE(actuate_pwm, MY_STACK_SIZE,
+    actuate_pwm_entry_point, &g_ctx, NULL, NULL,
     MY_PRIORITY, 0, 0);
 
 /* vi: ts=4 sw=4 et */

@@ -22,7 +22,7 @@ uNetworkCfgGnss_t gNetworkCfg = {
 
 LOG_MODULE_REGISTER(ubx_gnss, CONFIG_CEREBRI_SENSE_UBX_GNSS_LOG_LEVEL);
 
-#define MY_STACK_SIZE 2420
+#define MY_STACK_SIZE 3072
 #define MY_PRIORITY 6
 
 static int32_t gMeasurementPeriodMs = 100;

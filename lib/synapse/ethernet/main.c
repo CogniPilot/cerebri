@@ -98,7 +98,7 @@ static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 // ROS -> cerebri
 TOPIC_LISTENER(actuators, synapse_msgs_Actuators)
 TOPIC_LISTENER(altimeter, synapse_msgs_Altimeter)
-TOPIC_LISTENER(battery_state, synapse_msgs_Altimeter)
+TOPIC_LISTENER(battery_state, synapse_msgs_BatteryState)
 TOPIC_LISTENER(bezier_trajectory, synapse_msgs_BezierTrajectory)
 TOPIC_LISTENER(cmd_vel, synapse_msgs_Twist)
 TOPIC_LISTENER(imu, synapse_msgs_Imu)
@@ -180,8 +180,6 @@ static void ethernet_entry_point(void)
     TF_AddTypeListener(&g_tf, SYNAPSE_NAV_SAT_FIX_TOPIC, nav_sat_fix_Listener);
     TF_AddTypeListener(&g_tf, SYNAPSE_ODOMETRY_TOPIC, odometry_Listener);
     TF_AddTypeListener(&g_tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_Listener);
-
-    // ROS -> cerebri (Hardware-in-the-loop only)
 
     while (1) {
         LOG_INF("socket waiting for connection on port: %d", BIND_PORT);

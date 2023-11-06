@@ -16,7 +16,7 @@ static Actuators g_actuators = Actuators_init_default;
 
 static void listener_actuator_vesc_can_callback(const struct zbus_channel* chan)
 {
-    if (chan == &chan_out_actuators) {
+    if (chan == &chan_actuators) {
         g_actuators = *(Actuators*)(chan->message);
     }
 }

@@ -58,7 +58,7 @@ void mag_work_handler(struct k_work* work)
     msg.magnetic_field.x = mag[0];
     msg.magnetic_field.y = mag[1];
     msg.magnetic_field.z = mag[2];
-    zbus_chan_pub(&chan_out_magnetic_field, &msg, K_NO_WAIT);
+    zbus_chan_pub(&chan_magnetic_field, &msg, K_NO_WAIT);
 }
 
 K_WORK_DEFINE(mag_work, mag_work_handler);

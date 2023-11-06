@@ -107,7 +107,7 @@ static TF_Result nav_sat_fix_listener(TinyFrame* tf, TF_Msg* frame)
     int status = pb_decode(&stream, synapse_msgs_NavSatFix_fields, &msg);
     if (status) {
         g_in_nav_sat_fix = msg;
-        uint8_t topic = SYNAPSE_IN_NAV_SAT_FIX_TOPIC;
+        uint8_t topic = SYNAPSE_NAV_SAT_FIX_TOPIC;
         ring_buf_put(&g_msg_updates, &topic, 1);
     } else {
         printf("%s: navsat decoding failed: %s\n",
@@ -123,7 +123,7 @@ static TF_Result imu_listener(TinyFrame* tf, TF_Msg* frame)
     int status = pb_decode(&stream, synapse_msgs_Imu_fields, &msg);
     if (status) {
         g_in_imu = msg;
-        uint8_t topic = SYNAPSE_IN_IMU_TOPIC;
+        uint8_t topic = SYNAPSE_IMU_TOPIC;
         ring_buf_put(&g_msg_updates, &topic, 1);
     } else {
         printf("%s: imu decoding failed: %s\n",
@@ -139,7 +139,7 @@ static TF_Result magnetic_field_listener(TinyFrame* tf, TF_Msg* frame)
     int status = pb_decode(&stream, synapse_msgs_MagneticField_fields, &msg);
     if (status) {
         g_in_magnetic_field = msg;
-        uint8_t topic = SYNAPSE_IN_MAGNETIC_FIELD_TOPIC;
+        uint8_t topic = SYNAPSE_MAGNETIC_FIELD_TOPIC;
         ring_buf_put(&g_msg_updates, &topic, 1);
     } else {
         printf("%s: magnetic field decoding failed: %s\n",
@@ -155,7 +155,7 @@ static TF_Result battery_state_listener(TinyFrame* tf, TF_Msg* frame)
     int status = pb_decode(&stream, synapse_msgs_BatteryState_fields, &msg);
     if (status) {
         g_in_battery_state = msg;
-        uint8_t topic = SYNAPSE_IN_BATTERY_STATE_TOPIC;
+        uint8_t topic = SYNAPSE_BATTERY_STATE_TOPIC;
         ring_buf_put(&g_msg_updates, &topic, 1);
     } else {
         printf("%s: battery state decoding failed: %s\n",
@@ -171,7 +171,7 @@ static TF_Result wheel_odometry_listener(TinyFrame* tf, TF_Msg* frame)
     int status = pb_decode(&stream, synapse_msgs_WheelOdometry_fields, &msg);
     if (status) {
         g_in_wheel_odometry = msg;
-        uint8_t topic = SYNAPSE_IN_WHEEL_ODOMETRY_TOPIC;
+        uint8_t topic = SYNAPSE_WHEEL_ODOMETRY_TOPIC;
         ring_buf_put(&g_msg_updates, &topic, 1);
     } else {
         printf("%s: wheel odometry decoding failed: %s\n",
@@ -191,12 +191,12 @@ void* native_sim_entry_point(void* data)
 
     // setup tinyframe
     TF_AddGenericListener(&g_tf, generic_listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_SIM_CLOCK_TOPIC, sim_clock_listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_NAV_SAT_FIX_TOPIC, nav_sat_fix_listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_IMU_TOPIC, imu_listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_MAGNETIC_FIELD_TOPIC, magnetic_field_listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_BATTERY_STATE_TOPIC, battery_state_listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_WHEEL_ODOMETRY_TOPIC, wheel_odometry_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_NAV_SAT_FIX_TOPIC, nav_sat_fix_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IMU_TOPIC, imu_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_MAGNETIC_FIELD_TOPIC, magnetic_field_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_BATTERY_STATE_TOPIC, battery_state_listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_listener);
 
     struct sockaddr_in bind_addr;
     static int counter;

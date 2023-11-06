@@ -44,19 +44,19 @@ static ctx_t ctx = {
 
 void listener_estimate_attitude_callback(const struct zbus_channel* chan)
 {
-    if (chan == &chan_out_imu) {
+    if (chan == &chan_imu) {
         ctx.sub_imu = *(synapse_msgs_Imu*)(chan->message);
         ctx.imu_updated = true;
         // LOG_DBG("imu updated");
-    } else if (chan == &chan_out_magnetic_field) {
+    } else if (chan == &chan_magnetic_field) {
         ctx.sub_magnetic_field = *(synapse_msgs_MagneticField*)(chan->message);
         ctx.mag_updated = true;
         // LOG_DBG("mag updated");
     }
 }
 ZBUS_LISTENER_DEFINE(listener_estimate_attitude, listener_estimate_attitude_callback);
-ZBUS_CHAN_ADD_OBS(chan_out_imu, listener_estimate_attitude, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_magnetic_field, listener_estimate_attitude, 1);
+ZBUS_CHAN_ADD_OBS(chan_imu, listener_estimate_attitude, 1);
+ZBUS_CHAN_ADD_OBS(chan_magnetic_field, listener_estimate_attitude, 1);
 
 void log_x(double* x)
 {
@@ -309,7 +309,7 @@ static void estimate_attitude_entry_point(void* p1, void* p2, void* p3)
             ctx.pub_odometry.pose.pose.orientation.y = 0;
             ctx.pub_odometry.pose.pose.orientation.z = 0;
             ctx.pub_odometry.pose.pose.orientation.w = 1;
-            zbus_chan_pub(&chan_out_odometry, &ctx.pub_odometry, K_NO_WAIT);
+            zbus_chan_pub(&chan_odometry, &ctx.pub_odometry, K_NO_WAIT);
         }
 
         log_x(ctx.x);

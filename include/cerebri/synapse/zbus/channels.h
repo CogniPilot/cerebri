@@ -22,31 +22,22 @@
 //*******************************************************************
 // (chan_in) channels from ROS computer to cerebri
 //*******************************************************************
-ZBUS_CHAN_DECLARE(chan_in_actuators);
-ZBUS_CHAN_DECLARE(chan_in_bezier_trajectory);
-ZBUS_CHAN_DECLARE(chan_in_clock_offset);
-ZBUS_CHAN_DECLARE(chan_in_cmd_vel);
-ZBUS_CHAN_DECLARE(chan_in_joy);
-ZBUS_CHAN_DECLARE(chan_in_led_array);
-ZBUS_CHAN_DECLARE(chan_in_nav_sat_fix);
-ZBUS_CHAN_DECLARE(chan_in_odometry);
-
-//*******************************************************************
-// (chan_out) channels from cerebri to other nodes
-// on cerebri or to ROS computer
-//*******************************************************************
-ZBUS_CHAN_DECLARE(chan_out_actuators);
-ZBUS_CHAN_DECLARE(chan_out_actuators_manual);
-ZBUS_CHAN_DECLARE(chan_out_altimeter);
-ZBUS_CHAN_DECLARE(chan_out_battery_state);
-ZBUS_CHAN_DECLARE(chan_out_cmd_vel);
-ZBUS_CHAN_DECLARE(chan_out_fsm);
-ZBUS_CHAN_DECLARE(chan_out_imu);
-ZBUS_CHAN_DECLARE(chan_out_magnetic_field);
-ZBUS_CHAN_DECLARE(chan_out_nav_sat_fix);
-ZBUS_CHAN_DECLARE(chan_out_odometry);
-ZBUS_CHAN_DECLARE(chan_out_safety);
-ZBUS_CHAN_DECLARE(chan_out_wheel_odometry);
+ZBUS_CHAN_DECLARE(chan_actuators);
+ZBUS_CHAN_DECLARE(chan_actuators_manual);
+ZBUS_CHAN_DECLARE(chan_altimeter);
+ZBUS_CHAN_DECLARE(chan_battery_state);
+ZBUS_CHAN_DECLARE(chan_bezier_trajectory);
+ZBUS_CHAN_DECLARE(chan_clock_offset);
+ZBUS_CHAN_DECLARE(chan_cmd_vel);
+ZBUS_CHAN_DECLARE(chan_fsm);
+ZBUS_CHAN_DECLARE(chan_imu);
+ZBUS_CHAN_DECLARE(chan_joy);
+ZBUS_CHAN_DECLARE(chan_led_array);
+ZBUS_CHAN_DECLARE(chan_magnetic_field);
+ZBUS_CHAN_DECLARE(chan_nav_sat_fix);
+ZBUS_CHAN_DECLARE(chan_odometry);
+ZBUS_CHAN_DECLARE(chan_safety);
+ZBUS_CHAN_DECLARE(chan_wheel_odometry);
 
 //*******************************************************************
 // helper functions and definitions

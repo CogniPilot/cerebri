@@ -52,10 +52,10 @@ static void init_control_ackermann_vel(context* ctx)
 {
     LOG_DBG("init vel");
     syn_node_init(&ctx->node, "control_ackerman_vel");
-    syn_node_add_sub(&ctx->node, &ctx->sub_cmd_vel, &ctx->cmd_vel, &chan_out_cmd_vel);
-    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_out_fsm);
-    syn_node_add_sub(&ctx->node, &ctx->sub_actuators_manual, &ctx->actuators_manual, &chan_out_actuators_manual);
-    syn_node_add_pub(&ctx->node, &ctx->pub_actuators, &ctx->actuators, &chan_out_actuators);
+    syn_node_add_sub(&ctx->node, &ctx->sub_cmd_vel, &ctx->cmd_vel, &chan_cmd_vel);
+    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm);
+    syn_node_add_sub(&ctx->node, &ctx->sub_actuators_manual, &ctx->actuators_manual, &chan_actuators_manual);
+    syn_node_add_pub(&ctx->node, &ctx->pub_actuators, &ctx->actuators, &chan_actuators);
 }
 
 // computes rc_input from V, omega
@@ -144,8 +144,8 @@ static void listener_control_ackermann_vel_callback(const struct zbus_channel* c
     syn_node_listen(&g_ctx.node, chan, K_MSEC(1));
 }
 ZBUS_LISTENER_DEFINE(listener_control_ackermann_vel, listener_control_ackermann_vel_callback);
-ZBUS_CHAN_ADD_OBS(chan_out_actuators_manual, listener_control_ackermann_vel, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_fsm, listener_control_ackermann_vel, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_cmd_vel, listener_control_ackermann_vel, 1);
+ZBUS_CHAN_ADD_OBS(chan_actuators_manual, listener_control_ackermann_vel, 1);
+ZBUS_CHAN_ADD_OBS(chan_fsm, listener_control_ackermann_vel, 1);
+ZBUS_CHAN_ADD_OBS(chan_cmd_vel, listener_control_ackermann_vel, 1);
 
 /* vi: ts=4 sw=4 et */

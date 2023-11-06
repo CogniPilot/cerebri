@@ -44,7 +44,7 @@ void power_work_handler(struct k_work* work)
     msg.voltage = sensor_value_to_double(&voltage);
     msg.current = sensor_value_to_double(&current);
 
-    zbus_chan_pub(&chan_out_battery_state, &msg, K_NO_WAIT);
+    zbus_chan_pub(&chan_battery_state, &msg, K_NO_WAIT);
 }
 
 K_WORK_DEFINE(power_work, power_work_handler);

@@ -41,9 +41,9 @@ static context g_ctx = {
 static void init(context* ctx)
 {
     syn_node_init(&ctx->node, "manual");
-    syn_node_add_sub(&ctx->node, &ctx->sub_joy, &ctx->joy, &chan_in_joy);
+    syn_node_add_sub(&ctx->node, &ctx->sub_joy, &ctx->joy, &chan_joy);
     syn_node_add_pub(&ctx->node, &ctx->pub_actuators_manual,
-        &ctx->actuators_manual, &chan_out_actuators_manual);
+        &ctx->actuators_manual, &chan_actuators_manual);
 }
 
 static void run(context* ctx)
@@ -74,6 +74,6 @@ static void listener_control_ackermann_manual_callback(const struct zbus_channel
 }
 
 ZBUS_LISTENER_DEFINE(listener_control_ackermann_manual, listener_control_ackermann_manual_callback);
-ZBUS_CHAN_ADD_OBS(chan_in_joy, listener_control_ackermann_manual, 1);
+ZBUS_CHAN_ADD_OBS(chan_joy, listener_control_ackermann_manual, 1);
 
 /* vi: ts=4 sw=4 et */

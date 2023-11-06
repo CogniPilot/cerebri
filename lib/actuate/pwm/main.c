@@ -36,8 +36,8 @@ static context g_ctx = {
 
 static void init(context* ctx)
 {
-    syn_sub_init(&ctx->sub_actuators, &ctx->actuators, &chan_out_actuators);
-    syn_sub_init(&ctx->sub_fsm, &ctx->fsm, &chan_out_fsm);
+    syn_sub_init(&ctx->sub_actuators, &ctx->actuators, &chan_actuators);
+    syn_sub_init(&ctx->sub_fsm, &ctx->fsm, &chan_fsm);
 }
 
 static void listener_actuate_pwm_callback(const struct zbus_channel* chan)
@@ -47,8 +47,8 @@ static void listener_actuate_pwm_callback(const struct zbus_channel* chan)
 }
 
 ZBUS_LISTENER_DEFINE(listener_actuate_pwm, listener_actuate_pwm_callback);
-ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_actuate_pwm, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_fsm, listener_actuate_pwm, 1);
+ZBUS_CHAN_ADD_OBS(chan_actuators, listener_actuate_pwm, 1);
+ZBUS_CHAN_ADD_OBS(chan_fsm, listener_actuate_pwm, 1);
 
 void pwm_update(const synapse_msgs_Fsm* fsm, const synapse_msgs_Actuators* actuators)
 {

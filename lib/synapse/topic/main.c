@@ -325,63 +325,63 @@ void topic_work_handler(struct k_work* work)
 
     k_timeout_t timeout = K_MSEC(200);
 
-    if (ctx->chan_echo == &chan_out_nav_sat_fix) {
+    if (chan == &chan_nav_sat_fix) {
         synapse_msgs_NavSatFix msg;
         zbus_chan_read(chan, &msg, timeout);
         print_NavSatFix(&msg);
-    } else if (chan == &chan_in_actuators || chan == &chan_out_actuators || chan == &chan_out_actuators_manual) {
+    } else if (chan == &chan_actuators || chan == &chan_actuators_manual) {
         synapse_msgs_Actuators msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Actuators(&msg);
-    } else if (chan == &chan_in_clock_offset) {
+    } else if (chan == &chan_clock_offset) {
         synapse_msgs_Time msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Time(&msg);
-    } else if (chan == &chan_out_imu) {
+    } else if (chan == &chan_imu) {
         synapse_msgs_Imu msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Imu(&msg);
-    } else if (chan == &chan_in_odometry || chan == &chan_out_odometry) {
+    } else if (chan == &chan_odometry) {
         synapse_msgs_Odometry msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Odometry(&msg);
-    } else if (chan == &chan_out_altimeter) {
+    } else if (chan == &chan_altimeter) {
         synapse_msgs_Altimeter msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Altimeter(&msg);
-    } else if (chan == &chan_out_battery_state) {
+    } else if (chan == &chan_battery_state) {
         synapse_msgs_BatteryState msg;
         zbus_chan_read(chan, &msg, timeout);
         print_BatteryState(&msg);
-    } else if (chan == &chan_out_magnetic_field) {
+    } else if (chan == &chan_magnetic_field) {
         synapse_msgs_MagneticField msg;
         zbus_chan_read(chan, &msg, timeout);
         print_MagneticField(&msg);
-    } else if (chan == &chan_out_wheel_odometry) {
+    } else if (chan == &chan_wheel_odometry) {
         synapse_msgs_WheelOdometry msg;
         zbus_chan_read(chan, &msg, timeout);
         print_WheelOdometry(&msg);
-    } else if (chan == &chan_out_fsm) {
+    } else if (chan == &chan_fsm) {
         synapse_msgs_Fsm msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Fsm(&msg);
-    } else if (chan == &chan_out_safety) {
+    } else if (chan == &chan_safety) {
         synapse_msgs_Safety msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Safety(&msg);
-    } else if (chan == &chan_in_joy) {
+    } else if (chan == &chan_joy) {
         synapse_msgs_Joy msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Joy(&msg);
-    } else if (chan == &chan_in_led_array) {
+    } else if (chan == &chan_led_array) {
         synapse_msgs_LEDArray msg;
         zbus_chan_read(chan, &msg, timeout);
         print_LEDArray(&msg);
-    } else if (chan == &chan_in_cmd_vel || chan == &chan_out_cmd_vel) {
+    } else if (chan == &chan_cmd_vel) {
         synapse_msgs_Twist msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Twist(&msg);
-    } else if (chan == &chan_in_bezier_trajectory) {
+    } else if (chan == &chan_bezier_trajectory) {
         synapse_msgs_BezierTrajectory msg;
         zbus_chan_read(chan, &msg, timeout);
         print_BezierTrajectory(&msg);
@@ -477,27 +477,23 @@ static int topic_hz(const struct shell* sh,
     return 0;
 }
 
-#define TOPIC_DICTIONARY()                                                          \
-    (in_actuators, &chan_in_actuators, "in_actuators"),                             \
-        (in_bezier_trajectory, &chan_in_bezier_trajectory, "in_bezier_trajectory"), \
-        (in_clock_offset, &chan_in_clock_offset, "in_clock_offset"),                \
-        (in_cmd_vel, &chan_in_cmd_vel, "in_cmd_vel"),                               \
-        (in_joy, &chan_in_joy, "in_joy"),                                           \
-        (in_led_array, &chan_in_led_array, "in_led_array"),                         \
-        (in_nav_sat_fix, &chan_in_nav_sat_fix, "in_nav_sat_fix"),                   \
-        (in_odometry, &chan_in_odometry, "in_odometry"),                            \
-        (out_actuators, &chan_out_actuators, "out_actuators"),                      \
-        (out_actuators_manual, &chan_out_actuators_manual, "out_actuators_manual"), \
-        (out_altimeter, &chan_out_altimeter, "out_altimeter"),                      \
-        (out_battery_state, &chan_out_battery_state, "out_battery_state"),          \
-        (out_cmd_vel, &chan_out_cmd_vel, "out_cmd_vel"),                            \
-        (out_fsm, &chan_out_fsm, "out_fsm"),                                        \
-        (out_imu, &chan_out_imu, "out_imu"),                                        \
-        (out_magnetic_field, &chan_out_magnetic_field, "out_magnetic_field"),       \
-        (out_nav_sat_fix, &chan_out_nav_sat_fix, "out_nav_sat_fix"),                \
-        (out_odometry, &chan_out_odometry, "out_odometry"),                         \
-        (out_safety, &chan_out_safety, "out_safety"),                               \
-        (out_wheel_odometry, &chan_out_wheel_odometry, "out_wheel_odometry")
+#define TOPIC_DICTIONARY()                                                 \
+    (actuators, &chan_actuators, "actuators"),                             \
+        (actuators_manual, &chan_actuators_manual, "actuators_manual"),    \
+        (altimeter, &chan_altimeter, "altimeter"),                         \
+        (battery_state, &chan_battery_state, "battery_state"),             \
+        (bezier_trajectory, &chan_bezier_trajectory, "bezier_trajectory"), \
+        (clock_offset, &chan_clock_offset, "clock_offset"),                \
+        (cmd_vel, &chan_cmd_vel, "cmd_vel"),                               \
+        (fsm, &chan_fsm, "fsm"),                                           \
+        (imu, &chan_imu, "imu"),                                           \
+        (joy, &chan_joy, "joy"),                                           \
+        (led_array, &chan_led_array, "led_array"),                         \
+        (magnetic_field, &chan_magnetic_field, "magnetic_field"),          \
+        (nav_sat_fix, &chan_nav_sat_fix, "nav_sat_fix"),                   \
+        (odometry, &chan_odometry, "odometry"),                            \
+        (safety, &chan_safety, "safety"),                                  \
+        (wheel_odometry, &chan_wheel_odometry, "wheel_odometry")
 
 /* Creating subcommands (level 2 command) dict for command "topic echo". */
 SHELL_SUBCMD_DICT_SET_CREATE(sub_topic_echo, topic_echo, TOPIC_DICTIONARY());
@@ -520,25 +516,21 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_topic,
 SHELL_CMD_REGISTER(topic, &sub_topic, "topic command", NULL);
 
 /* add channel observer */
-ZBUS_CHAN_ADD_OBS(chan_in_actuators, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_in_bezier_trajectory, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_in_clock_offset, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_in_cmd_vel, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_in_joy, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_in_led_array, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_in_nav_sat_fix, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_in_odometry, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_actuators_manual, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_altimeter, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_battery_state, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_cmd_vel, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_fsm, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_imu, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_magnetic_field, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_nav_sat_fix, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_odometry, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_safety, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_wheel_odometry, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_actuators, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_actuators_manual, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_altimeter, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_battery_state, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_bezier_trajectory, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_clock_offset, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_cmd_vel, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_fsm, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_imu, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_joy, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_led_array, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_magnetic_field, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_nav_sat_fix, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_odometry, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_safety, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_wheel_odometry, listener_synapse_topic, 1);
 
 /* vi: ts=4 sw=4 et: */

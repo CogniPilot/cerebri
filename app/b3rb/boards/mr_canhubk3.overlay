@@ -23,12 +23,6 @@
 		aux5: aux5 {
 			pwms = <&emios0_pwm 5 PWM_HZ(50) PWM_POLARITY_NORMAL>;
 		};
-		/* aux6: aux6 {
-			pwms = <&flexio0 6 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-		};
-		aux7: aux7 {
-			pwms = <&flexio0 7 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-		}; */
 	};
 
 	chosen {
@@ -53,7 +47,6 @@
 
 &emios0_pwm {
 	pwm_0 {
-		prescaler = <8>;
 	};
 	pwm_1 {
 		prescaler = <1>;

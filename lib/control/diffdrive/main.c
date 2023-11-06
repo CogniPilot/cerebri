@@ -75,11 +75,11 @@ static void handle_joy(Joy* joy)
 
 static void listener_control_diffdrive_callback(const struct zbus_channel* chan)
 {
-    if (chan == &chan_in_joy) {
+    if (chan == &chan_joy) {
         handle_joy((Joy*)(chan->message));
-    } else if (chan == &chan_in_odometry) {
+    } else if (chan == &chan_odometry) {
         g_pose = *(Odometry*)(chan->message);
-    } else if (g_mode == MODE_CMD_VEL && chan == &chan_in_cmd_vel) {
+    } else if (g_mode == MODE_CMD_VEL && chan == &chan_cmd_vel) {
         g_cmd_vel = *(Twist*)(chan->message);
     }
 }
@@ -127,7 +127,7 @@ void mixer()
         actuators.normalized[2] = actuators.velocity[2] / max_omega;
         actuators.normalized[3] = actuators.velocity[3] / max_omega;
     }
-    zbus_chan_pub(&chan_out_actuators, &actuators, K_NO_WAIT);
+    zbus_chan_pub(&chan_actuators, &actuators, K_NO_WAIT);
 }
 
 void diffdrive_entry_point(void* p1, void* p2, void* p3)

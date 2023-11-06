@@ -63,7 +63,7 @@ static void button_pressed(const struct device* dev, struct gpio_callback* cb,
 
 static void init(context* ctx)
 {
-    syn_pub_init(&ctx->pub_safety, &ctx->safety, &chan_out_safety);
+    syn_pub_init(&ctx->pub_safety, &ctx->safety, &chan_safety);
 
     int ret;
 

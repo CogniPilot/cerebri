@@ -96,26 +96,32 @@ static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 }
 
 // ROS -> cerebri
-TOPIC_LISTENER(in_actuators, synapse_msgs_Actuators)
-TOPIC_LISTENER(in_bezier_trajectory, synapse_msgs_BezierTrajectory)
-TOPIC_LISTENER(in_cmd_vel, synapse_msgs_Twist)
-TOPIC_LISTENER(in_joy, synapse_msgs_Joy)
-TOPIC_LISTENER(in_led_array, synapse_msgs_LEDArray)
-TOPIC_LISTENER(in_odometry, synapse_msgs_Odometry)
+TOPIC_LISTENER(actuators, synapse_msgs_Actuators)
+TOPIC_LISTENER(altimeter, synapse_msgs_Altimeter)
+TOPIC_LISTENER(battery_state, synapse_msgs_Altimeter)
+TOPIC_LISTENER(bezier_trajectory, synapse_msgs_BezierTrajectory)
+TOPIC_LISTENER(cmd_vel, synapse_msgs_Twist)
+TOPIC_LISTENER(imu, synapse_msgs_Imu)
+TOPIC_LISTENER(joy, synapse_msgs_Joy)
+TOPIC_LISTENER(led_array, synapse_msgs_LEDArray)
+TOPIC_LISTENER(magnetic_field, synapse_msgs_MagneticField)
+TOPIC_LISTENER(nav_sat_fix, synapse_msgs_NavSatFix)
+TOPIC_LISTENER(odometry, synapse_msgs_Odometry)
+TOPIC_LISTENER(wheel_odometry, synapse_msgs_WheelOdometry)
 
 void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
 {
     // cerebri -> ROS
     if (chan == NULL) { } // start of if else statements for channel type
-    TOPIC_PUBLISHER(out_actuators, synapse_msgs_Actuators, SYNAPSE_OUT_ACTUATORS_TOPIC)
-    TOPIC_PUBLISHER(out_odometry, synapse_msgs_Odometry, SYNAPSE_OUT_ODOMETRY_TOPIC)
-    // TOPIC_PUBLISHER(out_wheel_odometry, synapse_msgs_WheelOdometry, SYNAPSE_OUT_WHEEL_ODOMETRY_TOPIC)
+    TOPIC_PUBLISHER(actuators, synapse_msgs_Actuators, SYNAPSE_ACTUATORS_TOPIC)
+    TOPIC_PUBLISHER(odometry, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC)
+    // TOPIC_PUBLISHER(out_wheel_odometry, synapse_msgs_WheelOdometry, SYNAPSE_WHEEL_ODOMETRY_TOPIC)
 }
 
 ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callback);
-ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_synapse_ethernet, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_odometry, listener_synapse_ethernet, 1);
-// ZBUS_CHAN_ADD_OBS(chan_out_wheel_odometry, listener_synapse_ethernet, 1);
+ZBUS_CHAN_ADD_OBS(chan_actuators, listener_synapse_ethernet, 1);
+ZBUS_CHAN_ADD_OBS(chan_odometry, listener_synapse_ethernet, 1);
+// ZBUS_CHAN_ADD_OBS(chan_wheel_odometry, listener_synapse_ethernet, 1);
 
 static bool set_blocking_enabled(int fd, bool blocking)
 {
@@ -162,12 +168,20 @@ static void ethernet_entry_point(void)
 
     // ros -> cerebri
     TF_AddGenericListener(&g_tf, genericListener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_ACTUATORS_TOPIC, in_actuators_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_BEZIER_TRAJECTORY_TOPIC, in_bezier_trajectory_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_CMD_VEL_TOPIC, in_cmd_vel_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_JOY_TOPIC, in_joy_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_LED_ARRAY_TOPIC, in_led_array_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IN_ODOMETRY_TOPIC, in_odometry_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_ACTUATORS_TOPIC, actuators_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_ALTIMETER_TOPIC, altimeter_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_BATTERY_STATE_TOPIC, battery_state_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, bezier_trajectory_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_CMD_VEL_TOPIC, cmd_vel_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_IMU_TOPIC, imu_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_JOY_TOPIC, joy_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_LED_ARRAY_TOPIC, led_array_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_MAGNETIC_FIELD_TOPIC, magnetic_field_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_NAV_SAT_FIX_TOPIC, nav_sat_fix_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_ODOMETRY_TOPIC, odometry_Listener);
+    TF_AddTypeListener(&g_tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_Listener);
+
+    // ROS -> cerebri (Hardware-in-the-loop only)
 
     while (1) {
         LOG_INF("socket waiting for connection on port: %d", BIND_PORT);

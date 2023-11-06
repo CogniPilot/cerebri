@@ -75,7 +75,7 @@ void baro_work_handler(struct k_work* work)
     msg.vertical_position = alt;
     msg.vertical_velocity = 0;
     msg.vertical_reference = 0;
-    zbus_chan_pub(&chan_out_altimeter, &msg, K_NO_WAIT);
+    zbus_chan_pub(&chan_altimeter, &msg, K_NO_WAIT);
 }
 
 K_WORK_DEFINE(baro_work, baro_work_handler);

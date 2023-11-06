@@ -16,6 +16,36 @@
 
 #include <cerebri/synapse/zbus/common.h>
 
+LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_CEREBRI_SYNAPSE_ETHERNET_LOG_LEVEL);
+
+#define MY_STACK_SIZE 2048
+#define MY_PRIORITY 5
+
+#define RX_BUF_SIZE 1024
+#define BIND_PORT 4242
+
+typedef struct _context {
+    syn_node_t node;
+    synapse_msgs_Fsm fsm;
+    syn_sub_t sub_fsm;
+    TinyFrame tf;
+    volatile int client;
+    int error_count;
+    uint8_t rx1_buf[RX_BUF_SIZE];
+    int serv;
+    struct sockaddr_in bind_addr;
+    int counter;
+} context;
+
+static context g_ctx = {
+    .node = { 0 },
+    .fsm = synapse_msgs_Fsm_init_default,
+    .sub_fsm = { 0 },
+    .tf = { 0 },
+    .client = -1,
+    .error_count = 0,
+};
+
 #define TOPIC_LISTENER(CHANNEL, CLASS)                                           \
     static TF_Result CHANNEL##_Listener(TinyFrame* tf, TF_Msg* frame)            \
     {                                                                            \
@@ -42,27 +72,15 @@
             msg.type = TOPIC;                                                    \
             msg.data = buf;                                                      \
             msg.len = stream.bytes_written;                                      \
-            TF_Send(&g_tf, &msg);                                                \
+            TF_Send(&g_ctx.tf, &msg);                                            \
         } else {                                                                 \
             printf("%s encoding failed: %s\n", #CHANNEL, PB_GET_ERROR(&stream)); \
         }                                                                        \
     }
 
-LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_CEREBRI_SYNAPSE_ETHERNET_LOG_LEVEL);
-
-#define MY_STACK_SIZE 2048
-#define MY_PRIORITY 5
-
-#define RX_BUF_SIZE 1024
-
-#define BIND_PORT 4242
-
-static volatile int g_client = -1;
-static int error_count = 0;
-
 static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {
-    if (g_client < 0) {
+    if (g_ctx.client < 0) {
         return;
     }
 
@@ -70,24 +88,22 @@ static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
     const char* p;
     p = buf;
     do {
-        out_len = zsock_send(g_client, p, len, 0);
+        out_len = zsock_send(g_ctx.client, p, len, 0);
         if (out_len < 0) {
             LOG_ERR("send: %d\n", errno);
-            if (error_count++ > 10) {
+            if (g_ctx.error_count++ > 10) {
                 // trigger reconnect
-                g_client = -1;
+                g_ctx.client = -1;
             }
             return;
         } else {
             // reset error count
-            error_count = 0;
+            g_ctx.error_count = 0;
         }
         p += out_len;
         len -= out_len;
     } while (len);
 }
-
-static TinyFrame g_tf = { 0 };
 
 static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 {
@@ -115,13 +131,12 @@ void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
     if (chan == NULL) { } // start of if else statements for channel type
     TOPIC_PUBLISHER(actuators, synapse_msgs_Actuators, SYNAPSE_ACTUATORS_TOPIC)
     TOPIC_PUBLISHER(odometry, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC)
-    // TOPIC_PUBLISHER(out_wheel_odometry, synapse_msgs_WheelOdometry, SYNAPSE_WHEEL_ODOMETRY_TOPIC)
 }
 
 ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callback);
 ZBUS_CHAN_ADD_OBS(chan_actuators, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_odometry, listener_synapse_ethernet, 1);
-// ZBUS_CHAN_ADD_OBS(chan_wheel_odometry, listener_synapse_ethernet, 1);
+ZBUS_CHAN_ADD_OBS(chan_fsm, listener_synapse_ethernet, 1);
 
 static bool set_blocking_enabled(int fd, bool blocking)
 {
@@ -134,87 +149,89 @@ static bool set_blocking_enabled(int fd, bool blocking)
     return (fcntl(fd, F_SETFL, flags) == 0) ? true : false;
 }
 
-static void ethernet_entry_point(void)
+static void synapse_ethernet_init(context* ctx)
 {
-    static uint8_t rx1_buf[RX_BUF_SIZE];
+    syn_node_init(&ctx->node, "synapse_ethernet");
+    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm);
+}
 
-    int serv;
-    struct sockaddr_in bind_addr;
-    static int counter;
+static void ethernet_entry_point(context* ctx)
+{
+    synapse_ethernet_init(ctx);
 
-    TF_InitStatic(&g_tf, TF_MASTER, write_ethernet);
+    TF_InitStatic(&ctx->tf, TF_MASTER, write_ethernet);
 
-    serv = zsock_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    set_blocking_enabled(serv, true);
+    ctx->serv = zsock_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    set_blocking_enabled(ctx->serv, true);
 
-    if (serv < 0) {
+    if (ctx->serv < 0) {
         LOG_ERR("socket: %d", errno);
         exit(1);
     }
 
-    bind_addr.sin_family = AF_INET;
-    bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    bind_addr.sin_port = htons(BIND_PORT);
+    ctx->bind_addr.sin_family = AF_INET;
+    ctx->bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    ctx->bind_addr.sin_port = htons(BIND_PORT);
 
-    if (zsock_bind(serv, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
+    if (zsock_bind(ctx->serv, (struct sockaddr*)&ctx->bind_addr, sizeof(ctx->bind_addr)) < 0) {
         LOG_ERR("bind: %d", errno);
         exit(1);
     }
 
-    if (zsock_listen(serv, 5) < 0) {
+    if (zsock_listen(ctx->serv, 5) < 0) {
         LOG_ERR("listen: %d", errno);
         exit(1);
     }
 
     // ros -> cerebri
-    TF_AddGenericListener(&g_tf, genericListener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_ACTUATORS_TOPIC, actuators_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_ALTIMETER_TOPIC, altimeter_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_BATTERY_STATE_TOPIC, battery_state_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, bezier_trajectory_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_CMD_VEL_TOPIC, cmd_vel_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_IMU_TOPIC, imu_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_JOY_TOPIC, joy_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_LED_ARRAY_TOPIC, led_array_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_MAGNETIC_FIELD_TOPIC, magnetic_field_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_NAV_SAT_FIX_TOPIC, nav_sat_fix_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_ODOMETRY_TOPIC, odometry_Listener);
-    TF_AddTypeListener(&g_tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_Listener);
+    TF_AddGenericListener(&ctx->tf, genericListener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_ACTUATORS_TOPIC, actuators_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_ALTIMETER_TOPIC, altimeter_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_BATTERY_STATE_TOPIC, battery_state_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, bezier_trajectory_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_CMD_VEL_TOPIC, cmd_vel_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_IMU_TOPIC, imu_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_JOY_TOPIC, joy_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_LED_ARRAY_TOPIC, led_array_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_MAGNETIC_FIELD_TOPIC, magnetic_field_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_NAV_SAT_FIX_TOPIC, nav_sat_fix_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_ODOMETRY_TOPIC, odometry_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_Listener);
 
     while (1) {
         LOG_INF("socket waiting for connection on port: %d", BIND_PORT);
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
-        g_client = zsock_accept(serv, (struct sockaddr*)&client_addr,
+        g_ctx.client = zsock_accept(ctx->serv, (struct sockaddr*)&client_addr,
             &client_addr_len);
         k_msleep(1000);
 
-        if (g_client < 0) {
+        if (g_ctx.client < 0) {
             continue;
         }
 
         zsock_inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
             addr_str, sizeof(addr_str));
-        LOG_INF("connection #%d from %s", counter++, addr_str);
+        LOG_INF("connection #%d from %s", ctx->counter++, addr_str);
 
         while (1) {
             k_msleep(1);
-            if (g_client < 0) {
+            if (g_ctx.client < 0) {
                 LOG_ERR("no client, triggering reconnect");
                 break;
             }
-            int len = zsock_recv(g_client, rx1_buf, sizeof(rx1_buf), 0);
+            int len = zsock_recv(g_ctx.client, ctx->rx1_buf, sizeof(ctx->rx1_buf), 0);
             if (len < 0) {
                 continue;
             }
-            TF_Accept(&g_tf, rx1_buf, len);
-            TF_Tick(&g_tf);
+            TF_Accept(&ctx->tf, ctx->rx1_buf, len);
+            TF_Tick(&ctx->tf);
         }
     }
 }
 
 K_THREAD_DEFINE(synapse_ethernet, MY_STACK_SIZE, ethernet_entry_point,
-    NULL, NULL, NULL, MY_PRIORITY, 0, 0);
+    &g_ctx, NULL, NULL, MY_PRIORITY, 0, 0);
 
 /* vi: ts=4 sw=4 et */

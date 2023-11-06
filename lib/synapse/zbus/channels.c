@@ -4,172 +4,34 @@
 
 LOG_MODULE_REGISTER(synapse_zbus, CONFIG_CEREBRI_SYNAPSE_ZBUS_LOG_LEVEL);
 
-//*******************************************************************
-// (chan_in) channels from ROS computer to cerebri
-//*******************************************************************
-ZBUS_CHAN_DEFINE(chan_in_actuators, // Name
-    synapse_msgs_Actuators, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_in_bezier_trajectory, // Name
-    synapse_msgs_BezierTrajectory, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_in_clock_offset, // Name
-    synapse_msgs_Time, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_in_cmd_vel, // Name
-    synapse_msgs_Twist, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_in_joy, // Name
-    synapse_msgs_Joy, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_in_led_array, // Name
-    synapse_msgs_LEDArray, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_in_nav_sat_fix, // Name
-    synapse_msgs_NavSatFix, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_in_odometry, // Name
-    synapse_msgs_Odometry, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
+#define SYN_CHAN(CHANNEL, CLASS)                             \
+    ZBUS_CHAN_DEFINE(CHANNEL, /* Channel Name */             \
+        CLASS, /* Message Type */                            \
+        NULL, /* Validator */                                \
+        NULL, /* User Data */                                \
+        ZBUS_OBSERVERS(), /* Observers (Added Externally) */ \
+        ZBUS_MSG_INIT(0) /* Initial Value */                 \
+    );
 
 //*******************************************************************
-// (chan_out) channels from cerebri to other nodes
-// on cerebri or to ROS computer
+// ZBUS channels
 //*******************************************************************
-ZBUS_CHAN_DEFINE(chan_out_actuators, // Name
-    synapse_msgs_Actuators, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_out_actuators_manual, // Name
-    synapse_msgs_Actuators, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_out_altimeter, // Name
-    synapse_msgs_Altimeter, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_out_battery_state, // Name
-    synapse_msgs_BatteryState, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_out_cmd_vel, // Name
-    synapse_msgs_Twist, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_out_imu, // Name
-    synapse_msgs_Imu, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_out_magnetic_field, // Name
-    synapse_msgs_MagneticField, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_out_fsm, // Name
-    synapse_msgs_Fsm, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_out_nav_sat_fix, // Name
-    synapse_msgs_NavSatFix, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_out_odometry, // Name
-    synapse_msgs_Odometry, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_out_safety, // Name
-    synapse_msgs_Safety, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
-
-ZBUS_CHAN_DEFINE(chan_out_wheel_odometry, // Name
-    synapse_msgs_WheelOdometry, // Message type
-    NULL, // Validator
-    NULL, // User Data
-    ZBUS_OBSERVERS(), // observers
-    ZBUS_MSG_INIT(0) // Initial value {0}
-);
+SYN_CHAN(chan_actuators, synapse_msgs_Actuators)
+SYN_CHAN(chan_actuators_manual, synapse_msgs_Actuators)
+SYN_CHAN(chan_altimeter, synapse_msgs_Altimeter)
+SYN_CHAN(chan_battery_state, synapse_msgs_BatteryState)
+SYN_CHAN(chan_bezier_trajectory, synapse_msgs_BezierTrajectory)
+SYN_CHAN(chan_clock_offset, synapse_msgs_Time)
+SYN_CHAN(chan_cmd_vel, synapse_msgs_Twist)
+SYN_CHAN(chan_imu, synapse_msgs_Imu)
+SYN_CHAN(chan_joy, synapse_msgs_Joy)
+SYN_CHAN(chan_led_array, synapse_msgs_LEDArray)
+SYN_CHAN(chan_magnetic_field, synapse_msgs_MagneticField)
+SYN_CHAN(chan_nav_sat_fix, synapse_msgs_NavSatFix)
+SYN_CHAN(chan_odometry, synapse_msgs_Odometry)
+SYN_CHAN(chan_fsm, synapse_msgs_Fsm)
+SYN_CHAN(chan_safety, synapse_msgs_Safety)
+SYN_CHAN(chan_wheel_odometry, synapse_msgs_WheelOdometry)
 
 //*******************************************************************
 // helper functions

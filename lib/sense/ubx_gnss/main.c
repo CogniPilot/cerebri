@@ -50,7 +50,7 @@ void publish_gnss_data_zbus(uDeviceHandle_t devHandle,
 
         // TODO Covariance
 
-        zbus_chan_pub(&chan_out_nav_sat_fix, &msg, K_NO_WAIT);
+        zbus_chan_pub(&chan_nav_sat_fix, &msg, K_NO_WAIT);
         LOG_DBG("lat %f long %f\n", msg.latitude, msg.longitude);
     } else if (errorCode == U_ERROR_COMMON_TIMEOUT) {
         // LOG_ERR("Tiemout error");

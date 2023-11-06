@@ -33,12 +33,12 @@ static synapse_msgs_Actuators g_actuators = synapse_msgs_Actuators_init_default;
 
 static void listener_actuate_vesc_can_callback(const struct zbus_channel* chan)
 {
-    if (chan == &chan_out_actuators) {
+    if (chan == &chan_actuators) {
         g_actuators = *(synapse_msgs_Actuators*)(chan->message);
     }
 }
 ZBUS_LISTENER_DEFINE(listener_actuate_vesc_can, listener_actuate_vesc_can_callback);
-ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_actuate_vesc_can, 1);
+ZBUS_CHAN_ADD_OBS(chan_actuators, listener_actuate_vesc_can, 1);
 
 static int stop_canbus(const actuator_vesc_can_t* actuator)
 {

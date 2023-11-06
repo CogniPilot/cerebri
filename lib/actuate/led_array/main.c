@@ -47,7 +47,7 @@ static void actuate_led_array_init(context* ctx)
     // initialize node
     syn_node_init(&ctx->node, "actuate_led_array");
     syn_node_add_sub(&ctx->node,
-        &ctx->sub_led_array, &ctx->led_array, &chan_in_led_array);
+        &ctx->sub_led_array, &ctx->led_array, &chan_led_array);
 
     g_ctx.strip = DEVICE_DT_GET_ANY(apa_apa102);
     if (!g_ctx.strip) {
@@ -67,7 +67,7 @@ static void listener_actuate_led_array_callback(const struct zbus_channel* chan)
 }
 
 ZBUS_LISTENER_DEFINE(listener_actuate_led_array, listener_actuate_led_array_callback);
-ZBUS_CHAN_ADD_OBS(chan_in_led_array, listener_actuate_led_array, 1);
+ZBUS_CHAN_ADD_OBS(chan_led_array, listener_actuate_led_array, 1);
 
 void actuate_led_array_entry_point(context* ctx)
 {

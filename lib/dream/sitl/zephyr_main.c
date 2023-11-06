@@ -39,14 +39,14 @@ extern struct ring_buf g_msg_updates;
 
 void listener_dream_sitl_callback(const struct zbus_channel* chan)
 {
-    if (chan == &chan_out_actuators) {
+    if (chan == &chan_actuators) {
         TF_Msg msg;
         TF_ClearMsg(&msg);
         uint8_t buf[synapse_msgs_Actuators_size];
         pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
         int status = pb_encode(&stream, synapse_msgs_Actuators_fields, chan->message);
         if (status) {
-            msg.type = SYNAPSE_OUT_ACTUATORS_TOPIC;
+            msg.type = SYNAPSE_ACTUATORS_TOPIC;
             msg.data = buf;
             msg.len = stream.bytes_written;
             TF_Send(&g_tf, &msg);
@@ -56,7 +56,7 @@ void listener_dream_sitl_callback(const struct zbus_channel* chan)
     }
 }
 ZBUS_LISTENER_DEFINE(listener_dream_sitl, listener_dream_sitl_callback);
-ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_dream_sitl, 1);
+ZBUS_CHAN_ADD_OBS(chan_actuators, listener_dream_sitl, 1);
 
 static void zephyr_sim_entry_point(void)
 {
@@ -76,7 +76,7 @@ static void zephyr_sim_entry_point(void)
         // if clock not initialized, wait 1 second
         if (clock_init) {
             LOG_DBG("sim clock initialized");
-            zbus_chan_pub(&chan_in_clock_offset, &g_clock_offset, K_NO_WAIT);
+            zbus_chan_pub(&chan_clock_offset, &g_clock_offset, K_NO_WAIT);
             break;
         }
     }
@@ -88,18 +88,18 @@ static void zephyr_sim_entry_point(void)
         uint8_t topic;
         while (!cerebri_sitl_shutdown && !ring_buf_is_empty(&g_msg_updates)) {
             ring_buf_get(&g_msg_updates, &topic, 1);
-            if (topic == SYNAPSE_IN_NAV_SAT_FIX_TOPIC) {
-                zbus_chan_pub(&chan_out_nav_sat_fix, &g_in_nav_sat_fix, K_NO_WAIT);
-            } else if (topic == SYNAPSE_IN_MAGNETIC_FIELD_TOPIC) {
-                zbus_chan_pub(&chan_out_magnetic_field, &g_in_magnetic_field, K_NO_WAIT);
-            } else if (topic == SYNAPSE_IN_IMU_TOPIC) {
-                zbus_chan_pub(&chan_out_imu, &g_in_imu, K_NO_WAIT);
-            } else if (topic == SYNAPSE_IN_ALTIMETER_TOPIC) {
-                zbus_chan_pub(&chan_out_altimeter, &g_in_altimeter, K_NO_WAIT);
-            } else if (topic == SYNAPSE_IN_BATTERY_STATE_TOPIC) {
-                zbus_chan_pub(&chan_out_battery_state, &g_in_battery_state, K_NO_WAIT);
-            } else if (topic == SYNAPSE_IN_WHEEL_ODOMETRY_TOPIC) {
-                zbus_chan_pub(&chan_out_wheel_odometry, &g_in_wheel_odometry, K_NO_WAIT);
+            if (topic == SYNAPSE_NAV_SAT_FIX_TOPIC) {
+                zbus_chan_pub(&chan_nav_sat_fix, &g_in_nav_sat_fix, K_NO_WAIT);
+            } else if (topic == SYNAPSE_MAGNETIC_FIELD_TOPIC) {
+                zbus_chan_pub(&chan_magnetic_field, &g_in_magnetic_field, K_NO_WAIT);
+            } else if (topic == SYNAPSE_IMU_TOPIC) {
+                zbus_chan_pub(&chan_imu, &g_in_imu, K_NO_WAIT);
+            } else if (topic == SYNAPSE_ALTIMETER_TOPIC) {
+                zbus_chan_pub(&chan_altimeter, &g_in_altimeter, K_NO_WAIT);
+            } else if (topic == SYNAPSE_BATTERY_STATE_TOPIC) {
+                zbus_chan_pub(&chan_battery_state, &g_in_battery_state, K_NO_WAIT);
+            } else if (topic == SYNAPSE_WHEEL_ODOMETRY_TOPIC) {
+                zbus_chan_pub(&chan_wheel_odometry, &g_in_wheel_odometry, K_NO_WAIT);
             }
         }
 

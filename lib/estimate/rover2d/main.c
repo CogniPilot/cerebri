@@ -59,10 +59,10 @@ static context g_ctx = {
 static void estimate_rover2d_init(context* ctx)
 {
     syn_node_init(&ctx->node, "rover2d");
-    syn_node_add_sub(&ctx->node, &ctx->sub_actuators, &ctx->actuators, &chan_out_actuators);
+    syn_node_add_sub(&ctx->node, &ctx->sub_actuators, &ctx->actuators, &chan_actuators);
     syn_node_add_sub(&ctx->node, &ctx->sub_wheel_odometry,
-        &ctx->wheel_odometry, &chan_out_wheel_odometry);
-    syn_node_add_pub(&ctx->node, &ctx->pub_odometry, &ctx->odometry, &chan_out_odometry);
+        &ctx->wheel_odometry, &chan_wheel_odometry);
+    syn_node_add_pub(&ctx->node, &ctx->pub_odometry, &ctx->odometry, &chan_odometry);
 }
 
 static void log_x(double* x)
@@ -99,8 +99,8 @@ static void listener_estimate_rover2d_callback(const struct zbus_channel* chan)
     syn_node_listen(&g_ctx.node, chan, K_MSEC(1));
 }
 ZBUS_LISTENER_DEFINE_WITH_ENABLE(listener_estimate_rover2d, listener_estimate_rover2d_callback, false);
-ZBUS_CHAN_ADD_OBS(chan_out_actuators, listener_estimate_rover2d, 1);
-ZBUS_CHAN_ADD_OBS(chan_out_wheel_odometry, listener_estimate_rover2d, 1);
+ZBUS_CHAN_ADD_OBS(chan_actuators, listener_estimate_rover2d, 1);
+ZBUS_CHAN_ADD_OBS(chan_wheel_odometry, listener_estimate_rover2d, 1);
 
 static void estimate_rover2d_run(context* ctx)
 {

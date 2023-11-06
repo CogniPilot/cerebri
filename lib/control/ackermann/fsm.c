@@ -52,11 +52,11 @@ static context g_ctx = {
 static void control_ackermann_fsm_init(context* ctx)
 {
     syn_node_init(&ctx->node, "control_ackermann_fsm");
-    syn_node_add_sub(&ctx->node, &ctx->sub_joy, &ctx->joy, &chan_in_joy);
+    syn_node_add_sub(&ctx->node, &ctx->sub_joy, &ctx->joy, &chan_joy);
     syn_node_add_sub(&ctx->node, &ctx->sub_battery_state,
-        &ctx->battery_state, &chan_out_battery_state);
-    syn_node_add_sub(&ctx->node, &ctx->sub_safety, &ctx->safety, &chan_out_safety);
-    syn_node_add_pub(&ctx->node, &ctx->pub_fsm, &ctx->fsm, &chan_out_fsm);
+        &ctx->battery_state, &chan_battery_state);
+    syn_node_add_sub(&ctx->node, &ctx->sub_safety, &ctx->safety, &chan_safety);
+    syn_node_add_pub(&ctx->node, &ctx->pub_fsm, &ctx->fsm, &chan_fsm);
 }
 
 static void update_fsm(
@@ -135,7 +135,7 @@ static void listener_control_ackermann_fsm_callback(const struct zbus_channel* c
 }
 
 ZBUS_LISTENER_DEFINE(listener_control_ackermann_fsm, listener_control_ackermann_fsm_callback);
-// ZBUS_CHAN_ADD_OBS(chan_out_battery_state, listener_control_ackermann_fsm, 1);
-ZBUS_CHAN_ADD_OBS(chan_in_joy, listener_control_ackermann_fsm, 1);
+// ZBUS_CHAN_ADD_OBS(chan_battery_state, listener_control_ackermann_fsm, 1);
+ZBUS_CHAN_ADD_OBS(chan_joy, listener_control_ackermann_fsm, 1);
 
 /* vi: ts=4 sw=4 et */

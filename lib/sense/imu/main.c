@@ -52,7 +52,7 @@ static void imu_init(context* ctx)
 {
     // initialize node
     syn_node_init(&ctx->node, "imu");
-    syn_node_add_pub(&ctx->node, &ctx->pub_imu, &ctx->imu, &chan_out_imu);
+    syn_node_add_pub(&ctx->node, &ctx->pub_imu, &ctx->imu, &chan_imu);
 
     // setup accel devices
 

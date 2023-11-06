@@ -52,7 +52,7 @@ void wheel_odometry_work_handler(struct k_work* work)
     strncpy(msg.header.frame_id, "base_link", sizeof(msg.header.frame_id) - 1);
 
     msg.rotation = -rotation; // account for negative rotation of encoder
-    zbus_chan_pub(&chan_out_wheel_odometry, &msg, K_NO_WAIT);
+    zbus_chan_pub(&chan_wheel_odometry, &msg, K_NO_WAIT);
 }
 
 K_WORK_DEFINE(wheel_odometry_work, wheel_odometry_work_handler);

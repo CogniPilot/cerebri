@@ -240,7 +240,6 @@ void print_Joy(synapse_msgs_Joy* msg)
 
 void print_LEDArray(synapse_msgs_LEDArray* msg)
 {
-    shell_print(g_ctx.sh, "axes");
     for (int i = 0; i < msg->led_count; i++) {
         shell_print(g_ctx.sh, "index: %4d rgb: %4d %4d %4d",
             msg->led[i].index,

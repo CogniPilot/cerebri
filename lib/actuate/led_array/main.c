@@ -49,7 +49,7 @@ static void actuate_led_array_init(context* ctx)
     syn_node_add_sub(&ctx->node,
         &ctx->sub_led_array, &ctx->led_array, &chan_in_led_array);
 
-    g_ctx.strip = DEVICE_DT_GET_ANY(apa102);
+    g_ctx.strip = DEVICE_DT_GET_ANY(apa_apa102);
     if (!g_ctx.strip) {
         LOG_ERR("LED strip device not found");
         return;

@@ -341,7 +341,7 @@ void topic_work_handler(struct k_work* work)
         synapse_msgs_Imu msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Imu(&msg);
-    } else if (chan == &chan_odometry) {
+    } else if (chan == &chan_estimator_odometry || chan == &chan_external_odometry) {
         synapse_msgs_Odometry msg;
         zbus_chan_read(chan, &msg, timeout);
         print_Odometry(&msg);
@@ -477,22 +477,23 @@ static int topic_hz(const struct shell* sh,
     return 0;
 }
 
-#define TOPIC_DICTIONARY()                                                 \
-    (actuators, &chan_actuators, "actuators"),                             \
-        (actuators_manual, &chan_actuators_manual, "actuators_manual"),    \
-        (altimeter, &chan_altimeter, "altimeter"),                         \
-        (battery_state, &chan_battery_state, "battery_state"),             \
-        (bezier_trajectory, &chan_bezier_trajectory, "bezier_trajectory"), \
-        (clock_offset, &chan_clock_offset, "clock_offset"),                \
-        (cmd_vel, &chan_cmd_vel, "cmd_vel"),                               \
-        (fsm, &chan_fsm, "fsm"),                                           \
-        (imu, &chan_imu, "imu"),                                           \
-        (joy, &chan_joy, "joy"),                                           \
-        (led_array, &chan_led_array, "led_array"),                         \
-        (magnetic_field, &chan_magnetic_field, "magnetic_field"),          \
-        (nav_sat_fix, &chan_nav_sat_fix, "nav_sat_fix"),                   \
-        (odometry, &chan_odometry, "odometry"),                            \
-        (safety, &chan_safety, "safety"),                                  \
+#define TOPIC_DICTIONARY()                                                   \
+    (actuators, &chan_actuators, "actuators"),                               \
+        (actuators_manual, &chan_actuators_manual, "actuators_manual"),      \
+        (altimeter, &chan_altimeter, "altimeter"),                           \
+        (battery_state, &chan_battery_state, "battery_state"),               \
+        (bezier_trajectory, &chan_bezier_trajectory, "bezier_trajectory"),   \
+        (clock_offset, &chan_clock_offset, "clock_offset"),                  \
+        (cmd_vel, &chan_cmd_vel, "cmd_vel"),                                 \
+        (fsm, &chan_fsm, "fsm"),                                             \
+        (imu, &chan_imu, "imu"),                                             \
+        (joy, &chan_joy, "joy"),                                             \
+        (led_array, &chan_led_array, "led_array"),                           \
+        (magnetic_field, &chan_magnetic_field, "magnetic_field"),            \
+        (nav_sat_fix, &chan_nav_sat_fix, "nav_sat_fix"),                     \
+        (estmator_odometry, &chan_estimator_odometry, "estimator_odometry"), \
+        (external_odometry, &chan_external_odometry, "external_odometry"),   \
+        (safety, &chan_safety, "safety"),                                    \
         (wheel_odometry, &chan_wheel_odometry, "wheel_odometry")
 
 /* Creating subcommands (level 2 command) dict for command "topic echo". */
@@ -529,7 +530,7 @@ ZBUS_CHAN_ADD_OBS(chan_joy, listener_synapse_topic, 1);
 ZBUS_CHAN_ADD_OBS(chan_led_array, listener_synapse_topic, 1);
 ZBUS_CHAN_ADD_OBS(chan_magnetic_field, listener_synapse_topic, 1);
 ZBUS_CHAN_ADD_OBS(chan_nav_sat_fix, listener_synapse_topic, 1);
-ZBUS_CHAN_ADD_OBS(chan_odometry, listener_synapse_topic, 1);
+ZBUS_CHAN_ADD_OBS(chan_estimator_odometry, listener_synapse_topic, 1);
 ZBUS_CHAN_ADD_OBS(chan_safety, listener_synapse_topic, 1);
 ZBUS_CHAN_ADD_OBS(chan_wheel_odometry, listener_synapse_topic, 1);
 

@@ -35,7 +35,8 @@ ZBUS_CHAN_DECLARE(chan_joy);
 ZBUS_CHAN_DECLARE(chan_led_array);
 ZBUS_CHAN_DECLARE(chan_magnetic_field);
 ZBUS_CHAN_DECLARE(chan_nav_sat_fix);
-ZBUS_CHAN_DECLARE(chan_odometry);
+ZBUS_CHAN_DECLARE(chan_estimator_odometry);
+ZBUS_CHAN_DECLARE(chan_external_odometry);
 ZBUS_CHAN_DECLARE(chan_safety);
 ZBUS_CHAN_DECLARE(chan_wheel_odometry);
 

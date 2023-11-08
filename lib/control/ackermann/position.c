@@ -57,7 +57,7 @@ static void init(context* ctx)
     syn_node_init(&ctx->node, "control_ackerman_pos");
     syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm);
     syn_node_add_sub(&ctx->node, &ctx->sub_clock_offset, &ctx->clock_offset, &chan_clock_offset);
-    syn_node_add_sub(&ctx->node, &ctx->sub_pose, &ctx->pose, &chan_odometry);
+    syn_node_add_sub(&ctx->node, &ctx->sub_pose, &ctx->pose, &chan_estimator_odometry);
     syn_node_add_sub(&ctx->node, &ctx->sub_bezier_trajectory, &ctx->bezier_trajectory, &chan_bezier_trajectory);
     syn_node_add_pub(&ctx->node, &ctx->pub_cmd_vel, &ctx->cmd_vel, &chan_cmd_vel);
 }
@@ -208,7 +208,7 @@ static void listener_control_ackermann_pos_callback(const struct zbus_channel* c
 ZBUS_LISTENER_DEFINE(listener_control_ackermann_pos, listener_control_ackermann_pos_callback);
 ZBUS_CHAN_ADD_OBS(chan_fsm, listener_control_ackermann_pos, 1);
 ZBUS_CHAN_ADD_OBS(chan_clock_offset, listener_control_ackermann_pos, 1);
-ZBUS_CHAN_ADD_OBS(chan_odometry, listener_control_ackermann_pos, 1);
+ZBUS_CHAN_ADD_OBS(chan_estimator_odometry, listener_control_ackermann_pos, 1);
 ZBUS_CHAN_ADD_OBS(chan_bezier_trajectory, listener_control_ackermann_pos, 1);
-ZBUS_CHAN_ADD_OBS(chan_cmd_vel, listener_control_ackermann_pos, 1);
+
 /* vi: ts=4 sw=4 et */

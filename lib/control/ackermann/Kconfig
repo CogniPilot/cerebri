@@ -9,6 +9,12 @@ menuconfig CEREBRI_CONTROL_ACKERMANN
 
 if CEREBRI_CONTROL_ACKERMANN
 
+config CEREBRI_CONTROL_ACKERMANN_BATTERY_MIN_MILLIVOLT
+  int "min battery voltage in milli volts before shut off"
+  default 10900
+  help
+    Minimum battery voltage in mV before auto-disarm
+
 config CEREBRI_CONTROL_ACKERMANN_GAIN_HEADING
   int "heading gain"
   default 100

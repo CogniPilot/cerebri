@@ -47,7 +47,7 @@ static context g_ctx = {
 };
 
 #define TOPIC_LISTENER(CHANNEL, CLASS)                                           \
-    static TF_Result CHANNEL##_Listener(TinyFrame* tf, TF_Msg* frame)            \
+    static TF_Result CHANNEL##_listener(TinyFrame* tf, TF_Msg* frame)            \
     {                                                                            \
         CLASS msg = CLASS##_init_default;                                        \
         pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);   \
@@ -122,20 +122,22 @@ TOPIC_LISTENER(joy, synapse_msgs_Joy)
 TOPIC_LISTENER(led_array, synapse_msgs_LEDArray)
 TOPIC_LISTENER(magnetic_field, synapse_msgs_MagneticField)
 TOPIC_LISTENER(nav_sat_fix, synapse_msgs_NavSatFix)
-TOPIC_LISTENER(odometry, synapse_msgs_Odometry)
+TOPIC_LISTENER(external_odometry, synapse_msgs_Odometry)
 TOPIC_LISTENER(wheel_odometry, synapse_msgs_WheelOdometry)
+TOPIC_LISTENER(fsm, synapse_msgs_Fsm)
 
 void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
 {
     // cerebri -> ROS
     if (chan == NULL) { } // start of if else statements for channel type
     TOPIC_PUBLISHER(actuators, synapse_msgs_Actuators, SYNAPSE_ACTUATORS_TOPIC)
-    TOPIC_PUBLISHER(odometry, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC)
+    TOPIC_PUBLISHER(estimator_odometry, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC)
+    TOPIC_PUBLISHER(fsm, synapse_msgs_Fsm, SYNAPSE_FSM_TOPIC)
 }
 
 ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callback);
 ZBUS_CHAN_ADD_OBS(chan_actuators, listener_synapse_ethernet, 1);
-ZBUS_CHAN_ADD_OBS(chan_odometry, listener_synapse_ethernet, 1);
+ZBUS_CHAN_ADD_OBS(chan_estimator_odometry, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_fsm, listener_synapse_ethernet, 1);
 
 static bool set_blocking_enabled(int fd, bool blocking)
@@ -185,18 +187,19 @@ static void ethernet_entry_point(context* ctx)
 
     // ros -> cerebri
     TF_AddGenericListener(&ctx->tf, genericListener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_ACTUATORS_TOPIC, actuators_Listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_ALTIMETER_TOPIC, altimeter_Listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_BATTERY_STATE_TOPIC, battery_state_Listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, bezier_trajectory_Listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_CMD_VEL_TOPIC, cmd_vel_Listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_IMU_TOPIC, imu_Listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_JOY_TOPIC, joy_Listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_LED_ARRAY_TOPIC, led_array_Listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_MAGNETIC_FIELD_TOPIC, magnetic_field_Listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_NAV_SAT_FIX_TOPIC, nav_sat_fix_Listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_ODOMETRY_TOPIC, odometry_Listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_Listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_ACTUATORS_TOPIC, actuators_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_ALTIMETER_TOPIC, altimeter_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_BATTERY_STATE_TOPIC, battery_state_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, bezier_trajectory_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_CMD_VEL_TOPIC, cmd_vel_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_IMU_TOPIC, imu_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_JOY_TOPIC, joy_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_LED_ARRAY_TOPIC, led_array_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_MAGNETIC_FIELD_TOPIC, magnetic_field_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_NAV_SAT_FIX_TOPIC, nav_sat_fix_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_ODOMETRY_TOPIC, external_odometry_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_FSM_TOPIC, fsm_listener);
 
     while (1) {
         LOG_INF("socket waiting for connection on port: %d", BIND_PORT);

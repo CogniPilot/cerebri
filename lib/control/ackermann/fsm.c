@@ -59,50 +59,105 @@ static void control_ackermann_fsm_init(context* ctx)
     syn_node_add_pub(&ctx->node, &ctx->pub_fsm, &ctx->fsm, &chan_fsm);
 }
 
+#define TRANSITION(STATE, GUARD, STATE_PRE, STATE_POST, LOG) \
+    if (STATE == STATE_PRE && GUARD) {                       \
+        STATE = STATE_POST;                                  \
+        LOG;                                                 \
+    }
+
+#define TRANSITION_FROM_ANY(STATE, GUARD, STATE_POST, LOG) \
+    if (STATE != STATE_POST && GUARD) {                    \
+        STATE = STATE_POST;                                \
+        LOG;                                               \
+    }
+
 static void update_fsm(
     const synapse_msgs_Joy* joy,
     const synapse_msgs_BatteryState* battery_state,
     const synapse_msgs_Safety* safety,
     synapse_msgs_Fsm* fsm)
 {
-    // arming
-    if (joy->buttons[JOY_BUTTON_ARM] == 1 && fsm->armed != synapse_msgs_Fsm_Armed_ARMED) {
+    // fsm boolean inputs
+    bool request_arm = joy->buttons[JOY_BUTTON_ARM] == 1;
+    bool request_disarm = joy->buttons[JOY_BUTTON_DISARM] == 1;
+    bool request_manual = joy->buttons[JOY_BUTTON_MANUAL] == 1;
+    bool request_auto = joy->buttons[JOY_BUTTON_AUTO] == 1;
+    bool request_cmd_vel = joy->buttons[JOY_BUTTON_CMD_VEL] == 1;
 
-#ifdef CONFIG_SENSE_SAFETY
-        if (safety->status != synapse_msgs_Safety_Status_UNSAFE) {
-            LOG_WRN("safety: %s, cannot arm", safety_str(safety->status));
-            return;
-        }
+    bool mode_set = fsm->mode != synapse_msgs_Fsm_Mode_UNKNOWN_MODE;
+#ifdef CONFIG_CEREBRI_SENSE_SAFETY
+    bool safe = safety->status == synapse_msgs_Safety_Status_SAFE || safety->status == synapse_msgs_Safety_UNKNOWN;
+#else
+    bool safe = false;
 #endif
+    bool battery_critical = battery_state->voltage < CONFIG_CEREBRI_CONTROL_ACKERMANN_BATTERY_MIN_MILLIVOLT / 1000.0;
+    bool arm_allowed = mode_set && !safe && !battery_critical;
 
-        if (fsm->mode == synapse_msgs_Fsm_Mode_UNKNOWN_MODE) {
+    // feedback for user
+    if (request_arm) {
+        if (!mode_set) {
             LOG_WRN("cannot arm until mode selected");
-            return;
         }
+        if (safe) {
+            LOG_WRN("cannot arm, safety engaged");
+        }
+        if (battery_critical) {
+            LOG_WRN("cannot arm, battery critical");
+        }
+    }
+
+    // arm transitions
+    TRANSITION(
+        fsm->armed, // state
+        request_arm && arm_allowed, // guard
+        synapse_msgs_Fsm_Armed_DISARMED, // pre
+        synapse_msgs_Fsm_Armed_ARMED, // post
         LOG_INF("armed in mode: %s", fsm_mode_str(fsm->mode));
-        LOG_INF("battery voltage: %f", battery_state->voltage);
-        fsm->armed = synapse_msgs_Fsm_Armed_ARMED;
-    } else if (joy->buttons[JOY_BUTTON_DISARM] == 1 && fsm->armed == synapse_msgs_Fsm_Armed_ARMED) {
+        LOG_INF("battery voltage: %f", battery_state->voltage););
+
+    // disarm transitions
+    TRANSITION(
+        fsm->armed, // state
+        request_disarm, // guard
+        synapse_msgs_Fsm_Armed_ARMED, // pre
+        synapse_msgs_Fsm_Armed_DISARMED, // post
         LOG_INF("disarmed");
-        fsm->armed = synapse_msgs_Fsm_Armed_DISARMED;
-    }
+        LOG_INF("battery voltage: %f", battery_state->voltage););
 
-    // handle modes
-    synapse_msgs_Fsm_Mode prev_mode = fsm->mode;
-    if (joy->buttons[JOY_BUTTON_MANUAL] == 1) {
-        fsm->mode = synapse_msgs_Fsm_Mode_MANUAL;
-    } else if (joy->buttons[JOY_BUTTON_AUTO] == 1) {
-        fsm->mode = synapse_msgs_Fsm_Mode_AUTO;
-    } else if (joy->buttons[JOY_BUTTON_CMD_VEL] == 1) {
-        fsm->mode = synapse_msgs_Fsm_Mode_CMD_VEL;
-    }
+    TRANSITION(
+        fsm->armed, // state
+        battery_critical, // guard
+        synapse_msgs_Fsm_Armed_ARMED, // pre
+        synapse_msgs_Fsm_Armed_DISARMED, // post
+        LOG_WRN("BATTERY CRITICAL: DISARMED"););
 
-    // notify on mode change
-    if (fsm->mode != prev_mode) {
-        LOG_INF("mode changed to: %s", fsm_mode_str(fsm->mode));
-    }
+    TRANSITION(
+        fsm->armed, // state
+        safe, // guard
+        synapse_msgs_Fsm_Armed_ARMED, // pre
+        synapse_msgs_Fsm_Armed_DISARMED, // post
+        LOG_WRN("SAFETY ENGAGED: DISAMRED"););
 
-    // update fsm
+    // mode transitions
+    TRANSITION_FROM_ANY(
+        fsm->mode, // state
+        request_auto, // guard
+        synapse_msgs_Fsm_Mode_AUTO, // post
+        LOG_INF("mode auto"));
+
+    TRANSITION_FROM_ANY(
+        fsm->mode, // state
+        request_manual, // guard
+        synapse_msgs_Fsm_Mode_MANUAL, // post
+        LOG_INF("mode manual"));
+
+    TRANSITION_FROM_ANY(
+        fsm->mode, // state
+        request_cmd_vel, // guard
+        synapse_msgs_Fsm_Mode_CMD_VEL, // post
+        LOG_INF("mode cmd_vel"));
+
+    // set timestamp
     stamp_header(&fsm->header, k_uptime_ticks());
     fsm->header.seq++;
 }
@@ -135,7 +190,7 @@ static void listener_control_ackermann_fsm_callback(const struct zbus_channel* c
 }
 
 ZBUS_LISTENER_DEFINE(listener_control_ackermann_fsm, listener_control_ackermann_fsm_callback);
-// ZBUS_CHAN_ADD_OBS(chan_battery_state, listener_control_ackermann_fsm, 1);
+ZBUS_CHAN_ADD_OBS(chan_battery_state, listener_control_ackermann_fsm, 1);
 ZBUS_CHAN_ADD_OBS(chan_joy, listener_control_ackermann_fsm, 1);
-
+ZBUS_CHAN_ADD_OBS(chan_safety, listener_control_ackermann_fsm, 1);
 /* vi: ts=4 sw=4 et */

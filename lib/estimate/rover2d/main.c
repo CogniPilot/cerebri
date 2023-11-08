@@ -62,7 +62,7 @@ static void estimate_rover2d_init(context* ctx)
     syn_node_add_sub(&ctx->node, &ctx->sub_actuators, &ctx->actuators, &chan_actuators);
     syn_node_add_sub(&ctx->node, &ctx->sub_wheel_odometry,
         &ctx->wheel_odometry, &chan_wheel_odometry);
-    syn_node_add_pub(&ctx->node, &ctx->pub_odometry, &ctx->odometry, &chan_odometry);
+    syn_node_add_pub(&ctx->node, &ctx->pub_odometry, &ctx->odometry, &chan_estimator_odometry);
 }
 
 static void log_x(double* x)

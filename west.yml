@@ -29,11 +29,11 @@ manifest:
           - ubxlib
     - name: synapse_tinyframe
       remote: cognipilot
-      revision: 499367e21817eaee421b69b33b51b6c39d6d94b8 # main 11/6/23
+      revision: dab568f2b81b928dc9516f7f02ab85ce1f93a7cc # main 11/8/23
       path: modules/lib/synapse_tinyframe
     - name: synapse_protobuf
       remote: cognipilot
-      revision: f243208134024ceb350e7e6810edd03ed7b4054e # main 11/5/23
+      revision: 1767c3a088343bcc3307b68842d7dfa028ac7c74 # main 11/8/23
       path: modules/lib/synapse_protobuf
     - name: ubxlib
       remote: cognipilot

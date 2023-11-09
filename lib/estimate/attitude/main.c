@@ -309,7 +309,7 @@ static void estimate_attitude_entry_point(void* p1, void* p2, void* p3)
             ctx.pub_odometry.pose.pose.orientation.y = 0;
             ctx.pub_odometry.pose.pose.orientation.z = 0;
             ctx.pub_odometry.pose.pose.orientation.w = 1;
-            zbus_chan_pub(&chan_odometry, &ctx.pub_odometry, K_NO_WAIT);
+            zbus_chan_pub(&chan_estimator_odometry, &ctx.pub_odometry, K_NO_WAIT);
         }
 
         log_x(ctx.x);

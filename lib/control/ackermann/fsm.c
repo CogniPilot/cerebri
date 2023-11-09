@@ -86,7 +86,7 @@ static void update_fsm(
 
     bool mode_set = fsm->mode != synapse_msgs_Fsm_Mode_UNKNOWN_MODE;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
-    bool safe = safety->status == synapse_msgs_Safety_Status_SAFE || safety->status == synapse_msgs_Safety_UNKNOWN;
+    bool safe = safety->status == synapse_msgs_Safety_Status_SAFE || safety->status == synapse_msgs_Safety_Status_UNKNOWN;
 #else
     bool safe = false;
 #endif

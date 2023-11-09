@@ -27,7 +27,8 @@ LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_CEREBRI_SYNAPSE_ETHERNET_LOG_LEVEL)
 typedef struct _context {
     syn_node_t node;
     synapse_msgs_Fsm fsm;
-    syn_sub_t sub_fsm;
+    synapse_msgs_Time clock_offset;
+    syn_sub_t sub_fsm, sub_clock_offset;
     TinyFrame tf;
     volatile int client;
     int error_count;
@@ -40,7 +41,9 @@ typedef struct _context {
 static context g_ctx = {
     .node = { 0 },
     .fsm = synapse_msgs_Fsm_init_default,
+    .clock_offset = synapse_msgs_Time_init_default,
     .sub_fsm = { 0 },
+    .sub_clock_offset = { 0 },
     .tf = { 0 },
     .client = -1,
     .error_count = 0,
@@ -125,6 +128,7 @@ TOPIC_LISTENER(nav_sat_fix, synapse_msgs_NavSatFix)
 TOPIC_LISTENER(external_odometry, synapse_msgs_Odometry)
 TOPIC_LISTENER(wheel_odometry, synapse_msgs_WheelOdometry)
 TOPIC_LISTENER(fsm, synapse_msgs_Fsm)
+TOPIC_LISTENER(clock_offset, synapse_msgs_Time)
 
 void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
 {
@@ -139,6 +143,7 @@ ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callba
 ZBUS_CHAN_ADD_OBS(chan_actuators, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_estimator_odometry, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_fsm, listener_synapse_ethernet, 1);
+ZBUS_CHAN_ADD_OBS(chan_clock_offset, listener_synapse_ethernet, 1);
 
 static bool set_blocking_enabled(int fd, bool blocking)
 {
@@ -155,6 +160,29 @@ static void synapse_ethernet_init(context* ctx)
 {
     syn_node_init(&ctx->node, "synapse_ethernet");
     syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm);
+}
+
+static void send_uptime(context* ctx)
+{
+    TF_Msg msg;
+    TF_ClearMsg(&msg);
+    uint8_t buf[synapse_msgs_Time_size];
+    pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
+    int64_t ticks = k_uptime_ticks();
+    int64_t sec = ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+    int32_t nanosec = (ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+    synapse_msgs_Time message;
+    message.sec = sec;
+    message.nanosec = nanosec;
+    int status = pb_encode(&stream, synapse_msgs_Time_fields, &message);
+    if (status) {
+        msg.type = SYNAPSE_UPTIME_TOPIC;
+        msg.data = buf;
+        msg.len = stream.bytes_written;
+        TF_Send(&g_ctx.tf, &msg);
+    } else {
+        printf("uptime encoding failed: %s\n", PB_GET_ERROR(&stream));
+    }
 }
 
 static void ethernet_entry_point(context* ctx)
@@ -200,6 +228,7 @@ static void ethernet_entry_point(context* ctx)
     TF_AddTypeListener(&ctx->tf, SYNAPSE_ODOMETRY_TOPIC, external_odometry_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_FSM_TOPIC, fsm_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_CLOCK_OFFSET_TOPIC, clock_offset_listener);
 
     while (1) {
         LOG_INF("socket waiting for connection on port: %d", BIND_PORT);
@@ -220,6 +249,7 @@ static void ethernet_entry_point(context* ctx)
 
         while (1) {
             k_msleep(1);
+            send_uptime(ctx);
             if (g_ctx.client < 0) {
                 LOG_ERR("no client, triggering reconnect");
                 break;

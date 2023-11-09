@@ -26,12 +26,14 @@ typedef struct _context {
     synapse_msgs_Actuators actuators;
     synapse_msgs_Fsm fsm;
     syn_sub_t sub_actuators, sub_fsm;
+    struct pwm_dt_spec pwm_enable;
 } context;
 
 static context g_ctx = {
     .actuators = synapse_msgs_Actuators_init_default,
     .fsm = synapse_msgs_Fsm_init_default,
     .sub_fsm = { 0 },
+    .pwm_enable = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux2)),
 };
 
 static void init(context* ctx)
@@ -53,6 +55,13 @@ ZBUS_CHAN_ADD_OBS(chan_fsm, listener_actuate_pwm, 1);
 void pwm_update(const synapse_msgs_Fsm* fsm, const synapse_msgs_Actuators* actuators)
 {
     bool armed = fsm->armed == synapse_msgs_Fsm_Armed_ARMED;
+    int err = 0;
+
+    if (armed) {
+        err = pwm_set_pulse_dt(&g_ctx.pwm_enable, PWM_USEC(50));
+    } else {
+        err = pwm_set_pulse_dt(&g_ctx.pwm_enable, PWM_USEC(0));
+    }
 
     for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
         actuator_pwm_t pwm = g_actuator_pwms[i];
@@ -101,7 +110,7 @@ void pwm_update(const synapse_msgs_Fsm* fsm, const synapse_msgs_Actuators* actua
                 pulse = output;
             }
         }
-        int err = 0;
+
         if (pwm.use_nano_seconds) {
             err = pwm_set_pulse_dt(&pwm.device, PWM_NSEC(pulse));
         } else {

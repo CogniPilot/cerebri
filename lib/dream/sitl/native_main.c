@@ -28,7 +28,7 @@
 #include <zephyr/sys/ring_buffer.h>
 
 #define BIND_PORT 4241
-#define RX_BUF_SIZE 1024
+#define RX_BUF_SIZE 2048
 
 volatile sig_atomic_t cerebri_sitl_shutdown = 0;
 

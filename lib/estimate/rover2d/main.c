@@ -140,21 +140,22 @@ static void estimate_rover2d_run(context* ctx)
 
         // get data
         double rotation = ctx->wheel_odometry.rotation;
+        double delta = ctx->actuators.position[0];
+
+#ifdef CONFIG_DREAM_SITL
+        static const double l = 0.3; // adjusted distance to account for wheel slip in sim
+#else
+        static const double l = 0.2255; // distance between axles
+#endif
+        static const double D = 0.073; // wheel diameter
+
+        // negative sign due to current gearing, should be in driver
+        double u = (rotation - rotation_last) * D / 2;
+        rotation_last = rotation;
 
         /* predict:(x0[3],delta,u,l)->(x1[3]) */
         {
             // LOG_DBG("predict");
-
-#ifdef CONFIG_DREAM_SITL
-            static const double l = 0.3; // adjusted distance to account for wheel slip in sim
-#else
-            static const double l = 0.2255; // distance between axles
-#endif
-            static const double D = 0.073; // wheel diameter
-            double delta = ctx->actuators.position[0];
-            // negative sign due to current gearing, should be in driver
-            double u = (rotation - rotation_last) * D / 2;
-            rotation_last = rotation;
 
             // memory
             static casadi_int iw[predict_SZ_IW];
@@ -188,6 +189,8 @@ static void estimate_rover2d_run(context* ctx)
             ctx->odometry.pose.pose.orientation.y = 0;
             ctx->odometry.pose.pose.orientation.z = sin(theta / 2);
             ctx->odometry.pose.pose.orientation.w = cos(theta / 2);
+            ctx->odometry.twist.twist.angular.z = u * tan(delta) / l;
+            ctx->odometry.twist.twist.linear.x = u;
         }
         syn_node_publish_all(&ctx->node, K_MSEC(1));
         syn_node_unlock_all(&ctx->node);

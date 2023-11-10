@@ -40,7 +40,7 @@ void publish_gnss_data_zbus(uDeviceHandle_t devHandle,
         synapse_msgs_NavSatFix msg = synapse_msgs_NavSatFix_init_default;
 
         msg.has_header = true;
-        strncpy(msg.header.frame_id, "map", sizeof(msg.header.frame_id) - 1);
+        strncpy(msg.header.frame_id, "wgs84", sizeof(msg.header.frame_id) - 1);
         msg.header.has_stamp = true;
         msg.latitude = pLocation->latitudeX1e7 / 1e7;
         msg.longitude = pLocation->longitudeX1e7 / 1e7;

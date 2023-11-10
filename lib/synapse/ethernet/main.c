@@ -18,7 +18,7 @@
 
 LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_CEREBRI_SYNAPSE_ETHERNET_LOG_LEVEL);
 
-#define MY_STACK_SIZE 2048
+#define MY_STACK_SIZE 4096
 #define MY_PRIORITY 5
 
 #define RX_BUF_SIZE 1024
@@ -93,7 +93,7 @@ static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
     do {
         out_len = zsock_send(g_ctx.client, p, len, 0);
         if (out_len < 0) {
-            LOG_ERR("send: %d\n", errno);
+            LOG_DBG("send: %d\n", errno);
             if (g_ctx.error_count++ > 10) {
                 // trigger reconnect
                 g_ctx.client = -1;
@@ -114,7 +114,7 @@ static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
     return TF_STAY;
 }
 
-// ROS -> cerebri
+// ROS -> Cerebri
 TOPIC_LISTENER(actuators, synapse_msgs_Actuators)
 TOPIC_LISTENER(altimeter, synapse_msgs_Altimeter)
 TOPIC_LISTENER(battery_state, synapse_msgs_BatteryState)
@@ -132,18 +132,21 @@ TOPIC_LISTENER(clock_offset, synapse_msgs_Time)
 
 void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
 {
-    // cerebri -> ROS
+    // Cerebri -> ROS
     if (chan == NULL) { } // start of if else statements for channel type
     TOPIC_PUBLISHER(actuators, synapse_msgs_Actuators, SYNAPSE_ACTUATORS_TOPIC)
     TOPIC_PUBLISHER(estimator_odometry, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC)
     TOPIC_PUBLISHER(fsm, synapse_msgs_Fsm, SYNAPSE_FSM_TOPIC)
+    TOPIC_PUBLISHER(safety, synapse_msgs_Safety, SYNAPSE_SAFETY_TOPIC)
+    TOPIC_PUBLISHER(battery_state, synapse_msgs_BatteryState, SYNAPSE_BATTERY_STATE_TOPIC)
 }
 
 ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callback);
 ZBUS_CHAN_ADD_OBS(chan_actuators, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_estimator_odometry, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_fsm, listener_synapse_ethernet, 1);
-ZBUS_CHAN_ADD_OBS(chan_clock_offset, listener_synapse_ethernet, 1);
+ZBUS_CHAN_ADD_OBS(chan_safety, listener_synapse_ethernet, 1);
+ZBUS_CHAN_ADD_OBS(chan_battery_state, listener_synapse_ethernet, 1);
 
 static bool set_blocking_enabled(int fd, bool blocking)
 {
@@ -213,7 +216,7 @@ static void ethernet_entry_point(context* ctx)
         exit(1);
     }
 
-    // ros -> cerebri
+    // ROS -> Cerebri
     TF_AddGenericListener(&ctx->tf, genericListener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_ACTUATORS_TOPIC, actuators_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_ALTIMETER_TOPIC, altimeter_listener);
@@ -251,7 +254,7 @@ static void ethernet_entry_point(context* ctx)
             k_msleep(1);
             send_uptime(ctx);
             if (g_ctx.client < 0) {
-                LOG_ERR("no client, triggering reconnect");
+                LOG_WRN("no client, triggering reconnect");
                 break;
             }
             int len = zsock_recv(g_ctx.client, ctx->rx1_buf, sizeof(ctx->rx1_buf), 0);

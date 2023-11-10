@@ -10,7 +10,7 @@ void ackermann_set_actuators(synapse_msgs_Actuators* msg, double turn_angle, dou
     msg->has_header = true;
     stamp_header(&msg->header, k_uptime_ticks());
     msg->header.seq++;
-    strncpy(msg->header.frame_id, "map", sizeof(msg->header.frame_id) - 1);
+    strncpy(msg->header.frame_id, "odom", sizeof(msg->header.frame_id) - 1);
 
     msg->position_count = 1;
     msg->velocity_count = 1;

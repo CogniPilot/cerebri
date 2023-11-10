@@ -53,7 +53,7 @@ void mag_work_handler(struct k_work* work)
     msg.has_header = true;
     stamp_header(&msg.header, k_uptime_ticks());
     msg.header.seq = g_seq++;
-    strncpy(msg.header.frame_id, "map", sizeof(msg.header.frame_id) - 1);
+    strncpy(msg.header.frame_id, "base_link", sizeof(msg.header.frame_id) - 1);
     msg.has_magnetic_field = true;
     msg.magnetic_field.x = mag[0];
     msg.magnetic_field.y = mag[1];

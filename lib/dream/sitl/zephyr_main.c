@@ -1,7 +1,6 @@
 /*
  * Copyright CogniPilot Foundation 2023
- * SPDX-License-Identifier: Apache-2.0
- */
+ * SPDX-License-Identifier: Apache-2.0 */
 
 #include <signal.h>
 
@@ -20,7 +19,7 @@
 
 LOG_MODULE_REGISTER(dream_sitl, CONFIG_CEREBRI_DREAM_SITL_LOG_LEVEL);
 
-#define MY_STACK_SIZE 500
+#define MY_STACK_SIZE 4096
 #define MY_PRIORITY -10
 
 extern volatile sig_atomic_t cerebri_sitl_shutdown;

@@ -138,7 +138,9 @@ void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
     TOPIC_PUBLISHER(estimator_odometry, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC)
     TOPIC_PUBLISHER(fsm, synapse_msgs_Fsm, SYNAPSE_FSM_TOPIC)
     TOPIC_PUBLISHER(safety, synapse_msgs_Safety, SYNAPSE_SAFETY_TOPIC)
+#ifndef CONFIG_CEREBRI_DREAM_SITL
     TOPIC_PUBLISHER(battery_state, synapse_msgs_BatteryState, SYNAPSE_BATTERY_STATE_TOPIC)
+#endif
 }
 
 ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callback);

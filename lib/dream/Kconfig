@@ -3,6 +3,7 @@
 
 menu "Dream"
 
-rsource "sitl/Kconfig"
+rsource "sil/Kconfig"
+rsource "hil/Kconfig"
 
 endmenu

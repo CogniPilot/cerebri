@@ -11,7 +11,7 @@ config CEREBRI_BOOT_BANNER
   bool "cerebri boot banner"
   default y
   help
-    Enable cerebir boot banner
+    Enable cerebri boot banner
 
 config CEREBRI_APP_NAME
   string "cerebri app name"

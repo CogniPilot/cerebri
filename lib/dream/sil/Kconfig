@@ -1,0 +1,16 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig CEREBRI_DREAM_SIL
+  bool "SIL"
+  depends on CEREBRI_SYNAPSE_ZBUS
+  help
+    This option enables the cerebri sil sim
+
+if CEREBRI_DREAM_SIL
+
+module = CEREBRI_DREAM_SIL
+module-str = dream_sil
+source "subsys/logging/Kconfig.template.log_config"
+
+endif  # CEREBRI_DREAM_SIL

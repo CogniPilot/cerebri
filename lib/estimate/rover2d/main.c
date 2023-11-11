@@ -142,7 +142,7 @@ static void estimate_rover2d_run(context* ctx)
         double rotation = ctx->wheel_odometry.rotation;
         double delta = ctx->actuators.position[0];
 
-#ifdef CONFIG_DREAM_SITL
+#ifdef CONFIG_DREAM_SIL
         static const double l = 0.3; // adjusted distance to account for wheel slip in sim
 #else
         static const double l = 0.2255; // distance between axles

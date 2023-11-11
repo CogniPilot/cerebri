@@ -30,11 +30,11 @@
 #define BIND_PORT 4241
 #define RX_BUF_SIZE 2048
 
-volatile sig_atomic_t cerebri_sitl_shutdown = 0;
+volatile sig_atomic_t cerebri_sil_shutdown = 0;
 
 static void term(int signum)
 {
-    cerebri_sitl_shutdown = 1;
+    cerebri_sil_shutdown = 1;
     printf("handling term\n");
 }
 
@@ -47,7 +47,7 @@ struct private_module_context {
 };
 
 static struct private_module_context g_priv = {
-    .module_name = "dream_sitl_native",
+    .module_name = "dream_sil_native",
     .serv = 0,
     .client = 0,
 };
@@ -244,7 +244,7 @@ void* native_sim_entry_point(void* data)
     action.sa_handler = term;
     sigaction(SIGINT, &action, NULL);
 
-    while (!cerebri_sitl_shutdown) {
+    while (!cerebri_sil_shutdown) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
@@ -264,7 +264,7 @@ void* native_sim_entry_point(void* data)
         printf("%s: connection #%d from %s\n", g_priv.module_name, counter++, addr_str);
 
         // process incoming messages
-        while (!cerebri_sitl_shutdown) {
+        while (!cerebri_sil_shutdown) {
             // write received data to sim_rx_buf
             uint8_t data[RX_BUF_SIZE];
             int len = recv(g_priv.client, data, RX_BUF_SIZE, 0);

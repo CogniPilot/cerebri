@@ -1,0 +1,15 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig CEREBRI_DREAM_HIL
+  bool "HIL"
+  help
+    This option enables the cerebri hil sim
+
+if CEREBRI_DREAM_HIL
+
+module = CEREBRI_DREAM_HIL
+module-str = dream_hil
+source "subsys/logging/Kconfig.template.log_config"
+
+endif  # CEREBRI_DREAM_HIL

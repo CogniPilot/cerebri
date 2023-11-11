@@ -17,12 +17,12 @@
 
 #include <cerebri/synapse/zbus/channels.h>
 
-LOG_MODULE_REGISTER(dream_sitl, CONFIG_CEREBRI_DREAM_SITL_LOG_LEVEL);
+LOG_MODULE_REGISTER(dream_sil, CONFIG_CEREBRI_DREAM_SIL_LOG_LEVEL);
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY -10
 
-extern volatile sig_atomic_t cerebri_sitl_shutdown;
+extern volatile sig_atomic_t cerebri_sil_shutdown;
 
 extern synapse_msgs_SimClock g_sim_clock;
 extern TinyFrame g_tf;
@@ -36,7 +36,7 @@ extern synapse_msgs_MagneticField g_in_magnetic_field;
 extern synapse_msgs_Altimeter g_in_altimeter;
 extern struct ring_buf g_msg_updates;
 
-void listener_dream_sitl_callback(const struct zbus_channel* chan)
+void listener_dream_sil_callback(const struct zbus_channel* chan)
 {
     if (chan == &chan_actuators) {
         TF_Msg msg;
@@ -54,14 +54,14 @@ void listener_dream_sitl_callback(const struct zbus_channel* chan)
         }
     }
 }
-ZBUS_LISTENER_DEFINE(listener_dream_sitl, listener_dream_sitl_callback);
-ZBUS_CHAN_ADD_OBS(chan_actuators, listener_dream_sitl, 1);
+ZBUS_LISTENER_DEFINE(listener_dream_sil, listener_dream_sil_callback);
+ZBUS_CHAN_ADD_OBS(chan_actuators, listener_dream_sil, 1);
 
 static void zephyr_sim_entry_point(void)
 {
     LOG_INF("zephyr sim entry point");
     LOG_INF("waiting for sim clock");
-    while (!cerebri_sitl_shutdown) {
+    while (!cerebri_sil_shutdown) {
         synapse_msgs_SimClock sim_clock;
         struct timespec request, remaining;
         request.tv_sec = 1;
@@ -81,11 +81,11 @@ static void zephyr_sim_entry_point(void)
     }
 
     LOG_DBG("running main loop");
-    while (!cerebri_sitl_shutdown) {
+    while (!cerebri_sil_shutdown) {
 
         //  publish new messages
         uint8_t topic;
-        while (!cerebri_sitl_shutdown && !ring_buf_is_empty(&g_msg_updates)) {
+        while (!cerebri_sil_shutdown && !ring_buf_is_empty(&g_msg_updates)) {
             ring_buf_get(&g_msg_updates, &topic, 1);
             if (topic == SYNAPSE_NAV_SAT_FIX_TOPIC) {
                 zbus_chan_pub(&chan_nav_sat_fix, &g_in_nav_sat_fix, K_NO_WAIT);

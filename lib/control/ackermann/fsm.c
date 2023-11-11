@@ -60,13 +60,13 @@ static void control_ackermann_fsm_init(context* ctx)
 }
 
 #define TRANSITION(STATE, GUARD, STATE_PRE, STATE_POST, LOG) \
-    if (STATE == STATE_PRE && GUARD) {                       \
+    if (STATE == STATE_PRE && (GUARD)) {                     \
         STATE = STATE_POST;                                  \
         LOG;                                                 \
     }
 
 #define TRANSITION_FROM_ANY(STATE, GUARD, STATE_POST, LOG) \
-    if (STATE != STATE_POST && GUARD) {                    \
+    if (STATE != STATE_POST && (GUARD)) {                  \
         STATE = STATE_POST;                                \
         LOG;                                               \
     }
@@ -141,21 +141,15 @@ static void update_fsm(
     // mode transitions
     TRANSITION_FROM_ANY(
         fsm->mode, // state
-        request_auto, // guard
-        synapse_msgs_Fsm_Mode_AUTO, // post
-        LOG_INF("mode auto"));
-
-    TRANSITION_FROM_ANY(
-        fsm->mode, // state
         request_manual, // guard
         synapse_msgs_Fsm_Mode_MANUAL, // post
         LOG_INF("mode manual"));
 
     TRANSITION_FROM_ANY(
         fsm->mode, // state
-        request_cmd_vel, // guard
+        request_auto || request_cmd_vel, // guard
         synapse_msgs_Fsm_Mode_CMD_VEL, // post
-        LOG_INF("mode cmd_vel"));
+        LOG_INF("mode cmd_vel/ auto"));
 
     // set timestamp
     stamp_header(&fsm->header, k_uptime_ticks());

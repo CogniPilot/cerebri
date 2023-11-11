@@ -110,13 +110,15 @@ static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 
 static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 {
-    dumpFrameInfo(msg);
+    LOG_WRN("unhandled tinyframe type: %4d", msg->type);
+    //dumpFrameInfo(msg);
     return TF_STAY;
 }
 
 // ROS -> Cerebri
-TOPIC_LISTENER(actuators, synapse_msgs_Actuators)
-TOPIC_LISTENER(altimeter, synapse_msgs_Altimeter)
+//TOPIC_LISTENER(actuators, synapse_msgs_Actuators)
+//TOPIC_LISTENER(altimeter, synapse_msgs_Altimeter)
+//TOPIC_LISTENER(external_odometry, synapse_msgs_Odometry)
 TOPIC_LISTENER(battery_state, synapse_msgs_BatteryState)
 TOPIC_LISTENER(bezier_trajectory, synapse_msgs_BezierTrajectory)
 TOPIC_LISTENER(cmd_vel, synapse_msgs_Twist)
@@ -124,10 +126,8 @@ TOPIC_LISTENER(imu, synapse_msgs_Imu)
 TOPIC_LISTENER(joy, synapse_msgs_Joy)
 TOPIC_LISTENER(led_array, synapse_msgs_LEDArray)
 TOPIC_LISTENER(magnetic_field, synapse_msgs_MagneticField)
-TOPIC_LISTENER(nav_sat_fix, synapse_msgs_NavSatFix)
-TOPIC_LISTENER(external_odometry, synapse_msgs_Odometry)
+//TOPIC_LISTENER(nav_sat_fix, synapse_msgs_NavSatFix)
 TOPIC_LISTENER(wheel_odometry, synapse_msgs_WheelOdometry)
-TOPIC_LISTENER(fsm, synapse_msgs_Fsm)
 TOPIC_LISTENER(clock_offset, synapse_msgs_Time)
 
 void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
@@ -138,7 +138,7 @@ void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
     TOPIC_PUBLISHER(estimator_odometry, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC)
     TOPIC_PUBLISHER(fsm, synapse_msgs_Fsm, SYNAPSE_FSM_TOPIC)
     TOPIC_PUBLISHER(safety, synapse_msgs_Safety, SYNAPSE_SAFETY_TOPIC)
-#ifndef CONFIG_CEREBRI_DREAM_SITL
+#if !defined(CONFIG_CEREBRI_DREAM_SIL) && !defined(CONFIG_CEREBRI_DREAM_HIL)
     TOPIC_PUBLISHER(battery_state, synapse_msgs_BatteryState, SYNAPSE_BATTERY_STATE_TOPIC)
 #endif
 }
@@ -148,7 +148,9 @@ ZBUS_CHAN_ADD_OBS(chan_actuators, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_estimator_odometry, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_fsm, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_safety, listener_synapse_ethernet, 1);
+#if !defined(CONFIG_CEREBRI_DREAM_SIL) && !defined(CONFIG_CEREBRI_DREAM_HIL)
 ZBUS_CHAN_ADD_OBS(chan_battery_state, listener_synapse_ethernet, 1);
+#endif
 
 static bool set_blocking_enabled(int fd, bool blocking)
 {
@@ -220,20 +222,22 @@ static void ethernet_entry_point(context* ctx)
 
     // ROS -> Cerebri
     TF_AddGenericListener(&ctx->tf, genericListener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_ACTUATORS_TOPIC, actuators_listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_ALTIMETER_TOPIC, altimeter_listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_BATTERY_STATE_TOPIC, battery_state_listener);
+    //TF_AddTypeListener(&ctx->tf, SYNAPSE_ACTUATORS_TOPIC, actuators_listener);
+    //TF_AddTypeListener(&ctx->tf, SYNAPSE_ALTIMETER_TOPIC, altimeter_listener);
+    //TF_AddTypeListener(&ctx->tf, SYNAPSE_ODOMETRY_TOPIC, external_odometry_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, bezier_trajectory_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_CMD_VEL_TOPIC, cmd_vel_listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_IMU_TOPIC, imu_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_JOY_TOPIC, joy_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_LED_ARRAY_TOPIC, led_array_listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_MAGNETIC_FIELD_TOPIC, magnetic_field_listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_NAV_SAT_FIX_TOPIC, nav_sat_fix_listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_ODOMETRY_TOPIC, external_odometry_listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_FSM_TOPIC, fsm_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_CLOCK_OFFSET_TOPIC, clock_offset_listener);
+
+#ifdef CONFIG_CEREBRI_DREAM_HIL
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_BATTERY_STATE_TOPIC, battery_state_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_IMU_TOPIC, imu_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_MAGNETIC_FIELD_TOPIC, magnetic_field_listener);
+    //TF_AddTypeListener(&ctx->tf, SYNAPSE_NAV_SAT_FIX_TOPIC, nav_sat_fix_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_listener);
+#endif
 
     while (1) {
         LOG_INF("socket waiting for connection on port: %d", BIND_PORT);

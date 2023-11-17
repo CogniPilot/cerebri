@@ -9,6 +9,12 @@ menuconfig CEREBRI_ESTIMATE_ROVER2D
 
 if CEREBRI_ESTIMATE_ROVER2D
 
+config CEREBRI_ESTIMATE_ROVER2D_WHEEL_RADIUS_MM
+  int "wheel radius, mm"
+  default 37
+  help
+    Wheel radius in mm
+
 module = CEREBRI_ESTIMATE_ROVER2D
 module-str = estimate_rover2d
 source "subsys/logging/Kconfig.template.log_config"

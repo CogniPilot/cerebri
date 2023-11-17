@@ -33,7 +33,7 @@ const char* predict_name_out(casadi_int i);
 const casadi_int* predict_sparsity_in(casadi_int i);
 const casadi_int* predict_sparsity_out(casadi_int i);
 int predict_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define predict_SZ_ARG 4
+#define predict_SZ_ARG 3
 #define predict_SZ_RES 1
 #define predict_SZ_IW 0
 #define predict_SZ_W 12

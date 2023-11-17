@@ -41,7 +41,7 @@ config CEREBRI_CONTROL_ACKERMANN_MAX_TURN_ANGLE_MRAD
 
 config CEREBRI_CONTROL_ACKERMANN_MAX_VELOCITY_MM_S
   int "max velocity, mm/s"
-  default 22000
+  default 1000
   help
     Max velocity in mm/s
 

@@ -50,76 +50,72 @@ casadi_real casadi_sq(casadi_real x) { return x * x; }
 static const casadi_int casadi_s0[7] = { 3, 1, 0, 3, 0, 1, 2 };
 static const casadi_int casadi_s1[5] = { 1, 1, 0, 1, 0 };
 
-/* predict:(x0[3],delta,u,l)->(x1[3]) */
+/* predict:(x0[3],omega,u)->(x1[3]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
     w[0] = arg[0] ? arg[0][2] : 0;
     w[1] = cos(w[0]);
-    w[2] = arg[2] ? arg[2][0] : 0;
-    w[3] = arg[3] ? arg[3][0] : 0;
-    w[3] = (w[2] / w[3]);
-    w[4] = arg[1] ? arg[1][0] : 0;
-    w[4] = tan(w[4]);
-    w[3] = (w[3] * w[4]);
-    w[4] = casadi_fabs(w[3]);
-    w[5] = 9.9999999999999995e-08;
-    w[4] = (w[4] < w[5]);
-    w[6] = 1.;
-    w[7] = -1.6666666666666666e-01;
-    w[8] = casadi_sq(w[3]);
+    w[2] = arg[1] ? arg[1][0] : 0;
+    w[3] = casadi_fabs(w[2]);
+    w[4] = 9.9999999999999995e-08;
+    w[3] = (w[3] < w[4]);
+    w[5] = 1.;
+    w[6] = -1.6666666666666666e-01;
+    w[7] = casadi_sq(w[2]);
+    w[6] = (w[6] * w[7]);
+    w[6] = (w[5] + w[6]);
+    w[7] = 8.3333333333333332e-03;
+    w[8] = casadi_sq(w[2]);
+    w[8] = casadi_sq(w[8]);
     w[7] = (w[7] * w[8]);
-    w[7] = (w[6] + w[7]);
-    w[8] = 8.3333333333333332e-03;
-    w[9] = casadi_sq(w[3]);
-    w[9] = casadi_sq(w[9]);
-    w[8] = (w[8] * w[9]);
-    w[7] = (w[7] + w[8]);
-    w[7] = (w[4] ? w[7] : 0);
-    w[4] = (!w[4]);
-    w[8] = sin(w[3]);
-    w[8] = (w[8] / w[3]);
-    w[4] = (w[4] ? w[8] : 0);
-    w[7] = (w[7] + w[4]);
-    w[7] = (w[7] * w[2]);
-    w[4] = (w[1] * w[7]);
+    w[6] = (w[6] + w[7]);
+    w[6] = (w[3] ? w[6] : 0);
+    w[3] = (!w[3]);
+    w[7] = sin(w[2]);
+    w[7] = (w[7] / w[2]);
+    w[3] = (w[3] ? w[7] : 0);
+    w[6] = (w[6] + w[3]);
+    w[3] = arg[2] ? arg[2][0] : 0;
+    w[6] = (w[6] * w[3]);
+    w[7] = (w[1] * w[6]);
     w[8] = sin(w[0]);
-    w[9] = casadi_fabs(w[3]);
-    w[9] = (w[9] < w[5]);
-    w[5] = 5.0000000000000000e-01;
-    w[5] = (w[5] * w[3]);
+    w[9] = casadi_fabs(w[2]);
+    w[9] = (w[9] < w[4]);
+    w[4] = 5.0000000000000000e-01;
+    w[4] = (w[4] * w[2]);
     w[10] = -4.1666666666666664e-02;
-    w[11] = casadi_sq(w[3]);
-    w[11] = (w[3] * w[11]);
+    w[11] = casadi_sq(w[2]);
+    w[11] = (w[2] * w[11]);
     w[10] = (w[10] * w[11]);
-    w[5] = (w[5] + w[10]);
+    w[4] = (w[4] + w[10]);
     w[10] = 1.3888888888888889e-03;
-    w[11] = casadi_sq(w[3]);
+    w[11] = casadi_sq(w[2]);
     w[11] = casadi_sq(w[11]);
-    w[11] = (w[3] * w[11]);
+    w[11] = (w[2] * w[11]);
     w[10] = (w[10] * w[11]);
-    w[5] = (w[5] + w[10]);
-    w[5] = (w[9] ? w[5] : 0);
+    w[4] = (w[4] + w[10]);
+    w[4] = (w[9] ? w[4] : 0);
     w[9] = (!w[9]);
-    w[10] = cos(w[3]);
-    w[6] = (w[6] - w[10]);
-    w[6] = (w[6] / w[3]);
-    w[9] = (w[9] ? w[6] : 0);
-    w[5] = (w[5] + w[9]);
-    w[5] = (w[5] * w[2]);
-    w[2] = (w[8] * w[5]);
-    w[4] = (w[4] - w[2]);
-    w[2] = arg[0] ? arg[0][0] : 0;
-    w[4] = (w[4] + w[2]);
+    w[10] = cos(w[2]);
+    w[5] = (w[5] - w[10]);
+    w[5] = (w[5] / w[2]);
+    w[9] = (w[9] ? w[5] : 0);
+    w[4] = (w[4] + w[9]);
+    w[4] = (w[4] * w[3]);
+    w[3] = (w[8] * w[4]);
+    w[7] = (w[7] - w[3]);
+    w[3] = arg[0] ? arg[0][0] : 0;
+    w[7] = (w[7] + w[3]);
     if (res[0] != 0)
-        res[0][0] = w[4];
-    w[8] = (w[8] * w[7]);
-    w[1] = (w[1] * w[5]);
+        res[0][0] = w[7];
+    w[8] = (w[8] * w[6]);
+    w[1] = (w[1] * w[4]);
     w[8] = (w[8] + w[1]);
     w[1] = arg[0] ? arg[0][1] : 0;
     w[8] = (w[8] + w[1]);
     if (res[0] != 0)
         res[0][1] = w[8];
-    w[0] = (w[0] + w[3]);
+    w[0] = (w[0] + w[2]);
     if (res[0] != 0)
         res[0][2] = w[0];
     return 0;
@@ -161,7 +157,7 @@ void predict_decref(void)
 {
 }
 
-casadi_int predict_n_in(void) { return 4; }
+casadi_int predict_n_in(void) { return 3; }
 
 casadi_int predict_n_out(void) { return 1; }
 
@@ -179,11 +175,9 @@ const char* predict_name_in(casadi_int i)
     case 0:
         return "x0";
     case 1:
-        return "delta";
+        return "omega";
     case 2:
         return "u";
-    case 3:
-        return "l";
     default:
         return 0;
     }
@@ -208,8 +202,6 @@ const casadi_int* predict_sparsity_in(casadi_int i)
         return casadi_s1;
     case 2:
         return casadi_s1;
-    case 3:
-        return casadi_s1;
     default:
         return 0;
     }
@@ -228,7 +220,7 @@ const casadi_int* predict_sparsity_out(casadi_int i)
 int predict_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w)
 {
     if (sz_arg)
-        *sz_arg = 4;
+        *sz_arg = 3;
     if (sz_res)
         *sz_res = 1;
     if (sz_iw)

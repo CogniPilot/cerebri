@@ -3,13 +3,68 @@
 
 menuconfig CEREBRI_CONTROL_DIFFDRIVE
   bool "diffdrive"
+  depends on CEREBRI_SYNAPSE_ZBUS
   help
     This option enables the rover diffdrive lib.
 
 if CEREBRI_CONTROL_DIFFDRIVE
 
+config CEREBRI_CONTROL_DIFFDRIVE_BATTERY_MIN_MILLIVOLT
+  int "min battery voltage in milli volts before shut off"
+  default 35000
+  help
+    Minimum battery voltage in mV before auto-disarm
+
+config CEREBRI_CONTROL_DIFFDRIVE_GAIN_HEADING
+  int "heading gain"
+  default 800
+  help
+    Steering = Heading error * GAIN_/ 1000
+
+config CEREBRI_CONTROL_DIFFDRIVE_GAIN_CROSS_TRACK
+  int "cross track gain"
+  default 1000
+  help
+    Steering = Cross track error * GAIN / 1000
+
+config CEREBRI_CONTROL_DIFFDRIVE_GAIN_ALONG_TRACK
+  int "along track gain"
+  default 1000
+  help
+    Steering = Along track error * GAIN / 1000
+
+config CEREBRI_CONTROL_DIFFDRIVE_MAX_VELOCITY_MM_S
+  int "max velocity, mm/s"
+  default 1000
+  help
+    Max velocity in mm/s
+
+config CEREBRI_CONTROL_DIFFDRIVE_WHEEL_RADIUS_MM
+  int "wheel radius, mm"
+  default 108
+  help
+    Wheel radius in mm
+
+config CEREBRI_CONTROL_DIFFDRIVE_WHEEL_BASE_MM
+  int "wheel base, mm"
+  default 667
+  help
+    Wheel radius in mm
+
+config CEREBRI_CONTROL_DIFFDRIVE_WHEEL_SEPARATION_MM
+  int "wheel separation, mm"
+  default 667
+  help
+    Wheel separation in mm
+
+config CEREBRI_CONTROL_DIFFDRIVE_MAX_ANGULAR_VELOCITY_MRAD_S
+  int "max turn rate, mrad/s"
+  default 1000
+  help
+    Max turn rate mrad/s
+
 module = CEREBRI_CONTROL_DIFFDRIVE
 module-str = control_diffdrive
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # CEREBRI_CONTROL_DIFFDRIVE
+endif  # CEREBRI_CONTROL_DIFFDRIVE

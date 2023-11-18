@@ -47,7 +47,7 @@ static void actuate_led_array_init(context* ctx)
     // initialize node
     syn_node_init(&ctx->node, "actuate_led_array");
     syn_node_add_sub(&ctx->node,
-        &ctx->sub_led_array, &ctx->led_array, &chan_led_array);
+        &ctx->sub_led_array, &ctx->led_array, &chan_led_array, 10);
 
     g_ctx.strip = DEVICE_DT_GET_ANY(apa_apa102);
     if (!g_ctx.strip) {

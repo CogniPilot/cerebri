@@ -23,12 +23,14 @@ typedef struct syn_sub_s {
     struct k_poll_event events[1];
     struct k_mutex mutex;
     struct syn_sub_s* next;
+    int64_t ticks_last;
+    int throttle_hz;
 } syn_sub_t;
 
 int syn_sub_init(
     syn_sub_t* sub,
     void* msg,
-    const struct zbus_channel* chan);
+    const struct zbus_channel* chan, int throttle_hz);
 
 int syn_sub_poll(syn_sub_t* sub, k_timeout_t timeout);
 
@@ -69,7 +71,8 @@ void syn_node_init(syn_node_t* node, const char* name);
 int syn_node_add_sub(syn_node_t* node,
     syn_sub_t* sub,
     void* msg,
-    const struct zbus_channel* chan);
+    const struct zbus_channel* chan,
+    int throttle_hz);
 
 int syn_node_add_pub(syn_node_t* node,
     syn_pub_t* pub,

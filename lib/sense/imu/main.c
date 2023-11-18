@@ -2,6 +2,7 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
+#include <math.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
@@ -15,22 +16,40 @@ LOG_MODULE_REGISTER(sense_imu, CONFIG_CEREBRI_SENSE_IMU_LOG_LEVEL);
 #define THREAD_STACK_SIZE 2048
 #define THREAD_PRIORITY 6
 
-extern struct k_work_q g_high_priority_work_q;
+static const double g_accel = 9.8;
+static int calibration_count = 100;
 
-typedef struct _context {
+extern struct k_work_q g_high_priority_work_q;
+void imu_work_handler(struct k_work* work);
+void imu_timer_handler(struct k_timer* dummy);
+
+typedef struct context_t {
+    // work
+    struct k_work work_item;
+    struct k_timer timer;
     // node
     syn_node_t node;
     // data
     synapse_msgs_Imu imu;
+    bool calibrated;
     // publications
     syn_pub_t pub_imu;
     // devices
     const struct device* accel_dev[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT];
     const struct device* gyro_dev[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT];
-} context;
+    // raw readings
+    double gyro_raw[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3];
+    double accel_raw[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3];
+    // bias
+    double gyro_bias[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3];
+    double accel_bias[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3];
+    double accel_scale[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT];
+} context_t;
 
-static context g_ctx = {
-    .node = { 0 },
+static context_t g_ctx = {
+    .work_item = Z_WORK_INITIALIZER(imu_work_handler),
+    .timer = Z_TIMER_INITIALIZER(g_ctx.timer, imu_timer_handler, NULL),
+    .node = {},
     .imu = {
         .has_header = true,
         .header = {
@@ -43,12 +62,17 @@ static context g_ctx = {
         .linear_acceleration = synapse_msgs_Vector3_init_default,
         .has_orientation = false,
     },
-    .pub_imu = { 0 },
-    .accel_dev = { 0 },
-    .gyro_dev = { 0 },
+    .calibrated = false,
+    .pub_imu = {},
+    .accel_dev = {},
+    .gyro_dev = {},
+    .gyro_raw = {},
+    .accel_raw = {},
+    .gyro_bias = {},
+    .accel_bias = {},
 };
 
-static void imu_init(context* ctx)
+static void imu_init(context_t* ctx)
 {
     // initialize node
     syn_node_init(&ctx->node, "imu");
@@ -76,14 +100,8 @@ static void imu_init(context* ctx)
 #endif
 }
 
-void imu_work_handler(struct k_work* work)
+void imu_read(context_t* ctx)
 {
-    context* ctx = &g_ctx;
-
-    double accel_data_array[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3] = { 0 };
-    double gyro_data_array[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3] = { 0 };
-
-    //        LOG_DBG("");
     for (int i = 0; i < MAX(CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT,
                         CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT);
          i++) {
@@ -97,7 +115,7 @@ void imu_work_handler(struct k_work* work)
                 sensor_sample_fetch(ctx->accel_dev[i]);
                 sensor_channel_get(ctx->accel_dev[i], SENSOR_CHAN_ACCEL_XYZ, accel_value);
                 for (int j = 0; j < 3; j++) {
-                    accel_data_array[i][j] = accel_value[j].val1 + accel_value[j].val2 * 1e-6;
+                    ctx->accel_raw[i][j] = accel_value[j].val1 + accel_value[j].val2 * 1e-6;
                 }
                 LOG_DBG("accel %d: %d.%06d %d.%06d %d.%06d", i,
                     accel_value[0].val1, accel_value[0].val2,
@@ -115,7 +133,7 @@ void imu_work_handler(struct k_work* work)
                 }
                 sensor_channel_get(ctx->gyro_dev[i], SENSOR_CHAN_GYRO_XYZ, gyro_value);
                 for (int j = 0; j < 3; j++) {
-                    gyro_data_array[i][j] = gyro_value[j].val1 + gyro_value[j].val2 * 1e-6;
+                    ctx->gyro_raw[i][j] = gyro_value[j].val1 + gyro_value[j].val2 * 1e-6;
                 }
                 LOG_DBG("gyro %d: %d.%06d %d.%06d %d.%06d", i,
                     gyro_value[0].val1, gyro_value[0].val2,
@@ -124,54 +142,181 @@ void imu_work_handler(struct k_work* work)
             }
         }
     }
+}
 
-    // select first imu for data for now: TODO implement voting
-    double accel[3] = {
-        accel_data_array[0][0],
-        accel_data_array[0][1],
-        accel_data_array[0][2]
-    };
+void imu_calibrate(context_t* ctx)
+{
+    // data
+    double accel_samples[calibration_count][CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3];
+    double gyro_samples[calibration_count][CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3];
 
-    double gyro[3] = {
-        gyro_data_array[0][0],
-        gyro_data_array[0][1],
-        gyro_data_array[0][2]
-    };
+    // mean and std
+    double accel_mean[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3];
+    double gyro_mean[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3];
+    double accel_std[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3];
+    double gyro_std[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3];
 
-    // lock message
-    syn_node_lock_all(&ctx->node, K_MSEC(1));
+    // repeat until calibrated
+    while (true) {
+
+        LOG_INF("calibration started, keep level, don't move");
+
+        // reset sum to zero
+        memset(gyro_samples, 0, sizeof(gyro_samples));
+        memset(accel_samples, 0, sizeof(accel_samples));
+        memset(accel_mean, 0, sizeof(accel_mean));
+        memset(accel_std, 0, sizeof(accel_std));
+        memset(gyro_mean, 0, sizeof(gyro_mean));
+        memset(gyro_std, 0, sizeof(gyro_std));
+
+        // attempt to get samples
+        for (int i = 0; i < calibration_count; i++) {
+            k_msleep(5);
+            imu_read(ctx);
+
+            // get accel data
+            for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT; j++) {
+                for (int k = 0; k < 3; k++) {
+                    accel_samples[i][j][k] = ctx->accel_raw[j][k];
+                    accel_mean[j][k] += accel_samples[i][j][k];
+                }
+            }
+
+            // get gyro data
+            for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT; j++) {
+                for (int k = 0; k < 3; k++) {
+                    gyro_samples[i][j][k] = ctx->gyro_raw[j][k];
+                    gyro_mean[j][k] += gyro_samples[i][j][k];
+                }
+            }
+        }
+
+        // find accel mean
+        for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT; j++) {
+            for (int k = 0; k < 3; k++) {
+                accel_mean[j][k] /= calibration_count;
+            }
+        }
+
+        // find gyro mean
+        for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT; j++) {
+            for (int k = 0; k < 3; k++) {
+                gyro_mean[j][k] /= calibration_count;
+            }
+        }
+
+        // find std deviation
+        for (int i = 0; i < calibration_count; i++) {
+            // get accel data
+            for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT; j++) {
+                for (int k = 0; k < 3; k++) {
+                    double e = accel_samples[i][j][k] - accel_mean[j][k];
+                    accel_std[j][k] += e * e;
+                }
+            }
+
+            // get gyro data
+            for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT; j++) {
+                for (int k = 0; k < 3; k++) {
+                    double e = gyro_samples[i][j][k] - gyro_mean[j][k];
+                    gyro_std[j][k] += e * e;
+                }
+            }
+        }
+
+        for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT; j++) {
+            for (int k = 0; k < 3; k++) {
+                accel_std[j][k] = sqrt(accel_std[j][k] / calibration_count);
+            }
+        }
+
+        for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT; j++) {
+            for (int k = 0; k < 3; k++) {
+                gyro_std[j][k] = sqrt(gyro_std[j][k] / calibration_count);
+            }
+        }
+
+        // check if calibration acceptable, and break if it is
+        // TODO implement calibration check
+        break;
+    }
+
+    LOG_INF("calibration completed");
+    for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT; j++) {
+        ctx->accel_bias[j][0] = accel_mean[j][0];
+        ctx->accel_bias[j][1] = accel_mean[j][1];
+        ctx->accel_bias[j][2] = 0;
+        ctx->accel_scale[j] = sqrt(
+                                  accel_mean[j][0] * accel_mean[j][0] + accel_mean[j][1] * accel_mean[j][1] + accel_mean[j][2] * accel_mean[j][2])
+            / g_accel;
+        LOG_INF("accel %d", j);
+        LOG_INF("mean: %10.4f %10.4f %10.4f", accel_mean[j][0], accel_mean[j][1], accel_mean[j][2]);
+        LOG_INF("std: %10.4f %10.4f %10.4f", accel_std[j][0], accel_std[j][1], accel_std[j][2]);
+        LOG_INF("scale %10.4f", ctx->accel_scale[j]);
+    }
+
+    for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT; j++) {
+        LOG_INF("gyro %d", j);
+        LOG_INF("mean: %10.4f %10.4f %10.4f", gyro_mean[j][0], gyro_mean[j][1], gyro_mean[j][2]);
+        LOG_INF("std: %10.4f %10.4f %10.4f", gyro_std[j][0], gyro_std[j][1], gyro_std[j][2]);
+        for (int k = 0; k < 3; k++) {
+            ctx->gyro_bias[j][k] = gyro_mean[j][k];
+        }
+    }
+    ctx->calibrated = true;
+}
+
+void imu_publish(context_t* ctx)
+{
+    // TODO implement voting
+    static const int accel_select = 0;
+    static const int gyro_select = 0;
 
     // update message
     stamp_header(&ctx->imu.header, k_uptime_ticks());
     ctx->imu.header.seq++;
-    ctx->imu.angular_velocity.x = gyro[0];
-    ctx->imu.angular_velocity.y = gyro[1];
-    ctx->imu.angular_velocity.z = gyro[2];
-    ctx->imu.linear_acceleration.x = accel[0];
-    ctx->imu.linear_acceleration.y = accel[1];
-    ctx->imu.linear_acceleration.z = accel[2];
+    ctx->imu.angular_velocity.x = ctx->gyro_raw[gyro_select][0] - ctx->gyro_bias[gyro_select][0];
+    ctx->imu.angular_velocity.y = ctx->gyro_raw[gyro_select][1] - ctx->gyro_bias[gyro_select][1];
+    ctx->imu.angular_velocity.z = ctx->gyro_raw[gyro_select][2] - ctx->gyro_bias[gyro_select][2];
+    ctx->imu.linear_acceleration.x = (ctx->accel_raw[accel_select][0] - ctx->accel_bias[accel_select][0]) / ctx->accel_scale[accel_select];
+    ctx->imu.linear_acceleration.y = (ctx->accel_raw[accel_select][1] - ctx->accel_bias[accel_select][1]) / ctx->accel_scale[accel_select];
+    ctx->imu.linear_acceleration.z = (ctx->accel_raw[accel_select][2] - ctx->accel_bias[accel_select][2]) / ctx->accel_scale[accel_select];
 
     // publish message
     syn_node_publish_all(&ctx->node, K_MSEC(1));
     // LOG_INF("publish imu");
+}
+
+void imu_work_handler(struct k_work* work)
+{
+    context_t* ctx = CONTAINER_OF(work, context_t, work_item);
+
+    // lock message
+    syn_node_lock_all(&ctx->node, K_MSEC(1));
+
+    if (!ctx->calibrated) {
+        LOG_INF("calibrating");
+        imu_calibrate(ctx);
+        return;
+    }
+
+    imu_read(ctx);
+    imu_publish(ctx);
 
     // unlock message
     syn_node_unlock_all(&ctx->node);
 }
 
-K_WORK_DEFINE(imu_work, imu_work_handler);
-
-void imu_timer_handler(struct k_timer* dummy)
+void imu_timer_handler(struct k_timer* timer)
 {
-    k_work_submit_to_queue(&g_high_priority_work_q, &imu_work);
+    context_t* ctx = CONTAINER_OF(timer, context_t, timer);
+    k_work_submit_to_queue(&g_high_priority_work_q, &ctx->work_item);
 }
 
-K_TIMER_DEFINE(imu_timer, imu_timer_handler, NULL);
-
-int sense_imu_entry_point(context* ctx)
+int sense_imu_entry_point(context_t* ctx)
 {
     imu_init(ctx);
-    k_timer_start(&imu_timer, K_MSEC(5), K_MSEC(5));
+    k_timer_start(&ctx->timer, K_MSEC(5), K_MSEC(5));
     return 0;
 }
 

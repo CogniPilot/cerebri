@@ -55,10 +55,10 @@ static context g_ctx = {
 static void init(context* ctx)
 {
     syn_node_init(&ctx->node, "control_ackerman_pos");
-    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm);
-    syn_node_add_sub(&ctx->node, &ctx->sub_clock_offset, &ctx->clock_offset, &chan_clock_offset);
-    syn_node_add_sub(&ctx->node, &ctx->sub_pose, &ctx->pose, &chan_estimator_odometry);
-    syn_node_add_sub(&ctx->node, &ctx->sub_bezier_trajectory, &ctx->bezier_trajectory, &chan_bezier_trajectory);
+    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm, 10);
+    syn_node_add_sub(&ctx->node, &ctx->sub_clock_offset, &ctx->clock_offset, &chan_clock_offset, 10);
+    syn_node_add_sub(&ctx->node, &ctx->sub_pose, &ctx->pose, &chan_estimator_odometry, 10);
+    syn_node_add_sub(&ctx->node, &ctx->sub_bezier_trajectory, &ctx->bezier_trajectory, &chan_bezier_trajectory, 10);
     syn_node_add_pub(&ctx->node, &ctx->pub_cmd_vel, &ctx->cmd_vel, &chan_cmd_vel);
 }
 

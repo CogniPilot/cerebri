@@ -41,7 +41,7 @@ static context g_ctx = {
 static void init(context* ctx)
 {
     syn_node_init(&ctx->node, "manual");
-    syn_node_add_sub(&ctx->node, &ctx->sub_joy, &ctx->joy, &chan_joy);
+    syn_node_add_sub(&ctx->node, &ctx->sub_joy, &ctx->joy, &chan_joy, 10);
     syn_node_add_pub(&ctx->node, &ctx->pub_actuators_manual,
         &ctx->actuators_manual, &chan_actuators_manual);
 }

@@ -169,7 +169,7 @@ static bool set_blocking_enabled(int fd, bool blocking)
 static void synapse_ethernet_init(context* ctx)
 {
     syn_node_init(&ctx->node, "synapse_ethernet");
-    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm);
+    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm, 10);
 }
 
 static void send_uptime(context* ctx)

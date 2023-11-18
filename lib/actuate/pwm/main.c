@@ -38,8 +38,8 @@ static context g_ctx = {
 
 static void init(context* ctx)
 {
-    syn_sub_init(&ctx->sub_actuators, &ctx->actuators, &chan_actuators);
-    syn_sub_init(&ctx->sub_fsm, &ctx->fsm, &chan_fsm);
+    syn_sub_init(&ctx->sub_actuators, &ctx->actuators, &chan_actuators, 100);
+    syn_sub_init(&ctx->sub_fsm, &ctx->fsm, &chan_fsm, 100);
 }
 
 static void listener_actuate_pwm_callback(const struct zbus_channel* chan)

@@ -9,11 +9,15 @@ LOG_MODULE_DECLARE(synapse_zbus);
 int syn_sub_init(
     syn_sub_t* sub,
     void* msg,
-    const struct zbus_channel* chan)
+    const struct zbus_channel* chan,
+    int throttle_hz
+    )
 {
     __ASSERT(sub != NULL, "sub is null");
     __ASSERT(msg != NULL, "msg is null");
     sub->next = NULL;
+    sub->throttle_hz = throttle_hz;
+    sub->ticks_last = 0;
     sub->msg = msg;
     sub->chan = chan;
     k_poll_signal_init(&sub->signal);
@@ -41,10 +45,15 @@ int syn_sub_listen(syn_sub_t* sub, const struct zbus_channel* chan, k_timeout_t 
 
     if (chan == sub->chan) {
         RC(k_mutex_lock(&sub->mutex, timeout), return rc);
-        // since we are in a zbus listener, zbus channel is already mutex locked
-        memcpy(sub->msg, sub->chan->message, sub->chan->message_size);
+        int64_t ticks_now = k_uptime_ticks();
+        float hz = (float)(CONFIG_SYS_CLOCK_TICKS_PER_SEC)/ (ticks_now - sub->ticks_last);
+        if (hz <= sub->throttle_hz) {
+            sub->ticks_last = ticks_now;
+            // since we are in a zbus listener, zbus channel is already mutex locked
+            memcpy(sub->msg, sub->chan->message, sub->chan->message_size);
+            RC(k_poll_signal_raise(&sub->signal, 0x1), return rc);
+        }
         RC(k_mutex_unlock(&sub->mutex), return rc);
-        RC(k_poll_signal_raise(&sub->signal, 0x1), return rc);
     }
     return 0;
 }
@@ -122,13 +131,13 @@ int syn_pub_forward(syn_pub_t* pub, const struct zbus_channel* chan, const struc
 int syn_node_add_sub(syn_node_t* node,
     syn_sub_t* sub,
     void* msg,
-    const struct zbus_channel* chan)
+    const struct zbus_channel* chan, int throttle_hz)
 {
     __ASSERT(node != NULL, "node is null");
     __ASSERT(sub != NULL, "sub is null");
     __ASSERT(msg != NULL, "msg is null");
 
-    RC(syn_sub_init(sub, msg, chan), return rc);
+    RC(syn_sub_init(sub, msg, chan, throttle_hz), return rc);
     syn_sub_t* tail = node->sub_list_head;
     if (tail == NULL) {
         node->sub_list_head = sub;

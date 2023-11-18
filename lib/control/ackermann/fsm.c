@@ -52,10 +52,10 @@ static context g_ctx = {
 static void control_ackermann_fsm_init(context* ctx)
 {
     syn_node_init(&ctx->node, "control_ackermann_fsm");
-    syn_node_add_sub(&ctx->node, &ctx->sub_joy, &ctx->joy, &chan_joy);
+    syn_node_add_sub(&ctx->node, &ctx->sub_joy, &ctx->joy, &chan_joy, 10);
     syn_node_add_sub(&ctx->node, &ctx->sub_battery_state,
-        &ctx->battery_state, &chan_battery_state);
-    syn_node_add_sub(&ctx->node, &ctx->sub_safety, &ctx->safety, &chan_safety);
+        &ctx->battery_state, &chan_battery_state, 10);
+    syn_node_add_sub(&ctx->node, &ctx->sub_safety, &ctx->safety, &chan_safety, 10);
     syn_node_add_pub(&ctx->node, &ctx->pub_fsm, &ctx->fsm, &chan_fsm);
 }
 

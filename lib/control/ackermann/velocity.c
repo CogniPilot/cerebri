@@ -48,9 +48,9 @@ static void init_control_ackermann_vel(context* ctx)
 {
     LOG_DBG("init vel");
     syn_node_init(&ctx->node, "control_ackerman_vel");
-    syn_node_add_sub(&ctx->node, &ctx->sub_cmd_vel, &ctx->cmd_vel, &chan_cmd_vel);
-    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm);
-    syn_node_add_sub(&ctx->node, &ctx->sub_actuators_manual, &ctx->actuators_manual, &chan_actuators_manual);
+    syn_node_add_sub(&ctx->node, &ctx->sub_cmd_vel, &ctx->cmd_vel, &chan_cmd_vel, 10);
+    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm, 10);
+    syn_node_add_sub(&ctx->node, &ctx->sub_actuators_manual, &ctx->actuators_manual, &chan_actuators_manual, 10);
     syn_node_add_pub(&ctx->node, &ctx->pub_actuators, &ctx->actuators, &chan_actuators);
 }
 

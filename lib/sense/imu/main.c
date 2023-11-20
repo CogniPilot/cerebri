@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include <math.h>
+#include <sys/types.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
@@ -31,9 +32,13 @@ typedef struct context_t {
     syn_node_t node;
     // data
     synapse_msgs_Imu imu;
+    synapse_msgs_Fsm fsm;
+    synapse_msgs_Fsm_Mode last_mode;
     bool calibrated;
     // publications
     syn_pub_t pub_imu;
+    // subscriptions
+    syn_sub_t sub_fsm;
     // devices
     const struct device* accel_dev[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT];
     const struct device* gyro_dev[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT];
@@ -62,8 +67,11 @@ static context_t g_ctx = {
         .linear_acceleration = synapse_msgs_Vector3_init_default,
         .has_orientation = false,
     },
+    .fsm = synapse_msgs_Fsm_init_default,
+    .last_mode = synapse_msgs_Fsm_Mode_UNKNOWN_MODE,
     .calibrated = false,
     .pub_imu = {},
+    .sub_fsm = {},
     .accel_dev = {},
     .gyro_dev = {},
     .gyro_raw = {},
@@ -77,6 +85,7 @@ static void imu_init(context_t* ctx)
     // initialize node
     syn_node_init(&ctx->node, "imu");
     syn_node_add_pub(&ctx->node, &ctx->pub_imu, &ctx->imu, &chan_imu);
+    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm, 1);
 
     // setup accel devices
 
@@ -294,6 +303,12 @@ void imu_work_handler(struct k_work* work)
     // lock message
     syn_node_lock_all(&ctx->node, K_MSEC(1));
 
+    // handle calibration request
+    if (ctx->fsm.mode == synapse_msgs_Fsm_Mode_CALIBRATION && ctx->last_mode != synapse_msgs_Fsm_Mode_CALIBRATION) {
+        ctx->calibrated = false;
+    }
+    ctx->last_mode = ctx->fsm.mode;
+
     if (!ctx->calibrated) {
         LOG_INF("calibrating");
         imu_calibrate(ctx);
@@ -319,6 +334,14 @@ int sense_imu_entry_point(context_t* ctx)
     k_timer_start(&ctx->timer, K_MSEC(5), K_MSEC(5));
     return 0;
 }
+
+static void listener_sense_imu_callback(const struct zbus_channel* chan)
+{
+    syn_node_listen(&g_ctx.node, chan, K_NO_WAIT);
+}
+
+ZBUS_LISTENER_DEFINE(listener_sense_imu, listener_sense_imu_callback);
+ZBUS_CHAN_ADD_OBS(chan_fsm, listener_sense_imu, 1);
 
 K_THREAD_DEFINE(sense_imu, THREAD_STACK_SIZE,
     sense_imu_entry_point, &g_ctx, NULL, NULL,

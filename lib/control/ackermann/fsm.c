@@ -83,6 +83,7 @@ static void update_fsm(
     bool request_manual = joy->buttons[JOY_BUTTON_MANUAL] == 1;
     bool request_auto = joy->buttons[JOY_BUTTON_AUTO] == 1;
     bool request_cmd_vel = joy->buttons[JOY_BUTTON_CMD_VEL] == 1;
+    bool request_calibration = joy->buttons[JOY_BUTTON_CALIBRATION] == 1;
 
     bool mode_set = fsm->mode != synapse_msgs_Fsm_Mode_UNKNOWN_MODE;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
@@ -150,6 +151,12 @@ static void update_fsm(
         request_auto || request_cmd_vel, // guard
         synapse_msgs_Fsm_Mode_CMD_VEL, // post
         LOG_INF("mode cmd_vel/ auto"));
+
+    TRANSITION_FROM_ANY(
+        fsm->mode, // state
+        request_calibration && safe, // guard
+        synapse_msgs_Fsm_Mode_CALIBRATION, // post
+        LOG_INF("mode calibration"));
 
     // set timestamp
     stamp_header(&fsm->header, k_uptime_ticks());

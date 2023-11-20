@@ -10,6 +10,7 @@ zephyr_include_directories()
 zephyr_library_sources(
   common.c
   manual.c
+  lighting.c
   fsm.c
   velocity.c
   position.c

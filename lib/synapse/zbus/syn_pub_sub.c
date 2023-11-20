@@ -43,7 +43,7 @@ int syn_sub_listen(syn_sub_t* sub, const struct zbus_channel* chan, k_timeout_t 
     __ASSERT(chan != NULL, "chan is null");
 
     if (chan == sub->chan) {
-        RC(k_mutex_lock(&sub->mutex, timeout), return rc);
+        // RC(k_mutex_lock(&sub->mutex, timeout), return rc);
         int64_t ticks_now = k_uptime_ticks();
         float hz = (float)(CONFIG_SYS_CLOCK_TICKS_PER_SEC) / (ticks_now - sub->ticks_last);
         if (hz <= sub->throttle_hz) {
@@ -52,7 +52,7 @@ int syn_sub_listen(syn_sub_t* sub, const struct zbus_channel* chan, k_timeout_t 
             memcpy(sub->msg, sub->chan->message, sub->chan->message_size);
             RC(k_poll_signal_raise(&sub->signal, 0x1), return rc);
         }
-        RC(k_mutex_unlock(&sub->mutex), return rc);
+        // RC(k_mutex_unlock(&sub->mutex), return rc);
     }
     return 0;
 }
@@ -69,7 +69,7 @@ int syn_sub_unlock(syn_sub_t* sub)
 {
     __ASSERT(sub != NULL, "sub is null");
 
-    RC(k_mutex_unlock(&sub->mutex), return rc);
+    // RC(k_mutex_unlock(&sub->mutex), return rc);
     return 0;
 }
 
@@ -101,7 +101,7 @@ int syn_pub_unlock(syn_pub_t* pub)
 {
     __ASSERT(pub != NULL, "pub is null");
 
-    RC(k_mutex_unlock(&pub->mutex), return rc);
+    // RC(k_mutex_unlock(&pub->mutex), return rc);
     return 0;
 }
 

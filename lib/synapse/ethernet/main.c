@@ -24,11 +24,15 @@ LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_CEREBRI_SYNAPSE_ETHERNET_LOG_LEVEL)
 #define RX_BUF_SIZE 1024
 #define BIND_PORT 4242
 
-typedef struct _context {
+typedef struct context_s {
     syn_node_t node;
+    synapse_msgs_Actuators actuators;
+    synapse_msgs_BatteryState battery_state;
+    synapse_msgs_Odometry estimator_odometry;
     synapse_msgs_Fsm fsm;
-    synapse_msgs_Time clock_offset;
-    syn_sub_t sub_fsm, sub_clock_offset;
+    synapse_msgs_Safety safety;
+    syn_sub_t sub_actuators, sub_battery_state,
+        sub_fsm, sub_estimator_odometry, sub_safety;
     TinyFrame tf;
     volatile int client;
     int error_count;
@@ -36,15 +40,21 @@ typedef struct _context {
     int serv;
     struct sockaddr_in bind_addr;
     int counter;
-} context;
+} context_t;
 
-static context g_ctx = {
+static context_t g_ctx = {
     .node = { 0 },
+    .actuators = synapse_msgs_Actuators_init_default,
+    .battery_state = synapse_msgs_BatteryState_init_default,
+    .estimator_odometry = synapse_msgs_Odometry_init_default,
     .fsm = synapse_msgs_Fsm_init_default,
-    .clock_offset = synapse_msgs_Time_init_default,
-    .sub_fsm = { 0 },
-    .sub_clock_offset = { 0 },
-    .tf = { 0 },
+    .safety = synapse_msgs_Safety_init_default,
+    .sub_actuators = {},
+    .sub_battery_state = {},
+    .sub_fsm = {},
+    .sub_estimator_odometry = {},
+    .sub_safety = {},
+    .tf = {},
     .client = -1,
     .error_count = 0,
 };
@@ -63,22 +73,21 @@ static context g_ctx = {
         return TF_STAY;                                                          \
     }
 
-#define TOPIC_PUBLISHER(CHANNEL, CLASS, TOPIC)                                   \
-    else if (chan == &chan_##CHANNEL)                                            \
-    {                                                                            \
-        TF_Msg msg;                                                              \
-        TF_ClearMsg(&msg);                                                       \
-        uint8_t buf[CLASS##_size];                                               \
-        pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));     \
-        int status = pb_encode(&stream, CLASS##_fields, chan->message);          \
-        if (status) {                                                            \
-            msg.type = TOPIC;                                                    \
-            msg.data = buf;                                                      \
-            msg.len = stream.bytes_written;                                      \
-            TF_Send(&g_ctx.tf, &msg);                                            \
-        } else {                                                                 \
-            printf("%s encoding failed: %s\n", #CHANNEL, PB_GET_ERROR(&stream)); \
-        }                                                                        \
+#define TOPIC_PUBLISHER(DATA, CLASS, TOPIC)                                   \
+    {                                                                         \
+        TF_Msg msg;                                                           \
+        TF_ClearMsg(&msg);                                                    \
+        uint8_t buf[CLASS##_size];                                            \
+        pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));  \
+        int status = pb_encode(&stream, CLASS##_fields, DATA);                \
+        if (status) {                                                         \
+            msg.type = TOPIC;                                                 \
+            msg.data = buf;                                                   \
+            msg.len = stream.bytes_written;                                   \
+            TF_Send(&g_ctx.tf, &msg);                                         \
+        } else {                                                              \
+            printf("%s encoding failed: %s\n", #DATA, PB_GET_ERROR(&stream)); \
+        }                                                                     \
     }
 
 static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
@@ -135,15 +144,7 @@ TOPIC_LISTENER(wheel_odometry, synapse_msgs_WheelOdometry)
 
 void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
 {
-    // Cerebri -> ROS
-    if (chan == NULL) { } // start of if else statements for channel type
-    TOPIC_PUBLISHER(actuators, synapse_msgs_Actuators, SYNAPSE_ACTUATORS_TOPIC)
-    TOPIC_PUBLISHER(estimator_odometry, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC)
-    TOPIC_PUBLISHER(fsm, synapse_msgs_Fsm, SYNAPSE_FSM_TOPIC)
-    TOPIC_PUBLISHER(safety, synapse_msgs_Safety, SYNAPSE_SAFETY_TOPIC)
-#if !defined(CONFIG_CEREBRI_DREAM_SIL) && !defined(CONFIG_CEREBRI_DREAM_HIL)
-    TOPIC_PUBLISHER(battery_state, synapse_msgs_BatteryState, SYNAPSE_BATTERY_STATE_TOPIC)
-#endif
+    syn_node_listen(&g_ctx.node, chan, K_MSEC(1));
 }
 
 ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callback);
@@ -151,9 +152,7 @@ ZBUS_CHAN_ADD_OBS(chan_actuators, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_estimator_odometry, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_fsm, listener_synapse_ethernet, 1);
 ZBUS_CHAN_ADD_OBS(chan_safety, listener_synapse_ethernet, 1);
-#if !defined(CONFIG_CEREBRI_DREAM_SIL) && !defined(CONFIG_CEREBRI_DREAM_HIL)
 ZBUS_CHAN_ADD_OBS(chan_battery_state, listener_synapse_ethernet, 1);
-#endif
 
 static bool set_blocking_enabled(int fd, bool blocking)
 {
@@ -166,13 +165,17 @@ static bool set_blocking_enabled(int fd, bool blocking)
     return (fcntl(fd, F_SETFL, flags) == 0) ? true : false;
 }
 
-static void synapse_ethernet_init(context* ctx)
+static void synapse_ethernet_init(context_t* ctx)
 {
     syn_node_init(&ctx->node, "synapse_ethernet");
-    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm, 10);
+    syn_node_add_sub(&ctx->node, &ctx->sub_actuators, &ctx->actuators, &chan_actuators, 1);
+    syn_node_add_sub(&ctx->node, &ctx->sub_battery_state, &ctx->battery_state, &chan_battery_state, 1);
+    syn_node_add_sub(&ctx->node, &ctx->sub_estimator_odometry, &ctx->estimator_odometry, &chan_estimator_odometry, 10);
+    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm, 1);
+    syn_node_add_sub(&ctx->node, &ctx->sub_safety, &ctx->safety, &chan_safety, 1);
 }
 
-static void send_uptime(context* ctx)
+static void send_uptime(context_t* ctx)
 {
     TF_Msg msg;
     TF_ClearMsg(&msg);
@@ -195,7 +198,7 @@ static void send_uptime(context* ctx)
     }
 }
 
-static void ethernet_entry_point(context* ctx)
+static void ethernet_entry_point(context_t* ctx)
 {
     synapse_ethernet_init(ctx);
 
@@ -249,7 +252,6 @@ static void ethernet_entry_point(context* ctx)
         char addr_str[32];
         g_ctx.client = zsock_accept(ctx->serv, (struct sockaddr*)&client_addr,
             &client_addr_len);
-        k_msleep(1000);
 
         if (g_ctx.client < 0) {
             continue;
@@ -260,7 +262,24 @@ static void ethernet_entry_point(context* ctx)
         LOG_INF("connection #%d from %s", ctx->counter++, addr_str);
 
         while (1) {
-            k_msleep(1);
+            k_timeout_t timeout = K_MSEC(1);
+
+            if (syn_sub_poll(&ctx->sub_battery_state, timeout) == 0) {
+                TOPIC_PUBLISHER(&ctx->battery_state, synapse_msgs_BatteryState, SYNAPSE_BATTERY_STATE_TOPIC);
+            }
+
+            if (syn_sub_poll(&ctx->sub_fsm, timeout) == 0) {
+                TOPIC_PUBLISHER(&ctx->fsm, synapse_msgs_Fsm, SYNAPSE_FSM_TOPIC);
+            }
+
+            if (syn_sub_poll(&ctx->sub_safety, timeout) == 0) {
+                TOPIC_PUBLISHER(&ctx->safety, synapse_msgs_Safety, SYNAPSE_SAFETY_TOPIC);
+            }
+
+            if (syn_sub_poll(&ctx->sub_estimator_odometry, timeout) == 0) {
+                TOPIC_PUBLISHER(&ctx->estimator_odometry, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC);
+            }
+
             send_uptime(ctx);
             if (g_ctx.client < 0) {
                 LOG_WRN("no client, triggering reconnect");

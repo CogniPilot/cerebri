@@ -33,7 +33,7 @@ manifest:
       path: modules/lib/synapse_tinyframe
     - name: synapse_protobuf
       remote: cognipilot
-      revision: f71fd673a233a89934f93eec97c9e3f836b4abca # main 11/9/23
+      revision: e2e0dce77c39a2112465c2f843ac75c3ebfdca2c # main 11/19/23
       path: modules/lib/synapse_protobuf
     - name: ubxlib
       remote: cognipilot

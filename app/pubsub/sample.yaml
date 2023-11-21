@@ -1,22 +1,22 @@
 sample:
-  description: B3RB
-  name: B3RB
+  description: pubsub
+  name: pubsub
 common:
   build_only: true
 tests:
-  b3rb.posix:
+  pubsub.posix:
     tags:
-      - b3rb
+      - pubsub
     integration_platforms:
       - native_posix
-  b3rb.vmu_rt1170:
+  pubsub.vmu_rt1170:
     tags:
-      - b3rb
+      - pubsub
     integration_platforms:
       - vmu_rt1170
-  b3rb.mr_canhubk3:
+  pubsub.mr_canhubk3:
     tags:
-      - b3rb
+      - pubsum
     integration_platforms:
       - mr_canhubk3
 

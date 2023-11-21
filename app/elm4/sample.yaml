@@ -5,6 +5,5 @@ common:
   build_only: true
   integration_platforms:
     - native_posix
-    - vmu_rt1170
 tests:
   elm4.default: {}

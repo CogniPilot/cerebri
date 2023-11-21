@@ -11,14 +11,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    container: ghcr.io/zephyrproject-rtos/ci:v0.26.4
+    container: ghcr.io/zephyrproject-rtos/ci:v0.26.6
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
-      - name: Install Clang
+      - name: Install Dependencies
         run: |
           apt update
-          apt install clang-format-14 -y
+          apt install clang-format-14 curl -y
+          curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null 
+          apt update
+          apt install ros-humble-rosidl-cli -y
+          echo "/opt/ros/humble/bin" >> $GITHUB_PATH
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -39,4 +44,4 @@ jobs:
       - name: Twister Tests
         working-directory: example-application
         run: |
-          west test
+          . /opt/ros/humble/setup.bash && west test

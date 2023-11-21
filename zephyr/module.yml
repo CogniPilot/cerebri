@@ -8,3 +8,8 @@ build:
     - nanopb
     - synapse_tinyframe
     - synapse_protobuf
+    - unique_identifier_msgs
+    - rcl_interfaces
+    - rosidl
+    - cyclonedds
+    - aerial_msgs

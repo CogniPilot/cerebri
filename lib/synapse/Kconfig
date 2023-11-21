@@ -3,6 +3,7 @@
 
 menu "Synapse"
 
+rsource "zros/Kconfig"
 rsource "zbus/Kconfig"
 rsource "ethernet/Kconfig"
 rsource "topic/Kconfig"

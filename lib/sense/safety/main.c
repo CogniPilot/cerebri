@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <inttypes.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
@@ -11,8 +10,13 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 
-#include <cerebri/synapse/zbus/common.h>
-#include <cerebri/synapse/zbus/syn_pub_sub.h>
+#include <synapse_protobuf/safety.pb.h>
+#include <synapse_topic_list.h>
+
+#include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_pub_struct.h>
+#include <zros/zros_node.h>
+#include <zros/zros_pub.h>
 
 #define MY_STACK_SIZE 1024
 #define MY_PRIORITY 4
@@ -21,13 +25,21 @@ extern struct k_work_q g_low_priority_work_q;
 
 LOG_MODULE_REGISTER(sense_safety, CONFIG_CEREBRI_SENSE_SAFETY_LOG_LEVEL);
 
-typedef struct _context {
-    synapse_msgs_Safety safety;
-    syn_pub_t pub_safety;
-} context;
+static void safety_toggle_work_handler(struct k_work* work);
+static void safety_timer_work_handler(struct k_work* work);
 
-static context g_ctx = {
-    .safety = {
+typedef struct context {
+    struct k_work toggle_work_item;
+    struct k_work timer_work_item;
+    synapse_msgs_Safety data;
+    struct zros_node node;
+    struct zros_pub pub;
+} context_t;
+
+static context_t g_ctx = {
+    .toggle_work_item = Z_WORK_INITIALIZER(safety_toggle_work_handler),
+    .timer_work_item = Z_WORK_INITIALIZER(safety_timer_work_handler),
+    .data = {
         .has_header = true,
         .header = {
             .frame_id = "base_link",
@@ -36,7 +48,8 @@ static context g_ctx = {
             .stamp = synapse_msgs_Time_init_default },
         .status = synapse_msgs_Safety_Status_SAFE,
     },
-    .pub_safety = { 0 }
+    .node = {},
+    .pub = {},
 };
 
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(safety_button), gpios);
@@ -44,42 +57,37 @@ static struct gpio_callback button_cb_data;
 
 static void safety_toggle_work_handler(struct k_work* work)
 {
-    if (syn_pub_lock(&g_ctx.pub_safety, K_MSEC(1)) != 0)
-        return;
-
-    synapse_msgs_Safety_Status status = g_ctx.safety.status;
+    context_t* ctx = CONTAINER_OF(work, context_t, toggle_work_item);
+    synapse_msgs_Safety_Status status = ctx->data.status;
     if (status == synapse_msgs_Safety_Status_SAFE) {
-        g_ctx.safety.status = synapse_msgs_Safety_Status_UNSAFE;
+        ctx->data.status = synapse_msgs_Safety_Status_UNSAFE;
     } else {
-        g_ctx.safety.status = synapse_msgs_Safety_Status_SAFE;
+        ctx->data.status = synapse_msgs_Safety_Status_SAFE;
     }
-    stamp_header(&g_ctx.safety.header, k_uptime_ticks());
-    g_ctx.safety.header.seq += 1;
-    syn_pub_unlock(&g_ctx.pub_safety);
-    syn_pub_publish(&g_ctx.pub_safety, K_MSEC(100));
+    stamp_header(&ctx->data.header, k_uptime_ticks());
+    ctx->data.header.seq++;
+    zros_pub_update(&ctx->pub);
 }
-K_WORK_DEFINE(safety_toggle_work, safety_toggle_work_handler);
 
 static void safety_timer_work_handler(struct k_work* work)
 {
-    if (syn_pub_lock(&g_ctx.pub_safety, K_MSEC(1)) != 0)
-        return;
-    stamp_header(&g_ctx.safety.header, k_uptime_ticks());
-    g_ctx.safety.header.seq += 1;
-    syn_pub_unlock(&g_ctx.pub_safety);
-    syn_pub_publish(&g_ctx.pub_safety, K_MSEC(100));
+    context_t* ctx = CONTAINER_OF(work, context_t, timer_work_item);
+    stamp_header(&ctx->data.header, k_uptime_ticks());
+    ctx->data.header.seq++;
+    zros_pub_update(&ctx->pub);
 }
 K_WORK_DEFINE(safety_timer_work, safety_timer_work_handler);
 
 static void button_pressed(const struct device* dev, struct gpio_callback* cb,
     uint32_t pins)
 {
-    k_work_submit_to_queue(&g_low_priority_work_q, &safety_toggle_work);
+    k_work_submit_to_queue(&g_low_priority_work_q, &g_ctx.toggle_work_item);
 }
 
-static int sense_safety_init(context* ctx)
+static int sense_safety_init(context_t* ctx)
 {
-    syn_pub_init(&ctx->pub_safety, &ctx->safety, &chan_safety);
+    zros_node_init(&ctx->node, "sense_safety");
+    zros_pub_init(&ctx->pub, &ctx->node, &topic_safety, &ctx->data);
 
     int ret;
 
@@ -107,12 +115,12 @@ static int sense_safety_init(context* ctx)
 
 void safety_timer_handler(struct k_timer* dummy)
 {
-    k_work_submit_to_queue(&g_low_priority_work_q, &safety_timer_work);
+    k_work_submit_to_queue(&g_low_priority_work_q, &g_ctx.timer_work_item);
 }
 
 K_TIMER_DEFINE(safety_timer, safety_timer_handler, NULL);
 
-static int sense_safety_entry_point(context* ctx)
+static int sense_safety_entry_point(context_t* ctx)
 {
     sense_safety_init(ctx);
     k_timer_start(&safety_timer, K_MSEC(1000), K_MSEC(1000));

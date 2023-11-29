@@ -9,8 +9,15 @@
 #include <zephyr/logging/log.h>
 
 #include <cerebri/core/common.h>
-#include <cerebri/synapse/zbus/channels.h>
-#include <cerebri/synapse/zbus/syn_pub_sub.h>
+
+#include <synapse_topic_list.h>
+
+#include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_pub_struct.h>
+#include <zros/private/zros_sub_struct.h>
+#include <zros/zros_node.h>
+#include <zros/zros_pub.h>
+#include <zros/zros_sub.h>
 
 LOG_MODULE_REGISTER(sense_imu, CONFIG_CEREBRI_SENSE_IMU_LOG_LEVEL);
 
@@ -29,16 +36,16 @@ typedef struct context_t {
     struct k_work work_item;
     struct k_timer timer;
     // node
-    syn_node_t node;
+    struct zros_node node;
     // data
     synapse_msgs_Imu imu;
     synapse_msgs_Fsm fsm;
     synapse_msgs_Fsm_Mode last_mode;
     bool calibrated;
     // publications
-    syn_pub_t pub_imu;
+    struct zros_pub pub_imu;
     // subscriptions
-    syn_sub_t sub_fsm;
+    struct zros_sub sub_fsm;
     // devices
     const struct device* accel_dev[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT];
     const struct device* gyro_dev[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT];
@@ -83,9 +90,9 @@ static context_t g_ctx = {
 static void imu_init(context_t* ctx)
 {
     // initialize node
-    syn_node_init(&ctx->node, "imu");
-    syn_node_add_pub(&ctx->node, &ctx->pub_imu, &ctx->imu, &chan_imu);
-    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm, 1);
+    zros_node_init(&ctx->node, "sense_imu");
+    zros_pub_init(&ctx->pub_imu, &ctx->node, &topic_imu, &ctx->imu);
+    zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 1);
 
     // setup accel devices
 
@@ -292,7 +299,7 @@ void imu_publish(context_t* ctx)
     ctx->imu.linear_acceleration.z = (ctx->accel_raw[accel_select][2] - ctx->accel_bias[accel_select][2]) / ctx->accel_scale[accel_select];
 
     // publish message
-    syn_node_publish_all(&ctx->node, K_MSEC(1));
+    zros_pub_update(&ctx->pub_imu);
     // LOG_INF("publish imu");
 }
 
@@ -300,8 +307,10 @@ void imu_work_handler(struct k_work* work)
 {
     context_t* ctx = CONTAINER_OF(work, context_t, work_item);
 
-    // lock message
-    syn_node_lock_all(&ctx->node, K_MSEC(1));
+    // update fsm
+    if (zros_sub_update_available(&ctx->sub_fsm)) {
+        zros_sub_update(&ctx->sub_fsm);
+    }
 
     // handle calibration request
     if (ctx->fsm.mode == synapse_msgs_Fsm_Mode_CALIBRATION && ctx->last_mode != synapse_msgs_Fsm_Mode_CALIBRATION) {
@@ -317,9 +326,6 @@ void imu_work_handler(struct k_work* work)
 
     imu_read(ctx);
     imu_publish(ctx);
-
-    // unlock message
-    syn_node_unlock_all(&ctx->node);
 }
 
 void imu_timer_handler(struct k_timer* timer)
@@ -334,14 +340,6 @@ int sense_imu_entry_point(context_t* ctx)
     k_timer_start(&ctx->timer, K_MSEC(5), K_MSEC(5));
     return 0;
 }
-
-static void listener_sense_imu_callback(const struct zbus_channel* chan)
-{
-    syn_node_listen(&g_ctx.node, chan, K_NO_WAIT);
-}
-
-ZBUS_LISTENER_DEFINE(listener_sense_imu, listener_sense_imu_callback);
-ZBUS_CHAN_ADD_OBS(chan_fsm, listener_sense_imu, 1);
 
 K_THREAD_DEFINE(sense_imu, THREAD_STACK_SIZE,
     sense_imu_entry_point, &g_ctx, NULL, NULL,

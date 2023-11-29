@@ -3,7 +3,7 @@
 
 menuconfig CEREBRI_SENSE_POWER
   bool "Power"
-  depends on CEREBRI_SYNAPSE_ZBUS
+  depends on CEREBRI_SYNAPSE_ZROS
   help
     This option enables power sensor.
 

@@ -1,0 +1,24 @@
+sample:
+  description: pubsub
+  name: pubsub
+common:
+  build_only: true
+tests:
+  pubsub.posix:
+    tags:
+      - pubsub
+    integration_platforms:
+      - native_posix
+  pubsub.vmu_rt1170:
+    tags:
+      - pubsub
+    integration_platforms:
+      - vmu_rt1170
+  pubsub.mr_canhubk3:
+    tags:
+      - pubsum
+    integration_platforms:
+      - mr_canhubk3
+
+
+

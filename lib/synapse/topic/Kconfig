@@ -4,7 +4,7 @@
 config CEREBRI_SYNAPSE_TOPIC
   bool "Enable synapse topic shell"
   default y
-  depends on CEREBRI_SYNAPSE_ZBUS
+  depends on CEREBRI_SYNAPSE_ZROS
   depends on SHELL
   help
     This option enables the synapse topic shell

@@ -1,0 +1,15 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config CEREBRI_SYNAPSE_ZROS
+  bool "Enables zros"
+  help
+    This option enables zros
+
+if CEREBRI_SYNAPSE_ZROS
+
+module = CEREBRI_SYNAPSE_ZROS
+module-str = synapse_zros
+source "subsys/logging/Kconfig.template.log_config"
+
+endif  # CEREBRI_SYNAPSE_ZROS

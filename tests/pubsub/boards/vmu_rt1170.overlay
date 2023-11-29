@@ -1,0 +1,172 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2023 CogniPilot Foundation */
+#include <zephyr/dt-bindings/sensor/ina230.h>
+
+/ {
+	pwm_shell: pwm_shell {
+		compatible = "pwm-leds";
+		aux0: aux0 {
+			pwms = <&flexpwm1_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux1: aux1 {
+			pwms = <&flexpwm1_pwm1 0 PWM_HZ(20000) PWM_POLARITY_NORMAL>;
+		};
+		aux2: aux2 {
+			pwms = <&flexpwm1_pwm2 0 PWM_HZ(20000) PWM_POLARITY_NORMAL>;
+		};
+		aux3: aux3 {
+			pwms = <&flexpwm2_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux4: aux4 {
+			pwms = <&flexpwm2_pwm1 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux5: aux5 {
+			pwms = <&flexpwm2_pwm2 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux6: aux6 {
+			pwms = <&flexpwm2_pwm3 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+		aux7: aux7 {
+			pwms = <&flexpwm3_pwm0 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+		};
+	};
+
+	chosen {
+		zephyr,canbus = &flexcan3;
+	};
+
+	aliases {
+		can0 = &flexcan1;
+		can1 = &flexcan2;
+		can2 = &flexcan3;
+		telem1 = &lpuart8; /* Use telem2 as telem1 */
+		/* accelerometers */
+		accel0 = &bmi08x_accel;
+		accel1 = &icm42688_0;
+		accel2 = &icm42688_1;
+		/* gyroscopes */
+		gyro0 = &icm42688_0;
+		gyro1 = &icm42688_1;
+		gyro2 = &bmi08x_gyro;
+		/* magnetometers */
+		mag0 = &ist8310;
+		mag1 = &bmm150;
+		/* barometric altimeters */
+		baro0 = &bmp388_0;
+		baro1 = &bmp388_1;
+		/* power sensors */
+		power0 = &ina230;
+		/* wheel odometry */
+		wheel-odometry0 = &qdec1;
+		/* safety button */
+		safety-button = &arming_button;
+		status-led = &ncp5623c;
+	};
+};
+
+&flexpwm1_pwm0 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm1_pwm1 {
+	nxp,prescaler = <8>;
+};
+
+&flexpwm1_pwm2 {
+	nxp,prescaler = <8>;
+};
+
+&flexpwm2_pwm0 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm2_pwm1 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm2_pwm2 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm2_pwm3 {
+	nxp,prescaler = <64>;
+};
+
+&flexpwm3_pwm0 {
+	nxp,prescaler = <64>;
+};
+
+&flexcan1 {
+	status = "okay";
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
+};
+
+&flexcan2 {
+	status = "okay";
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
+};
+
+&flexcan3 {
+	status = "okay";
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
+};
+
+&lpi2c1 {
+	status = "okay";
+	pinctrl-0 = <&pinmux_lpi2c1>;
+	pinctrl-names = "default";
+	clock-frequency = <I2C_BITRATE_FAST>;
+
+	ina230: ina230@41 {
+		compatible = "ti,ina230";
+		reg = <0x41>;
+		current-lsb-microamps = <5000>;
+		rshunt-micro-ohms = <500>;
+	};
+};
+
+/* GNSS 1 */
+uart0: &lpuart3 {
+       status = "okay";
+       current-speed = <38400>;
+};
+/* GNSS 2 */
+uart1: &lpuart5 {
+       status = "okay";
+       current-speed = <38400>;
+};
+
+/* QDEC conflicts with the CTS/RTS from LPUART4/TELEM1 */
+lpuart4: &lpuart4 {
+       status = "disabled";
+};
+
+&pinctrl {
+
+	pinmux_qdec1: pinmux_qdec1 {
+		group0 {
+			pinmux = <&iomuxc_gpio_disp_b1_07_xbar1_xbar_in33>,
+				<&iomuxc_gpio_disp_b1_05_xbar1_xbar_in31>;
+			drive-strength = "normal";
+			slew-rate = "slow";
+		};
+	};
+};
+
+&qdec1 {
+	status = "okay";
+	pinctrl-0 = <&pinmux_qdec1>;
+	pinctrl-names = "default";
+	counts-per-revolution = <685>;
+	filter-count = <0>;
+	xbar = < &xbar1 >;
+};
+
+&xbar1 {
+	status = "okay";
+	xbar-maps = < (33|0x100) (109|0x100) >, /* kXBARA1_InputIomuxXbarIn33 <-> kXBARA1_OutputDec1Phasea */
+		    < (31|0x100) (108|0x100) >; /* kXBARA1_InputIomuxXbarIn31 <-> kXBARA1_OutputDec1Phaseb */
+};

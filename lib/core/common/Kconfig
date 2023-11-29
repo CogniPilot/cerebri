@@ -8,6 +8,11 @@ menuconfig CEREBRI_CORE_COMMON
 
 if CEREBRI_CORE_COMMON
 
+config CEREBRI_CORE_COMMON_BOOT_BANNER
+  bool "Enable the boot banner"
+  help
+    Enable the boot banner
+
 module = CEREBRI_CORE_COMMON
 module-str = core_common
 source "subsys/logging/Kconfig.template.log_config"

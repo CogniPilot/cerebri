@@ -10,8 +10,12 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
-#include <cerebri/synapse/zbus/channels.h>
-#include <cerebri/synapse/zbus/syn_pub_sub.h>
+#include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_sub_struct.h>
+#include <zros/zros_node.h>
+#include <zros/zros_sub.h>
+
+#include <synapse_topic_list.h>
 
 LOG_MODULE_REGISTER(actuate_pwm, CONFIG_CEREBRI_ACTUATE_PWM_LOG_LEVEL);
 
@@ -25,32 +29,26 @@ extern actuator_pwm_t g_actuator_pwms[];
 typedef struct _context {
     synapse_msgs_Actuators actuators;
     synapse_msgs_Fsm fsm;
-    syn_sub_t sub_actuators, sub_fsm;
+    struct zros_node node;
+    struct zros_sub sub_actuators, sub_fsm;
     struct pwm_dt_spec pwm_enable;
 } context;
 
 static context g_ctx = {
     .actuators = synapse_msgs_Actuators_init_default,
     .fsm = synapse_msgs_Fsm_init_default,
-    .sub_fsm = { 0 },
+    .node = {},
+    .sub_fsm = {},
+    .sub_actuators = {},
     .pwm_enable = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux2)),
 };
 
-static void init(context* ctx)
+static void actuate_pwm_init(context* ctx)
 {
-    syn_sub_init(&ctx->sub_actuators, &ctx->actuators, &chan_actuators, 100);
-    syn_sub_init(&ctx->sub_fsm, &ctx->fsm, &chan_fsm, 100);
+    zros_node_init(&ctx->node, "actuate_pwm");
+    zros_sub_init(&ctx->sub_actuators, &ctx->node, &topic_actuators, &ctx->actuators, 100);
+    zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 100);
 }
-
-static void listener_actuate_pwm_callback(const struct zbus_channel* chan)
-{
-    syn_sub_listen(&g_ctx.sub_actuators, chan, K_MSEC(1));
-    syn_sub_listen(&g_ctx.sub_fsm, chan, K_MSEC(1));
-}
-
-ZBUS_LISTENER_DEFINE(listener_actuate_pwm, listener_actuate_pwm_callback);
-ZBUS_CHAN_ADD_OBS(chan_actuators, listener_actuate_pwm, 1);
-ZBUS_CHAN_ADD_OBS(chan_fsm, listener_actuate_pwm, 1);
 
 void pwm_update(const synapse_msgs_Fsm* fsm, const synapse_msgs_Actuators* actuators)
 {
@@ -125,18 +123,34 @@ void pwm_update(const synapse_msgs_Fsm* fsm, const synapse_msgs_Actuators* actua
 
 void actuate_pwm_entry_point(context* ctx)
 {
-    init(ctx);
+    actuate_pwm_init(ctx);
+
+    struct k_poll_event events[] = {
+        *zros_sub_get_event(&ctx->sub_actuators),
+    };
 
     while (true) {
-        RC(syn_sub_poll(&ctx->sub_actuators, K_MSEC(1000)),
-            LOG_DBG("not receiving actuators"));
+        int rc = 0;
+        rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
+        if (rc != 0) {
+            LOG_DBG("no actuator message received");
+            // put motors in disarmed state
+            if (ctx->fsm.armed == synapse_msgs_Fsm_Armed_ARMED) {
+                ctx->fsm.armed = synapse_msgs_Fsm_Armed_DISARMED;
+                LOG_ERR("disarming motors due to actuator msg timeout!");
+            }
+        }
+
+        if (zros_sub_update_available(&ctx->sub_fsm)) {
+            zros_sub_update(&ctx->sub_fsm);
+        }
+
+        if (zros_sub_update_available(&ctx->sub_actuators)) {
+            zros_sub_update(&ctx->sub_actuators);
+        }
 
         // update pwm
-        RC(syn_sub_lock(&ctx->sub_actuators, K_MSEC(1)), continue;);
-        RC(syn_sub_lock(&ctx->sub_fsm, K_MSEC(1)), continue;);
         pwm_update(&ctx->fsm, &ctx->actuators);
-        RC(syn_sub_unlock(&ctx->sub_actuators), continue;);
-        RC(syn_sub_unlock(&ctx->sub_fsm), continue;);
     }
 }
 

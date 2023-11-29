@@ -1,0 +1,13 @@
+# Copyright (c) 2021 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+#
+# This file is the application Kconfig entry point. All application Kconfig
+# options can be defined here or included via other application Kconfig files.
+# You can browse these options using the west targets menuconfig (terminal) or
+# guiconfig (GUI).
+mainmenu "Pubsub test"
+source "Kconfig.zephyr"
+
+module = PUBSUB
+module-str = pubsub
+source "subsys/logging/Kconfig.template.log_config"

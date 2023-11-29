@@ -2,17 +2,22 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
-#include "ubxlib.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <ubxlib.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
-#include <cerebri/synapse/zbus/channels.h>
+#include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_pub_struct.h>
+#include <zros/zros_node.h>
+#include <zros/zros_pub.h>
+
+#include <synapse_topic_list.h>
 
 uDeviceCfg_t gDeviceCfg;
 
@@ -25,45 +30,72 @@ LOG_MODULE_REGISTER(ubx_gnss, CONFIG_CEREBRI_SENSE_UBX_GNSS_LOG_LEVEL);
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY 6
 
-static int32_t gMeasurementPeriodMs = 100;
-static bool running = false;
-static bool isAlive = false;
-static int32_t g_seq = 0;
+typedef struct context {
+    const struct device* device[CONFIG_CEREBRI_SENSE_MAG_COUNT];
+    struct zros_node node;
+    struct zros_pub pub;
+    synapse_msgs_NavSatFix data;
+    int32_t gMeasurementPeriodMs;
+    bool running;
+    bool isAlive;
+} context_t;
 
-void publish_gnss_data_zbus(uDeviceHandle_t devHandle,
+static context_t g_ctx = {
+    .device = {},
+    .node = {},
+    .pub = {},
+    .data = {
+        .has_header = true,
+        .header = {
+            .frame_id = "wgs84",
+            .has_stamp = true,
+            .seq = 0,
+            .stamp = synapse_msgs_Time_init_default,
+        },
+        .altitude = 0,
+        .latitude = 0,
+        .longitude = 0,
+        .position_covariance = {},
+        .position_covariance_count = 0,
+        .position_covariance_type = 0,
+        .status = { .service = 0, .status = 0 } },
+    .gMeasurementPeriodMs = 100,
+    .running = false,
+    .isAlive = false,
+};
+
+void publish_gnss_data(uDeviceHandle_t devHandle,
     int32_t errorCode,
     const uLocation_t* pLocation)
 {
-    isAlive = true;
+    context_t* ctx = &g_ctx;
+    ctx->isAlive = true;
 
     if (errorCode == 0) {
         synapse_msgs_NavSatFix msg = synapse_msgs_NavSatFix_init_default;
 
-        msg.has_header = true;
-        strncpy(msg.header.frame_id, "wgs84", sizeof(msg.header.frame_id) - 1);
-        msg.header.has_stamp = true;
-        msg.latitude = pLocation->latitudeX1e7 / 1e7;
-        msg.longitude = pLocation->longitudeX1e7 / 1e7;
-        msg.altitude = pLocation->altitudeMillimetres / 1e3;
-        stamp_header(&msg.header, k_uptime_ticks());
-        msg.header.seq = g_seq++;
+        ctx->data.latitude = pLocation->latitudeX1e7 / 1e7;
+        ctx->data.longitude = pLocation->longitudeX1e7 / 1e7;
+        ctx->data.altitude = pLocation->altitudeMillimetres / 1e3;
+        stamp_header(&ctx->data.header, k_uptime_ticks());
+        ctx->data.header.seq++;
 
         // TODO Covariance
-
-        zbus_chan_pub(&chan_nav_sat_fix, &msg, K_NO_WAIT);
+        zros_pub_update(&ctx->pub);
         LOG_DBG("lat %f long %f\n", msg.latitude, msg.longitude);
     } else if (errorCode == U_ERROR_COMMON_TIMEOUT) {
         // LOG_ERR("Tiemout error");
     } else {
         LOG_ERR("GNSS error %i", errorCode);
-        running = false;
+        g_ctx.running = false;
     }
 }
 
-void sense_ubx_gnss_entry_point()
+void sense_ubx_gnss_entry_point(context_t* ctx)
 {
+    zros_node_init(&ctx->node, "sense_ubx_gnss");
+    zros_pub_init(&ctx->pub, &ctx->node, &topic_nav_sat_fix, &ctx->data);
     int32_t errorCode;
-    g_seq = 0;
 
     // Remove the line below if you want the log printouts from ubxlib
     uPortLogOff();
@@ -88,20 +120,20 @@ void sense_ubx_gnss_entry_point()
             if (uNetworkInterfaceUp(deviceHandle, U_NETWORK_TYPE_GNSS, &gNetworkCfg) == 0) {
                 LOG_DBG("Starting continuous location.\n");
                 uLocationGetContinuousStart(deviceHandle,
-                    gMeasurementPeriodMs,
+                    ctx->gMeasurementPeriodMs,
                     U_LOCATION_TYPE_GNSS,
-                    NULL, NULL, publish_gnss_data_zbus);
+                    NULL, NULL, publish_gnss_data);
 
-                running = true;
+                ctx->running = true;
 
-                while (running) {
+                while (ctx->running) {
                     uPortTaskBlock(1000);
                     /* If cb didnt set isAlive to true hw is malfunctioning reset */
-                    if (!isAlive) {
+                    if (!ctx->isAlive) {
                         break;
                     }
                     /* Challange cb to set alive to ture */
-                    isAlive = false;
+                    ctx->isAlive = false;
                 }
 
                 uLocationGetStop(deviceHandle);
@@ -124,5 +156,7 @@ void sense_ubx_gnss_entry_point()
 }
 
 K_THREAD_DEFINE(ubx_gnss, MY_STACK_SIZE,
-    sense_ubx_gnss_entry_point, NULL, NULL, NULL,
+    sense_ubx_gnss_entry_point, &g_ctx, NULL, NULL,
     MY_PRIORITY, 0, 0);
+
+// vi: ts=4 sw=4 et

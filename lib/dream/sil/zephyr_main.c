@@ -15,7 +15,14 @@
 #include <synapse_protobuf/sim_clock.pb.h>
 #include <synapse_tinyframe/utils.h>
 
-#include <cerebri/synapse/zbus/channels.h>
+#include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_sub_struct.h>
+#include <zros/zros_node.h>
+#include <zros/zros_sub.h>
+
+#include <synapse_protobuf/actuators.pb.h>
+#include <synapse_protobuf/fsm.pb.h>
+#include <synapse_topic_list.h>
 
 LOG_MODULE_REGISTER(dream_sil, CONFIG_CEREBRI_DREAM_SIL_LOG_LEVEL);
 
@@ -54,8 +61,6 @@ void listener_dream_sil_callback(const struct zbus_channel* chan)
         }
     }
 }
-ZBUS_LISTENER_DEFINE(listener_dream_sil, listener_dream_sil_callback);
-ZBUS_CHAN_ADD_OBS(chan_actuators, listener_dream_sil, 1);
 
 static void zephyr_sim_entry_point(void)
 {

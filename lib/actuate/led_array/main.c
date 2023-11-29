@@ -10,8 +10,13 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
-#include <cerebri/synapse/zbus/channels.h>
-#include <cerebri/synapse/zbus/syn_pub_sub.h>
+#include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_sub_struct.h>
+#include <zros/zros_node.h>
+#include <zros/zros_sub.h>
+
+#include <synapse_protobuf/led_array.pb.h>
+#include <synapse_topic_list.h>
 
 #define DELAY_TIME K_MSEC(40)
 
@@ -23,32 +28,25 @@ extern struct k_work_q g_low_priority_work_q;
 #define MY_PRIORITY 4
 
 typedef struct _context {
-    // node
-    syn_node_t node;
-    // data
-    synapse_msgs_LEDArray led_array;
-    // subscriptions
-    syn_sub_t sub_led_array;
-    // devices
+    struct zros_node node;
+    struct zros_sub sub;
+    synapse_msgs_LEDArray data;
     const struct device* strip;
     struct led_rgb strip_colors[CONFIG_CEREBRI_ACTUATE_LED_ARRAY_COUNT];
 } context;
 
 static context g_ctx = {
+    .data = synapse_msgs_LEDArray_init_default,
     .node = {},
-    .led_array = synapse_msgs_LEDArray_init_default,
-    .sub_led_array = {},
+    .sub = {},
     .strip = NULL,
     .strip_colors = {},
 };
 
 static void actuate_led_array_init(context* ctx)
 {
-    // initialize node
-    syn_node_init(&ctx->node, "actuate_led_array");
-    syn_node_add_sub(&ctx->node,
-        &ctx->sub_led_array, &ctx->led_array, &chan_led_array, 10);
-
+    zros_node_init(&ctx->node, "actuate_led_array");
+    zros_sub_init(&ctx->sub, &ctx->node, &topic_led_array, &ctx->data, 10);
     g_ctx.strip = DEVICE_DT_GET_ANY(apa_apa102);
     if (!g_ctx.strip) {
         LOG_ERR("LED strip device not found");
@@ -61,26 +59,28 @@ static void actuate_led_array_init(context* ctx)
     }
 }
 
-static void listener_actuate_led_array_callback(const struct zbus_channel* chan)
-{
-    syn_node_listen(&g_ctx.node, chan, K_MSEC(100));
-}
-
-ZBUS_LISTENER_DEFINE(listener_actuate_led_array, listener_actuate_led_array_callback);
-ZBUS_CHAN_ADD_OBS(chan_led_array, listener_actuate_led_array, 1);
-
 void actuate_led_array_entry_point(context* ctx)
 {
     actuate_led_array_init(ctx);
 
+    struct k_poll_event events[2] = {
+        *zros_sub_get_event(&ctx->sub),
+    };
+
     while (true) {
-        RC(syn_sub_poll(&ctx->sub_led_array, K_MSEC(1000)),
-            LOG_DBG("not receiving led_array"));
+        int rc = 0;
+        rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
+        if (rc != 0) {
+            LOG_DBG("sub polling error! %d", rc);
+        }
+
+        if (zros_sub_update_available(&ctx->sub)) {
+            zros_sub_update(&ctx->sub);
+        }
 
         // perform processing
-        syn_node_lock_all(&ctx->node, K_MSEC(1));
-        for (int i = 0; i < ctx->led_array.led_count; i++) {
-            synapse_msgs_LED led = ctx->led_array.led[i];
+        for (int i = 0; i < ctx->data.led_count; i++) {
+            synapse_msgs_LED led = ctx->data.led[i];
             if (led.index > CONFIG_CEREBRI_ACTUATE_LED_ARRAY_COUNT) {
                 LOG_ERR("Setting LED index out of range");
                 continue;
@@ -90,7 +90,6 @@ void actuate_led_array_entry_point(context* ctx)
             ctx->strip_colors[led.index].b = led.b;
         }
         led_strip_update_rgb(ctx->strip, ctx->strip_colors, CONFIG_CEREBRI_ACTUATE_LED_ARRAY_COUNT);
-        syn_node_unlock_all(&ctx->node);
     }
 }
 

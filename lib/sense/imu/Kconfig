@@ -4,7 +4,7 @@ menuconfig CEREBRI_SENSE_IMU
   bool "IMU"
   default y
   depends on CEREBRI_CORE_COMMON
-  depends on CEREBRI_SYNAPSE_ZBUS
+  depends on CEREBRI_SYNAPSE_ZROS
   help
     This option enables the IMU driver interface
 

@@ -8,5 +8,5 @@ zephyr_library_named(zephyr_core_workqueues)
 zephyr_include_directories()
 
 zephyr_library_sources(
-  main.c
+  src/workq.c
   )

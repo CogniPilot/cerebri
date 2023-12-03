@@ -42,6 +42,7 @@
 		safety-button = &arming_button_mr_canhubk3_adap;
 		/* wheel odometry */
 		wheel-odometry0 = &qdec0;
+		ubxlib-uart1 = &lpuart7;
 	};
 };
 
@@ -126,11 +127,4 @@
 		current-lsb-microamps = <5000>;
 		rshunt-micro-ohms = <500>;
 	};
-};
-
-
-/* GNSS 1 */
-uart0: &lpuart7 {
-	status = "okay";
-	current-speed = <38400>;
 };

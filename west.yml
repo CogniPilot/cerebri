@@ -38,4 +38,4 @@ manifest:
     - name: ubxlib
       remote: cognipilot
       path: modules/lib/ubxlib
-      revision: airy # zephyr-3.4-compile-fix 7/19/23
+      revision: 0e8c66196a9366acf70fb7cfa5a2eaec6647e89d # airy 12/04/23

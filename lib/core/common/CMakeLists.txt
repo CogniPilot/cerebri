@@ -3,10 +3,9 @@
 
 zephyr_library_named(cerebri_core_common)
 
-
-# we need to be able to include generated header files
 zephyr_include_directories()
+zephyr_library_include_directories()
 
 zephyr_library_sources(
-  main.c
+  src/common.c
   )

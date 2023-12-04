@@ -15,20 +15,20 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(b3rb LANGUAGES C)
 
-target_compile_options(app PRIVATE -Wall -Wextra -Werror -Wno-unused-parameter)
+target_compile_options(app PRIVATE -Wall -Wextra -Werror)
+
+set_source_files_properties(src/casadi/gen/b3rb.c PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
 
 set(SOURCE_FILES
+  src/estimate.c
+  src/fsm.c
+  src/lighting.c
   src/main.c
+  src/manual.c
+  src/mixing.c
+  src/position.c
+  src/velocity.c
+  src/casadi/gen/b3rb.c
   )
 
 target_sources(app PRIVATE ${SOURCE_FILES})
-
-#add_custom_target(install_files ALL
-#	DEPENDS ${ZEPHYR_FINAL_EXECUTABLE}
-#)
-
-#add_custom_command(
-#    TARGET install_files
-#    POST_BUILD
-#    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target install
-#    )

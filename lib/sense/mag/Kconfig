@@ -4,7 +4,7 @@ menuconfig CEREBRI_SENSE_MAG
   bool "MAG"
   default y
   depends on CEREBRI_CORE_COMMON
-  depends on CEREBRI_SYNAPSE_ZBUS
+  depends on CEREBRI_SYNAPSE_ZROS
   help
     This option enables the MAG driver interface
 

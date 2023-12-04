@@ -3,7 +3,7 @@
 
 menu "Synapse"
 
-rsource "zbus/Kconfig"
+rsource "zros/Kconfig"
 rsource "ethernet/Kconfig"
 rsource "topic/Kconfig"
 rsource "vesc_can/Kconfig"

@@ -1,13 +1,57 @@
-# Copyright (c) 2021 Nordic Semiconductor ASA
+# Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
-#
-# This file is the application Kconfig entry point. All application Kconfig
-# options can be defined here or included via other application Kconfig files.
-# You can browse these options using the west targets menuconfig (terminal) or
-# guiconfig (GUI).
-mainmenu "CogniPilot - Cerebri - MR Buggy3"
+
+mainmenu "CogniPilot - Cerebri - B3RB"
 source "Kconfig.zephyr"
 
-module = CEREBRI
-module-str = CEREBRI
+config CEREBRI_B3RB_BATTERY_MIN_MILLIVOLT
+  int "min battery voltage in milli volts before shut off"
+  default 10900
+  help
+    Minimum battery voltage in mV before auto-disarm
+
+config CEREBRI_B3RB_GAIN_HEADING
+  int "heading gain"
+  default 100
+  help
+    Steering = Heading error * GAIN_/ 1000
+
+config CEREBRI_B3RB_GAIN_CROSS_TRACK
+  int "cross track gain"
+  default 100
+  help
+    Steering = Cross track error * GAIN / 1000
+
+config CEREBRI_B3RB_GAIN_ALONG_TRACK
+  int "along track gain"
+  default 100
+  help
+    Steering = Along track error * GAIN / 1000
+
+config CEREBRI_B3RB_MAX_TURN_ANGLE_MRAD
+  int "max turn angle mrad"
+  default 400
+  help
+    Max turn angle in milli-radians
+
+config CEREBRI_B3RB_MAX_VELOCITY_MM_S
+  int "max velocity, mm/s"
+  default 1000
+  help
+    Max velocity in mm/s
+
+config CEREBRI_B3RB_WHEEL_RADIUS_MM
+  int "wheel radius, mm"
+  default 37
+  help
+    Wheel radius in mm
+
+config CEREBRI_B3RB_WHEEL_BASE_MM
+  int "wheel base, mm"
+  default 226
+  help
+    Wheel radius in mm
+
+module = CEREBRI_B3RB
+module-str = cerebri_b3rb
 source "subsys/logging/Kconfig.template.log_config"

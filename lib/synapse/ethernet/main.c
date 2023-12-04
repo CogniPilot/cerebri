@@ -14,7 +14,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cerebri/synapse/zbus/common.h>
+#include <pb_decode.h>
+#include <pb_encode.h>
+#include <synapse_tinyframe/SynapseTopics.h>
+#include <synapse_tinyframe/TinyFrame.h>
+#include <synapse_tinyframe/utils.h>
+
+#include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_sub_struct.h>
+#include <zros/zros_node.h>
+#include <zros/zros_sub.h>
+
+#include <synapse_protobuf/actuators.pb.h>
+#include <synapse_protobuf/fsm.pb.h>
+#include <synapse_topic_list.h>
 
 LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_CEREBRI_SYNAPSE_ETHERNET_LOG_LEVEL);
 
@@ -25,13 +38,13 @@ LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_CEREBRI_SYNAPSE_ETHERNET_LOG_LEVEL)
 #define BIND_PORT 4242
 
 typedef struct context_s {
-    syn_node_t node;
+    struct zros_node node;
     synapse_msgs_Actuators actuators;
     synapse_msgs_BatteryState battery_state;
     synapse_msgs_Odometry estimator_odometry;
     synapse_msgs_Fsm fsm;
     synapse_msgs_Safety safety;
-    syn_sub_t sub_actuators, sub_battery_state,
+    struct zros_sub sub_actuators, sub_battery_state,
         sub_fsm, sub_estimator_odometry, sub_safety;
     TinyFrame tf;
     volatile int client;
@@ -43,7 +56,7 @@ typedef struct context_s {
 } context_t;
 
 static context_t g_ctx = {
-    .node = { 0 },
+    .node = {},
     .actuators = synapse_msgs_Actuators_init_default,
     .battery_state = synapse_msgs_BatteryState_init_default,
     .estimator_odometry = synapse_msgs_Odometry_init_default,
@@ -66,7 +79,7 @@ static context_t g_ctx = {
         pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);   \
         int status = pb_decode(&stream, CLASS##_fields, &msg);                   \
         if (status) {                                                            \
-            zbus_chan_pub(&chan_##CHANNEL, &msg, K_FOREVER);                     \
+            zros_topic_publish(&topic_##CHANNEL, &msg);                          \
         } else {                                                                 \
             printf("%s decoding failed: %s\n", #CHANNEL, PB_GET_ERROR(&stream)); \
         }                                                                        \
@@ -142,18 +155,6 @@ TOPIC_LISTENER(nav_sat_fix, synapse_msgs_NavSatFix)
 TOPIC_LISTENER(wheel_odometry, synapse_msgs_WheelOdometry)
 #endif
 
-void listener_synapse_ethernet_callback(const struct zbus_channel* chan)
-{
-    syn_node_listen(&g_ctx.node, chan, K_MSEC(1));
-}
-
-ZBUS_LISTENER_DEFINE(listener_synapse_ethernet, listener_synapse_ethernet_callback);
-ZBUS_CHAN_ADD_OBS(chan_actuators, listener_synapse_ethernet, 1);
-ZBUS_CHAN_ADD_OBS(chan_estimator_odometry, listener_synapse_ethernet, 1);
-ZBUS_CHAN_ADD_OBS(chan_fsm, listener_synapse_ethernet, 1);
-ZBUS_CHAN_ADD_OBS(chan_safety, listener_synapse_ethernet, 1);
-ZBUS_CHAN_ADD_OBS(chan_battery_state, listener_synapse_ethernet, 1);
-
 static bool set_blocking_enabled(int fd, bool blocking)
 {
     if (fd < 0)
@@ -167,12 +168,12 @@ static bool set_blocking_enabled(int fd, bool blocking)
 
 static void synapse_ethernet_init(context_t* ctx)
 {
-    syn_node_init(&ctx->node, "synapse_ethernet");
-    syn_node_add_sub(&ctx->node, &ctx->sub_actuators, &ctx->actuators, &chan_actuators, 1);
-    syn_node_add_sub(&ctx->node, &ctx->sub_battery_state, &ctx->battery_state, &chan_battery_state, 1);
-    syn_node_add_sub(&ctx->node, &ctx->sub_estimator_odometry, &ctx->estimator_odometry, &chan_estimator_odometry, 10);
-    syn_node_add_sub(&ctx->node, &ctx->sub_fsm, &ctx->fsm, &chan_fsm, 1);
-    syn_node_add_sub(&ctx->node, &ctx->sub_safety, &ctx->safety, &chan_safety, 1);
+    zros_node_init(&ctx->node, "synapse_ethernet");
+    zros_sub_init(&ctx->sub_actuators, &ctx->node, &topic_actuators, &ctx->actuators, 1);
+    zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state, &ctx->battery_state, 1);
+    zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
+    zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 1);
+    zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 1);
 }
 
 static void send_uptime(context_t* ctx)
@@ -261,22 +262,38 @@ static void ethernet_entry_point(context_t* ctx)
             addr_str, sizeof(addr_str));
         LOG_INF("connection #%d from %s", ctx->counter++, addr_str);
 
-        while (1) {
-            k_timeout_t timeout = K_MSEC(1);
+        struct k_poll_event events[] = {
+            *zros_sub_get_event(&ctx->sub_actuators),
+            *zros_sub_get_event(&ctx->sub_battery_state),
+            *zros_sub_get_event(&ctx->sub_fsm),
+            *zros_sub_get_event(&ctx->sub_safety),
+            *zros_sub_get_event(&ctx->sub_estimator_odometry),
+        };
 
-            if (syn_sub_poll(&ctx->sub_battery_state, timeout) == 0) {
+        while (true) {
+            int rc = 0;
+            rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
+            if (rc != 0) {
+                LOG_WRN("poll timeout");
+            }
+
+            if (zros_sub_update_available(&ctx->sub_battery_state)) {
+                zros_sub_update(&ctx->sub_battery_state);
                 TOPIC_PUBLISHER(&ctx->battery_state, synapse_msgs_BatteryState, SYNAPSE_BATTERY_STATE_TOPIC);
             }
 
-            if (syn_sub_poll(&ctx->sub_fsm, timeout) == 0) {
+            if (zros_sub_update_available(&ctx->sub_fsm)) {
+                zros_sub_update(&ctx->sub_fsm);
                 TOPIC_PUBLISHER(&ctx->fsm, synapse_msgs_Fsm, SYNAPSE_FSM_TOPIC);
             }
 
-            if (syn_sub_poll(&ctx->sub_safety, timeout) == 0) {
+            if (zros_sub_update_available(&ctx->sub_safety)) {
+                zros_sub_update(&ctx->sub_safety);
                 TOPIC_PUBLISHER(&ctx->safety, synapse_msgs_Safety, SYNAPSE_SAFETY_TOPIC);
             }
 
-            if (syn_sub_poll(&ctx->sub_estimator_odometry, timeout) == 0) {
+            if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {
+                zros_sub_update(&ctx->sub_estimator_odometry);
                 TOPIC_PUBLISHER(&ctx->estimator_odometry, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC);
             }
 

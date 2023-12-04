@@ -2,7 +2,6 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <zephyr/device.h>
@@ -11,7 +10,11 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
-#include <cerebri/synapse/zbus/channels.h>
+#include <synapse_topic_list.h>
+#include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_pub_struct.h>
+#include <zros/zros_node.h>
+#include <zros/zros_pub.h>
 
 LOG_MODULE_REGISTER(sense_power, CONFIG_CEREBRI_SENSE_POWER_LOG_LEVEL);
 
@@ -19,56 +22,94 @@ LOG_MODULE_REGISTER(sense_power, CONFIG_CEREBRI_SENSE_POWER_LOG_LEVEL);
 #define MY_PRIORITY 6
 
 extern struct k_work_q g_high_priority_work_q;
-static const struct device* const g_dev = DEVICE_DT_GET(DT_ALIAS(power0));
-static int32_t g_seq = 0;
+
+#define N_SENSORS 1
+
+void power_work_handler(struct k_work* work);
+
+typedef struct context {
+    struct k_work work_item;
+    const struct device* device[N_SENSORS];
+    struct zros_node node;
+    struct zros_pub pub;
+    synapse_msgs_BatteryState data;
+} context_t;
+
+static context_t g_ctx = {
+    .work_item = Z_WORK_INITIALIZER(power_work_handler),
+    .device = {},
+    .node = {},
+    .pub = {},
+    .data = {
+        .has_header = true,
+        .header = {
+            .frame_id = "base_link",
+            .has_stamp = true,
+            .seq = 0,
+            .stamp = synapse_msgs_Time_init_default,
+        },
+        .capacity = 0,
+        .cell_temperature = {},
+        .cell_temperature_count = 0,
+        .cell_voltage = {},
+        .cell_voltage_count = 0,
+        .charge = 0,
+        .current = 0,
+        .design_capacity = 0,
+        .location = "",
+        .percentage = 0,
+        .power_supply_health = synapse_msgs_BatteryState_PowerSupplyHealth_UNKNOWN_HEALTH,
+        .power_supply_technology = synapse_msgs_BatteryState_PowerSupplyTechnology_UNKNOWN_TECHNOLOGY,
+        .power_supply_status = synapse_msgs_BatteryState_PowerSupplyStatus_UNKNOWN_STATUS,
+        .present = true,
+        .serial_number = "0",
+        .temperature = 0,
+        .voltage = 0,
+    }
+};
 
 void power_work_handler(struct k_work* work)
 {
-    int ret = sensor_sample_fetch(g_dev);
+    context_t* ctx = CONTAINER_OF(work, context_t, work_item);
+    int ret = sensor_sample_fetch(ctx->device[0]);
     if (ret) {
         LOG_ERR("Could not fetch sensor data");
         return;
     }
     struct sensor_value voltage, current;
 
-    sensor_channel_get(g_dev, SENSOR_CHAN_VOLTAGE, &voltage);
-    sensor_channel_get(g_dev, SENSOR_CHAN_CURRENT, &current);
+    sensor_channel_get(ctx->device[0], SENSOR_CHAN_VOLTAGE, &voltage);
+    sensor_channel_get(ctx->device[0], SENSOR_CHAN_CURRENT, &current);
 
-    synapse_msgs_BatteryState msg = synapse_msgs_BatteryState_init_default;
+    stamp_header(&ctx->data.header, k_uptime_ticks());
+    ctx->data.header.seq++;
+    ctx->data.voltage = sensor_value_to_double(&voltage);
+    ctx->data.current = sensor_value_to_double(&current);
 
-    msg.has_header = true;
-    stamp_header(&msg.header, k_uptime_ticks());
-    msg.header.seq = g_seq++;
-    strncpy(msg.header.frame_id, "base_link", sizeof(msg.header.frame_id) - 1);
-
-    msg.voltage = sensor_value_to_double(&voltage);
-    msg.current = sensor_value_to_double(&current);
-
-    zbus_chan_pub(&chan_battery_state, &msg, K_NO_WAIT);
+    zros_pub_update(&ctx->pub);
 }
-
-K_WORK_DEFINE(power_work, power_work_handler);
 
 void power_timer_handler(struct k_timer* dummy)
 {
-    k_work_submit_to_queue(&g_high_priority_work_q, &power_work);
+    k_work_submit_to_queue(&g_high_priority_work_q, &g_ctx.work_item);
 }
 
 K_TIMER_DEFINE(power_timer, power_timer_handler, NULL);
 
-int sense_power_entry_point(void)
+int sense_power_entry_point(context_t* ctx)
 {
-    g_seq = 0;
-    if (!device_is_ready(g_dev)) {
-        LOG_ERR("Device %s is not ready", g_dev->name);
+    ctx->device[0] = DEVICE_DT_GET(DT_ALIAS(power0));
+    if (!device_is_ready(ctx->device[0])) {
+        LOG_ERR("Device %s is not ready", ctx->device[0]->name);
     }
-
+    zros_node_init(&ctx->node, "sense_power");
+    zros_pub_init(&ctx->pub, &ctx->node, &topic_battery_state, &ctx->data);
     k_timer_start(&power_timer, K_MSEC(100), K_MSEC(100));
     return 0;
 }
 
 K_THREAD_DEFINE(sense_power, MY_STACK_SIZE,
-    sense_power_entry_point, NULL, NULL, NULL,
+    sense_power_entry_point, &g_ctx, NULL, NULL,
     MY_PRIORITY, 0, 0);
 
 /* vi: ts=4 sw=4 et */

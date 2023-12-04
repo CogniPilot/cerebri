@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 55bb08fd110d1cd5ad5d330f63d3ece5755e7a4c # qdec-tested 11/10/23
+      revision: 627d519caeb57357def33426f17a08d0ab0099cc # airy 12/04/23
       import:
         - name-allowlist:
           - nanopb
@@ -38,4 +38,4 @@ manifest:
     - name: ubxlib
       remote: cognipilot
       path: ubxlib
-      revision: master # zephyr-3.4-compile-fix 7/19/23
+      revision: airy # zephyr-3.4-compile-fix 7/19/23

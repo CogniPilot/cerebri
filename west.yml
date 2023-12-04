@@ -37,5 +37,5 @@ manifest:
       path: modules/lib/synapse_protobuf
     - name: ubxlib
       remote: cognipilot
-      path: ubxlib
+      path: modules/lib/ubxlib
       revision: airy # zephyr-3.4-compile-fix 7/19/23

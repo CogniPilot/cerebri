@@ -20,7 +20,6 @@
 #include <zros/zros_node.h>
 #include <zros/zros_sub.h>
 
-#include <synapse_protobuf/actuators.pb.h>
 #include <synapse_protobuf/fsm.pb.h>
 #include <synapse_topic_list.h>
 

@@ -110,9 +110,16 @@ void sense_ubx_gnss_entry_point(context_t* ctx)
         uDeviceGetDefaults(U_DEVICE_TYPE_GNSS, &gDeviceCfg);
 
         gDeviceCfg.transportCfg.cfgUart.uart = 0;
-        gDeviceCfg.transportCfg.cfgUart.baudRate = 38400;
+        gDeviceCfg.transportCfg.cfgUart.baudRate = CONFIG_CEREBRI_SENSE_UBX_GNSS_BAUD;
+#ifdef CONFIG_CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M8
         gDeviceCfg.deviceCfg.cfgGnss.moduleType = U_GNSS_MODULE_TYPE_M8;
-
+#endif
+#ifdef CONFIG_CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M9
+        gDeviceCfg.deviceCfg.cfgGnss.moduleType = U_GNSS_MODULE_TYPE_M9;
+#endif
+#ifdef CONFIG_CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M10
+        gDeviceCfg.deviceCfg.cfgGnss.moduleType = U_GNSS_MODULE_TYPE_M10;
+#endif
         errorCode = uDeviceOpen(&gDeviceCfg, &deviceHandle);
         LOG_DBG("Opened the GNSS device %i\n", errorCode);
         if (errorCode == 0) {

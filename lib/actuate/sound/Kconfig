@@ -1,0 +1,16 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig CEREBRI_ACTUATE_SOUND
+  bool "SOUND"
+  depends on PWM
+  help
+    This option enables sound tones
+
+if CEREBRI_ACTUATE_SOUND
+
+module = CEREBRI_ACTUATE_SOUND
+module-str = actuate_sound
+source "subsys/logging/Kconfig.template.log_config"
+
+endif #CEREBRI_ACTUATE_SOUND

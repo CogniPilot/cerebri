@@ -20,7 +20,7 @@
 #define MY_STACK_SIZE 2048
 #define MY_PRIORITY 4
 
-LOG_MODULE_REGISTER(control_diffdrive_lighting, CONFIG_CEREBRI_ELM4_LOG_LEVEL);
+LOG_MODULE_REGISTER(elm4_lighting, CONFIG_CEREBRI_ELM4_LOG_LEVEL);
 
 extern struct k_work_q g_low_priority_work_q;
 static void lighting_work_handler(struct k_work* work);
@@ -37,10 +37,12 @@ typedef struct context_ {
     synapse_msgs_Safety safety;
     synapse_msgs_Fsm fsm;
     synapse_msgs_LEDArray led_array;
+    synapse_msgs_Joy joy;
     // subscriptions
-    struct zros_sub sub_battery_state, sub_safety, sub_fsm;
+    struct zros_sub sub_battery_state, sub_safety, sub_fsm, sub_joy;
     // publications
     struct zros_pub pub_led_array;
+    bool lights_on;
 } context_t;
 
 static context_t g_ctx = {
@@ -52,16 +54,19 @@ static context_t g_ctx = {
     .led_array = synapse_msgs_LEDArray_init_default,
     .sub_safety = {},
     .sub_fsm = {},
+    .sub_joy = {},
     .pub_led_array = {},
     .node = {},
+    .lights_on = false,
 };
 
 static void lighting_init(context_t* ctx)
 {
-    zros_node_init(&ctx->node, "control_diffdrive_lighting");
-    zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state, &ctx->battery_state, 1);
-    zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 1);
-    zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 1);
+    zros_node_init(&ctx->node, "elm4_lighting");
+    zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state, &ctx->battery_state, 10);
+    zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 10);
+    zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 10);
+    zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 10);
     zros_pub_init(&ctx->pub_led_array, &ctx->node, &topic_led_array, &ctx->led_array);
 }
 
@@ -76,6 +81,12 @@ static void set_led(const int index, const double* color, const double brightnes
 static void lighting_work_handler(struct k_work* work)
 {
     context_t* ctx = CONTAINER_OF(work, context_t, work_item);
+
+    // update subscriptions
+    zros_sub_update(&ctx->sub_fsm);
+    zros_sub_update(&ctx->sub_joy);
+    zros_sub_update(&ctx->sub_safety);
+    zros_sub_update(&ctx->sub_battery_state);
 
     double t = (double)k_uptime_ticks() / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
     const double led_pulse_freq = 0.25;
@@ -103,10 +114,13 @@ static void lighting_work_handler(struct k_work* work)
     const double color_battery_critical[] = { 1, 0.65, 0 };
     const double color_calibration[] = { 1, 1, 0 };
 
+    const int headlight_leds[] = { 6, 7, 8, 9, 10, 11 };
+    const double color_white[] = { 1, 1, 1 };
+
     bool battery_critical = ctx->battery_state.voltage < CONFIG_CEREBRI_ELM4_BATTERY_MIN_MILLIVOLT / 1000.0;
 
     // mode leds
-    for (size_t i = 0; i < sizeof(mode_leds) / sizeof(mode_leds[0]); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(mode_leds); i++) {
         const double* color = NULL;
         if (ctx->fsm.mode == synapse_msgs_Fsm_Mode_MANUAL) {
             color = color_manual;
@@ -124,7 +138,7 @@ static void lighting_work_handler(struct k_work* work)
     }
 
     // arm leds
-    for (size_t i = 0; i < sizeof(arm_leds) / sizeof(arm_leds[0]); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(arm_leds); i++) {
         const double* color = NULL;
         if (battery_critical) {
             color = color_battery_critical;
@@ -142,7 +156,7 @@ static void lighting_work_handler(struct k_work* work)
     }
 
     // safety leds
-    for (size_t i = 0; i < sizeof(safety_leds) / sizeof(safety_leds[0]); i++) {
+    for (size_t i = 0; i < ARRAY_SIZE(safety_leds); i++) {
         const double* color = NULL;
         if (ctx->safety.status == synapse_msgs_Safety_Status_SAFE) {
             color = color_safe;
@@ -153,6 +167,28 @@ static void lighting_work_handler(struct k_work* work)
         }
         set_led(safety_leds[i], color, brightness, &ctx->led_array.led[led_msg_index]);
         led_msg_index++;
+    }
+
+    // headlight leds
+    bool lights_on_requested = ctx->joy.buttons[JOY_BUTTON_LIGHTS_ON] == 1;
+    bool lights_off_requested = ctx->joy.buttons[JOY_BUTTON_LIGHTS_OFF] == 1;
+
+    if (lights_on_requested) {
+        ctx->lights_on = true;
+    } else if (lights_off_requested) {
+        ctx->lights_on = false;
+    }
+
+    if (ctx->lights_on) {
+        for (size_t i = 0; i < ARRAY_SIZE(headlight_leds); i++) {
+            set_led(headlight_leds[i], color_white, 255, &ctx->led_array.led[led_msg_index]);
+            led_msg_index++;
+        }
+    } else if (!ctx->lights_on) {
+        for (size_t i = 0; i < ARRAY_SIZE(headlight_leds); i++) {
+            set_led(headlight_leds[i], color_white, 0, &ctx->led_array.led[led_msg_index]);
+            led_msg_index++;
+        }
     }
 
     // set timestamp
@@ -177,10 +213,10 @@ static void lighting_entry_point(void* p0, void* p1, void* p2)
 
     lighting_init(ctx);
     LOG_INF("initializing lighting");
-    k_timer_start(&ctx->timer, K_MSEC(500), K_MSEC(500));
+    k_timer_start(&ctx->timer, K_MSEC(33), K_MSEC(33));
 }
 
-K_THREAD_DEFINE(control_ackermann_lighting, MY_STACK_SIZE,
+K_THREAD_DEFINE(elm4_lighting, MY_STACK_SIZE,
     lighting_entry_point, &g_ctx, NULL, NULL,
     MY_PRIORITY, 0, 0);
 

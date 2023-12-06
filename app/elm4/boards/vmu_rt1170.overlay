@@ -56,6 +56,8 @@
 		baro1 = &bmp388_1;
 		/* power sensors */
 		power0 = &ina230;
+		/* wheel odometry */
+		wheel-odometry0 = &qdec1;
 		/* safety button */
 		safety-button = &arming_button;
 		status-led = &ncp5623c;
@@ -137,3 +139,34 @@ uart1: &lpuart5 {
        current-speed = <38400>;
 };
 
+/* QDEC conflicts with the CTS/RTS from LPUART4/TELEM1 */
+lpuart4: &lpuart4 {
+       status = "disabled";
+};
+
+&pinctrl {
+
+	pinmux_qdec1: pinmux_qdec1 {
+		group0 {
+			pinmux = <&iomuxc_gpio_disp_b1_07_xbar1_xbar_in33>,
+				<&iomuxc_gpio_disp_b1_05_xbar1_xbar_in31>;
+			drive-strength = "normal";
+			slew-rate = "slow";
+		};
+	};
+};
+
+&qdec1 {
+	status = "okay";
+	pinctrl-0 = <&pinmux_qdec1>;
+	pinctrl-names = "default";
+	counts-per-revolution = <685>;
+	filter-count = <0>;
+	xbar = < &xbar1 >;
+};
+
+&xbar1 {
+	status = "okay";
+	xbar-maps = < (33|0x100) (109|0x100) >, /* kXBARA1_InputIomuxXbarIn33 <-> kXBARA1_OutputDec1Phasea */
+		    < (31|0x100) (108|0x100) >; /* kXBARA1_InputIomuxXbarIn31 <-> kXBARA1_OutputDec1Phaseb */
+};

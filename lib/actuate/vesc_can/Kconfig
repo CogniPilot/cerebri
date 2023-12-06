@@ -1,12 +1,16 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-rsource "../../synapse/vesc_can/Kconfig"
+menuconfig CEREBRI_ACTUATE_VESC_CAN
+  bool "Acuate Vesc CAN"
+  depends on CEREBRI_SYNAPSE_VESC_CAN
+  help
+    This option enables vesc can
 
-if VESC_CAN
+if CEREBRI_ACTUATE_VESC_CAN
 
-module = ACTUATE_VESC_CAN
+module = CEREBRI_ACTUATE_VESC_CAN
 module-str = actuate_vesc_can
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # VESC_CAN
+endif # CEREBRI_ACTUATE_VESC_CAN

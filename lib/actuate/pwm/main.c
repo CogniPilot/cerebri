@@ -121,8 +121,12 @@ void pwm_update(const synapse_msgs_Fsm* fsm, const synapse_msgs_Actuators* actua
     }
 }
 
-void actuate_pwm_entry_point(context* ctx)
+void actuate_pwm_entry_point(void* p0, void* p1, void* p2)
 {
+    context* ctx = p0;
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+
     actuate_pwm_init(ctx);
 
     struct k_poll_event events[] = {

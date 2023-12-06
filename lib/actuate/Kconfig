@@ -7,5 +7,6 @@ rsource "pwm/Kconfig"
 rsource "vesc_can/Kconfig"
 rsource "status_led/Kconfig"
 rsource "led_array/Kconfig"
+rsource "sound/Kconfig"
 
 endmenu

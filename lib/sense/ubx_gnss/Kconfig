@@ -1,3 +1,6 @@
+# Copyright (c) 2023 CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
 config CEREBRI_SENSE_UBX_GNSS
   bool "U-blox GNSS Interface"
   depends on CEREBRI_SYNAPSE_ZROS
@@ -6,6 +9,27 @@ config CEREBRI_SENSE_UBX_GNSS
     This option enables U-blox GNSS driver.
 
 if CEREBRI_SENSE_UBX_GNSS
+
+choice
+     prompt "Select U-blox GNSS module type."
+     default CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M10
+
+config CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M10
+     bool "CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M10"
+
+config CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M9
+     bool "CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M9"
+
+config CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M8
+     bool "CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M8"
+
+endchoice
+
+config CEREBRI_SENSE_UBX_GNSS_BAUD
+  int  "U-blox GNSS Baud Rate"
+  default 115200
+  help
+    This sets the baud rate for the U-blox GNSS driver [38400,115200].
 
 module = CEREBRI_SENSE_UBX_GNSS
 module-str = sense_ubx_gnss

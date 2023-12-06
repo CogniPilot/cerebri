@@ -5,14 +5,22 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <synapse/zbus/channels.h>
+
 #include <zephyr/drivers/can.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+
 #include <zephyr/net/socket.h>
 #include <zephyr/net/socketcan.h>
 #include <zephyr/net/socketcan_utils.h>
 #include <zephyr/shell/shell.h>
+
+#include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_sub_struct.h>
+#include <zros/zros_node.h>
+#include <zros/zros_sub.h>
+
+#include <synapse_topic_list.h>
 
 #include "actuator_vesc_can.h"
 
@@ -29,16 +37,17 @@ extern canbus_detail_t g_canbus_details[];
 
 extern actuator_vesc_can_t g_actuator_vesc_cans[];
 
-static synapse_msgs_Actuators g_actuators = synapse_msgs_Actuators_init_default;
+typedef struct _context {
+    struct zros_node node;
+    struct zros_sub sub_actuators;
+    synapse_msgs_Actuators actuators;
+} context;
 
-static void listener_actuate_vesc_can_callback(const struct zbus_channel* chan)
-{
-    if (chan == &chan_actuators) {
-        g_actuators = *(synapse_msgs_Actuators*)(chan->message);
-    }
-}
-ZBUS_LISTENER_DEFINE(listener_actuate_vesc_can, listener_actuate_vesc_can_callback);
-ZBUS_CHAN_ADD_OBS(chan_actuators, listener_actuate_vesc_can, 1);
+static context g_ctx = {
+    .node = {},
+    .sub_actuators = {},
+    .actuators = synapse_msgs_Actuators_init_default,
+};
 
 static int stop_canbus(const actuator_vesc_can_t* actuator)
 {
@@ -66,9 +75,7 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
         LOG_ERR("can%d - device not ready\n", vesc_canbus_init->bus_id);
         g_canbus_details[vesc_canbus_init->bus_id].ready = false;
         return;
-    }
-
-    // check state
+    } // check state
     err = can_get_state(vesc_canbus_init->device, &state, &err_cnt);
     if (err != 0) {
         LOG_ERR("can%d - failed to get CAN controller state (%d)\n",
@@ -109,24 +116,38 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
     return;
 }
 
-void actuate_vesc_can_entry_point()
+void actuate_vesc_can_entry_point(void* p0, void* p1, void* p2)
 {
+    context* ctx = p0;
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+
     int err = 0;
-    for (int i = 0; i < CONFIG_VESC_CAN_NUMBER; i++) {
+    for (int i = 0; i < CONFIG_CEREBRI_SYNAPSE_VESC_CAN_NUMBER; i++) {
         actuator_vesc_can_t vesc_can = g_actuator_vesc_cans[i];
         k_usleep(1e6 / 1);
         initialize_canbus(&vesc_can);
     }
 
+    struct k_poll_event events[] = {
+        *zros_sub_get_event(&ctx->sub_actuators),
+    };
+
     while (true) {
+        int rc = 0;
+        rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
+        if (rc != 0) {
+            LOG_DBG("no actuator message received");
+        }
 
-        // sleep to set control rate at 50 Hz
-        k_usleep(1e6 / 50);
+        if (zros_sub_update_available(&ctx->sub_actuators)) {
+            zros_sub_update(&ctx->sub_actuators);
+        }
 
-        if (g_actuators.velocity_count < 1)
+        if (ctx->actuators.velocity_count < 1)
             continue;
 
-        for (int i = 0; i < CONFIG_VESC_CAN_NUMBER; i++) {
+        for (int i = 0; i < CONFIG_CEREBRI_SYNAPSE_VESC_CAN_NUMBER; i++) {
             actuator_vesc_can_t vesc_can = g_actuator_vesc_cans[i];
             if (!g_canbus_details[vesc_can.bus_id].ready) {
                 initialize_canbus(&vesc_can);
@@ -139,7 +160,7 @@ void actuate_vesc_can_entry_point()
             // if (vesc_can.fd) {
             //     frame.flags = CAN_FRAME_FDF | CAN_FRAME_IDE;
             // }
-            int32_t erpm = vesc_can.pole_pair * g_actuators.velocity[vesc_can.index] * 60 / (2 * M_PI);
+            int32_t erpm = vesc_can.pole_pair * ctx->actuators.velocity[vesc_can.index] * 60 / (2 * M_PI);
             frame.id = 768 + vesc_can.id;
             frame.data[0] = erpm >> 24 & 255;
             frame.data[1] = erpm >> 16 & 255;
@@ -159,7 +180,7 @@ void actuate_vesc_can_entry_point()
 }
 
 K_THREAD_DEFINE(actuate_vesc_can, MY_STACK_SIZE,
-    actuate_vesc_can_entry_point, NULL, NULL, NULL,
+    actuate_vesc_can_entry_point, &g_ctx, NULL, NULL,
     MY_PRIORITY, 0, 0);
 
 /* vi: ts=4 sw=4 et */

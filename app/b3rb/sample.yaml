@@ -3,20 +3,12 @@ sample:
   name: B3RB
 common:
   build_only: true
-  integration_platforms:
-    - native_posix
-    - vmu_rt1170
 tests:
   b3rb.posix:
     tags:
       - b3rb
     integration_platforms:
       - native_posix
-  b3rb.vmu_rt1170:
-    tags:
-      - b3rb
-    integration_platforms:
-      - vmu_rt1170
   b3rb.mr_canhubk3:
     tags:
       - b3rb

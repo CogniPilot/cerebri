@@ -2,7 +2,16 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
-#include <synapse/zbus/channels.h>
+
+#include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_pub_struct.h>
+#include <zros/private/zros_sub_struct.h>
+#include <zros/zros_node.h>
+#include <zros/zros_pub.h>
+#include <zros/zros_sub.h>
+
+#include <synapse_topic_list.h>
+
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
@@ -14,9 +23,44 @@ LOG_MODULE_REGISTER(sense_baro, CONFIG_CEREBRI_SENSE_BARO_LOG_LEVEL);
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 6
 
+void baro_timer_handler(struct k_timer* dummy);
+void baro_work_handler(struct k_work* work);
+
+typedef struct context_t {
+    // work
+    struct k_work work_item;
+    struct k_timer timer;
+    // node
+    struct zros_node node;
+    // data
+    synapse_msgs_Altimeter altimeter;
+    // publications
+    struct zros_pub pub;
+    // devices
+    const struct device* baro_dev[CONFIG_CEREBRI_SENSE_BARO_COUNT];
+    // raw readings
+    double baro_raw[CONFIG_CEREBRI_SENSE_BARO_COUNT];
+} context_t;
+
+static context_t g_ctx = {
+    .work_item = Z_WORK_INITIALIZER(baro_work_handler),
+    .timer = Z_TIMER_INITIALIZER(g_ctx.timer, baro_timer_handler, NULL),
+    .node = {},
+    .altimeter = {
+        .has_header = true,
+        .header = {
+            .frame_id = "wgs84",
+            .has_stamp = true,
+            .seq = 0 },
+        .vertical_position = 0,
+        .vertical_reference = 0,
+        .vertical_velocity = 0,
+    },
+    .baro_dev = {},
+    .baro_raw = {},
+};
+
 extern struct k_work_q g_low_priority_work_q;
-static const struct device* g_baro_dev[CONFIG_CEREBRI_SENSE_BARO_COUNT];
-static int32_t g_seq = 0;
 
 static const struct device* sensor_check(const struct device* const dev)
 {
@@ -36,8 +80,9 @@ static const struct device* sensor_check(const struct device* const dev)
     return dev;
 }
 
-void baro_work_handler(struct k_work* work)
+void baro_work_handler(struct k_work* work_item)
 {
+    context_t* ctx = CONTAINER_OF(work_item, context_t, work_item);
     double baro_data_array[CONFIG_CEREBRI_SENSE_BARO_COUNT][2] = {};
     for (int i = 0; i < CONFIG_CEREBRI_SENSE_BARO_COUNT; i++) {
         // default all data to zero
@@ -45,10 +90,10 @@ void baro_work_handler(struct k_work* work)
         struct sensor_value baro_temp = {};
 
         // get accel if device present
-        if (g_baro_dev[i] != NULL) {
-            sensor_sample_fetch(g_baro_dev[i]);
-            sensor_channel_get(g_baro_dev[i], SENSOR_CHAN_PRESS, &baro_press);
-            sensor_channel_get(g_baro_dev[i], SENSOR_CHAN_AMBIENT_TEMP, &baro_temp);
+        if (ctx->baro_dev[i] != NULL) {
+            sensor_sample_fetch(ctx->baro_dev[i]);
+            sensor_channel_get(ctx->baro_dev[i], SENSOR_CHAN_PRESS, &baro_press);
+            sensor_channel_get(ctx->baro_dev[i], SENSOR_CHAN_AMBIENT_TEMP, &baro_temp);
             LOG_DBG("baro %d: %d.%06d %d.%06d", i,
                 baro_press.val1, baro_press.val2,
                 baro_temp.val1, baro_temp.val2);
@@ -66,16 +111,14 @@ void baro_work_handler(struct k_work* work)
     double alt = ((pow((sea_press / press), 1 / 5.257) - 1.0) * (temp + 273.15)) / 0.0065;
     // LOG_DBG("press %10.4f, temp: %10.4f, alt: %10.4f", press, temp, alt);
 
-    // publish mag to zbus
-    synapse_msgs_Altimeter msg = synapse_msgs_Altimeter_init_default;
-    msg.has_header = true;
-    stamp_header(&msg.header, k_uptime_ticks());
-    msg.header.seq = g_seq++;
-    strncpy(msg.header.frame_id, "map", sizeof(msg.header.frame_id) - 1);
-    msg.vertical_position = alt;
-    msg.vertical_velocity = 0;
-    msg.vertical_reference = 0;
-    zbus_chan_pub(&chan_altimeter, &msg, K_NO_WAIT);
+    // publish altimeter
+    ctx->altimeter.vertical_reference = alt;
+    stamp_header(&ctx->altimeter.header, k_uptime_ticks());
+    ctx->altimeter.header.seq++;
+    ctx->altimeter.vertical_position = alt;
+    ctx->altimeter.vertical_velocity = 0;
+    ctx->altimeter.vertical_reference = 0;
+    zros_pub_update(&ctx->pub);
 }
 
 K_WORK_DEFINE(baro_work, baro_work_handler);
@@ -87,23 +130,26 @@ void baro_timer_handler(struct k_timer* dummy)
 
 K_TIMER_DEFINE(baro_timer, baro_timer_handler, NULL);
 
-int sense_baro_entry_point(void)
+int sense_baro_entry_point(void* p0, void* p1, void* p2)
 {
-    g_baro_dev[0] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro0)));
+    context_t* ctx = p0;
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+    ctx->baro_dev[0] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro0)));
 #if CONFIG_CEREBRI_SENSE_BARO_COUNT >= 2
-    g_baro_dev[1] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro1)));
+    ctx->baro_dev[1] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro1)));
 #elif CONFIG_CEREBRI_SENSE_BARO_COUNT >= 3
-    g_baro_dev[2] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro2)));
+    ctx->baro_dev[2] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro2)));
 #elif CONFIG_CEREBRI_SENSE_BARO_COUNT == 4
-    g_baro_dev[3] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro3)));
+    ctrx->baro_dev[3] = sensor_check(DEVICE_DT_GET(DT_ALIAS(baro3)));
 #endif
 
-    k_timer_start(&baro_timer, K_MSEC(1000), K_MSEC(1000));
+    k_timer_start(&baro_timer, K_MSEC(100), K_MSEC(100));
     return 0;
 }
 
 K_THREAD_DEFINE(sense_baro, MY_STACK_SIZE,
-    sense_baro_entry_point, NULL, NULL, NULL,
+    sense_baro_entry_point, &g_ctx, NULL, NULL,
     MY_PRIORITY, 0, 0);
 
 // vi: ts=4 sw=4 et

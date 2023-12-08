@@ -4,11 +4,19 @@
 mainmenu "CogniPilot - Cerebri - ELM4"
 source "Kconfig.zephyr"
 
+
 config CEREBRI_ELM4_BATTERY_MIN_MILLIVOLT
   int "min battery voltage in milli volts before shut off"
-  default 35000
+  default 32000
   help
     Minimum battery voltage in mV before auto-disarm
+
+config CEREBRI_ELM4_BATTERY_MAX_MILLIVOLT
+  int "max battery voltage in milli volts"
+  default 43800
+  help
+    Maximum battery voltage
+
 
 config CEREBRI_ELM4_GAIN_HEADING
   int "heading gain"

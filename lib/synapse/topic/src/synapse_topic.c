@@ -30,15 +30,15 @@ LOG_MODULE_REGISTER(zros_topic);
         (bezier_trajectory, &topic_bezier_trajectory, "bezier_trajectory"),    \
         (clock_offset, &topic_clock_offset, "clock_offset"),                   \
         (cmd_vel, &topic_cmd_vel, "cmd_vel"),                                  \
-        (fsm, &topic_fsm, "fsm"),                                              \
+        (estimator_odometry, &topic_estimator_odometry, "estimator_odometry"), \
+        (external_odometry, &topic_external_odometry, "external_odometry"),    \
         (imu, &topic_imu, "imu"),                                              \
         (joy, &topic_joy, "joy"),                                              \
         (led_array, &topic_led_array, "led_array"),                            \
         (magnetic_field, &topic_magnetic_field, "magnetic_field"),             \
         (nav_sat_fix, &topic_nav_sat_fix, "nav_sat_fix"),                      \
-        (estimator_odometry, &topic_estimator_odometry, "estimator_odometry"), \
-        (external_odometry, &topic_external_odometry, "external_odometry"),    \
         (safety, &topic_safety, "safety"),                                     \
+        (status, &topic_status, "status"),                                     \
         (wheel_odometry, &topic_wheel_odometry, "wheel_odometry")
 
 int topic_count_hz(const struct shell* sh, struct zros_topic* topic, void* msg, snprint_t* echo)
@@ -137,9 +137,9 @@ int handle_msg(const struct shell* sh, struct zros_topic* topic, msg_handler_t* 
     } else if (topic == &topic_cmd_vel) {
         synapse_msgs_Twist msg = {};
         return handler(sh, topic, &msg, (snprint_t*)&snprint_twist);
-    } else if (topic == &topic_fsm) {
-        synapse_msgs_Fsm msg = {};
-        return handler(sh, topic, &msg, (snprint_t*)&snprint_fsm);
+    } else if (topic == &topic_status) {
+        synapse_msgs_Status msg = {};
+        return handler(sh, topic, &msg, (snprint_t*)&snprint_status);
     } else if (topic == &topic_imu) {
         synapse_msgs_Imu msg = {};
         return handler(sh, topic, &msg, (snprint_t*)&snprint_imu);

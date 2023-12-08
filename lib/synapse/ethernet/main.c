@@ -26,7 +26,7 @@
 #include <zros/zros_sub.h>
 
 #include <synapse_protobuf/actuators.pb.h>
-#include <synapse_protobuf/fsm.pb.h>
+#include <synapse_protobuf/status.pb.h>
 #include <synapse_topic_list.h>
 
 LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_CEREBRI_SYNAPSE_ETHERNET_LOG_LEVEL);
@@ -42,10 +42,9 @@ typedef struct context_s {
     synapse_msgs_Actuators actuators;
     synapse_msgs_BatteryState battery_state;
     synapse_msgs_Odometry estimator_odometry;
-    synapse_msgs_Fsm fsm;
-    synapse_msgs_Safety safety;
+    synapse_msgs_Status status;
     struct zros_sub sub_actuators, sub_battery_state,
-        sub_fsm, sub_estimator_odometry, sub_safety;
+        sub_status, sub_estimator_odometry;
     TinyFrame tf;
     volatile int client;
     int error_count;
@@ -60,13 +59,11 @@ static context_t g_ctx = {
     .actuators = synapse_msgs_Actuators_init_default,
     .battery_state = synapse_msgs_BatteryState_init_default,
     .estimator_odometry = synapse_msgs_Odometry_init_default,
-    .fsm = synapse_msgs_Fsm_init_default,
-    .safety = synapse_msgs_Safety_init_default,
+    .status = synapse_msgs_Status_init_default,
     .sub_actuators = {},
     .sub_battery_state = {},
-    .sub_fsm = {},
+    .sub_status = {},
     .sub_estimator_odometry = {},
-    .sub_safety = {},
     .tf = {},
     .client = -1,
     .error_count = 0,
@@ -172,8 +169,7 @@ static void synapse_ethernet_init(context_t* ctx)
     zros_sub_init(&ctx->sub_actuators, &ctx->node, &topic_actuators, &ctx->actuators, 1);
     zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state, &ctx->battery_state, 1);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
-    zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 1);
-    zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 1);
+    zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 1);
 }
 
 static void send_uptime(context_t* ctx)
@@ -265,8 +261,7 @@ static void ethernet_entry_point(context_t* ctx)
         struct k_poll_event events[] = {
             *zros_sub_get_event(&ctx->sub_actuators),
             *zros_sub_get_event(&ctx->sub_battery_state),
-            *zros_sub_get_event(&ctx->sub_fsm),
-            *zros_sub_get_event(&ctx->sub_safety),
+            *zros_sub_get_event(&ctx->sub_status),
             *zros_sub_get_event(&ctx->sub_estimator_odometry),
         };
 
@@ -277,19 +272,16 @@ static void ethernet_entry_point(context_t* ctx)
                 LOG_WRN("poll timeout");
             }
 
+            /*
             if (zros_sub_update_available(&ctx->sub_battery_state)) {
                 zros_sub_update(&ctx->sub_battery_state);
                 TOPIC_PUBLISHER(&ctx->battery_state, synapse_msgs_BatteryState, SYNAPSE_BATTERY_STATE_TOPIC);
             }
+            */
 
-            if (zros_sub_update_available(&ctx->sub_fsm)) {
-                zros_sub_update(&ctx->sub_fsm);
-                TOPIC_PUBLISHER(&ctx->fsm, synapse_msgs_Fsm, SYNAPSE_FSM_TOPIC);
-            }
-
-            if (zros_sub_update_available(&ctx->sub_safety)) {
-                zros_sub_update(&ctx->sub_safety);
-                TOPIC_PUBLISHER(&ctx->safety, synapse_msgs_Safety, SYNAPSE_SAFETY_TOPIC);
+            if (zros_sub_update_available(&ctx->sub_status)) {
+                zros_sub_update(&ctx->sub_status);
+                TOPIC_PUBLISHER(&ctx->status, synapse_msgs_Status, SYNAPSE_STATUS_TOPIC);
             }
 
             if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {

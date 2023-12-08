@@ -46,7 +46,7 @@ static context_t g_ctx = {
             .has_stamp = true,
             .seq = 0,
             .stamp = synapse_msgs_Time_init_default },
-        .status = synapse_msgs_Safety_Status_SAFE,
+        .status = synapse_msgs_Safety_Status_SAFETY_SAFE,
     },
     .node = {},
     .pub = {},
@@ -59,10 +59,10 @@ static void safety_toggle_work_handler(struct k_work* work)
 {
     context_t* ctx = CONTAINER_OF(work, context_t, toggle_work_item);
     synapse_msgs_Safety_Status status = ctx->data.status;
-    if (status == synapse_msgs_Safety_Status_SAFE) {
-        ctx->data.status = synapse_msgs_Safety_Status_UNSAFE;
+    if (status == synapse_msgs_Safety_Status_SAFETY_SAFE) {
+        ctx->data.status = synapse_msgs_Safety_Status_SAFETY_UNSAFE;
     } else {
-        ctx->data.status = synapse_msgs_Safety_Status_SAFE;
+        ctx->data.status = synapse_msgs_Safety_Status_SAFETY_SAFE;
     }
     stamp_header(&ctx->data.header, k_uptime_ticks());
     ctx->data.header.seq++;

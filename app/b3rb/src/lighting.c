@@ -35,11 +35,11 @@ typedef struct context_ {
     // data
     synapse_msgs_BatteryState battery_state;
     synapse_msgs_Safety safety;
-    synapse_msgs_Fsm fsm;
+    synapse_msgs_Status status;
     synapse_msgs_LEDArray led_array;
     synapse_msgs_Joy joy;
     // subscriptions
-    struct zros_sub sub_battery_state, sub_safety, sub_fsm, sub_joy;
+    struct zros_sub sub_battery_state, sub_safety, sub_status, sub_joy;
     // publications
     struct zros_pub pub_led_array;
     bool lights_on;
@@ -50,10 +50,10 @@ static context_t g_ctx = {
     .timer = Z_TIMER_INITIALIZER(g_ctx.timer, lighting_timer_handler, NULL),
     .battery_state = synapse_msgs_BatteryState_init_default,
     .safety = synapse_msgs_Safety_init_default,
-    .fsm = synapse_msgs_Fsm_init_default,
+    .status = synapse_msgs_Status_init_default,
     .led_array = synapse_msgs_LEDArray_init_default,
     .sub_safety = {},
-    .sub_fsm = {},
+    .sub_status = {},
     .sub_joy = {},
     .pub_led_array = {},
     .node = {},
@@ -65,7 +65,7 @@ static void lighting_init(context_t* ctx)
     zros_node_init(&ctx->node, "b3rb_lighting");
     zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state, &ctx->battery_state, 10);
     zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 10);
-    zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 10);
+    zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 10);
     zros_pub_init(&ctx->pub_led_array, &ctx->node, &topic_led_array, &ctx->led_array);
 }
@@ -83,7 +83,7 @@ static void lighting_work_handler(struct k_work* work)
     context_t* ctx = CONTAINER_OF(work, context_t, work_item);
 
     // update subscriptions
-    zros_sub_update(&ctx->sub_fsm);
+    zros_sub_update(&ctx->sub_status);
     zros_sub_update(&ctx->sub_joy);
     zros_sub_update(&ctx->sub_safety);
     zros_sub_update(&ctx->sub_battery_state);
@@ -122,13 +122,13 @@ static void lighting_work_handler(struct k_work* work)
     // mode leds
     for (size_t i = 0; i < ARRAY_SIZE(mode_leds); i++) {
         const double* color = NULL;
-        if (ctx->fsm.mode == synapse_msgs_Fsm_Mode_MANUAL) {
+        if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
             color = color_manual;
-        } else if (ctx->fsm.mode == synapse_msgs_Fsm_Mode_CMD_VEL) {
+        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL) {
             color = color_cmd_vel;
-        } else if (ctx->fsm.mode == synapse_msgs_Fsm_Mode_AUTO) {
+        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
             color = color_auto;
-        } else if (ctx->fsm.mode == synapse_msgs_Fsm_Mode_CALIBRATION) {
+        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CALIBRATION) {
             color = color_calibration;
         } else {
             color = color_unknown;
@@ -143,9 +143,9 @@ static void lighting_work_handler(struct k_work* work)
         if (battery_critical) {
             color = color_battery_critical;
         } else {
-            if (ctx->fsm.armed == synapse_msgs_Fsm_Armed_DISARMED) {
+            if (ctx->status.arming == synapse_msgs_Status_Arming_ARMING_DISARMED) {
                 color = color_disarmed;
-            } else if (ctx->fsm.armed == synapse_msgs_Fsm_Armed_ARMED) {
+            } else if (ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED) {
                 color = color_armed;
             } else {
                 color = color_unknown;
@@ -158,9 +158,9 @@ static void lighting_work_handler(struct k_work* work)
     // safety leds
     for (size_t i = 0; i < ARRAY_SIZE(safety_leds); i++) {
         const double* color = NULL;
-        if (ctx->safety.status == synapse_msgs_Safety_Status_SAFE) {
+        if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE) {
             color = color_safe;
-        } else if (ctx->safety.status == synapse_msgs_Safety_Status_UNSAFE) {
+        } else if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNSAFE) {
             color = color_unsafe;
         } else {
             color = color_unknown;

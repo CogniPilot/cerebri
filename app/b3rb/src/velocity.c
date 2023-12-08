@@ -27,10 +27,10 @@ LOG_MODULE_REGISTER(b3rb_velocity, CONFIG_CEREBRI_B3RB_LOG_LEVEL);
 typedef struct _context {
     struct zros_node node;
     synapse_msgs_Twist cmd_vel;
-    synapse_msgs_Fsm fsm;
+    synapse_msgs_Status status;
     synapse_msgs_Actuators actuators;
     synapse_msgs_Actuators actuators_manual;
-    struct zros_sub sub_fsm, sub_cmd_vel, sub_actuators_manual;
+    struct zros_sub sub_status, sub_cmd_vel, sub_actuators_manual;
     struct zros_pub pub_actuators;
     const double wheel_radius;
     const double wheel_base;
@@ -39,10 +39,10 @@ typedef struct _context {
 static context g_ctx = {
     .node = {},
     .cmd_vel = synapse_msgs_Twist_init_default,
-    .fsm = synapse_msgs_Fsm_init_default,
+    .status = synapse_msgs_Status_init_default,
     .actuators = synapse_msgs_Actuators_init_default,
     .actuators_manual = synapse_msgs_Actuators_init_default,
-    .sub_fsm = {},
+    .sub_status = {},
     .sub_cmd_vel = {},
     .sub_actuators_manual = {},
     .pub_actuators = {},
@@ -55,7 +55,7 @@ static void init_b3rb_vel(context* ctx)
     LOG_DBG("init vel");
     zros_node_init(&ctx->node, "b3rb_velocity");
     zros_sub_init(&ctx->sub_cmd_vel, &ctx->node, &topic_cmd_vel, &ctx->cmd_vel, 10);
-    zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 10);
+    zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_actuators_manual, &ctx->node,
         &topic_actuators_manual, &ctx->actuators_manual, 10);
     zros_pub_init(&ctx->pub_actuators, &ctx->node, &topic_actuators, &ctx->actuators);
@@ -98,10 +98,10 @@ static void b3rb_velocity_entry_point(void* p0, void* p1, void* p2)
     init_b3rb_vel(ctx);
 
     while (true) {
-        synapse_msgs_Fsm_Mode mode = ctx->fsm.mode;
+        synapse_msgs_Status_Mode mode = ctx->status.mode;
 
         int rc = 0;
-        if (mode == synapse_msgs_Fsm_Mode_MANUAL) {
+        if (mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
             struct k_poll_event events[] = {
                 *zros_sub_get_event(&ctx->sub_actuators_manual),
             };
@@ -119,8 +119,8 @@ static void b3rb_velocity_entry_point(void* p0, void* p1, void* p2)
             }
         }
 
-        if (zros_sub_update_available(&ctx->sub_fsm)) {
-            zros_sub_update(&ctx->sub_fsm);
+        if (zros_sub_update_available(&ctx->sub_status)) {
+            zros_sub_update(&ctx->sub_status);
         }
 
         if (zros_sub_update_available(&ctx->sub_cmd_vel)) {
@@ -135,10 +135,10 @@ static void b3rb_velocity_entry_point(void* p0, void* p1, void* p2)
         if (rc < 0) {
             stop(ctx);
             LOG_DBG("no data, stopped");
-        } else if (ctx->fsm.armed != synapse_msgs_Fsm_Armed_ARMED) {
+        } else if (ctx->status.arming != synapse_msgs_Status_Arming_ARMING_ARMED) {
             stop(ctx);
             LOG_DBG("not armed, stopped");
-        } else if (ctx->fsm.mode == synapse_msgs_Fsm_Mode_MANUAL) {
+        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
             LOG_DBG("manual mode");
             ctx->actuators = ctx->actuators_manual;
         } else {

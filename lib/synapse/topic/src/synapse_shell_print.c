@@ -113,14 +113,16 @@ int snprint_bezier_trajectory(char* buf, size_t n, synapse_msgs_BezierTrajectory
     return offset;
 }
 
-int snprint_fsm(char* buf, size_t n, synapse_msgs_Fsm* m)
+int snprint_status(char* buf, size_t n, synapse_msgs_Status* m)
 {
     size_t offset = 0;
     if (m->has_header) {
         offset += snprint_header(buf + offset, n - offset, &m->header);
     }
-    offset += snprintf_cat(buf + offset, n - offset, "armed: %s, mode: %s\n",
-        fsm_armed_str(m->armed), fsm_mode_str(m->mode));
+    offset += snprintf_cat(buf + offset, n - offset,
+        "armed: %s\nmode: %s\nsafety: %s\nfuel: %s\nfuel level: %0.2d\%\npower: %10.2fW\nmessage: %s\n",
+        armed_str(m->arming), mode_str(m->mode), status_safety_str(m->safety),
+        fuel_str(m->fuel), m->fuel_percentage, m->power, m->status_message);
     return offset;
 }
 

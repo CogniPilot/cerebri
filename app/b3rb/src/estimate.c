@@ -18,8 +18,7 @@
 
 #include <synapse_topic_list.h>
 
-#define casadi_real double
-#define casadi_int int64_t
+#include <cerebri/core/casadi.h>
 
 #include "casadi/gen/b3rb.h"
 
@@ -97,7 +96,7 @@ static void handle_update(context* ctx, double* x1)
     }
 }
 
-static void estimate_rover2d_run(void* p0, void* p1, void* p2)
+static void b3rb_estimate_entry_point(void* p0, void* p1, void* p2)
 {
     context* ctx = p0;
     ARG_UNUSED(p1);
@@ -183,22 +182,16 @@ static void estimate_rover2d_run(void* p0, void* p1, void* p2)
 
         /* predict:(x0[3],omega,u)->(x1[3]) */
         {
-            // LOG_DBG("predict");
-
-            // memory
-            static casadi_int iw[predict_SZ_IW];
-            static casadi_real w[predict_SZ_W];
-
-            // input
             double delta_theta = omega * dt;
-            const double* args[predict_SZ_ARG] = { ctx->x, &delta_theta, &u };
-
-            // output
             double x1[3];
-            double* res[predict_SZ_RES] = { x1 };
 
-            // evaluate
-            predict(args, res, iw, w, 0);
+            // LOG_DBG("predict");
+            CASADI_FUNC_ARGS(predict);
+            args[0] = ctx->x;
+            args[1] = &delta_theta;
+            args[2] = &u;
+            res[0] = x1;
+            CASADI_FUNC_CALL(predict);
 
             // update x, W
             handle_update(ctx, x1);
@@ -224,7 +217,7 @@ static void estimate_rover2d_run(void* p0, void* p1, void* p2)
     }
 }
 
-K_THREAD_DEFINE(estimate_rover2d, MY_STACK_SIZE, estimate_rover2d_run,
+K_THREAD_DEFINE(b3rb_estimate, MY_STACK_SIZE, b3rb_estimate_entry_point,
     &g_ctx, NULL, NULL, MY_PRIORITY, 0, 0);
 
 /* vi: ts=4 sw=4 et */

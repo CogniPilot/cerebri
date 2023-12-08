@@ -18,6 +18,8 @@
 
 #include "casadi/gen/b3rb.h"
 
+#include <cerebri/core/casadi.h>
+
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY 4
 
@@ -130,33 +132,23 @@ static void auto_mode(context* ctx)
         PY[i] = ctx->bezier_trajectory.curves[curve_index].y[i];
     }
 
-    // casadi mem args
-    casadi_int* iw = NULL;
-    casadi_real* w = NULL;
-    int mem = 0;
-
     /* bezier6_rover:(t,T,PX[1x6],PY[1x6],L)->(x,y,psi,V,omega) */
     {
-        const casadi_real* args[5];
-        casadi_real* res[5];
+        CASADI_FUNC_ARGS(bezier6_rover);
         args[0] = &t;
         args[1] = &T;
         args[2] = PX;
         args[3] = PY;
-        args[4] = &ctx->wheel_base;
         res[0] = &x;
         res[1] = &y;
         res[2] = &psi;
         res[3] = &V;
         res[4] = &omega;
-        bezier6_rover(args, res, iw, w, mem);
+        CASADI_FUNC_CALL(bezier6_rover);
     }
 
     /* se2_error:(p[3],r[3])->(error[3]) */
     {
-        const casadi_real* args[2];
-        casadi_real* res[1];
-
         double p[3], r[3];
 
         // vehicle position
@@ -170,10 +162,11 @@ static void auto_mode(context* ctx)
         r[2] = psi;
 
         // call function
+        CASADI_FUNC_ARGS(se2_error);
         args[0] = p;
         args[1] = r;
         res[0] = e;
-        se2_error(args, res, iw, w, mem);
+        CASADI_FUNC_CALL(se2_error);
     }
 
     // compute twist

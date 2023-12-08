@@ -18,12 +18,11 @@
 
 #include <synapse_topic_list.h>
 
-#define casadi_real double
-#define casadi_int int64_t
+#include <cerebri/core/casadi.h>
 
 #include "casadi/gen/elm4.h"
 
-LOG_MODULE_REGISTER(estimate_rover2d, CONFIG_CEREBRI_ELM4_LOG_LEVEL);
+LOG_MODULE_REGISTER(elm4_estimate, CONFIG_CEREBRI_ELM4_LOG_LEVEL);
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
@@ -67,7 +66,7 @@ static context g_ctx = {
 
 static void estimate_rover2d_init(context* ctx)
 {
-    zros_node_init(&ctx->node, "estimate_rover2d");
+    zros_node_init(&ctx->node, "elm4_estimate");
     zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->imu, 10);
     zros_sub_init(&ctx->sub_wheel_odometry, &ctx->node, &topic_wheel_odometry,
         &ctx->wheel_odometry, 10);
@@ -184,22 +183,16 @@ static void elm4_estimate_entry_point(void* p0, void* p1, void* p2)
 
         /* predict:(x0[3],omega,u)->(x1[3]) */
         {
-            // LOG_DBG("predict");
-
-            // memory
-            static casadi_int iw[predict_SZ_IW];
-            static casadi_real w[predict_SZ_W];
-
-            // input
             double delta_theta = omega * dt;
-            const double* args[predict_SZ_ARG] = { ctx->x, &delta_theta, &u };
-
-            // output
             double x1[3];
-            double* res[predict_SZ_RES] = { x1 };
 
-            // evaluate
-            predict(args, res, iw, w, 0);
+            // LOG_DBG("predict");
+            CASADI_FUNC_ARGS(predict);
+            args[0] = ctx->x;
+            args[1] = &delta_theta;
+            args[2] = &u;
+            res[0] = x1;
+            CASADI_FUNC_CALL(predict);
 
             // update x, W
             handle_update(ctx, x1);

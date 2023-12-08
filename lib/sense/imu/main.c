@@ -25,7 +25,7 @@ LOG_MODULE_REGISTER(sense_imu, CONFIG_CEREBRI_SENSE_IMU_LOG_LEVEL);
 #define THREAD_PRIORITY 6
 
 static const double g_accel = 9.8;
-static int calibration_count = 100;
+static const int g_calibration_count = 100;
 
 extern struct k_work_q g_high_priority_work_q;
 void imu_work_handler(struct k_work* work);
@@ -163,8 +163,8 @@ void imu_read(context_t* ctx)
 void imu_calibrate(context_t* ctx)
 {
     // data
-    double accel_samples[calibration_count][CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3];
-    double gyro_samples[calibration_count][CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3];
+    double accel_samples[g_calibration_count][CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3];
+    double gyro_samples[g_calibration_count][CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3];
 
     // mean and std
     double accel_mean[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3];
@@ -186,7 +186,7 @@ void imu_calibrate(context_t* ctx)
         memset(gyro_std, 0, sizeof(gyro_std));
 
         // attempt to get samples
-        for (int i = 0; i < calibration_count; i++) {
+        for (int i = 0; i < g_calibration_count; i++) {
             k_msleep(5);
             imu_read(ctx);
 
@@ -210,19 +210,19 @@ void imu_calibrate(context_t* ctx)
         // find accel mean
         for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT; j++) {
             for (int k = 0; k < 3; k++) {
-                accel_mean[j][k] /= calibration_count;
+                accel_mean[j][k] /= g_calibration_count;
             }
         }
 
         // find gyro mean
         for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT; j++) {
             for (int k = 0; k < 3; k++) {
-                gyro_mean[j][k] /= calibration_count;
+                gyro_mean[j][k] /= g_calibration_count;
             }
         }
 
         // find std deviation
-        for (int i = 0; i < calibration_count; i++) {
+        for (int i = 0; i < g_calibration_count; i++) {
             // get accel data
             for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT; j++) {
                 for (int k = 0; k < 3; k++) {
@@ -242,13 +242,13 @@ void imu_calibrate(context_t* ctx)
 
         for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT; j++) {
             for (int k = 0; k < 3; k++) {
-                accel_std[j][k] = sqrt(accel_std[j][k] / calibration_count);
+                accel_std[j][k] = sqrt(accel_std[j][k] / g_calibration_count);
             }
         }
 
         for (int j = 0; j < CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT; j++) {
             for (int k = 0; k < 3; k++) {
-                gyro_std[j][k] = sqrt(gyro_std[j][k] / calibration_count);
+                gyro_std[j][k] = sqrt(gyro_std[j][k] / g_calibration_count);
             }
         }
 

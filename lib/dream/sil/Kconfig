@@ -3,7 +3,7 @@
 
 menuconfig CEREBRI_DREAM_SIL
   bool "SIL"
-  depends on CEREBRI_SYNAPSE_ZBUS
+  depends on CEREBRI_SYNAPSE_ZROS
   help
     This option enables the cerebri sil sim
 

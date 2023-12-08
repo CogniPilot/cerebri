@@ -14,12 +14,14 @@
 #include <zros/zros_pub.h>
 #include <zros/zros_sub.h>
 
+#include <cerebri/core/casadi.h>
+
 #include "mixing.h"
 
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY 4
 
-LOG_MODULE_DECLARE(control_diffdrive);
+LOG_MODULE_REGISTER(elm4_velocity, CONFIG_CEREBRI_ELM4_LOG_LEVEL);
 
 typedef struct _context {
     struct zros_node node;
@@ -51,7 +53,7 @@ static context g_ctx = {
     .wheel_separation = CONFIG_CEREBRI_ELM4_WHEEL_SEPARATION_MM / 1000.0,
 };
 
-static void init_control_diffdrive_vel(context* ctx)
+static void init_elm4_vel(context* ctx)
 {
     LOG_DBG("init vel");
     zros_node_init(&ctx->node, "control_ackerman_vel");
@@ -67,17 +69,14 @@ void update_cmd_vel(context* ctx)
 {
     double V = ctx->cmd_vel.linear.x;
     double omega = ctx->cmd_vel.angular.z;
-    casadi_int* iw = NULL;
-    casadi_real* w = NULL;
-    int mem = 0;
     double Vw = 0;
-    const casadi_real* args[3];
-    casadi_real* res[1];
+    CASADI_FUNC_ARGS(differential_steering);
     args[0] = &ctx->wheel_base;
     args[1] = &omega;
     args[2] = &ctx->wheel_separation;
     res[0] = &Vw;
-    differential_steering(args, res, iw, w, mem);
+    CASADI_FUNC_CALL(differential_steering);
+
     double omega_fwd = V / ctx->wheel_radius;
     double omega_turn = Vw / ctx->wheel_radius;
     elm4_set_actuators(&ctx->actuators, omega_fwd, omega_turn);
@@ -88,13 +87,13 @@ static void stop(context* ctx)
     elm4_set_actuators(&ctx->actuators, 0, 0);
 }
 
-static void run_control_diffdrive_vel(void* p0, void* p1, void* p2)
+static void elm4_velocity_entry_point(void* p0, void* p1, void* p2)
 {
     context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
 
-    init_control_diffdrive_vel(ctx);
+    init_elm4_vel(ctx);
 
     while (true) {
         synapse_msgs_Fsm_Mode mode = ctx->fsm.mode;
@@ -149,8 +148,8 @@ static void run_control_diffdrive_vel(void* p0, void* p1, void* p2)
     }
 }
 
-K_THREAD_DEFINE(control_diffdrive_vel, MY_STACK_SIZE,
-    run_control_diffdrive_vel, &g_ctx, NULL, NULL,
+K_THREAD_DEFINE(elm4_velocity, MY_STACK_SIZE,
+    elm4_velocity_entry_point, &g_ctx, NULL, NULL,
     MY_PRIORITY, 0, 0);
 
 /* vi: ts=4 sw=4 et */

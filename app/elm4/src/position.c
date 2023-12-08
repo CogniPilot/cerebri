@@ -18,10 +18,12 @@
 
 #include "casadi/gen/elm4.h"
 
+#include <cerebri/core/casadi.h>
+
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY 4
 
-LOG_MODULE_DECLARE(control_diffdrive);
+LOG_MODULE_REGISTER(elm4_position, CONFIG_CEREBRI_ELM4_LOG_LEVEL);
 
 typedef struct _context {
     struct zros_node node;
@@ -62,7 +64,7 @@ static context g_ctx = {
 
 static void init(context* ctx)
 {
-    zros_node_init(&ctx->node, "control_ackerman_position");
+    zros_node_init(&ctx->node, "elm4_position");
     zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 10);
     zros_sub_init(&ctx->sub_clock_offset, &ctx->node, &topic_clock_offset, &ctx->clock_offset, 10);
     zros_sub_init(&ctx->sub_pose, &ctx->node, &topic_estimator_odometry, &ctx->pose, 10);
@@ -130,33 +132,23 @@ static void auto_mode(context* ctx)
         PY[i] = ctx->bezier_trajectory.curves[curve_index].y[i];
     }
 
-    // casadi mem args
-    casadi_int* iw = NULL;
-    casadi_real* w = NULL;
-    int mem = 0;
-
     /* bezier6_rover:(t,T,PX[1x6],PY[1x6],L)->(x,y,psi,V,omega) */
     {
-        const casadi_real* args[5];
-        casadi_real* res[5];
+        CASADI_FUNC_ARGS(bezier6_rover);
         args[0] = &t;
         args[1] = &T;
         args[2] = PX;
         args[3] = PY;
-        args[4] = &ctx->wheel_base;
         res[0] = &x;
         res[1] = &y;
         res[2] = &psi;
         res[3] = &V;
         res[4] = &omega;
-        bezier6_rover(args, res, iw, w, mem);
+        CASADI_FUNC_CALL(bezier6_rover);
     }
 
     /* se2_error:(p[3],r[3])->(error[3]) */
     {
-        const casadi_real* args[2];
-        casadi_real* res[1];
-
         double p[3], r[3];
 
         // vehicle position
@@ -170,10 +162,11 @@ static void auto_mode(context* ctx)
         r[2] = psi;
 
         // call function
+        CASADI_FUNC_ARGS(se2_error);
         args[0] = p;
         args[1] = r;
         res[0] = e;
-        se2_error(args, res, iw, w, mem);
+        CASADI_FUNC_CALL(se2_error);
     }
 
     // compute twist
@@ -181,7 +174,7 @@ static void auto_mode(context* ctx)
     ctx->cmd_vel.angular.z = omega + ctx->gain_cross_track * e[1] + ctx->gain_heading * e[2];
 }
 
-static void run(void* p0, void* p1, void* p2)
+static void elm4_position_entry_point(void* p0, void* p1, void* p2)
 {
     context* ctx = p0;
     ARG_UNUSED(p1);
@@ -229,8 +222,8 @@ static void run(void* p0, void* p1, void* p2)
     }
 }
 
-K_THREAD_DEFINE(control_diffdrive_pos, MY_STACK_SIZE,
-    run, &g_ctx, NULL, NULL,
+K_THREAD_DEFINE(elm4_position, MY_STACK_SIZE,
+    elm4_position_entry_point, &g_ctx, NULL, NULL,
     MY_PRIORITY, 0, 0);
 
 /* vi: ts=4 sw=4 et */

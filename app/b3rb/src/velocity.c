@@ -4,7 +4,7 @@
  */
 
 #include "casadi/gen/b3rb.h"
-#include <math.h>
+#include "math.h"
 
 #include <zephyr/logging/log.h>
 
@@ -14,6 +14,8 @@
 #include <zros/zros_node.h>
 #include <zros/zros_pub.h>
 #include <zros/zros_sub.h>
+
+#include <cerebri/core/casadi.h>
 
 #include "mixing.h"
 
@@ -66,17 +68,15 @@ void update_cmd_vel(context* ctx)
     double omega_fwd = 0;
     double V = ctx->cmd_vel.linear.x;
     double omega = ctx->cmd_vel.angular.z;
-    casadi_int* iw = NULL;
-    casadi_real* w = NULL;
-    int mem = 0;
     double delta = 0;
-    const casadi_real* args[3];
-    casadi_real* res[1];
+
+    CASADI_FUNC_ARGS(ackermann_steering);
     args[0] = &ctx->wheel_base;
     args[1] = &omega;
     args[2] = &V;
     res[0] = &delta;
-    ackermann_steering(args, res, iw, w, mem);
+    CASADI_FUNC_CALL(ackermann_steering);
+
     omega_fwd = V / ctx->wheel_radius;
     if (fabs(V) > 0.01) {
         turn_angle = delta;

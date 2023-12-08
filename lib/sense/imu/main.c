@@ -39,13 +39,13 @@ typedef struct context_t {
     struct zros_node node;
     // data
     synapse_msgs_Imu imu;
-    synapse_msgs_Fsm fsm;
-    synapse_msgs_Fsm_Mode last_mode;
+    synapse_msgs_Status status;
+    synapse_msgs_Status_Mode last_mode;
     bool calibrated;
     // publications
     struct zros_pub pub_imu;
     // subscriptions
-    struct zros_sub sub_fsm;
+    struct zros_sub sub_status;
     // devices
     const struct device* accel_dev[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT];
     const struct device* gyro_dev[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT];
@@ -74,11 +74,11 @@ static context_t g_ctx = {
         .linear_acceleration = synapse_msgs_Vector3_init_default,
         .has_orientation = false,
     },
-    .fsm = synapse_msgs_Fsm_init_default,
-    .last_mode = synapse_msgs_Fsm_Mode_UNKNOWN_MODE,
+    .status = synapse_msgs_Status_init_default,
+    .last_mode = synapse_msgs_Status_Mode_MODE_UNKNOWN,
     .calibrated = false,
     .pub_imu = {},
-    .sub_fsm = {},
+    .sub_status = {},
     .accel_dev = {},
     .gyro_dev = {},
     .gyro_raw = {},
@@ -92,7 +92,7 @@ static void imu_init(context_t* ctx)
     // initialize node
     zros_node_init(&ctx->node, "sense_imu");
     zros_pub_init(&ctx->pub_imu, &ctx->node, &topic_imu, &ctx->imu);
-    zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 1);
+    zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 1);
 
     // setup accel devices
 
@@ -307,16 +307,16 @@ void imu_work_handler(struct k_work* work)
 {
     context_t* ctx = CONTAINER_OF(work, context_t, work_item);
 
-    // update fsm
-    if (zros_sub_update_available(&ctx->sub_fsm)) {
-        zros_sub_update(&ctx->sub_fsm);
+    // update status
+    if (zros_sub_update_available(&ctx->sub_status)) {
+        zros_sub_update(&ctx->sub_status);
     }
 
     // handle calibration request
-    if (ctx->fsm.mode == synapse_msgs_Fsm_Mode_CALIBRATION && ctx->last_mode != synapse_msgs_Fsm_Mode_CALIBRATION) {
+    if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CALIBRATION && ctx->last_mode != synapse_msgs_Status_Mode_MODE_CALIBRATION) {
         ctx->calibrated = false;
     }
-    ctx->last_mode = ctx->fsm.mode;
+    ctx->last_mode = ctx->status.mode;
 
     if (!ctx->calibrated) {
         LOG_INF("calibrating");

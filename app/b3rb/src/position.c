@@ -27,12 +27,12 @@ LOG_MODULE_REGISTER(b3rb_position, CONFIG_CEREBRI_B3RB_LOG_LEVEL);
 
 typedef struct _context {
     struct zros_node node;
-    synapse_msgs_Fsm fsm;
+    synapse_msgs_Status status;
     synapse_msgs_BezierTrajectory bezier_trajectory;
     synapse_msgs_Time clock_offset;
     synapse_msgs_Odometry pose;
     synapse_msgs_Twist cmd_vel;
-    struct zros_sub sub_fsm, sub_clock_offset, sub_pose, sub_bezier_trajectory;
+    struct zros_sub sub_status, sub_clock_offset, sub_pose, sub_bezier_trajectory;
     struct zros_pub pub_cmd_vel;
     const double wheel_base;
     const double gain_along_track;
@@ -41,7 +41,7 @@ typedef struct _context {
 } context;
 
 static context g_ctx = {
-    .fsm = synapse_msgs_Fsm_init_default,
+    .status = synapse_msgs_Status_init_default,
     .bezier_trajectory = synapse_msgs_BezierTrajectory_init_default,
     .clock_offset = synapse_msgs_Time_init_default,
     .pose = synapse_msgs_Odometry_init_default,
@@ -51,7 +51,7 @@ static context g_ctx = {
         .linear = synapse_msgs_Vector3_init_default,
         .angular = synapse_msgs_Vector3_init_default,
     },
-    .sub_fsm = {},
+    .sub_status = {},
     .sub_clock_offset = {},
     .sub_pose = {},
     .sub_bezier_trajectory = {},
@@ -65,7 +65,7 @@ static context g_ctx = {
 static void init(context* ctx)
 {
     zros_node_init(&ctx->node, "b3rb_position");
-    zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 10);
+    zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_clock_offset, &ctx->node, &topic_clock_offset, &ctx->clock_offset, 10);
     zros_sub_init(&ctx->sub_pose, &ctx->node, &topic_estimator_odometry, &ctx->pose, 10);
     zros_sub_init(&ctx->sub_bezier_trajectory, &ctx->node, &topic_bezier_trajectory, &ctx->bezier_trajectory, 10);
@@ -200,8 +200,8 @@ static void b3rb_position_entry_point(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_bezier_trajectory);
         }
 
-        if (zros_sub_update_available(&ctx->sub_fsm)) {
-            zros_sub_update(&ctx->sub_fsm);
+        if (zros_sub_update_available(&ctx->sub_status)) {
+            zros_sub_update(&ctx->sub_status);
         }
 
         if (zros_sub_update_available(&ctx->sub_pose)) {
@@ -212,7 +212,7 @@ static void b3rb_position_entry_point(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_clock_offset);
         }
 
-        if (ctx->fsm.mode != synapse_msgs_Fsm_Mode_AUTO) {
+        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_AUTO) {
             // LOG_DBG("not auto mode");
             continue;
         }

@@ -10,6 +10,12 @@ config CEREBRI_B3RB_BATTERY_MIN_MILLIVOLT
   help
     Minimum battery voltage in mV before auto-disarm
 
+config CEREBRI_B3RB_BATTERY_MAX_MILLIVOLT
+  int "max battery voltage in milli volts"
+  default 12600
+  help
+    Maximum battery voltage
+
 config CEREBRI_B3RB_GAIN_HEADING
   int "heading gain"
   default 100

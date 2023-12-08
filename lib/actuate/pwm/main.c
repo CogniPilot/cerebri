@@ -28,17 +28,17 @@ extern actuator_pwm_t g_actuator_pwms[];
 
 typedef struct _context {
     synapse_msgs_Actuators actuators;
-    synapse_msgs_Fsm fsm;
+    synapse_msgs_Status status;
     struct zros_node node;
-    struct zros_sub sub_actuators, sub_fsm;
+    struct zros_sub sub_actuators, sub_status;
     struct pwm_dt_spec pwm_enable;
 } context;
 
 static context g_ctx = {
     .actuators = synapse_msgs_Actuators_init_default,
-    .fsm = synapse_msgs_Fsm_init_default,
+    .status = synapse_msgs_Status_init_default,
     .node = {},
-    .sub_fsm = {},
+    .sub_status = {},
     .sub_actuators = {},
     .pwm_enable = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux2)),
 };
@@ -47,12 +47,12 @@ static void actuate_pwm_init(context* ctx)
 {
     zros_node_init(&ctx->node, "actuate_pwm");
     zros_sub_init(&ctx->sub_actuators, &ctx->node, &topic_actuators, &ctx->actuators, 100);
-    zros_sub_init(&ctx->sub_fsm, &ctx->node, &topic_fsm, &ctx->fsm, 100);
+    zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 100);
 }
 
-void pwm_update(const synapse_msgs_Fsm* fsm, const synapse_msgs_Actuators* actuators)
+void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Actuators* actuators)
 {
-    bool armed = fsm->armed == synapse_msgs_Fsm_Armed_ARMED;
+    bool armed = status->arming == synapse_msgs_Status_Arming_ARMING_ARMED;
     int err = 0;
 
     if (armed) {
@@ -139,14 +139,14 @@ void actuate_pwm_entry_point(void* p0, void* p1, void* p2)
         if (rc != 0) {
             LOG_DBG("no actuator message received");
             // put motors in disarmed state
-            if (ctx->fsm.armed == synapse_msgs_Fsm_Armed_ARMED) {
-                ctx->fsm.armed = synapse_msgs_Fsm_Armed_DISARMED;
+            if (ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED) {
+                ctx->status.arming = synapse_msgs_Status_Arming_ARMING_DISARMED;
                 LOG_ERR("disarming motors due to actuator msg timeout!");
             }
         }
 
-        if (zros_sub_update_available(&ctx->sub_fsm)) {
-            zros_sub_update(&ctx->sub_fsm);
+        if (zros_sub_update_available(&ctx->sub_status)) {
+            zros_sub_update(&ctx->sub_status);
         }
 
         if (zros_sub_update_available(&ctx->sub_actuators)) {
@@ -154,7 +154,7 @@ void actuate_pwm_entry_point(void* p0, void* p1, void* p2)
         }
 
         // update pwm
-        pwm_update(&ctx->fsm, &ctx->actuators);
+        pwm_update(&ctx->status, &ctx->actuators);
     }
 }
 

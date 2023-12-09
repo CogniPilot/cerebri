@@ -207,17 +207,17 @@ static void lighting_timer_handler(struct k_timer* timer)
 
 static void lighting_entry_point(void* p0, void* p1, void* p2)
 {
+    LOG_INF("init");
     context_t* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
 
     lighting_init(ctx);
-    LOG_INF("initializing lighting");
     k_timer_start(&ctx->timer, K_MSEC(33), K_MSEC(33));
 }
 
 K_THREAD_DEFINE(b3rb_lighting, MY_STACK_SIZE,
     lighting_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 1000);
 
 /* vi: ts=4 sw=4 et */

@@ -23,6 +23,7 @@ int zros_sub_update(struct zros_sub* sub);
 bool zros_sub_update_available(struct zros_sub* sub);
 struct k_poll_event* zros_sub_get_event(struct zros_sub* sub);
 void zros_sub_fini(struct zros_sub* sub);
+void zros_sub_get_node(struct zros_sub* sub, struct zros_node** node);
 
 #endif // ZROS_SUB_H
 // vi: ts=4 sw=4 et

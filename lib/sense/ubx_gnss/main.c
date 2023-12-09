@@ -27,11 +27,10 @@ uNetworkCfgGnss_t gNetworkCfg = {
 
 LOG_MODULE_REGISTER(ubx_gnss, CONFIG_CEREBRI_SENSE_UBX_GNSS_LOG_LEVEL);
 
-#define MY_STACK_SIZE 3072
+#define MY_STACK_SIZE 8192
 #define MY_PRIORITY 6
 
 typedef struct context {
-    const struct device* device[CONFIG_CEREBRI_SENSE_MAG_COUNT];
     struct zros_node node;
     struct zros_pub pub;
     synapse_msgs_NavSatFix data;
@@ -41,7 +40,6 @@ typedef struct context {
 } context_t;
 
 static context_t g_ctx = {
-    .device = {},
     .node = {},
     .pub = {},
     .data = {
@@ -93,6 +91,7 @@ void publish_gnss_data(uDeviceHandle_t devHandle,
 
 void sense_ubx_gnss_entry_point(context_t* ctx)
 {
+    LOG_INF("init");
     zros_node_init(&ctx->node, "sense_ubx_gnss");
     zros_pub_init(&ctx->pub, &ctx->node, &topic_nav_sat_fix, &ctx->data);
     int32_t errorCode;
@@ -164,6 +163,6 @@ void sense_ubx_gnss_entry_point(context_t* ctx)
 
 K_THREAD_DEFINE(ubx_gnss, MY_STACK_SIZE,
     sense_ubx_gnss_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 100);
 
 // vi: ts=4 sw=4 et

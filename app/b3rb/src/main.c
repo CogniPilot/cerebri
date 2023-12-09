@@ -14,6 +14,7 @@ LOG_MODULE_REGISTER(b3rb_main, CONFIG_CEREBRI_B3RB_LOG_LEVEL);
 
 int main(void)
 {
+    LOG_INF("init");
 #if defined(CONFIG_CEREBRI_CORE_COMMON_BOOT_BANNER)
     printf("%s%s", banner_brain, banner_name);
 #endif

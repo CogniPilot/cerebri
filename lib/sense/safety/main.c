@@ -122,6 +122,7 @@ K_TIMER_DEFINE(safety_timer, safety_timer_handler, NULL);
 
 static int sense_safety_entry_point(context_t* ctx)
 {
+    LOG_INF("init");
     sense_safety_init(ctx);
     k_timer_start(&safety_timer, K_MSEC(1000), K_MSEC(1000));
     return 0;
@@ -129,6 +130,6 @@ static int sense_safety_entry_point(context_t* ctx)
 
 K_THREAD_DEFINE(sense_safety, MY_STACK_SIZE,
     sense_safety_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 100);
 
 /* vi: ts=4 sw=4 et */

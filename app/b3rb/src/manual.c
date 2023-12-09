@@ -54,6 +54,7 @@ static void init(context* ctx)
 
 static void b3rb_manual_entry_point(void* p0, void* p1, void* p2)
 {
+    LOG_INF("init");
     context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
@@ -69,7 +70,7 @@ static void b3rb_manual_entry_point(void* p0, void* p1, void* p2)
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
-            LOG_DBG("fsm not receiving joy");
+            // LOG_DBG("manual not receiving joy");
         }
 
         if (zros_sub_update_available(&ctx->sub_joy)) {
@@ -87,6 +88,6 @@ static void b3rb_manual_entry_point(void* p0, void* p1, void* p2)
 
 K_THREAD_DEFINE(b3rb_manual, MY_STACK_SIZE,
     b3rb_manual_entry_point, (void*)&g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 1000);
 
 /* vi: ts=4 sw=4 et */

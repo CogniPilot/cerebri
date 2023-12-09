@@ -91,6 +91,7 @@ K_TIMER_DEFINE(wheel_odometry_timer, wheel_odometry_timer_handler, NULL);
 
 int sense_wheel_odometry_entry_point(context_t* ctx)
 {
+    LOG_INF("init");
     ctx->device[0] = get_device(DEVICE_DT_GET(DT_ALIAS(wheel_odometry0)));
     zros_node_init(&ctx->node, "sense_wheel_odometry");
     zros_pub_init(&ctx->pub, &ctx->node, &topic_wheel_odometry, &ctx->data);
@@ -100,6 +101,6 @@ int sense_wheel_odometry_entry_point(context_t* ctx)
 
 K_THREAD_DEFINE(sense_wheel_odometry, MY_STACK_SIZE,
     sense_wheel_odometry_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 100);
 
 // vi: ts=4 sw=4 et

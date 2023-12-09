@@ -336,13 +336,16 @@ void imu_timer_handler(struct k_timer* timer)
 
 int sense_imu_entry_point(context_t* ctx)
 {
+    LOG_INF("init");
     imu_init(ctx);
+    // delay initiali calibration 1 s
+    k_msleep(1000);
     k_timer_start(&ctx->timer, K_MSEC(5), K_MSEC(5));
     return 0;
 }
 
 K_THREAD_DEFINE(sense_imu, THREAD_STACK_SIZE,
     sense_imu_entry_point, &g_ctx, NULL, NULL,
-    THREAD_PRIORITY, 0, 0);
+    THREAD_PRIORITY, 0, 100);
 
 // vi: ts=4 sw=4 et

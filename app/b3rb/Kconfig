@@ -4,11 +4,62 @@
 mainmenu "CogniPilot - Cerebri - B3RB"
 source "Kconfig.zephyr"
 
+config CEREBRI_B3RB_ESTIMATE
+  bool "enable estimate"
+  depends on CEREBRI_B3RB_CASADI
+  help
+    Enable estimator
+
+config CEREBRI_B3RB_FSM
+  bool "enable finite state machine"
+  help
+    Enable fintie state machine
+
+config CEREBRI_B3RB_LIGHTING
+  bool "enable lighting"
+  help
+    Enable lighting
+
+config CEREBRI_B3RB_MANUAL
+  bool "enable manual"
+  depends on CEREBRI_B3RB_MIXING
+  help
+    Enable manual
+
+config CEREBRI_B3RB_MIXING
+  bool "enable mixing"
+  help
+    Enable mixing
+
+config CEREBRI_B3RB_POSITION
+  bool "enable position"
+  depends on CEREBRI_B3RB_CASADI
+  help
+    Enable position
+
+config CEREBRI_B3RB_VELOCITY
+  bool "enable velocity"
+  depends on CEREBRI_B3RB_MIXING
+  depends on CEREBRI_B3RB_CASADI
+  help
+    Enable velocity
+
+config CEREBRI_B3RB_CASADI
+  bool "enable casadi code"
+  help
+    Enable Casadi generated code
+
 config CEREBRI_B3RB_BATTERY_MIN_MILLIVOLT
   int "min battery voltage in milli volts before shut off"
-  default 10900
+  default 10000
   help
     Minimum battery voltage in mV before auto-disarm
+
+config CEREBRI_B3RB_BATTERY_LOW_MILLIVOLT
+  int "low battery voltage in milli volts before warning"
+  default 10500
+  help
+    Low battery voltage in mV before warning
 
 config CEREBRI_B3RB_BATTERY_MAX_MILLIVOLT
   int "max battery voltage in milli volts"

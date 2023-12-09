@@ -76,6 +76,18 @@ const char* status_safety_str(synapse_msgs_Status_Safety safety)
     return unhandled;
 }
 
+const char* status_joy_str(synapse_msgs_Status_Joy joy)
+{
+    if (joy == synapse_msgs_Status_Joy_JOY_UNKNOWN) {
+        return "unknown";
+    } else if (joy == synapse_msgs_Status_Joy_JOY_NOMINAL) {
+        return "nominal";
+    } else if (joy == synapse_msgs_Status_Joy_JOY_LOSS) {
+        return "loss";
+    }
+    return unhandled;
+}
+
 const char* fuel_str(synapse_msgs_Status_Fuel fuel)
 {
     if (fuel == synapse_msgs_Status_Fuel_FUEL_UNKNOWN) {

@@ -1,4 +1,15 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-rsource "../../synapse/vesc_can/Kconfig"
+menuconfig CEREBRI_SENSE_VESC_CAN_STATUS
+  bool "Sense VESC CAN STATUS"
+  help
+    This option enables vesc can status
+
+if CEREBRI_SENSE_VESC_CAN_STATUS
+
+module = CEREBRI_SENSE_VESC_CAN_STATUS
+module-str = sense_vesc_can_status
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # CEREBRI_SENSE_VESC_CAN_STATUS

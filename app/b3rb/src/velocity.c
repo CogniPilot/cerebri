@@ -91,6 +91,7 @@ static void stop(context* ctx)
 
 static void b3rb_velocity_entry_point(void* p0, void* p1, void* p2)
 {
+    LOG_INF("init");
     context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
@@ -152,6 +153,6 @@ static void b3rb_velocity_entry_point(void* p0, void* p1, void* p2)
 
 K_THREAD_DEFINE(b3rb_velocity, MY_STACK_SIZE,
     b3rb_velocity_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 1000);
 
 /* vi: ts=4 sw=4 et */

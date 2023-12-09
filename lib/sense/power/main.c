@@ -21,7 +21,7 @@ LOG_MODULE_REGISTER(sense_power, CONFIG_CEREBRI_SENSE_POWER_LOG_LEVEL);
 #define MY_STACK_SIZE 2048
 #define MY_PRIORITY 6
 
-extern struct k_work_q g_high_priority_work_q;
+extern struct k_work_q g_low_priority_work_q;
 
 #define N_SENSORS 1
 
@@ -91,13 +91,14 @@ void power_work_handler(struct k_work* work)
 
 void power_timer_handler(struct k_timer* dummy)
 {
-    k_work_submit_to_queue(&g_high_priority_work_q, &g_ctx.work_item);
+    k_work_submit_to_queue(&g_low_priority_work_q, &g_ctx.work_item);
 }
 
 K_TIMER_DEFINE(power_timer, power_timer_handler, NULL);
 
 int sense_power_entry_point(context_t* ctx)
 {
+    LOG_INF("init");
     ctx->device[0] = DEVICE_DT_GET(DT_ALIAS(power0));
     if (!device_is_ready(ctx->device[0])) {
         LOG_ERR("Device %s is not ready", ctx->device[0]->name);
@@ -110,6 +111,6 @@ int sense_power_entry_point(context_t* ctx)
 
 K_THREAD_DEFINE(sense_power, MY_STACK_SIZE,
     sense_power_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 100);
 
 /* vi: ts=4 sw=4 et */

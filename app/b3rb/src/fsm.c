@@ -30,6 +30,8 @@ void transition(
     uint8_t post,
     char* buf,
     size_t n,
+    int* request_seq,
+    bool* request_rejected,
     size_t n_guards,
     ...)
 {
@@ -51,6 +53,10 @@ void transition(
         return;
     }
 
+    // new valid request
+    (*request_seq)++;
+
+    // check guards
     va_list ap;
     va_start(ap, n_guards);
     for (size_t i = 0; i < n_guards; i++) {
@@ -59,6 +65,7 @@ void transition(
         if (guard) {
             snprintf(buf, n, "deny: %s %s", request_name, guard_txt);
             LOG_WRN("%s", buf);
+            *request_rejected = true;
             return;
         }
     }
@@ -66,6 +73,8 @@ void transition(
     snprintf(buf, n, "%s", request_name);
     LOG_INF("%s", buf);
     *state_int = post;
+    *request_rejected = false;
+    return;
 }
 
 typedef struct status_input_s {
@@ -144,6 +153,7 @@ static void fsm_compute_input(status_input_t* input, const context* ctx)
 #else
     input->safe = false;
 #endif
+    input->fuel_low = ctx->battery_state.voltage < CONFIG_CEREBRI_B3RB_BATTERY_LOW_MILLIVOLT / 1000.0;
     input->fuel_critical = ctx->battery_state.voltage < CONFIG_CEREBRI_B3RB_BATTERY_MIN_MILLIVOLT / 1000.0;
 }
 
@@ -157,6 +167,7 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
         synapse_msgs_Status_Arming_ARMING_DISARMED, // pre
         synapse_msgs_Status_Arming_ARMING_ARMED, // post
         status->status_message, sizeof(status->status_message), // status
+        &status->request_seq, &status->request_rejected, // request
         // guards
         3,
         status->mode == synapse_msgs_Status_Mode_MODE_UNKNOWN, "mode not set",
@@ -170,7 +181,9 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
         "request disarm", // label
         synapse_msgs_Status_Arming_ARMING_ARMED, // pre
         synapse_msgs_Status_Arming_ARMING_DISARMED, // post
-        status->status_message, sizeof(status->status_message), 0); // status
+        status->status_message, sizeof(status->status_message), // status
+        &status->request_seq, &status->request_rejected, // request
+        0); // guards
 
     // disarm transitions
     transition(
@@ -179,7 +192,9 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
         "disarm fuel critical", // label
         synapse_msgs_Status_Arming_ARMING_ARMED, // pre
         synapse_msgs_Status_Arming_ARMING_DISARMED, // post
-        status->status_message, sizeof(status->status_message), 0); // status
+        status->status_message, sizeof(status->status_message), // status
+        &status->request_seq, &status->request_rejected, // request
+        0); // guards
 
     transition(
         &status->arming, // state
@@ -187,7 +202,9 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
         "disarm safety engaged", // label
         synapse_msgs_Status_Arming_ARMING_ARMED, // pre
         synapse_msgs_Status_Arming_ARMING_DISARMED, // post
-        status->status_message, sizeof(status->status_message), 0); // status
+        status->status_message, sizeof(status->status_message), // status
+        &status->request_seq, &status->request_rejected, // request
+        0); // guards
 
     // mode transitions
     transition(
@@ -196,15 +213,19 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
         "request mode manual", // label
         STATE_ANY, // pre
         synapse_msgs_Status_Mode_MODE_MANUAL, // post
-        status->status_message, sizeof(status->status_message), 0); // status
-                                                                    //
+        status->status_message, sizeof(status->status_message), // status
+        &status->request_seq, &status->request_rejected, // request
+        0); // guards
+
     transition(
         &status->mode, // state
         input->request_auto || input->request_cmd_vel, // request
         "request mode cmd_vel", // label
         STATE_ANY, // pre
         synapse_msgs_Status_Mode_MODE_CMD_VEL, // post
-        status->status_message, sizeof(status->status_message), 0); // status
+        status->status_message, sizeof(status->status_message), // status
+        &status->request_seq, &status->request_rejected, // request
+        0); // guards
 
     transition(
         &status->mode, // state
@@ -212,7 +233,9 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
         "request mode calibration", // label
         STATE_ANY, // pre
         synapse_msgs_Status_Mode_MODE_CALIBRATION, // post
-        status->status_message, sizeof(status->status_message), 0); // status
+        status->status_message, sizeof(status->status_message), // status
+        &status->request_seq, &status->request_rejected, // request
+        0); // guards
 
     // set timestamp
     stamp_header(&status->header, k_uptime_ticks());
@@ -245,8 +268,9 @@ static void status_add_extra_info(synapse_msgs_Status* status, status_input_t* i
 #endif
 }
 
-static void b3rb_fsm_run(void* p0, void* p1, void* p2)
+static void b3rb_fsm_entry_point(void* p0, void* p1, void* p2)
 {
+    LOG_INF("initializing b3rb_fsm");
     context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
@@ -255,18 +279,22 @@ static void b3rb_fsm_run(void* p0, void* p1, void* p2)
 
     struct k_poll_event events[] = {
         *zros_sub_get_event(&ctx->sub_joy),
+        *zros_sub_get_event(&ctx->sub_battery_state),
     };
+
+    int64_t joy_last_ticks = k_uptime_ticks();
+    int64_t joy_loss_ticks = 1.0 * CONFIG_SYS_CLOCK_TICKS_PER_SEC;
 
     while (true) {
 
-        // wait for joystick input event, publish at 1 Hz regardless
+        // current ticks
+        int64_t now_ticks = k_uptime_ticks();
+
+        // wait for input event, publish at 1 Hz regardless
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
-            LOG_DBG("status not receiving joy");
-            ctx->status.joy = synapse_msgs_Status_Joy_JOY_LOSS;
-        } else {
-            ctx->status.joy = synapse_msgs_Status_Joy_JOY_NOMINAL;
+            LOG_WRN("fsm joy/battery polling timeout");
         }
 
         if (zros_sub_update_available(&ctx->sub_battery_state)) {
@@ -279,6 +307,18 @@ static void b3rb_fsm_run(void* p0, void* p1, void* p2)
 
         if (zros_sub_update_available(&ctx->sub_joy)) {
             zros_sub_update(&ctx->sub_joy);
+            if (ctx->status.joy == synapse_msgs_Status_Joy_JOY_LOSS) {
+                LOG_WRN("joy regained");
+            }
+            joy_last_ticks = now_ticks;
+            ctx->status.joy = synapse_msgs_Status_Joy_JOY_NOMINAL;
+        }
+
+        // check for joy loss
+        if (ctx->status.joy != synapse_msgs_Status_Joy_JOY_LOSS
+            && now_ticks - joy_last_ticks > joy_loss_ticks) {
+            LOG_WRN("joy loss");
+            ctx->status.joy = synapse_msgs_Status_Joy_JOY_LOSS;
         }
 
         // perform processing
@@ -290,7 +330,7 @@ static void b3rb_fsm_run(void* p0, void* p1, void* p2)
 }
 
 K_THREAD_DEFINE(b3rb_fsm, MY_STACK_SIZE,
-    b3rb_fsm_run, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    b3rb_fsm_entry_point, &g_ctx, NULL, NULL,
+    MY_PRIORITY, 0, 1000);
 
 /* vi: ts=4 sw=4 et */

@@ -6,8 +6,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/net/socket.h>
-
-#include <fcntl.h>
+#include <zephyr/posix/fcntl.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -31,10 +30,10 @@
 
 LOG_MODULE_REGISTER(synapse_ethernet, CONFIG_CEREBRI_SYNAPSE_ETHERNET_LOG_LEVEL);
 
-#define MY_STACK_SIZE 4096
-#define MY_PRIORITY 5
+#define MY_STACK_SIZE 8192
+#define MY_PRIORITY 3
 
-#define RX_BUF_SIZE 1024
+#define RX_BUF_SIZE 2048
 #define BIND_PORT 4242
 
 typedef struct context_s {
@@ -46,7 +45,8 @@ typedef struct context_s {
     struct zros_sub sub_actuators, sub_battery_state,
         sub_status, sub_estimator_odometry;
     TinyFrame tf;
-    volatile int client;
+    int client;
+    volatile bool reconnect;
     int error_count;
     uint8_t rx1_buf[RX_BUF_SIZE];
     int serv;
@@ -65,22 +65,23 @@ static context_t g_ctx = {
     .sub_status = {},
     .sub_estimator_odometry = {},
     .tf = {},
-    .client = -1,
+    .client = 0,
     .error_count = 0,
 };
 
-#define TOPIC_LISTENER(CHANNEL, CLASS)                                           \
-    static TF_Result CHANNEL##_listener(TinyFrame* tf, TF_Msg* frame)            \
-    {                                                                            \
-        CLASS msg = CLASS##_init_default;                                        \
-        pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);   \
-        int status = pb_decode(&stream, CLASS##_fields, &msg);                   \
-        if (status) {                                                            \
-            zros_topic_publish(&topic_##CHANNEL, &msg);                          \
-        } else {                                                                 \
-            printf("%s decoding failed: %s\n", #CHANNEL, PB_GET_ERROR(&stream)); \
-        }                                                                        \
-        return TF_STAY;                                                          \
+#define TOPIC_LISTENER(CHANNEL, CLASS)                                            \
+    static TF_Result CHANNEL##_listener(TinyFrame* tf, TF_Msg* frame)             \
+    {                                                                             \
+        CLASS msg = CLASS##_init_default;                                         \
+        pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);    \
+        int rc = pb_decode(&stream, CLASS##_fields, &msg);                        \
+        if (rc) {                                                                 \
+            zros_topic_publish(&topic_##CHANNEL, &msg);                           \
+            LOG_DBG("%s decoding\n", #CHANNEL);                                   \
+        } else {                                                                  \
+            LOG_WRN("%s decoding failed: %s\n", #CHANNEL, PB_GET_ERROR(&stream)); \
+        }                                                                         \
+        return TF_STAY;                                                           \
     }
 
 #define TOPIC_PUBLISHER(DATA, CLASS, TOPIC)                                   \
@@ -89,12 +90,12 @@ static context_t g_ctx = {
         TF_ClearMsg(&msg);                                                    \
         uint8_t buf[CLASS##_size];                                            \
         pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));  \
-        int status = pb_encode(&stream, CLASS##_fields, DATA);                \
-        if (status) {                                                         \
+        int rc = pb_encode(&stream, CLASS##_fields, DATA);                    \
+        if (rc) {                                                             \
             msg.type = TOPIC;                                                 \
             msg.data = buf;                                                   \
             msg.len = stream.bytes_written;                                   \
-            TF_Send(&g_ctx.tf, &msg);                                         \
+            TF_Send(&ctx->tf, &msg);                                          \
         } else {                                                              \
             printf("%s encoding failed: %s\n", #DATA, PB_GET_ERROR(&stream)); \
         }                                                                     \
@@ -102,7 +103,9 @@ static context_t g_ctx = {
 
 static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {
-    if (g_ctx.client < 0) {
+    context_t* ctx = tf->userdata;
+
+    if (ctx->reconnect) {
         return;
     }
 
@@ -110,21 +113,40 @@ static void write_ethernet(TinyFrame* tf, const uint8_t* buf, uint32_t len)
     const char* p;
     p = buf;
     do {
-        out_len = zsock_send(g_ctx.client, p, len, 0);
+        out_len = zsock_send(ctx->client, p, len, 0);
         if (out_len < 0) {
-            LOG_DBG("send: %d\n", errno);
-            if (g_ctx.error_count++ > 10) {
+            LOG_ERR("send: %d\n", errno);
+            if (ctx->error_count++ > 100) {
                 // trigger reconnect
-                g_ctx.client = -1;
+                ctx->reconnect = true;
             }
             return;
         } else {
             // reset error count
-            g_ctx.error_count = 0;
+            ctx->error_count = 0;
         }
         p += out_len;
         len -= out_len;
     } while (len);
+}
+
+static TF_Result cmd_vel_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    context_t* ctx = tf->userdata;
+    // don't publish cmd_vel if not in command vel mode
+    if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_CMD_VEL) {
+        return TF_STAY;
+    }
+    synapse_msgs_Twist msg = synapse_msgs_Twist_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int rc = pb_decode(&stream, synapse_msgs_Twist_fields, &msg);
+    if (rc) {
+        zros_topic_publish(&topic_cmd_vel, &msg);
+        LOG_DBG("cmd_vel decoding\n");
+    } else {
+        LOG_WRN("cmd_vel decoding failed: %s\n", PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
 }
 
 static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
@@ -139,9 +161,10 @@ static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 // TOPIC_LISTENER(altimeter, synapse_msgs_Altimeter)
 // TOPIC_LISTENER(external_odometry, synapse_msgs_Odometry)
 TOPIC_LISTENER(bezier_trajectory, synapse_msgs_BezierTrajectory)
-TOPIC_LISTENER(cmd_vel, synapse_msgs_Twist)
+// cmd_vel requires custom
+// TOPIC_LISTENER(cmd_vel, synapse_msgs_Twist)
 TOPIC_LISTENER(joy, synapse_msgs_Joy)
-TOPIC_LISTENER(led_array, synapse_msgs_LEDArray)
+// TOPIC_LISTENER(led_array, synapse_msgs_LEDArray)
 TOPIC_LISTENER(clock_offset, synapse_msgs_Time)
 
 #ifdef CONFIG_CEREBRI_DREAM_HIL
@@ -156,11 +179,11 @@ static bool set_blocking_enabled(int fd, bool blocking)
 {
     if (fd < 0)
         return false;
-    int flags = fcntl(fd, F_GETFL, 0);
+    int flags = zsock_fcntl(fd, F_GETFL, 0);
     if (flags == -1)
         return false;
     flags = blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
-    return (fcntl(fd, F_SETFL, flags) == 0) ? true : false;
+    return (zsock_fcntl(fd, F_SETFL, flags) == 0) ? true : false;
 }
 
 static void synapse_ethernet_init(context_t* ctx)
@@ -184,12 +207,12 @@ static void send_uptime(context_t* ctx)
     synapse_msgs_Time message;
     message.sec = sec;
     message.nanosec = nanosec;
-    int status = pb_encode(&stream, synapse_msgs_Time_fields, &message);
-    if (status) {
+    int rc = pb_encode(&stream, synapse_msgs_Time_fields, &message);
+    if (rc) {
         msg.type = SYNAPSE_UPTIME_TOPIC;
         msg.data = buf;
         msg.len = stream.bytes_written;
-        TF_Send(&g_ctx.tf, &msg);
+        TF_Send(&ctx->tf, &msg);
     } else {
         printf("uptime encoding failed: %s\n", PB_GET_ERROR(&stream));
     }
@@ -200,6 +223,7 @@ static void ethernet_entry_point(context_t* ctx)
     synapse_ethernet_init(ctx);
 
     TF_InitStatic(&ctx->tf, TF_MASTER, write_ethernet);
+    ctx->tf.userdata = ctx;
 
     ctx->serv = zsock_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     set_blocking_enabled(ctx->serv, true);
@@ -231,7 +255,7 @@ static void ethernet_entry_point(context_t* ctx)
     TF_AddTypeListener(&ctx->tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, bezier_trajectory_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_CMD_VEL_TOPIC, cmd_vel_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_JOY_TOPIC, joy_listener);
-    TF_AddTypeListener(&ctx->tf, SYNAPSE_LED_ARRAY_TOPIC, led_array_listener);
+    // TF_AddTypeListener(&ctx->tf, SYNAPSE_LED_ARRAY_TOPIC, led_array_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_CLOCK_OFFSET_TOPIC, clock_offset_listener);
 
 #ifdef CONFIG_CEREBRI_DREAM_HIL
@@ -247,25 +271,25 @@ static void ethernet_entry_point(context_t* ctx)
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
-        g_ctx.client = zsock_accept(ctx->serv, (struct sockaddr*)&client_addr,
+        ctx->client = zsock_accept(ctx->serv, (struct sockaddr*)&client_addr,
             &client_addr_len);
 
-        if (g_ctx.client < 0) {
+        if (ctx->client < 0) {
+            k_msleep(1000);
             continue;
         }
+        ctx->reconnect = false;
 
         zsock_inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
             addr_str, sizeof(addr_str));
         LOG_INF("connection #%d from %s", ctx->counter++, addr_str);
 
         struct k_poll_event events[] = {
-            *zros_sub_get_event(&ctx->sub_actuators),
-            *zros_sub_get_event(&ctx->sub_battery_state),
             *zros_sub_get_event(&ctx->sub_status),
             *zros_sub_get_event(&ctx->sub_estimator_odometry),
         };
 
-        while (true) {
+        while (!ctx->reconnect) {
             int rc = 0;
             rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
             if (rc != 0) {
@@ -290,15 +314,33 @@ static void ethernet_entry_point(context_t* ctx)
             }
 
             send_uptime(ctx);
-            if (g_ctx.client < 0) {
+            if (ctx->client < 0) {
                 LOG_WRN("no client, triggering reconnect");
                 break;
             }
-            int len = zsock_recv(g_ctx.client, ctx->rx1_buf, sizeof(ctx->rx1_buf), 0);
-            if (len < 0) {
-                continue;
+
+            bool do_polling = false;
+
+            if (do_polling) {
+                struct zsock_pollfd fds;
+                fds.fd = ctx->client;
+                rc = zsock_poll(&fds, 1u, 1);
+                if (rc >= 0) {
+                    if (fds.revents & ZSOCK_POLLIN) {
+                        int len = zsock_recv(ctx->client, ctx->rx1_buf, sizeof(ctx->rx1_buf), 0);
+                        TF_Accept(&ctx->tf, ctx->rx1_buf, len);
+                    }
+                    if (fds.revents & (ZSOCK_POLLHUP | ZSOCK_POLLERR)) {
+                        LOG_ERR("Socket closed/error");
+                        break;
+                    }
+                } else {
+                    LOG_ERR("poll failed: %d", rc);
+                }
+            } else {
+                int len = zsock_recv(ctx->client, ctx->rx1_buf, sizeof(ctx->rx1_buf), 0);
+                TF_Accept(&ctx->tf, ctx->rx1_buf, len);
             }
-            TF_Accept(&ctx->tf, ctx->rx1_buf, len);
             TF_Tick(&ctx->tf);
         }
     }

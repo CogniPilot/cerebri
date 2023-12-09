@@ -6,8 +6,10 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
+#include <math.h>
 #include <stdio.h>
 #include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_pub_struct.h>
 #include <zros/private/zros_sub_struct.h>
 #include <zros/private/zros_topic_struct.h>
 #include <zros/zros_broker.h>
@@ -50,38 +52,82 @@ int topic_count_hz(const struct shell* sh, struct zros_topic* topic, void* msg, 
     struct k_poll_event events[1] = {
         *zros_sub_get_event(&sub),
     };
-    int cnt = 0;
+
     int64_t ticks_start = k_uptime_ticks();
-    float elapsed = 0;
-    float sample_period = 5.0;
-    while (true) {
+    int64_t elapsed_ticks = 0;
+    const int64_t ticks_sample = 5 * CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+    int64_t ticks_remaining = ticks_sample;
+
+    static const int max_msg = 11;
+    int64_t msg_tick[max_msg];
+    double sample_sec[max_msg - 1];
+
+    int msg_count = 0;
+
+    while (ticks_remaining > 0.1 * CONFIG_SYS_CLOCK_TICKS_PER_SEC && msg_count < max_msg) {
         int rc = 0;
-        rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(sample_period * 1e3));
+        rc = k_poll(events, ARRAY_SIZE(events),
+            K_MSEC(1e3 * ticks_remaining / CONFIG_SYS_CLOCK_TICKS_PER_SEC));
         if (rc != 0) {
             char name[20];
             zros_topic_get_name(topic, name, sizeof(name));
             LOG_WRN("%s not published.", name);
         }
 
+        elapsed_ticks = k_uptime_ticks() - ticks_start;
+        ticks_remaining = ticks_sample - elapsed_ticks;
+
         if (zros_sub_update_available(&sub)) {
-            zros_sub_update(&sub);
-            cnt++;
+            rc = zros_sub_update(&sub);
+            if (rc == 0) {
+                msg_tick[msg_count] = k_uptime_ticks();
+                msg_count++;
+            } else {
+                LOG_ERR("sub update failed");
+            }
         }
-        elapsed = (float)(k_uptime_ticks() - ticks_start) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-        if (elapsed >= sample_period)
-            break;
     }
+
+    double mean = 0;
+    double min = 0;
+    double max = 0;
+    shell_print(sh, "sample   delta");
+    for (int i = 0; i < msg_count - 1; i++) {
+        sample_sec[i] = (float)(msg_tick[i + 1] - msg_tick[i]) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        if (i == 0) {
+            min = sample_sec[i];
+            max = sample_sec[i];
+        } else {
+            if (sample_sec[i] < min) {
+                min = sample_sec[i];
+            } else if (sample_sec[i] > max) {
+                max = sample_sec[i];
+            }
+        }
+        mean += sample_sec[i];
+        shell_print(sh, "  %d  %10.6fs", i, sample_sec[i]);
+    }
+    mean /= (msg_count - 1);
+
+    double std = 0;
+    for (int i = 0; i < msg_count - 1; i++) {
+        double v = sample_sec[i] - mean;
+        std += v * v;
+    }
+    std = sqrt(std / (msg_count - 1));
+
     zros_sub_fini(&sub);
     zros_node_fini(&node);
-    float rate = cnt / elapsed;
-    shell_print(sh, "%s%10.2f Hz", "", rate);
+
+    shell_print(sh, "average rate: %8.3f Hz\n"
+                    "min: %10.6fs, max: %10.6fs, std: %10.6fs, window: %d",
+        1.0 / mean, min, max, std, msg_count);
     return ZROS_OK;
 }
 
-static char buf[5192] = {};
-
 int topic_echo(const struct shell* sh, struct zros_topic* topic, void* msg, snprint_t* echo)
 {
+    static char buf[2048] = {};
     struct zros_sub sub;
     struct zros_node node;
     zros_node_init(&node, "sub hz");
@@ -95,12 +141,10 @@ int topic_echo(const struct shell* sh, struct zros_topic* topic, void* msg, snpr
     rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(sample_period * 1e3));
     zros_topic_get_name(topic, name, sizeof(name));
     if (rc != 0) {
-        zros_topic_get_name(topic, name, sizeof(name));
         LOG_WRN("%s not published.", name);
         return -1;
     } else {
         if (!zros_sub_update_available(&sub)) {
-            zros_topic_get_name(topic, name, sizeof(name));
             LOG_WRN("%s no update available.", name);
             return -1;
         } else {
@@ -197,7 +241,34 @@ void topic_print_iterator(const struct zros_topic* topic, void* data)
 static int cmd_zros_topic_list(const struct shell* sh,
     size_t argc, char** argv)
 {
-    zros_broker_iterate_topics(topic_print_iterator, (void*)sh);
+    zros_broker_iterate_topic(topic_print_iterator, (void*)sh);
+    return ZROS_OK;
+}
+
+void pub_print_iterator(const struct zros_pub* pub, void* data)
+{
+    const struct shell* sh = (const struct shell*)data;
+    char name[30];
+    zros_node_get_name(pub->_node, name, sizeof(name));
+    shell_print(sh, "\t%s", name);
+}
+
+void sub_print_iterator(const struct zros_sub* sub, void* data)
+{
+    const struct shell* sh = (const struct shell*)data;
+    char name[30];
+    zros_node_get_name(sub->_node, name, sizeof(name));
+    shell_print(sh, "\t%s", name);
+}
+
+static int cmd_zros_topic_info(const struct shell* sh,
+    size_t argc, char** argv, void* data)
+{
+    struct zros_topic* topic = (struct zros_topic*)data;
+    shell_print(sh, "pubs");
+    zros_topic_iterate_pub(topic, pub_print_iterator, (void*)sh);
+    shell_print(sh, "subs");
+    zros_topic_iterate_sub(topic, sub_print_iterator, (void*)sh);
     return ZROS_OK;
 }
 
@@ -219,9 +290,12 @@ static int cmd_zros_node_list(const struct shell* sh,
 // level 2 (topic echo/hz/list)
 SHELL_SUBCMD_DICT_SET_CREATE(sub_zros_topic_echo, cmd_zros_topic_echo, TOPIC_DICTIONARY());
 SHELL_SUBCMD_DICT_SET_CREATE(sub_zros_topic_hz, cmd_zros_topic_hz, TOPIC_DICTIONARY());
+SHELL_SUBCMD_DICT_SET_CREATE(sub_zros_topic_info, cmd_zros_topic_info, TOPIC_DICTIONARY());
+
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_zros_topic,
     SHELL_CMD(echo, &sub_zros_topic_echo, "Echo topic.", NULL),
     SHELL_CMD(hz, &sub_zros_topic_hz, "Check topic pub rate.", NULL),
+    SHELL_CMD(info, &sub_zros_topic_info, "Topic pubs and subs.", NULL),
     SHELL_CMD(list, NULL, "List topics.", cmd_zros_topic_list),
     SHELL_SUBCMD_SET_END);
 

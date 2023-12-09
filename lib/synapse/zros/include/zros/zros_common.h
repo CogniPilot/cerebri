@@ -7,12 +7,12 @@
 
 #define ZROS_OK 0;
 
-#define ZROS_RC(X, Y)  \
-    {                  \
-        int rc = X;    \
-        if (rc != 0) { \
-            Y;         \
-        }              \
+#define ZROS_RC(X, Y) \
+    {                 \
+        int rc = X;   \
+        if (rc < 0) { \
+            Y;        \
+        }             \
     };
 
 #endif // ZROS_COMMON_H

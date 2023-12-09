@@ -19,16 +19,41 @@ target_compile_options(app PRIVATE -Wall -Wextra -Werror)
 
 set_source_files_properties(src/casadi/gen/b3rb.c PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
 
-set(SOURCE_FILES
-  src/estimate.c
-  src/fsm.c
-  src/lighting.c
-  src/main.c
-  src/manual.c
-  src/mixing.c
-  src/position.c
-  src/velocity.c
-  src/casadi/gen/b3rb.c
-  )
+set(SOURCE_FILES src/main.c)
+
+if (CONFIG_CEREBRI_B3RB_FSM)
+  list(APPEND SOURCE_FILES src/fsm.c)
+endif()
+
+if (CONFIG_CEREBRI_B3RB_ESTIMATE)
+  list(APPEND SOURCE_FILES src/estimate.c)
+endif()
+
+if (CONFIG_CEREBRI_B3RB_MIXING)
+  list(APPEND SOURCE_FILES src/mixing.c)
+endif()
+
+if (CONFIG_CEREBRI_B3RB_LIGHTING)
+  list(APPEND SOURCE_FILES src/lighting.c)
+endif()
+
+if (CONFIG_CEREBRI_B3RB_MANUAL)
+  list(APPEND SOURCE_FILES src/manual.c)
+endif()
+
+if (CONFIG_CEREBRI_B3RB_POSITION)
+  list(APPEND SOURCE_FILES
+    src/position.c)
+endif()
+
+if (CONFIG_CEREBRI_B3RB_VELOCITY)
+  list(APPEND SOURCE_FILES
+    src/velocity.c)
+endif()
+
+if (CONFIG_CEREBRI_B3RB_CASADI)
+  list(APPEND SOURCE_FILES
+    src/casadi/gen/b3rb.c)
+endif()
 
 target_sources(app PRIVATE ${SOURCE_FILES})

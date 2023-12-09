@@ -61,6 +61,7 @@ static void actuate_led_array_init(context* ctx)
 
 void actuate_led_array_entry_point(context* ctx)
 {
+    LOG_INF("init");
     actuate_led_array_init(ctx);
 
     struct k_poll_event events[2] = {
@@ -95,6 +96,6 @@ void actuate_led_array_entry_point(context* ctx)
 
 K_THREAD_DEFINE(actuate_led_array, MY_STACK_SIZE,
     actuate_led_array_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 100);
 
 /* vi: ts=4 sw=4 et */

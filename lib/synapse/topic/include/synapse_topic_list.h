@@ -32,6 +32,7 @@ const char* armed_str(synapse_msgs_Status_Arming arming);
 const char* safety_str(synapse_msgs_Safety_Status safety);
 const char* fuel_str(synapse_msgs_Status_Fuel fuel);
 const char* status_safety_str(synapse_msgs_Status_Safety safety);
+const char* status_joy_str(synapse_msgs_Status_Joy joy);
 
 enum {
     JOY_BUTTON_MANUAL = 0,

@@ -118,6 +118,7 @@ static void initialize_canbus(const actuator_vesc_can_t* vesc_canbus_init)
 
 void actuate_vesc_can_entry_point(void* p0, void* p1, void* p2)
 {
+    LOG_INF("init");
     context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
@@ -181,6 +182,6 @@ void actuate_vesc_can_entry_point(void* p0, void* p1, void* p2)
 
 K_THREAD_DEFINE(actuate_vesc_can, MY_STACK_SIZE,
     actuate_vesc_can_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 100);
 
 /* vi: ts=4 sw=4 et */

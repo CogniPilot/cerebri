@@ -132,6 +132,7 @@ K_TIMER_DEFINE(baro_timer, baro_timer_handler, NULL);
 
 int sense_baro_entry_point(void* p0, void* p1, void* p2)
 {
+    LOG_INF("init");
     context_t* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
@@ -150,6 +151,6 @@ int sense_baro_entry_point(void* p0, void* p1, void* p2)
 
 K_THREAD_DEFINE(sense_baro, MY_STACK_SIZE,
     sense_baro_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 100);
 
 // vi: ts=4 sw=4 et

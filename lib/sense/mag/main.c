@@ -99,6 +99,7 @@ K_TIMER_DEFINE(mag_timer, mag_timer_handler, NULL);
 
 int sense_mag_entry_point(context_t* ctx)
 {
+    LOG_INF("init");
     ctx->device[0] = get_device(DEVICE_DT_GET(DT_ALIAS(mag0)));
 #if CONFIG_CEREBRI_SENSE_MAG_COUNT >= 2
     ctx->device[1] = get_device(DEVICE_DT_GET(DT_ALIAS(mag1)));
@@ -116,6 +117,6 @@ int sense_mag_entry_point(context_t* ctx)
 
 K_THREAD_DEFINE(sense_mag, MY_STACK_SIZE,
     sense_mag_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 100);
 
 // vi: ts=4 sw=4 et

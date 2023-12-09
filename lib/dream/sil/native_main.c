@@ -68,8 +68,8 @@ static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
     sil_context_t* ctx = (sil_context_t*)tf->userdata;
     synapse_msgs_SimClock msg = synapse_msgs_SimClock_init_default;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
-    int status = pb_decode(&stream, synapse_msgs_SimClock_fields, &msg);
-    if (status) {
+    int rc = pb_decode(&stream, synapse_msgs_SimClock_fields, &msg);
+    if (rc) {
         g_ctx.sim_clock = msg;
         if (!g_ctx.clock_initialized) {
             g_ctx.clock_initialized = true;
@@ -89,8 +89,8 @@ static TF_Result nav_sat_fix_listener(TinyFrame* tf, TF_Msg* frame)
     sil_context_t* ctx = (sil_context_t*)tf->userdata;
     synapse_msgs_NavSatFix msg = synapse_msgs_NavSatFix_init_default;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
-    int status = pb_decode(&stream, synapse_msgs_NavSatFix_fields, &msg);
-    if (status) {
+    int rc = pb_decode(&stream, synapse_msgs_NavSatFix_fields, &msg);
+    if (rc) {
         g_ctx.nav_sat_fix = msg;
         uint8_t topic = SYNAPSE_NAV_SAT_FIX_TOPIC;
         ring_buf_put(&g_msg_updates, &topic, 1);
@@ -106,8 +106,8 @@ static TF_Result imu_listener(TinyFrame* tf, TF_Msg* frame)
     sil_context_t* ctx = (sil_context_t*)tf->userdata;
     synapse_msgs_Imu msg = synapse_msgs_Imu_init_default;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
-    int status = pb_decode(&stream, synapse_msgs_Imu_fields, &msg);
-    if (status) {
+    int rc = pb_decode(&stream, synapse_msgs_Imu_fields, &msg);
+    if (rc) {
         g_ctx.imu = msg;
         uint8_t topic = SYNAPSE_IMU_TOPIC;
         ring_buf_put(&g_msg_updates, &topic, 1);
@@ -123,8 +123,8 @@ static TF_Result magnetic_field_listener(TinyFrame* tf, TF_Msg* frame)
     sil_context_t* ctx = (sil_context_t*)tf->userdata;
     synapse_msgs_MagneticField msg = synapse_msgs_MagneticField_init_default;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
-    int status = pb_decode(&stream, synapse_msgs_MagneticField_fields, &msg);
-    if (status) {
+    int rc = pb_decode(&stream, synapse_msgs_MagneticField_fields, &msg);
+    if (rc) {
         g_ctx.magnetic_field = msg;
         uint8_t topic = SYNAPSE_MAGNETIC_FIELD_TOPIC;
         ring_buf_put(&g_msg_updates, &topic, 1);
@@ -140,8 +140,8 @@ static TF_Result battery_state_listener(TinyFrame* tf, TF_Msg* frame)
     sil_context_t* ctx = (sil_context_t*)tf->userdata;
     synapse_msgs_BatteryState msg = synapse_msgs_BatteryState_init_default;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
-    int status = pb_decode(&stream, synapse_msgs_BatteryState_fields, &msg);
-    if (status) {
+    int rc = pb_decode(&stream, synapse_msgs_BatteryState_fields, &msg);
+    if (rc) {
         g_ctx.battery_state = msg;
         uint8_t topic = SYNAPSE_BATTERY_STATE_TOPIC;
         ring_buf_put(&g_msg_updates, &topic, 1);
@@ -157,8 +157,8 @@ static TF_Result wheel_odometry_listener(TinyFrame* tf, TF_Msg* frame)
     sil_context_t* ctx = (sil_context_t*)tf->userdata;
     synapse_msgs_WheelOdometry msg = synapse_msgs_WheelOdometry_init_default;
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
-    int status = pb_decode(&stream, synapse_msgs_WheelOdometry_fields, &msg);
-    if (status) {
+    int rc = pb_decode(&stream, synapse_msgs_WheelOdometry_fields, &msg);
+    if (rc) {
         g_ctx.wheel_odometry = msg;
         uint8_t topic = SYNAPSE_WHEEL_ODOMETRY_TOPIC;
         ring_buf_put(&g_msg_updates, &topic, 1);
@@ -203,8 +203,8 @@ void* native_sim_entry_point(void* p0)
         exit(1);
     }
 
-    int status = fcntl(ctx->serv, F_SETFL, fcntl(ctx->serv, F_GETFL, 0) | O_NONBLOCK);
-    if (status == -1) {
+    int rc = fcntl(ctx->serv, F_SETFL, fcntl(ctx->serv, F_GETFL, 0) | O_NONBLOCK);
+    if (rc == -1) {
         perror("calling fcntrl");
         exit(1);
     }

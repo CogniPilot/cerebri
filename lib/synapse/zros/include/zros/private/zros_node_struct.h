@@ -12,7 +12,7 @@
  ********************************************************************/
 struct zros_node {
     const char* _name;
-    sys_snode_t _list_node; // linked list node
+    sys_snode_t _broker_list_node;
     sys_slist_t _subs; // list of subscriptions
     sys_slist_t _pubs; // list of publications
     struct k_mutex _lock;

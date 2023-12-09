@@ -25,10 +25,9 @@ typedef struct _context {
     synapse_msgs_Status status;
     synapse_msgs_Status_Mode status_last_mode;
     synapse_msgs_Status_Arming status_last_arming;
-    synapse_msgs_BatteryState battery_state;
-    synapse_msgs_Safety safety;
-    synapse_msgs_Safety_Status safety_last_status;
-    struct zros_sub sub_status, sub_battery_state, sub_safety;
+    synapse_msgs_Status_Safety status_last_safety;
+    uint32_t status_last_request_seq;
+    struct zros_sub sub_status;
     struct tones_t* sound;
     int sound_size;
     const struct pwm_dt_spec buzzer;
@@ -40,12 +39,9 @@ static context g_ctx = {
     .status = synapse_msgs_Status_init_default,
     .status_last_mode = synapse_msgs_Status_Mode_MODE_UNKNOWN,
     .status_last_arming = synapse_msgs_Status_Arming_ARMING_UNKNOWN,
-    .battery_state = synapse_msgs_BatteryState_init_default,
-    .safety_last_status = synapse_msgs_Safety_Status_SAFETY_UNKNOWN,
-    .safety = synapse_msgs_Safety_init_default,
+    .status_last_safety = synapse_msgs_Status_Safety_SAFETY_UNKNOWN,
+    .status_last_request_seq = 0,
     .sub_status = {},
-    .sub_battery_state = {},
-    .sub_safety = {},
     .sound = NULL,
     .sound_size = 0,
     .buzzer = PWM_DT_SPEC_GET(DT_ALIAS(buzzer)),
@@ -57,8 +53,6 @@ static void init_actuate_sound(context* ctx)
     LOG_DBG("init actuate sound");
     zros_node_init(&ctx->node, "actuate_sound");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 1);
-    zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state, &ctx->battery_state, 1);
-    zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 1);
     if (!pwm_is_ready_dt(&ctx->buzzer)) {
         LOG_ERR("Sound device %s is not ready!", ctx->buzzer.dev->name);
     }
@@ -80,6 +74,7 @@ static int play_sound(context* ctx, struct tones_t* sound, size_t sound_size)
 
 static void actuate_sound_entry_point(void* p0, void* p1, void* p2)
 {
+    LOG_INF("init");
     context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
@@ -88,9 +83,12 @@ static void actuate_sound_entry_point(void* p0, void* p1, void* p2)
 
     struct k_poll_event events[] = {
         *zros_sub_get_event(&ctx->sub_status),
-        *zros_sub_get_event(&ctx->sub_battery_state),
-        *zros_sub_get_event(&ctx->sub_safety),
     };
+
+    int64_t joy_loss_last_alarm_ticks = 0;
+    int64_t fuel_low_last_alarm_ticks = 0;
+    float joy_loss_period_sec = 3.0;
+    float fuel_low_period_sec = 10.0;
 
     while (true) {
 
@@ -103,14 +101,6 @@ static void actuate_sound_entry_point(void* p0, void* p1, void* p2)
 
         if (zros_sub_update_available(&ctx->sub_status)) {
             zros_sub_update(&ctx->sub_status);
-        }
-
-        if (zros_sub_update_available(&ctx->sub_battery_state)) {
-            zros_sub_update(&ctx->sub_battery_state);
-        }
-
-        if (zros_sub_update_available(&ctx->sub_safety)) {
-            zros_sub_update(&ctx->sub_safety);
         }
 
         if (ctx->status.mode != ctx->status_last_mode) {
@@ -140,9 +130,9 @@ static void actuate_sound_entry_point(void* p0, void* p1, void* p2)
             play_sound(ctx, disarmed_tone, ARRAY_SIZE(disarmed_tone));
         }
 
-        if (ctx->safety.status != ctx->safety_last_status) {
-            ctx->safety_last_status = ctx->safety.status;
-            if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE) {
+        if (ctx->status.safety != ctx->status_last_safety) {
+            ctx->status_last_safety = ctx->status.safety;
+            if (ctx->status.safety == synapse_msgs_Status_Safety_SAFETY_SAFE) {
                 if (!ctx->started) {
                     play_sound(ctx, airy_start_tone, ARRAY_SIZE(airy_start_tone));
                     ctx->started = true;
@@ -151,19 +141,41 @@ static void actuate_sound_entry_point(void* p0, void* p1, void* p2)
                 }
             }
 
-            else if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNSAFE) {
+            else if (ctx->status.safety == synapse_msgs_Status_Safety_SAFETY_UNSAFE) {
                 play_sound(ctx, safety_off_tone, ARRAY_SIZE(safety_off_tone));
             }
         }
 
-        if (ctx->battery_state.voltage < CONFIG_CEREBRI_B3RB_BATTERY_MIN_MILLIVOLT / 1000.0) {
-            play_sound(ctx, critical_tone, ARRAY_SIZE(critical_tone));
+        if (ctx->status.fuel == synapse_msgs_Status_Fuel_FUEL_LOW) {
+            int64_t now_ticks = k_uptime_ticks();
+            if ((now_ticks - fuel_low_last_alarm_ticks) > fuel_low_period_sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
+                fuel_low_last_alarm_ticks = now_ticks;
+                play_sound(ctx, fuel_tone, ARRAY_SIZE(fuel_tone));
+            }
+        }
+
+        if (ctx->status.fuel == synapse_msgs_Status_Fuel_FUEL_CRITICAL) {
+            play_sound(ctx, fuel_tone, ARRAY_SIZE(fuel_tone));
+        }
+
+        if (ctx->status.joy == synapse_msgs_Status_Joy_JOY_LOSS
+            && ctx->status.safety == synapse_msgs_Status_Safety_SAFETY_UNSAFE) {
+            int64_t now_ticks = k_uptime_ticks();
+            if ((now_ticks - joy_loss_last_alarm_ticks) > joy_loss_period_sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
+                joy_loss_last_alarm_ticks = now_ticks;
+                play_sound(ctx, joy_loss_tone, ARRAY_SIZE(joy_loss_tone));
+            }
+        }
+
+        if (ctx->status.request_rejected && ctx->status_last_request_seq != ctx->status.request_seq) {
+            ctx->status_last_request_seq = ctx->status.request_seq;
+            play_sound(ctx, reject_tone, ARRAY_SIZE(reject_tone));
         }
     }
 }
 
 K_THREAD_DEFINE(actuate_sound, MY_STACK_SIZE,
     actuate_sound_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+    MY_PRIORITY, 0, 100);
 
 /* vi: ts=4 sw=4 et */

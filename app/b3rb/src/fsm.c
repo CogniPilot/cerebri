@@ -153,8 +153,14 @@ static void fsm_compute_input(status_input_t* input, const context* ctx)
 #else
     input->safe = false;
 #endif
+
+#ifdef CONFIG_CEREBRI_SENSE_POWER
     input->fuel_low = ctx->battery_state.voltage < CONFIG_CEREBRI_B3RB_BATTERY_LOW_MILLIVOLT / 1000.0;
     input->fuel_critical = ctx->battery_state.voltage < CONFIG_CEREBRI_B3RB_BATTERY_MIN_MILLIVOLT / 1000.0;
+#else
+    input->fuel_low = false;
+    input->fuel_critical = false;
+#endif
 }
 
 static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
@@ -294,7 +300,7 @@ static void b3rb_fsm_entry_point(void* p0, void* p1, void* p2)
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
-            LOG_WRN("fsm joy/battery polling timeout");
+            LOG_DBG("fsm joy/battery polling timeout");
         }
 
         if (zros_sub_update_available(&ctx->sub_battery_state)) {

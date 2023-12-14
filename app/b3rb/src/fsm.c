@@ -63,14 +63,14 @@ void transition(
         int guard = va_arg(ap, int);
         const char* guard_txt = va_arg(ap, const char*);
         if (guard) {
-            snprintf(buf, n, "deny: %s %s", request_name, guard_txt);
+            snprintf(buf, n, "deny %s: %s", request_name, guard_txt);
             LOG_WRN("%s", buf);
             *request_rejected = true;
             return;
         }
     }
     va_end(ap);
-    snprintf(buf, n, "%s", request_name);
+    snprintf(buf, n, "accept %s", request_name);
     LOG_INF("%s", buf);
     *state_int = post;
     *request_rejected = false;
@@ -175,10 +175,12 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
-        3,
+        5,
         status->mode == synapse_msgs_Status_Mode_MODE_UNKNOWN, "mode not set",
+        status->mode == synapse_msgs_Status_Mode_MODE_CALIBRATION, "mode calibration",
         input->safe, "safety on",
-        input->fuel_critical, "fuel_critical");
+        input->fuel_critical, "fuel_critical",
+        input->fuel_low, "fuel_low");
 
     // disarm transitions
     transition(
@@ -241,7 +243,9 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
         synapse_msgs_Status_Mode_MODE_CALIBRATION, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
-        0); // guards
+        // guards
+        1,
+        status->arming == synapse_msgs_Status_Arming_ARMING_ARMED, "disarm required");
 
     // set timestamp
     stamp_header(&status->header, k_uptime_ticks());

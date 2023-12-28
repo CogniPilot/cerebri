@@ -40,10 +40,15 @@ typedef struct context_s {
     struct zros_node node;
     synapse_msgs_Actuators actuators;
     synapse_msgs_BatteryState battery_state;
+    synapse_msgs_NavSatFix nav_sat_fix;
     synapse_msgs_Odometry estimator_odometry;
     synapse_msgs_Status status;
-    struct zros_sub sub_actuators, sub_battery_state,
-        sub_status, sub_estimator_odometry;
+    struct zros_sub
+        sub_actuators,
+        sub_battery_state,
+        sub_estimator_odometry,
+        sub_nav_sat_fix,
+        sub_status;
     TinyFrame tf;
     int client;
     volatile bool reconnect;
@@ -59,11 +64,13 @@ static context_t g_ctx = {
     .actuators = synapse_msgs_Actuators_init_default,
     .battery_state = synapse_msgs_BatteryState_init_default,
     .estimator_odometry = synapse_msgs_Odometry_init_default,
+    .nav_sat_fix = synapse_msgs_NavSatFix_init_default,
     .status = synapse_msgs_Status_init_default,
     .sub_actuators = {},
     .sub_battery_state = {},
-    .sub_status = {},
     .sub_estimator_odometry = {},
+    .sub_nav_sat_fix = {},
+    .sub_status = {},
     .tf = {},
     .client = 0,
     .error_count = 0,
@@ -192,6 +199,7 @@ static void synapse_ethernet_init(context_t* ctx)
     zros_sub_init(&ctx->sub_actuators, &ctx->node, &topic_actuators, &ctx->actuators, 1);
     zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state, &ctx->battery_state, 1);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
+    zros_sub_init(&ctx->sub_nav_sat_fix, &ctx->node, &topic_nav_sat_fix, &ctx->nav_sat_fix, 10);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 1);
 }
 
@@ -287,6 +295,7 @@ static void ethernet_entry_point(context_t* ctx)
         struct k_poll_event events[] = {
             *zros_sub_get_event(&ctx->sub_status),
             *zros_sub_get_event(&ctx->sub_estimator_odometry),
+            *zros_sub_get_event(&ctx->sub_nav_sat_fix),
         };
 
         while (!ctx->reconnect) {
@@ -302,6 +311,11 @@ static void ethernet_entry_point(context_t* ctx)
                 TOPIC_PUBLISHER(&ctx->battery_state, synapse_msgs_BatteryState, SYNAPSE_BATTERY_STATE_TOPIC);
             }
             */
+
+            if (zros_sub_update_available(&ctx->sub_nav_sat_fix)) {
+                zros_sub_update(&ctx->sub_nav_sat_fix);
+                TOPIC_PUBLISHER(&ctx->nav_sat_fix, synapse_msgs_NavSatFix, SYNAPSE_NAV_SAT_FIX_TOPIC);
+            }
 
             if (zros_sub_update_available(&ctx->sub_status)) {
                 zros_sub_update(&ctx->sub_status);

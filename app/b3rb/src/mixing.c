@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <synapse_topic_list.h>
+#include "mixing.h"
 
 void b3rb_set_actuators(synapse_msgs_Actuators* msg, double turn_angle, double omega_fwd)
 {

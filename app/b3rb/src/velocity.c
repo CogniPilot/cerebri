@@ -62,7 +62,7 @@ static void init_b3rb_vel(context* ctx)
 }
 
 // computes rc_input from V, omega
-void update_cmd_vel(context* ctx)
+static void update_cmd_vel(context* ctx)
 {
     double turn_angle = 0;
     double omega_fwd = 0;

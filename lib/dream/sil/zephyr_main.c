@@ -29,6 +29,8 @@ LOG_MODULE_REGISTER(dream_sil, CONFIG_CEREBRI_DREAM_SIL_LOG_LEVEL);
 
 extern sil_context_t g_ctx;
 extern struct ring_buf g_msg_updates;
+static K_THREAD_STACK_DEFINE(my_stack_area, MY_STACK_SIZE);
+static struct k_thread my_thread_data;
 
 static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
 {
@@ -36,7 +38,7 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
     struct zros_sub sub_actuators;
     synapse_msgs_Actuators actuators;
 
-    zros_node_init(&node, "sil");
+    zros_node_init(&node, "dream_sil");
     zros_sub_init(&sub_actuators, &node, &topic_actuators, &actuators, 10);
 
     sil_context_t* ctx = p0;
@@ -130,10 +132,18 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
     printf("zephyr main loop finished\n");
 }
 
-// zephyr threads
-K_THREAD_DEFINE(zephyr_sim, MY_STACK_SIZE,
-    zephyr_sim_entry_point,
-    &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 0);
+static int start()
+{
+    k_tid_t tid = k_thread_create(&my_thread_data, my_stack_area,
+        K_THREAD_STACK_SIZEOF(my_stack_area),
+        zephyr_sim_entry_point,
+        &g_ctx, NULL, NULL,
+        MY_PRIORITY, 0, K_FOREVER);
+    k_thread_name_set(tid, "dream_sil");
+    k_thread_start(tid);
+    return 0;
+}
+
+SYS_INIT(start, POST_KERNEL, 0);
 
 // vi: ts=4 sw=4 et

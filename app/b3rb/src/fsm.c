@@ -22,7 +22,7 @@
 
 LOG_MODULE_REGISTER(b3rb_fsm, CONFIG_CEREBRI_B3RB_LOG_LEVEL);
 
-void transition(
+static void transition(
     void* state,
     bool request,
     const char* request_name,

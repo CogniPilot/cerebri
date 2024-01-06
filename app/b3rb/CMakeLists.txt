@@ -15,10 +15,6 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(b3rb LANGUAGES C)
 
-target_compile_options(app PRIVATE -Wall -Wextra -Werror)
-
-set_source_files_properties(src/casadi/gen/b3rb.c PROPERTIES COMPILE_FLAGS -Wno-unused-parameter)
-
 set(SOURCE_FILES src/main.c)
 
 if (CONFIG_CEREBRI_B3RB_FSM)
@@ -56,4 +52,54 @@ if (CONFIG_CEREBRI_B3RB_CASADI)
     src/casadi/gen/b3rb.c)
 endif()
 
+set(flags
+  -std=c11
+  -Wall
+  -Wextra
+  -Werror
+  -Wstrict-prototypes
+  -Waggregate-return
+  -Wbad-function-cast
+  -Wcast-align
+  -Wcast-qual
+  -Wfloat-equal
+  -Wformat-security
+  -Wlogical-op
+  -Wmissing-declarations
+  # ubxlib includes geographiclib which dir doesn't exist
+  #-Wmissing-include-dirs
+  -Wmissing-prototypes
+  -Wnested-externs
+  -Wpointer-arith
+  -Wredundant-decls
+  -Wsequence-point
+  -Wshadow
+  -Wstrict-prototypes
+  -Wswitch
+  -Wundef
+  -Wunreachable-code
+  -Wunused-but-set-parameter
+  -Wwrite-strings
+  )
+string(JOIN " " flags ${flags})
+
+set_source_files_properties(
+  ${SOURCE_FILES}
+  PROPERTIES COMPILE_FLAGS
+  "${flags}"
+  )
+
+set_source_files_properties(
+  src/casadi/gen/b3rb.c
+  PROPERTIES COMPILE_FLAGS
+  "${flags}\
+  -Wno-unused-parameter\
+  -Wno-missing-prototypes\
+  -Wno-missing-declarations\
+  -Wno-float-equal")
+
 target_sources(app PRIVATE ${SOURCE_FILES})
+
+target_include_directories(app SYSTEM BEFORE PRIVATE ${ZEPHYR_BASE}/include)
+
+# vi: ts=2 sw=2 et

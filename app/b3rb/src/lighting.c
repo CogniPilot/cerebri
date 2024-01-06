@@ -88,7 +88,7 @@ static void lighting_work_handler(struct k_work* work)
     zros_sub_update(&ctx->sub_safety);
     zros_sub_update(&ctx->sub_battery_state);
 
-    double t = (double)k_uptime_ticks() / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+    double t = k_uptime_ticks() / ((double)CONFIG_SYS_CLOCK_TICKS_PER_SEC);
     const double led_pulse_freq = 0.25;
     const double brightness_min = 4;
     const double brightness_max = 30;

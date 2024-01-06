@@ -1,0 +1,17 @@
+# Copyright (c) 2024, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config CEREBRI_SYNAPSE_ETH_RX
+  bool "ethernet receive"	
+  default y
+  depends on CEREBRI_SYNAPSE_ZROS
+  help
+    This option enables the synapse udp interface
+
+if CEREBRI_SYNAPSE_ETH_RX
+
+module = CEREBRI_SYNAPSE_ETH_RX
+module-str = synapse_eth_rx
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # CEREBRI_SYNAPSE_ETH_RX

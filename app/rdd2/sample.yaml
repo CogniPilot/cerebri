@@ -1,0 +1,19 @@
+sample:
+  description: RDD2
+  name: RDD2
+common:
+  build_only: true
+tests:
+  rdd2.posix:
+    tags:
+      - rdd2
+    integration_platforms:
+      - native_sim
+  rdd2.mr_canhubk3:
+    tags:
+      - rdd2
+    integration_platforms:
+      - mr_canhubk3
+
+
+

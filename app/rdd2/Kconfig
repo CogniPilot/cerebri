@@ -1,0 +1,114 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+mainmenu "CogniPilot - Cerebri - RDD2"
+source "Kconfig.zephyr"
+
+config CEREBRI_RDD2_ESTIMATE
+  bool "enable estimate"
+  depends on CEREBRI_RDD2_CASADI
+  help
+    Enable estimator
+
+config CEREBRI_RDD2_FSM
+  bool "enable finite state machine"
+  help
+    Enable fintie state machine
+
+config CEREBRI_RDD2_LIGHTING
+  bool "enable lighting"
+  help
+    Enable lighting
+
+config CEREBRI_RDD2_MANUAL
+  bool "enable manual"
+  depends on CEREBRI_RDD2_MIXING
+  help
+    Enable manual
+
+config CEREBRI_RDD2_MIXING
+  bool "enable mixing"
+  help
+    Enable mixing
+
+config CEREBRI_RDD2_POSITION
+  bool "enable position"
+  depends on CEREBRI_RDD2_CASADI
+  help
+    Enable position
+
+config CEREBRI_RDD2_VELOCITY
+  bool "enable velocity"
+  depends on CEREBRI_RDD2_MIXING
+  depends on CEREBRI_RDD2_CASADI
+  help
+    Enable velocity
+
+config CEREBRI_RDD2_CASADI
+  bool "enable casadi code"
+  help
+    Enable Casadi generated code
+
+config CEREBRI_RDD2_BATTERY_MIN_MILLIVOLT
+  int "min battery voltage in milli volts before shut off"
+  default 10000
+  help
+    Minimum battery voltage in mV before auto-disarm
+
+config CEREBRI_RDD2_BATTERY_LOW_MILLIVOLT
+  int "low battery voltage in milli volts before warning"
+  default 10500
+  help
+    Low battery voltage in mV before warning
+
+config CEREBRI_RDD2_BATTERY_MAX_MILLIVOLT
+  int "max battery voltage in milli volts"
+  default 12600
+  help
+    Maximum battery voltage
+
+config CEREBRI_RDD2_GAIN_HEADING
+  int "heading gain"
+  default 100
+  help
+    Steering = Heading error * GAIN_/ 1000
+
+config CEREBRI_RDD2_GAIN_CROSS_TRACK
+  int "cross track gain"
+  default 100
+  help
+    Steering = Cross track error * GAIN / 1000
+
+config CEREBRI_RDD2_GAIN_ALONG_TRACK
+  int "along track gain"
+  default 100
+  help
+    Steering = Along track error * GAIN / 1000
+
+config CEREBRI_RDD2_MAX_TURN_ANGLE_MRAD
+  int "max turn angle mrad"
+  default 400
+  help
+    Max turn angle in milli-radians
+
+config CEREBRI_RDD2_MAX_VELOCITY_MM_S
+  int "max velocity, mm/s"
+  default 1000
+  help
+    Max velocity in mm/s
+
+config CEREBRI_RDD2_WHEEL_RADIUS_MM
+  int "wheel radius, mm"
+  default 37
+  help
+    Wheel radius in mm
+
+config CEREBRI_RDD2_WHEEL_BASE_MM
+  int "wheel base, mm"
+  default 226
+  help
+    Wheel radius in mm
+
+module = CEREBRI_RDD2
+module-str = cerebri_rdd2
+source "subsys/logging/Kconfig.template.log_config"

@@ -30,7 +30,8 @@ typedef struct _context {
     synapse_msgs_Status status;
     synapse_msgs_Actuators actuators;
     synapse_msgs_Actuators actuators_manual;
-    struct zros_sub sub_status, sub_cmd_vel, sub_actuators_manual;
+    synapse_msgs_Imu imu;
+    struct zros_sub sub_status, sub_cmd_vel, sub_actuators_manual, sub_imu;
     struct zros_pub pub_actuators;
     const double wheel_radius;
     const double wheel_base;
@@ -45,6 +46,7 @@ static context g_ctx = {
     .sub_status = {},
     .sub_cmd_vel = {},
     .sub_actuators_manual = {},
+    .sub_imu = {},
     .pub_actuators = {},
     .wheel_radius = CONFIG_CEREBRI_RDD2_WHEEL_RADIUS_MM / 1000.0,
     .wheel_base = CONFIG_CEREBRI_RDD2_WHEEL_BASE_MM / 1000.0,
@@ -58,18 +60,15 @@ static void init_rdd2_vel(context* ctx)
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_actuators_manual, &ctx->node,
         &topic_actuators_manual, &ctx->actuators_manual, 10);
+    zros_sub_init(&ctx->sub_imu, &ctx->node,
+        &topic_imu, &ctx->imu, 100);
     zros_pub_init(&ctx->pub_actuators, &ctx->node, &topic_actuators, &ctx->actuators);
 }
 
 // computes rc_input from V, omega
 static void update_cmd_vel(context* ctx)
 {
-    double turn_angle = 0;
-    double omega_fwd = 0;
-    double V = ctx->cmd_vel.linear.x;
-    double omega = ctx->cmd_vel.angular.z;
-    double delta = 0;
-
+    /*
     CASADI_FUNC_ARGS(ackermann_steering);
     args[0] = &ctx->wheel_base;
     args[1] = &omega;
@@ -81,12 +80,23 @@ static void update_cmd_vel(context* ctx)
     if (fabs(V) > 0.01) {
         turn_angle = delta;
     }
-    rdd2_set_actuators(&ctx->actuators, turn_angle, omega_fwd);
+    */
+
+    double roll_rate_cmd = ctx->actuators_manual.velocity[0];
+    double pitch_rate_cmd = ctx->actuators_manual.velocity[1];
+    double yaw_rate_cmd = ctx->actuators_manual.velocity[2];
+    double thrust_cmd = ctx->actuators_manual.velocity[3];
+
+    double roll = 1.0 * (roll_rate_cmd - ctx->imu.angular_velocity.x);
+    double pitch = 1.0 * (pitch_rate_cmd - ctx->imu.angular_velocity.y);
+    double yaw = 1.0 * (yaw_rate_cmd - ctx->imu.angular_velocity.z);
+
+    rdd2_set_actuators(&ctx->actuators, roll, pitch, yaw, thrust_cmd);
 }
 
 static void stop(context* ctx)
 {
-    rdd2_set_actuators(&ctx->actuators, 0, 0);
+    rdd2_set_actuators(&ctx->actuators, 0, 0, 0, 0);
 }
 
 static void rdd2_velocity_entry_point(void* p0, void* p1, void* p2)
@@ -141,9 +151,9 @@ static void rdd2_velocity_entry_point(void* p0, void* p1, void* p2)
             LOG_DBG("not armed, stopped");
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
             LOG_DBG("manual mode");
-            ctx->actuators = ctx->actuators_manual;
-        } else {
+            // ctx->actuators = ctx->actuators_manual;
             update_cmd_vel(ctx);
+        } else {
         }
 
         // publish

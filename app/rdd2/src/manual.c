@@ -77,12 +77,21 @@ static void rdd2_manual_entry_point(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_joy);
         }
 
-        // compute turn_angle, and angular velocity from joystick
-        double roll = ctx->joy.axes[JOY_AXES_ROLL];
-        double pitch = ctx->joy.axes[JOY_AXES_PITCH];
-        double yaw = ctx->joy.axes[JOY_AXES_YAW];
-        double thrust = ctx->joy.axes[JOY_AXES_THRUST];
-        rdd2_set_actuators(&ctx->actuators_manual, roll, pitch, yaw, thrust);
+        // set normalized inputs
+        ctx->actuators_manual.normalized_count = 4;
+        ctx->actuators_manual.normalized[0] = -ctx->joy.axes[JOY_AXES_ROLL];
+        ctx->actuators_manual.normalized[1] = ctx->joy.axes[JOY_AXES_PITCH];
+        ctx->actuators_manual.normalized[2] = ctx->joy.axes[JOY_AXES_YAW];
+        ctx->actuators_manual.normalized[3] = ctx->joy.axes[JOY_AXES_THRUST];
+
+        // saturation
+        for (int i = 0; i < 4; i++) {
+            if (ctx->actuators_manual.normalized[i] < -1) {
+                ctx->actuators_manual.normalized[i] = -1;
+            } else if (ctx->actuators_manual.normalized[i] > 1) {
+                ctx->actuators_manual.normalized[i] = 1;
+            }
+        }
         zros_pub_update(&ctx->pub_actuators_manual);
     }
 }

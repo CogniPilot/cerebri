@@ -142,6 +142,10 @@ static void rdd2_velocity_entry_point(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_actuators_manual);
         }
 
+        if (zros_sub_update_available(&ctx->sub_imu)) {
+            zros_sub_update(&ctx->sub_imu);
+        }
+
         // handle modes
         if (rc < 0) {
             stop(ctx);

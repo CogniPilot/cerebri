@@ -179,11 +179,11 @@ static int topic_echo(const struct shell* sh, struct zros_topic* topic, void* ms
         zros_topic_get_name(topic, name, sizeof(name));
         if (rc != 0) {
             LOG_WRN("%s not published.", name);
-            keep_running=false;
+            keep_running = false;
         } else {
             if (!zros_sub_update_available(&sub)) {
                 LOG_WRN("%s no update available.", name);
-                keep_running=false;
+                keep_running = false;
             } else {
                 zros_sub_update(&sub);
                 echo(buf, sizeof(buf), msg);

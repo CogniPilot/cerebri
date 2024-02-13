@@ -6,7 +6,7 @@ top = """# Copyright (c) 2023, CogniPilot Foundation
 menuconfig CEREBRI_ACTUATE_PWM
   bool "PWM"
   depends on PWM
-  depends on CEREBRI_SYNAPSE_ZROS
+  depends on ZROS
   help
     This option enables pwm actuators
 

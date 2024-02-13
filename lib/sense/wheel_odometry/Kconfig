@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 menuconfig CEREBRI_SENSE_WHEEL_ODOMETRY
   bool "Wheel Odometry"
-  depends on CEREBRI_SYNAPSE_ZROS
+  depends on ZROS
   depends on CEREBRI_CORE_COMMON
   depends on SYNAPSE_PROTOBUF
   help

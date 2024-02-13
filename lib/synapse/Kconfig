@@ -3,7 +3,6 @@
 
 menu "Synapse"
 
-rsource "zros/Kconfig"
 rsource "eth_tx/Kconfig"
 rsource "eth_rx/Kconfig"
 rsource "ethernet/Kconfig"

@@ -4,7 +4,7 @@
 config CEREBRI_SYNAPSE_ETHERNET
   bool "Ethernet"
   default y
-  depends on CEREBRI_SYNAPSE_ZROS
+  depends on ZROS
   help
     This option enables the synapse ethernet interface
 

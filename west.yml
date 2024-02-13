@@ -27,6 +27,10 @@ manifest:
           - hal_nxp
           - cmsis
           - ubxlib
+    - name: zros
+      remote: cognipilot
+      revision: 467bd1042bef93ded9ba76287609ab47e76f9fa7 # main 2/12/24
+      path: modules/lib/zros
     - name: synapse_tinyframe
       remote: cognipilot
       revision: 672c6d30d5e8cc24f720edd3b915889dc0bc5fab # main 12/9/23

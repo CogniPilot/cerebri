@@ -3,7 +3,7 @@
 
 config CEREBRI_SENSE_UBX_GNSS
   bool "U-blox GNSS Interface"
-  depends on CEREBRI_SYNAPSE_ZROS
+  depends on ZROS
   depends on UBXLIB
   help
     This option enables U-blox GNSS driver.

@@ -22,7 +22,7 @@
 
 LOG_MODULE_REGISTER(b3rb_lighting, CONFIG_CEREBRI_B3RB_LOG_LEVEL);
 
-extern struct k_work_q g_low_priority_work_q;
+extern struct k_work_q g_high_priority_work_q;
 static void lighting_work_handler(struct k_work* work);
 static void lighting_timer_handler(struct k_timer* dummy);
 
@@ -202,7 +202,7 @@ static void lighting_work_handler(struct k_work* work)
 static void lighting_timer_handler(struct k_timer* timer)
 {
     context_t* ctx = CONTAINER_OF(timer, context_t, timer);
-    k_work_submit_to_queue(&g_low_priority_work_q, &ctx->work_item);
+    k_work_submit_to_queue(&g_high_priority_work_q, &ctx->work_item);
 }
 
 static void lighting_entry_point(void* p0, void* p1, void* p2)

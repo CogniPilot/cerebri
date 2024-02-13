@@ -4,7 +4,7 @@
 config CEREBRI_SYNAPSE_ETH_TX
   bool "ethernet tx"	
   default y
-  depends on CEREBRI_SYNAPSE_ZROS
+  depends on ZROS
   help
     This option enables the synapse udp interface
 

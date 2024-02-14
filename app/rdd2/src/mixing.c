@@ -12,7 +12,7 @@ void rdd2_set_actuators(synapse_msgs_Actuators* msg, double roll, double pitch, 
     msg->header.seq++;
     strncpy(msg->header.frame_id, "odom", sizeof(msg->header.frame_id) - 1);
 
-    const float k = 10;
+    const float k = 1600;
 
     msg->position_count = 0;
     msg->velocity_count = 4;

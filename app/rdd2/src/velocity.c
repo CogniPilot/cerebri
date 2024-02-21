@@ -82,14 +82,19 @@ static void update_cmd_vel(context* ctx)
     }
     */
 
-    double roll_rate_cmd = ctx->actuators_manual.normalized[0];
-    double pitch_rate_cmd = ctx->actuators_manual.normalized[1];
-    double yaw_rate_cmd = ctx->actuators_manual.normalized[2];
+    static const double deg2rad = M_PI / 180.0;
+    double roll_rate_cmd = 60 * deg2rad * ctx->actuators_manual.normalized[0];
+    double pitch_rate_cmd = 60 * deg2rad * ctx->actuators_manual.normalized[1];
+    double yaw_rate_cmd = 60 * deg2rad * ctx->actuators_manual.normalized[2];
     double thrust_cmd = ctx->actuators_manual.normalized[3];
 
-    double roll = 0.01 * (roll_rate_cmd - ctx->imu.angular_velocity.x);
-    double pitch = 0.01 * (pitch_rate_cmd + ctx->imu.angular_velocity.y);
-    double yaw = 0.05 * (yaw_rate_cmd + ctx->imu.angular_velocity.z);
+    static const double kp_roll = 0.013;
+    static const double kp_pitch = 0.013;
+    static const double kp_yaw = 0.1;
+
+    double roll = kp_roll * (roll_rate_cmd - ctx->imu.angular_velocity.x);
+    double pitch = kp_pitch * (pitch_rate_cmd + ctx->imu.angular_velocity.y);
+    double yaw = kp_yaw * (yaw_rate_cmd + ctx->imu.angular_velocity.z);
 
     rdd2_set_actuators(&ctx->actuators, roll, pitch, yaw, thrust_cmd);
 }

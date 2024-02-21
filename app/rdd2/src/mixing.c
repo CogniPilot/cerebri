@@ -3,7 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <math.h>
+#include <zephyr/logging/log.h>
+
 #include "mixing.h"
+
+LOG_MODULE_REGISTER(rdd2_mixing, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
 void rdd2_set_actuators(synapse_msgs_Actuators* msg, double roll, double pitch, double yaw, double thrust)
 {
@@ -12,8 +17,12 @@ void rdd2_set_actuators(synapse_msgs_Actuators* msg, double roll, double pitch, 
     msg->header.seq++;
     strncpy(msg->header.frame_id, "odom", sizeof(msg->header.frame_id) - 1);
 
-    const float k = 1600;
+    if (thrust + fabs(pitch) + fabs(roll) + fabs(yaw) > 1) {
+        thrust = 1 - fabs(pitch) - fabs(roll) - fabs(yaw);
+        LOG_WRN("Thrust Saturation: %10.4f", thrust);
+    }
 
+    const float k = 1600;
     msg->position_count = 0;
     msg->velocity_count = 4;
     msg->normalized_count = 0;

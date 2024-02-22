@@ -222,12 +222,6 @@ void* native_sim_entry_point(void* p0)
         exit(1);
     }
 
-    int rc = fcntl(ctx->serv, F_SETFL, fcntl(ctx->serv, F_GETFL, 0) | O_NONBLOCK);
-    if (rc == -1) {
-        perror("calling fcntrl");
-        exit(1);
-    }
-
     bind_addr.sin_family = AF_INET;
     bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     bind_addr.sin_port = htons(BIND_PORT);
@@ -253,13 +247,14 @@ void* native_sim_entry_point(void* p0)
     action.sa_handler = term;
     sigaction(SIGINT, &action, NULL);
 
+    uint8_t data[RX_BUF_SIZE];
+
     while (!ctx->shutdown) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
         char addr_str[32];
         ctx->client = accept(ctx->serv, (struct sockaddr*)&client_addr,
             &client_addr_len);
-        fcntl(ctx->client, F_SETFL, O_NONBLOCK);
 
         if (ctx->client < 0) {
             request.tv_sec = 1;
@@ -275,7 +270,6 @@ void* native_sim_entry_point(void* p0)
         // process incoming messages
         while (!ctx->shutdown) {
             // write received data to sim_rx_buf
-            uint8_t data[RX_BUF_SIZE];
             int len = recv(ctx->client, data, RX_BUF_SIZE, 0);
             if (len > 0) {
                 TF_Accept(&ctx->tf, data, len);

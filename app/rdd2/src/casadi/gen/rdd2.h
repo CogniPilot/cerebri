@@ -17,186 +17,46 @@ extern "C" {
 #define casadi_int long long int
 #endif
 
-int bezier6_solve(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int bezier6_solve_alloc_mem(void);
-int bezier6_solve_init_mem(int mem);
-void bezier6_solve_free_mem(int mem);
-int bezier6_solve_checkout(void);
-void bezier6_solve_release(int mem);
-void bezier6_solve_incref(void);
-void bezier6_solve_decref(void);
-casadi_int bezier6_solve_n_in(void);
-casadi_int bezier6_solve_n_out(void);
-casadi_real bezier6_solve_default_in(casadi_int i);
-const char* bezier6_solve_name_in(casadi_int i);
-const char* bezier6_solve_name_out(casadi_int i);
-const casadi_int* bezier6_solve_sparsity_in(casadi_int i);
-const casadi_int* bezier6_solve_sparsity_out(casadi_int i);
-int bezier6_solve_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define bezier6_solve_SZ_ARG 3
-#define bezier6_solve_SZ_RES 1
-#define bezier6_solve_SZ_IW 0
-#define bezier6_solve_SZ_W 10
-int bezier6_traj(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int bezier6_traj_alloc_mem(void);
-int bezier6_traj_init_mem(int mem);
-void bezier6_traj_free_mem(int mem);
-int bezier6_traj_checkout(void);
-void bezier6_traj_release(int mem);
-void bezier6_traj_incref(void);
-void bezier6_traj_decref(void);
-casadi_int bezier6_traj_n_in(void);
-casadi_int bezier6_traj_n_out(void);
-casadi_real bezier6_traj_default_in(casadi_int i);
-const char* bezier6_traj_name_in(casadi_int i);
-const char* bezier6_traj_name_out(casadi_int i);
-const casadi_int* bezier6_traj_sparsity_in(casadi_int i);
-const casadi_int* bezier6_traj_sparsity_out(casadi_int i);
-int bezier6_traj_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define bezier6_traj_SZ_ARG 3
-#define bezier6_traj_SZ_RES 1
-#define bezier6_traj_SZ_IW 0
-#define bezier6_traj_SZ_W 16
-int bezier6_rover(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int bezier6_rover_alloc_mem(void);
-int bezier6_rover_init_mem(int mem);
-void bezier6_rover_free_mem(int mem);
-int bezier6_rover_checkout(void);
-void bezier6_rover_release(int mem);
-void bezier6_rover_incref(void);
-void bezier6_rover_decref(void);
-casadi_int bezier6_rover_n_in(void);
-casadi_int bezier6_rover_n_out(void);
-casadi_real bezier6_rover_default_in(casadi_int i);
-const char* bezier6_rover_name_in(casadi_int i);
-const char* bezier6_rover_name_out(casadi_int i);
-const casadi_int* bezier6_rover_sparsity_in(casadi_int i);
-const casadi_int* bezier6_rover_sparsity_out(casadi_int i);
-int bezier6_rover_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define bezier6_rover_SZ_ARG 4
-#define bezier6_rover_SZ_RES 5
-#define bezier6_rover_SZ_IW 0
-#define bezier6_rover_SZ_W 22
-int ackermann_steering(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int ackermann_steering_alloc_mem(void);
-int ackermann_steering_init_mem(int mem);
-void ackermann_steering_free_mem(int mem);
-int ackermann_steering_checkout(void);
-void ackermann_steering_release(int mem);
-void ackermann_steering_incref(void);
-void ackermann_steering_decref(void);
-casadi_int ackermann_steering_n_in(void);
-casadi_int ackermann_steering_n_out(void);
-casadi_real ackermann_steering_default_in(casadi_int i);
-const char* ackermann_steering_name_in(casadi_int i);
-const char* ackermann_steering_name_out(casadi_int i);
-const casadi_int* ackermann_steering_sparsity_in(casadi_int i);
-const casadi_int* ackermann_steering_sparsity_out(casadi_int i);
-int ackermann_steering_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define ackermann_steering_SZ_ARG 3
-#define ackermann_steering_SZ_RES 1
-#define ackermann_steering_SZ_IW 0
-#define ackermann_steering_SZ_W 2
-int differential_steering(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int differential_steering_alloc_mem(void);
-int differential_steering_init_mem(int mem);
-void differential_steering_free_mem(int mem);
-int differential_steering_checkout(void);
-void differential_steering_release(int mem);
-void differential_steering_incref(void);
-void differential_steering_decref(void);
-casadi_int differential_steering_n_in(void);
-casadi_int differential_steering_n_out(void);
-casadi_real differential_steering_default_in(casadi_int i);
-const char* differential_steering_name_in(casadi_int i);
-const char* differential_steering_name_out(casadi_int i);
-const casadi_int* differential_steering_sparsity_in(casadi_int i);
-const casadi_int* differential_steering_sparsity_out(casadi_int i);
-int differential_steering_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define differential_steering_SZ_ARG 3
-#define differential_steering_SZ_RES 1
-#define differential_steering_SZ_IW 0
-#define differential_steering_SZ_W 4
-int se2_U(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int se2_U_alloc_mem(void);
-int se2_U_init_mem(int mem);
-void se2_U_free_mem(int mem);
-int se2_U_checkout(void);
-void se2_U_release(int mem);
-void se2_U_incref(void);
-void se2_U_decref(void);
-casadi_int se2_U_n_in(void);
-casadi_int se2_U_n_out(void);
-casadi_real se2_U_default_in(casadi_int i);
-const char* se2_U_name_in(casadi_int i);
-const char* se2_U_name_out(casadi_int i);
-const casadi_int* se2_U_sparsity_in(casadi_int i);
-const casadi_int* se2_U_sparsity_out(casadi_int i);
-int se2_U_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define se2_U_SZ_ARG 1
-#define se2_U_SZ_RES 1
-#define se2_U_SZ_IW 0
-#define se2_U_SZ_W 16
-int se2_U_inv(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int se2_U_inv_alloc_mem(void);
-int se2_U_inv_init_mem(int mem);
-void se2_U_inv_free_mem(int mem);
-int se2_U_inv_checkout(void);
-void se2_U_inv_release(int mem);
-void se2_U_inv_incref(void);
-void se2_U_inv_decref(void);
-casadi_int se2_U_inv_n_in(void);
-casadi_int se2_U_inv_n_out(void);
-casadi_real se2_U_inv_default_in(casadi_int i);
-const char* se2_U_inv_name_in(casadi_int i);
-const char* se2_U_inv_name_out(casadi_int i);
-const casadi_int* se2_U_inv_sparsity_in(casadi_int i);
-const casadi_int* se2_U_inv_sparsity_out(casadi_int i);
-int se2_U_inv_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define se2_U_inv_SZ_ARG 1
-#define se2_U_inv_SZ_RES 1
-#define se2_U_inv_SZ_IW 0
-#define se2_U_inv_SZ_W 19
-int se2_error(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int se2_error_alloc_mem(void);
-int se2_error_init_mem(int mem);
-void se2_error_free_mem(int mem);
-int se2_error_checkout(void);
-void se2_error_release(int mem);
-void se2_error_incref(void);
-void se2_error_decref(void);
-casadi_int se2_error_n_in(void);
-casadi_int se2_error_n_out(void);
-casadi_real se2_error_default_in(casadi_int i);
-const char* se2_error_name_in(casadi_int i);
-const char* se2_error_name_out(casadi_int i);
-const casadi_int* se2_error_sparsity_in(casadi_int i);
-const casadi_int* se2_error_sparsity_out(casadi_int i);
-int se2_error_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define se2_error_SZ_ARG 2
-#define se2_error_SZ_RES 1
-#define se2_error_SZ_IW 0
-#define se2_error_SZ_W 16
-int predict(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int predict_alloc_mem(void);
-int predict_init_mem(int mem);
-void predict_free_mem(int mem);
-int predict_checkout(void);
-void predict_release(int mem);
-void predict_incref(void);
-void predict_decref(void);
-casadi_int predict_n_in(void);
-casadi_int predict_n_out(void);
-casadi_real predict_default_in(casadi_int i);
-const char* predict_name_in(casadi_int i);
-const char* predict_name_out(casadi_int i);
-const casadi_int* predict_sparsity_in(casadi_int i);
-const casadi_int* predict_sparsity_out(casadi_int i);
-int predict_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define predict_SZ_ARG 3
-#define predict_SZ_RES 1
-#define predict_SZ_IW 0
-#define predict_SZ_W 12
+int attitude_error(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int attitude_error_alloc_mem(void);
+int attitude_error_init_mem(int mem);
+void attitude_error_free_mem(int mem);
+int attitude_error_checkout(void);
+void attitude_error_release(int mem);
+void attitude_error_incref(void);
+void attitude_error_decref(void);
+casadi_int attitude_error_n_in(void);
+casadi_int attitude_error_n_out(void);
+casadi_real attitude_error_default_in(casadi_int i);
+const char* attitude_error_name_in(casadi_int i);
+const char* attitude_error_name_out(casadi_int i);
+const casadi_int* attitude_error_sparsity_in(casadi_int i);
+const casadi_int* attitude_error_sparsity_out(casadi_int i);
+int attitude_error_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+#define attitude_error_SZ_ARG 4
+#define attitude_error_SZ_RES 1
+#define attitude_error_SZ_IW 0
+#define attitude_error_SZ_W 31
+int quaternion_to_euler(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int quaternion_to_euler_alloc_mem(void);
+int quaternion_to_euler_init_mem(int mem);
+void quaternion_to_euler_free_mem(int mem);
+int quaternion_to_euler_checkout(void);
+void quaternion_to_euler_release(int mem);
+void quaternion_to_euler_incref(void);
+void quaternion_to_euler_decref(void);
+casadi_int quaternion_to_euler_n_in(void);
+casadi_int quaternion_to_euler_n_out(void);
+casadi_real quaternion_to_euler_default_in(casadi_int i);
+const char* quaternion_to_euler_name_in(casadi_int i);
+const char* quaternion_to_euler_name_out(casadi_int i);
+const casadi_int* quaternion_to_euler_sparsity_in(casadi_int i);
+const casadi_int* quaternion_to_euler_sparsity_out(casadi_int i);
+int quaternion_to_euler_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+#define quaternion_to_euler_SZ_ARG 1
+#define quaternion_to_euler_SZ_RES 1
+#define quaternion_to_euler_SZ_IW 0
+#define quaternion_to_euler_SZ_W 16
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

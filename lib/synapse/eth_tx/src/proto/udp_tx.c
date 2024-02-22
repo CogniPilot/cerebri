@@ -5,7 +5,7 @@
 
 #include "udp_tx.h"
 
-LOG_MODULE_DECLARE(syn_eth_tx);
+LOG_MODULE_DECLARE(eth_tx);
 
 #define MY_PORT 4242
 

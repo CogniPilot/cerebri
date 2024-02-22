@@ -80,6 +80,8 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
                 zros_topic_publish(&topic_battery_state, &ctx->battery_state);
             } else if (topic == SYNAPSE_WHEEL_ODOMETRY_TOPIC) {
                 zros_topic_publish(&topic_wheel_odometry, &ctx->wheel_odometry);
+            } else if (topic == SYNAPSE_ODOMETRY_TOPIC) {
+                zros_topic_publish(&topic_external_odometry, &ctx->external_odometry);
             }
         }
 

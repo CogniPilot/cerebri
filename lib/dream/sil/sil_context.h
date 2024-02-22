@@ -14,6 +14,7 @@
 #include <synapse_protobuf/imu.pb.h>
 #include <synapse_protobuf/magnetic_field.pb.h>
 #include <synapse_protobuf/nav_sat_fix.pb.h>
+#include <synapse_protobuf/odometry.pb.h>
 #include <synapse_protobuf/sim_clock.pb.h>
 #include <synapse_protobuf/wheel_odometry.pb.h>
 
@@ -33,6 +34,7 @@ typedef struct context_s {
     synapse_msgs_BatteryState battery_state;
     synapse_msgs_Altimeter altimeter;
     synapse_msgs_WheelOdometry wheel_odometry;
+    synapse_msgs_Odometry external_odometry;
 } sil_context_t;
 
 #endif // CEREBRI_DREAM_SIL_H

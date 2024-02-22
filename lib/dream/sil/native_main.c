@@ -45,6 +45,7 @@ sil_context_t g_ctx = {
     .battery_state = synapse_msgs_BatteryState_init_default,
     .altimeter = synapse_msgs_Altimeter_init_default,
     .wheel_odometry = synapse_msgs_WheelOdometry_init_default,
+    .external_odometry = synapse_msgs_Odometry_init_default,
 };
 
 // public data
@@ -169,6 +170,23 @@ static TF_Result wheel_odometry_listener(TinyFrame* tf, TF_Msg* frame)
     return TF_STAY;
 }
 
+static TF_Result odometry_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    sil_context_t* ctx = (sil_context_t*)tf->userdata;
+    synapse_msgs_Odometry msg = synapse_msgs_Odometry_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int rc = pb_decode(&stream, synapse_msgs_Odometry_fields, &msg);
+    if (rc) {
+        g_ctx.external_odometry = msg;
+        uint8_t topic = SYNAPSE_ODOMETRY_TOPIC;
+        ring_buf_put(&g_msg_updates, &topic, 1);
+    } else {
+        printf("%s: external odometry decoding failed: %s\n",
+            ctx->module_name, PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
 TF_Result generic_listener(TinyFrame* tf, TF_Msg* frame)
 {
     return TF_STAY;
@@ -187,6 +205,7 @@ void* native_sim_entry_point(void* p0)
     TF_AddTypeListener(&ctx->tf, SYNAPSE_MAGNETIC_FIELD_TOPIC, magnetic_field_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_BATTERY_STATE_TOPIC, battery_state_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_ODOMETRY_TOPIC, odometry_listener);
 
     struct sockaddr_in bind_addr;
     static int counter;

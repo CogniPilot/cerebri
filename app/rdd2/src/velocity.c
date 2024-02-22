@@ -22,6 +22,10 @@
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY 4
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 LOG_MODULE_REGISTER(rdd2_velocity, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
 typedef struct _context {

@@ -227,10 +227,20 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
 
     transition(
         &status->mode, // state
-        input->request_auto || input->request_cmd_vel, // request
+        input->request_cmd_vel, // request
         "request mode cmd_vel", // label
         STATE_ANY, // pre
         synapse_msgs_Status_Mode_MODE_CMD_VEL, // post
+        status->status_message, sizeof(status->status_message), // status
+        &status->request_seq, &status->request_rejected, // request
+        0); // guards
+
+    transition(
+        &status->mode, // state
+        input->request_auto, // request
+        "request mode auto", // label
+        STATE_ANY, // pre
+        synapse_msgs_Status_Mode_MODE_AUTO, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards

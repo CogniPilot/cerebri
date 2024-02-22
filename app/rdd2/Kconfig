@@ -44,6 +44,13 @@ config CEREBRI_RDD2_VELOCITY
   help
     Enable velocity
 
+config CEREBRI_RDD2_ATTITUDE
+  bool "enable attitude"
+  depends on CEREBRI_RDD2_VELOCITY
+  depends on CEREBRI_RDD2_CASADI
+  help
+    Enable attitude
+
 config CEREBRI_RDD2_CASADI
   bool "enable casadi code"
   help
@@ -85,29 +92,11 @@ config CEREBRI_RDD2_GAIN_ALONG_TRACK
   help
     Steering = Along track error * GAIN / 1000
 
-config CEREBRI_RDD2_MAX_TURN_ANGLE_MRAD
-  int "max turn angle mrad"
-  default 400
-  help
-    Max turn angle in milli-radians
-
 config CEREBRI_RDD2_MAX_VELOCITY_MM_S
   int "max velocity, mm/s"
   default 1000
   help
     Max velocity in mm/s
-
-config CEREBRI_RDD2_WHEEL_RADIUS_MM
-  int "wheel radius, mm"
-  default 37
-  help
-    Wheel radius in mm
-
-config CEREBRI_RDD2_WHEEL_BASE_MM
-  int "wheel base, mm"
-  default 226
-  help
-    Wheel radius in mm
 
 module = CEREBRI_RDD2
 module-str = cerebri_rdd2

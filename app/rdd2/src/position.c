@@ -34,10 +34,6 @@ typedef struct _context {
     synapse_msgs_Twist cmd_vel;
     struct zros_sub sub_status, sub_clock_offset, sub_pose, sub_bezier_trajectory;
     struct zros_pub pub_cmd_vel;
-    const double wheel_base;
-    const double gain_along_track;
-    const double gain_cross_track;
-    const double gain_heading;
 } context;
 
 static context g_ctx = {
@@ -56,10 +52,6 @@ static context g_ctx = {
     .sub_pose = {},
     .sub_bezier_trajectory = {},
     .pub_cmd_vel = {},
-    .wheel_base = CONFIG_CEREBRI_RDD2_WHEEL_BASE_MM / 1000.0,
-    .gain_along_track = CONFIG_CEREBRI_RDD2_GAIN_ALONG_TRACK / 1000.0,
-    .gain_cross_track = CONFIG_CEREBRI_RDD2_GAIN_CROSS_TRACK / 1000.0,
-    .gain_heading = CONFIG_CEREBRI_RDD2_GAIN_HEADING / 1000.0,
 };
 
 static void init(context* ctx)
@@ -120,58 +112,6 @@ static void auto_mode(context* ctx)
             return;
         }
     }
-
-    double T = (time_stop_nsec - time_start_nsec) * 1e-9;
-    double t = (time_nsec - time_start_nsec) * 1e-9;
-    double x, y, psi, V, omega = 0;
-    double e[3] = {}; // e_x, e_y, e_theta
-
-    double PX[6], PY[6];
-    for (int i = 0; i < 6; i++) {
-        PX[i] = ctx->bezier_trajectory.curves[curve_index].x[i];
-        PY[i] = ctx->bezier_trajectory.curves[curve_index].y[i];
-    }
-
-    /* bezier6_rover:(t,T,PX[1x6],PY[1x6],L)->(x,y,psi,V,omega) */
-    {
-        CASADI_FUNC_ARGS(bezier6_rover);
-        args[0] = &t;
-        args[1] = &T;
-        args[2] = PX;
-        args[3] = PY;
-        res[0] = &x;
-        res[1] = &y;
-        res[2] = &psi;
-        res[3] = &V;
-        res[4] = &omega;
-        CASADI_FUNC_CALL(bezier6_rover);
-    }
-
-    /* se2_error:(p[3],r[3])->(error[3]) */
-    {
-        double p[3], r[3];
-
-        // vehicle position
-        p[0] = ctx->pose.pose.pose.position.x;
-        p[1] = ctx->pose.pose.pose.position.y;
-        p[2] = 2 * atan2(ctx->pose.pose.pose.orientation.z, ctx->pose.pose.pose.orientation.w);
-
-        // reference position
-        r[0] = x;
-        r[1] = y;
-        r[2] = psi;
-
-        // call function
-        CASADI_FUNC_ARGS(se2_error);
-        args[0] = p;
-        args[1] = r;
-        res[0] = e;
-        CASADI_FUNC_CALL(se2_error);
-    }
-
-    // compute twist
-    ctx->cmd_vel.linear.x = V + ctx->gain_along_track * e[0];
-    ctx->cmd_vel.angular.z = omega + ctx->gain_cross_track * e[1] + ctx->gain_heading * e[2];
 }
 
 static void rdd2_position_entry_point(void* p0, void* p1, void* p2)

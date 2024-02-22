@@ -28,9 +28,6 @@ typedef struct _context {
     synapse_msgs_Actuators actuators_manual;
     struct zros_sub sub_joy;
     struct zros_pub pub_actuators_manual;
-    const double wheel_radius;
-    const double max_turn_angle;
-    const double max_velocity;
 } context;
 
 static context g_ctx = {
@@ -39,9 +36,6 @@ static context g_ctx = {
     .actuators_manual = synapse_msgs_Actuators_init_default,
     .sub_joy = {},
     .pub_actuators_manual = {},
-    .wheel_radius = CONFIG_CEREBRI_RDD2_WHEEL_RADIUS_MM / 1000.0,
-    .max_turn_angle = CONFIG_CEREBRI_RDD2_MAX_TURN_ANGLE_MRAD / 1000.0,
-    .max_velocity = CONFIG_CEREBRI_RDD2_MAX_VELOCITY_MM_S / 1000.0,
 };
 
 static void init(context* ctx)

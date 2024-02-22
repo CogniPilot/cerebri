@@ -37,8 +37,6 @@ typedef struct _context {
     synapse_msgs_Imu imu;
     struct zros_sub sub_status, sub_cmd_vel, sub_actuators_manual, sub_imu;
     struct zros_pub pub_actuators;
-    const double wheel_radius;
-    const double wheel_base;
 } context;
 
 static context g_ctx = {
@@ -52,8 +50,6 @@ static context g_ctx = {
     .sub_actuators_manual = {},
     .sub_imu = {},
     .pub_actuators = {},
-    .wheel_radius = CONFIG_CEREBRI_RDD2_WHEEL_RADIUS_MM / 1000.0,
-    .wheel_base = CONFIG_CEREBRI_RDD2_WHEEL_BASE_MM / 1000.0,
 };
 
 static void init_rdd2_vel(context* ctx)

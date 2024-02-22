@@ -47,6 +47,11 @@ if (CONFIG_CEREBRI_RDD2_VELOCITY)
     src/velocity.c)
 endif()
 
+if (CONFIG_CEREBRI_RDD2_ATTITUDE)
+  list(APPEND SOURCE_FILES
+    src/attitude.c)
+endif()
+
 if (CONFIG_CEREBRI_RDD2_CASADI)
   list(APPEND SOURCE_FILES
     src/casadi/gen/rdd2.c)

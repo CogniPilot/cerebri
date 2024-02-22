@@ -1,3 +1,9 @@
+/*
+ * Copyright CogniPilot Foundation 2024
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <assert.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
@@ -18,21 +24,33 @@
 #define MY_STACK_SIZE 8192
 #define MY_PRIORITY 1
 
-LOG_MODULE_REGISTER(syn_eth_rx, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(eth_rx, LOG_LEVEL_INF);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
-static struct k_thread g_my_thread_data;
 
 struct context {
     struct zros_node node;
     struct udp_rx udp;
     TinyFrame tf;
-    atomic_t running;
     struct zros_sub sub_status;
     synapse_msgs_Status status;
+    atomic_t running;
+    size_t stack_size;
+    k_thread_stack_t* stack_area;
+    struct k_thread thread_data;
 };
 
-static struct context g_ctx;
+static struct context g_ctx = {
+    .node = {},
+    .udp = {},
+    .sub_status = {},
+    .tf = {},
+    .status = {},
+    .running = ATOMIC_INIT(0),
+    .stack_size = MY_STACK_SIZE,
+    .stack_area = g_my_stack_area,
+    .thread_data = {},
+};
 
 #define TOPIC_LISTENER(CHANNEL, CLASS)                                            \
     static TF_Result CHANNEL##_listener(TinyFrame* tf, TF_Msg* frame)             \
@@ -87,11 +105,11 @@ static TF_Result cmd_vel_listener(TinyFrame* tf, TF_Msg* frame)
     return TF_STAY;
 }
 
-static int init(struct context* ctx)
+static int eth_rx_init(struct context* ctx)
 {
     int ret = 0;
     // setup zros node
-    zros_node_init(&ctx->node, "syn_eth_rx");
+    zros_node_init(&ctx->node, "eth_rx");
 
     // setup udp connection
     ret = udp_rx_init(&ctx->udp);
@@ -149,11 +167,11 @@ static int init(struct context* ctx)
         return ret;
 #endif
 
-    ctx->running = ATOMIC_INIT(1);
+    atomic_set(&ctx->running, 1);
     return ret;
 };
 
-static int fini(struct context* ctx)
+static int eth_rx_fini(struct context* ctx)
 {
     int ret = 0;
     // close udp socket
@@ -161,21 +179,19 @@ static int fini(struct context* ctx)
 
     // close subscriptions
     zros_sub_fini(&ctx->sub_status);
+    atomic_set(&ctx->running, 0);
     return ret;
 };
 
-static void run(void* p0, void* p1, void* p2)
+static void eth_rx_run(void* p0, void* p1, void* p2)
 {
     int ret = 0;
     struct context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
 
-    // set running
-    atomic_set(&ctx->running, 1);
-
     // constructor
-    ret = init(ctx);
+    ret = eth_rx_init(ctx);
     if (ret < 0) {
         LOG_ERR("init failed: %d", ret);
         return;
@@ -203,73 +219,60 @@ static void run(void* p0, void* p1, void* p2)
     }
 
     // deconstructor
-    ret = fini(ctx);
+    ret = eth_rx_fini(ctx);
     if (ret < 0) {
         LOG_ERR("fini failed: %d", ret);
     }
 };
 
-static int start()
+static int eth_rx_start(struct context* ctx)
 {
-    k_tid_t tid = k_thread_create(&g_my_thread_data, g_my_stack_area,
-        K_THREAD_STACK_SIZEOF(g_my_stack_area),
-        run,
-        &g_ctx, NULL, NULL,
+    k_tid_t tid = k_thread_create(&ctx->thread_data, ctx->stack_area,
+        ctx->stack_size,
+        eth_rx_run,
+        ctx, NULL, NULL,
         MY_PRIORITY, 0, K_FOREVER);
-    k_thread_name_set(tid, "syn_eth_rx");
+    k_thread_name_set(tid, "eth_rx");
     k_thread_start(tid);
     return 0;
 }
 
-static int cmd_start(const struct shell* sh,
+static int eth_rx_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
-    ARG_UNUSED(argc);
-    ARG_UNUSED(argv);
-    ARG_UNUSED(data);
+    struct context* ctx = data;
+    assert(argc == 1);
 
-    if (atomic_get(&g_ctx.running)) {
-        shell_print(sh, "already running");
-    } else {
-        start();
+    if (strcmp(argv[0], "start") == 0) {
+        if (atomic_get(&ctx->running)) {
+            shell_print(sh, "already running");
+        } else {
+            eth_rx_start(ctx);
+        }
+    } else if (strcmp(argv[0], "stop") == 0) {
+        if (atomic_get(&ctx->running)) {
+            atomic_set(&ctx->running, 0);
+        } else {
+            shell_print(sh, "not running");
+        }
+    } else if (strcmp(argv[0], "status") == 0) {
+        shell_print(sh, "running: %d", (int)atomic_get(&ctx->running));
     }
     return 0;
 }
 
-static int cmd_stop(const struct shell* sh,
-    size_t argc, char** argv, void* data)
+SHELL_SUBCMD_DICT_SET_CREATE(sub_eth_rx, eth_rx_cmd_handler,
+    (start, &g_ctx, "start"),
+    (stop, &g_ctx, "stop"),
+    (status, &g_ctx, "status"));
+
+SHELL_CMD_REGISTER(eth_rx, &sub_eth_rx, "eth_rx commands", NULL);
+
+static int eth_rx_sys_init(void)
 {
-    ARG_UNUSED(argc);
-    ARG_UNUSED(argv);
-    ARG_UNUSED(data);
+    return eth_rx_start(&g_ctx);
+};
 
-    if (atomic_get(&g_ctx.running)) {
-        atomic_set(&g_ctx.running, 0);
-    } else {
-        shell_print(sh, "not running");
-    }
-    return 0;
-}
-
-static int cmd_status(const struct shell* sh,
-    size_t argc, char** argv, void* data)
-{
-    ARG_UNUSED(argc);
-    ARG_UNUSED(argv);
-    ARG_UNUSED(data);
-
-    shell_print(sh, "running: %d", (int)atomic_get(&g_ctx.running));
-    return 0;
-}
-
-SHELL_STATIC_SUBCMD_SET_CREATE(sub_syn_eth_rx,
-    SHELL_CMD(start, NULL, "start", cmd_start),
-    SHELL_CMD(stop, NULL, "stop", cmd_stop),
-    SHELL_CMD(status, NULL, "status", cmd_status),
-    SHELL_SUBCMD_SET_END);
-
-SHELL_CMD_REGISTER(syn_eth_rx, &sub_syn_eth_rx, "syn eth rx commands", NULL);
-
-SYS_INIT(start, APPLICATION, 0);
+SYS_INIT(eth_rx_sys_init, APPLICATION, 0);
 
 // vi: ts=4 sw=4 et

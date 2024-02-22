@@ -15,7 +15,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(rdd2 LANGUAGES C)
 
-set(SOURCE_FILES src/main.c)
+set(SOURCE_FILES src/boot_banner.c)
 
 if (CONFIG_CEREBRI_RDD2_FSM)
   list(APPEND SOURCE_FILES src/fsm.c)
@@ -25,8 +25,8 @@ if (CONFIG_CEREBRI_RDD2_ESTIMATE)
   list(APPEND SOURCE_FILES src/estimate.c)
 endif()
 
-if (CONFIG_CEREBRI_RDD2_MIXING)
-  list(APPEND SOURCE_FILES src/mixing.c)
+if (CONFIG_CEREBRI_RDD2_ALLOCATION)
+  list(APPEND SOURCE_FILES src/allocation.c)
 endif()
 
 if (CONFIG_CEREBRI_RDD2_LIGHTING)
@@ -42,9 +42,14 @@ if (CONFIG_CEREBRI_RDD2_POSITION)
     src/position.c)
 endif()
 
-if (CONFIG_CEREBRI_RDD2_VELOCITY)
+if (CONFIG_CEREBRI_RDD2_ANGULAR_VELOCITY)
   list(APPEND SOURCE_FILES
-    src/velocity.c)
+    src/angular_velocity.c)
+endif()
+
+if (CONFIG_CEREBRI_RDD2_ATTITUDE)
+  list(APPEND SOURCE_FILES
+    src/attitude.c)
 endif()
 
 if (CONFIG_CEREBRI_RDD2_CASADI)

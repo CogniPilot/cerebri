@@ -3,9 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <assert.h>
 #include <stdio.h>
+
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/shell/shell.h>
 
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
@@ -21,6 +24,8 @@
 #define STATE_ANY -1
 
 LOG_MODULE_REGISTER(rdd2_fsm, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
+
+static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
 static void transition(
     void* state,
@@ -90,7 +95,7 @@ typedef struct status_input_s {
     bool fuel_critical;
 } status_input_t;
 
-typedef struct _context {
+struct context {
     struct zros_node node;
     synapse_msgs_Joy joy;
     synapse_msgs_BatteryState battery_state;
@@ -99,9 +104,13 @@ typedef struct _context {
     status_input_t status_input;
     struct zros_sub sub_joy, sub_battery_state, sub_safety;
     struct zros_pub pub_status;
-} context;
+    atomic_t running;
+    size_t stack_size;
+    k_thread_stack_t* stack_area;
+    struct k_thread thread_data;
+};
 
-static context g_ctx = {
+static struct context g_ctx = {
     .node = {},
     .joy = synapse_msgs_Joy_init_default,
     .battery_state = synapse_msgs_BatteryState_init_default,
@@ -127,19 +136,36 @@ static context g_ctx = {
     .sub_battery_state = {},
     .sub_safety = {},
     .pub_status = {},
+    .running = ATOMIC_INIT(0),
+    .stack_size = MY_STACK_SIZE,
+    .stack_area = g_my_stack_area,
+    .thread_data = {},
 };
 
-static void rdd2_fsm_init(context* ctx)
+static void rdd2_fsm_init(struct context* ctx)
 {
+    LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_fsm");
     zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 10);
     zros_sub_init(&ctx->sub_battery_state, &ctx->node,
         &topic_battery_state, &ctx->battery_state, 10);
     zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 10);
     zros_pub_init(&ctx->pub_status, &ctx->node, &topic_status, &ctx->status);
+    atomic_set(&ctx->running, 1);
 }
 
-static void fsm_compute_input(status_input_t* input, const context* ctx)
+static void rdd2_fsm_fini(struct context* ctx)
+{
+    LOG_INF("fini");
+    zros_node_fini(&ctx->node);
+    zros_sub_fini(&ctx->sub_joy);
+    zros_sub_fini(&ctx->sub_battery_state);
+    zros_sub_fini(&ctx->sub_safety);
+    zros_pub_fini(&ctx->pub_status);
+    atomic_set(&ctx->running, 0);
+}
+
+static void fsm_compute_input(status_input_t* input, const struct context* ctx)
 {
     input->request_arm = ctx->joy.buttons[JOY_BUTTON_ARM] == 1;
     input->request_disarm = ctx->joy.buttons[JOY_BUTTON_DISARM] == 1;
@@ -227,10 +253,20 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
 
     transition(
         &status->mode, // state
-        input->request_auto || input->request_cmd_vel, // request
+        input->request_cmd_vel, // request
         "request mode cmd_vel", // label
         STATE_ANY, // pre
         synapse_msgs_Status_Mode_MODE_CMD_VEL, // post
+        status->status_message, sizeof(status->status_message), // status
+        &status->request_seq, &status->request_rejected, // request
+        0); // guards
+
+    transition(
+        &status->mode, // state
+        input->request_auto, // request
+        "request mode auto", // label
+        STATE_ANY, // pre
+        synapse_msgs_Status_Mode_MODE_AUTO, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -252,7 +288,9 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
     status->header.seq++;
 }
 
-static void status_add_extra_info(synapse_msgs_Status* status, status_input_t* input, const context* ctx)
+static void status_add_extra_info(synapse_msgs_Status* status,
+    status_input_t* input,
+    const struct context* ctx)
 {
     if (input->fuel_critical) {
         status->fuel = synapse_msgs_Status_Fuel_FUEL_CRITICAL;
@@ -278,10 +316,9 @@ static void status_add_extra_info(synapse_msgs_Status* status, status_input_t* i
 #endif
 }
 
-static void rdd2_fsm_entry_point(void* p0, void* p1, void* p2)
+static void rdd2_fsm_run(void* p0, void* p1, void* p2)
 {
-    LOG_INF("initializing rdd2_fsm");
-    context* ctx = p0;
+    struct context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
 
@@ -295,7 +332,7 @@ static void rdd2_fsm_entry_point(void* p0, void* p1, void* p2)
     int64_t joy_last_ticks = k_uptime_ticks();
     int64_t joy_loss_ticks = 1.0 * CONFIG_SYS_CLOCK_TICKS_PER_SEC;
 
-    while (true) {
+    while (atomic_get(&ctx->running)) {
 
         // current ticks
         int64_t now_ticks = k_uptime_ticks();
@@ -337,10 +374,58 @@ static void rdd2_fsm_entry_point(void* p0, void* p1, void* p2)
         status_add_extra_info(&ctx->status, &ctx->status_input, ctx);
         zros_pub_update(&ctx->pub_status);
     }
+
+    rdd2_fsm_fini(ctx);
 }
 
-K_THREAD_DEFINE(rdd2_fsm, MY_STACK_SIZE,
-    rdd2_fsm_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 1000);
+static int start(struct context* ctx)
+{
+    k_tid_t tid = k_thread_create(&ctx->thread_data, ctx->stack_area,
+        ctx->stack_size,
+        rdd2_fsm_run,
+        ctx, NULL, NULL,
+        MY_PRIORITY, 0, K_FOREVER);
+    k_thread_name_set(tid, "rdd2_fsm");
+    k_thread_start(tid);
+    return 0;
+}
 
-/* vi: ts=4 sw=4 et */
+static int rdd2_fsm_cmd_handler(const struct shell* sh,
+    size_t argc, char** argv, void* data)
+{
+    struct context* ctx = data;
+    assert(argc == 1);
+
+    if (strcmp(argv[0], "start") == 0) {
+        if (atomic_get(&ctx->running)) {
+            shell_print(sh, "already running");
+        } else {
+            start(ctx);
+        }
+    } else if (strcmp(argv[0], "stop") == 0) {
+        if (atomic_get(&ctx->running)) {
+            atomic_set(&ctx->running, 0);
+        } else {
+            shell_print(sh, "not running");
+        }
+    } else if (strcmp(argv[0], "status") == 0) {
+        shell_print(sh, "running: %d", (int)atomic_get(&ctx->running));
+    }
+    return 0;
+}
+
+SHELL_SUBCMD_DICT_SET_CREATE(sub_rdd2_fsm, rdd2_fsm_cmd_handler,
+    (start, &g_ctx, "start"),
+    (stop, &g_ctx, "stop"),
+    (status, &g_ctx, "status"));
+
+SHELL_CMD_REGISTER(rdd2_fsm, &sub_rdd2_fsm, "rdd2 fsm commands", NULL);
+
+static int rdd2_fsm_sys_init(void)
+{
+    return start(&g_ctx);
+};
+
+SYS_INIT(rdd2_fsm_sys_init, APPLICATION, 1);
+
+// vi: ts=4 sw=4 et

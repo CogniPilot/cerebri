@@ -3,7 +3,7 @@
 
 #include "udp_rx.h"
 
-LOG_MODULE_DECLARE(syn_eth_rx);
+LOG_MODULE_DECLARE(eth_rx);
 
 #define MY_PORT 4242
 

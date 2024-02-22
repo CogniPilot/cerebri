@@ -1,4 +1,5 @@
 # editors
+.gdbinit
 .vscode
 *.swp
 *~

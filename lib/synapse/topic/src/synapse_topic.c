@@ -8,6 +8,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <synapse_protobuf/vector3.pb.h>
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
 #include <zros/private/zros_sub_struct.h>
@@ -45,23 +46,28 @@ static context_t g_ctx = {
     .lock = Z_MUTEX_INITIALIZER(g_ctx.lock)
 };
 
-#define TOPIC_DICTIONARY()                                                     \
-    (actuators, &topic_actuators, "actuators"),                                \
-        (actuators_manual, &topic_actuators_manual, "actuators_manual"),       \
-        (altimeter, &topic_altimeter, "altimeter"),                            \
-        (battery_state, &topic_battery_state, "battery_state"),                \
-        (bezier_trajectory, &topic_bezier_trajectory, "bezier_trajectory"),    \
-        (clock_offset, &topic_clock_offset, "clock_offset"),                   \
-        (cmd_vel, &topic_cmd_vel, "cmd_vel"),                                  \
-        (estimator_odometry, &topic_estimator_odometry, "estimator_odometry"), \
-        (external_odometry, &topic_external_odometry, "external_odometry"),    \
-        (imu, &topic_imu, "imu"),                                              \
-        (joy, &topic_joy, "joy"),                                              \
-        (led_array, &topic_led_array, "led_array"),                            \
-        (magnetic_field, &topic_magnetic_field, "magnetic_field"),             \
-        (nav_sat_fix, &topic_nav_sat_fix, "nav_sat_fix"),                      \
-        (safety, &topic_safety, "safety"),                                     \
-        (status, &topic_status, "status"),                                     \
+#define TOPIC_DICTIONARY()                                                        \
+    (actuators, &topic_actuators, "actuators"),                                   \
+        (actuators_manual, &topic_actuators_manual, "actuators_manual"),          \
+        (altimeter, &topic_altimeter, "altimeter"),                               \
+        (attitude_sp, &topic_attitude_sp, "attitude_sp"),                         \
+        (battery_state, &topic_battery_state, "battery_state"),                   \
+        (bezier_trajectory, &topic_bezier_trajectory, "bezier_trajectory"),       \
+        (clock_offset, &topic_clock_offset, "clock_offset"),                      \
+        (cmd_vel, &topic_cmd_vel, "cmd_vel"),                                     \
+        (estimator_odometry, &topic_estimator_odometry, "estimator_odometry"),    \
+        (external_odometry, &topic_external_odometry, "external_odometry"),       \
+        (imu, &topic_imu, "imu"),                                                 \
+        (joy, &topic_joy, "joy"),                                                 \
+        (led_array, &topic_led_array, "led_array"),                               \
+        (magnetic_field, &topic_magnetic_field, "magnetic_field"),                \
+        (nav_sat_fix, &topic_nav_sat_fix, "nav_sat_fix"),                         \
+        (angular_velocity_sp, &topic_angular_velocity_sp, "angular_velocity_sp"), \
+        (position_sp, &topic_position_sp, "position_sp"),                         \
+        (force_sp, &topic_force_sp, "force_sp"),                                  \
+        (moment_sp, &topic_moment_sp, "moment_sp"),                               \
+        (safety, &topic_safety, "safety"),                                        \
+        (status, &topic_status, "status"),                                        \
         (wheel_odometry, &topic_wheel_odometry, "wheel_odometry")
 
 static volatile bool keep_running = true;
@@ -217,6 +223,9 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_altimeter) {
         synapse_msgs_Altimeter msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_altimeter);
+    } else if (topic == &topic_angular_velocity_sp || topic == &topic_attitude_sp || topic == &topic_moment_sp || topic == &topic_force_sp) {
+        synapse_msgs_Vector3 msg = {};
+        handler(sh, topic, &msg, (snprint_t*)&snprint_vector3);
     } else if (topic == &topic_battery_state) {
         synapse_msgs_BatteryState msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_battery_state);

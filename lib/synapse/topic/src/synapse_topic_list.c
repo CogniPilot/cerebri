@@ -124,6 +124,12 @@ ZROS_TOPIC_DEFINE(estimator_odometry, synapse_msgs_Odometry);
 ZROS_TOPIC_DEFINE(external_odometry, synapse_msgs_Odometry);
 ZROS_TOPIC_DEFINE(safety, synapse_msgs_Safety);
 ZROS_TOPIC_DEFINE(wheel_odometry, synapse_msgs_WheelOdometry);
+ZROS_TOPIC_DEFINE(angular_velocity_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(attitude_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(force_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(moment_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(velocity_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(position_sp, synapse_msgs_Vector3);
 
 static struct zros_topic* topic_list[] = {
     &topic_actuators,
@@ -143,6 +149,8 @@ static struct zros_topic* topic_list[] = {
     &topic_external_odometry,
     &topic_safety,
     &topic_wheel_odometry,
+    &topic_angular_velocity_sp,
+    &topic_attitude_sp
 };
 
 static int set_topic_list()

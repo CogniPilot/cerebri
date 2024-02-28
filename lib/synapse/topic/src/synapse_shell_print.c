@@ -49,6 +49,12 @@ int snprint_actuators(char* buf, size_t n, synapse_msgs_Actuators* m)
     return offset;
 }
 
+int snprint_rates_sp(char* buf, size_t n, synapse_msgs_Vector3* m)
+{
+    return snprintf_cat(buf, n, "omega x: %10.4f rad/s, omega y: %10.4f rad/s, omega z: %10.4f rad\n",
+        m->x, m->y, m->z);
+}
+
 int snprint_altimeter(char* buf, size_t n, synapse_msgs_Altimeter* m)
 {
     return snprintf_cat(buf, n, "alt: %10.4f m, vel: %10.4f m/s, ref alt: %10.4f m\n",

@@ -30,28 +30,24 @@ LOG_MODULE_REGISTER(rdd2_attitude, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
 typedef struct _context {
     struct zros_node node;
-    synapse_msgs_Twist cmd_vel;
     synapse_msgs_Status status;
     synapse_msgs_Actuators actuators_manual;
     synapse_msgs_Odometry estimator_odometry;
+    synapse_msgs_Vector3 rates_sp;
     struct zros_sub sub_status, sub_actuators_manual, sub_estimator_odometry;
-    struct zros_pub pub_cmd_vel;
+    struct zros_pub pub_rates_sp;
 } context;
 
 static context g_ctx = {
     .node = {},
-    .cmd_vel = {
-        .has_linear = false,
-        .has_angular = true,
-        .angular = synapse_msgs_Vector3_init_default,
-    },
     .status = synapse_msgs_Status_init_default,
     .actuators_manual = synapse_msgs_Actuators_init_default,
+    .rates_sp = synapse_msgs_Vector3_init_default,
     .estimator_odometry = synapse_msgs_Odometry_init_default,
     .sub_status = {},
     .sub_actuators_manual = {},
     .sub_estimator_odometry = {},
-    .pub_cmd_vel = {},
+    .pub_rates_sp = {},
 };
 
 static void init_rdd2_vel(context* ctx)
@@ -63,48 +59,48 @@ static void init_rdd2_vel(context* ctx)
         &topic_actuators_manual, &ctx->actuators_manual, 10);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
         &topic_estimator_odometry, &ctx->estimator_odometry, 100);
-    zros_pub_init(&ctx->pub_cmd_vel, &ctx->node, &topic_cmd_vel, &ctx->cmd_vel);
+    zros_pub_init(&ctx->pub_rates_sp, &ctx->node, &topic_rates_sp, &ctx->rates_sp);
 }
 
 // computes rc_input from V, omega
-static void update_cmd_vel(context* ctx)
+static void update_rates_sp(context* ctx)
 {
     /* attitude_error:(q[4],yaw_r,pitch_r,roll_r)->(omega[3]) */
     CASADI_FUNC_ARGS(attitude_error);
     double q[4];
     double omega[3];
-    double euler[3];
-    euler[0] = ctx->actuators_manual.normalized[0];
-    euler[1] = ctx->actuators_manual.normalized[1];
-    euler[2] = ctx->actuators_manual.normalized[2];
+    double yaw_sp = ctx->actuators_manual.normalized[2];
+    double pitch_sp = ctx->actuators_manual.normalized[1];
+    double roll_sp = -ctx->actuators_manual.normalized[0];
 
     q[0] = ctx->estimator_odometry.pose.pose.orientation.w;
     q[1] = ctx->estimator_odometry.pose.pose.orientation.x;
     q[2] = ctx->estimator_odometry.pose.pose.orientation.y;
     q[3] = ctx->estimator_odometry.pose.pose.orientation.z;
     args[0] = q;
-    args[1] = &euler[0];
-    args[2] = &euler[1];
-    args[3] = &euler[2];
+    args[1] = &yaw_sp;
+    args[2] = &pitch_sp;
+    args[3] = &roll_sp;
     res[0] = omega;
     CASADI_FUNC_CALL(attitude_error);
 
-    LOG_INF("q: %10.4f %10.4f %10.4f %10.4f", q[0], q[1], q[2], q[3]);
-    LOG_INF("euler: %10.4f %10.4f %10.4f", euler[0], euler[1], euler[2]);
-    LOG_INF("omega: %10.4f %10.4f %10.4f", omega[0], omega[1], omega[2]);
+    LOG_DBG("q: %10.4f %10.4f %10.4f %10.4f", q[0], q[1], q[2], q[3]);
+    LOG_DBG("yaw: %10.4f pitch: %10.4f roll: %10.4f", yaw_sp, pitch_sp, roll_sp);
+    LOG_DBG("omega: %10.4f %10.4f %10.4f", omega[0], omega[1], omega[2]);
 
-    // set cmd_vel
-    ctx->cmd_vel.angular.x = omega[0];
-    ctx->cmd_vel.angular.y = omega[1];
-    ctx->cmd_vel.angular.z = omega[2];
+    // set rate setpoints
+
+    ctx->rates_sp.x = 2*omega[0];
+    ctx->rates_sp.y = -2*omega[1];
+    ctx->rates_sp.z = -2*omega[2];
 }
 
 static void stop(context* ctx)
 {
     (void)ctx;
-    ctx->cmd_vel.angular.x = 0;
-    ctx->cmd_vel.angular.y = 0;
-    ctx->cmd_vel.angular.z = 0;
+    ctx->rates_sp.x = 0;
+    ctx->rates_sp.y = 0;
+    ctx->rates_sp.z = 0;
 }
 
 static void rdd2_attitude_entry_point(void* p0, void* p1, void* p2)
@@ -149,14 +145,14 @@ static void rdd2_attitude_entry_point(void* p0, void* p1, void* p2)
             LOG_DBG("not armed, stopped");
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
             LOG_DBG("manual mode");
-            update_cmd_vel(ctx);
+            update_rates_sp(ctx);
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL) {
             LOG_DBG("cmd_vel mode");
-            update_cmd_vel(ctx);
+            update_rates_sp(ctx);
         }
 
         // publish
-        // zros_pub_update(&ctx->pub_cmd_vel);
+        zros_pub_update(&ctx->pub_rates_sp);
     }
 }
 

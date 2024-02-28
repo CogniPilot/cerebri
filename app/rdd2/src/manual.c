@@ -73,9 +73,9 @@ static void rdd2_manual_entry_point(void* p0, void* p1, void* p2)
 
         // set normalized inputs
         ctx->actuators_manual.normalized_count = 4;
-        ctx->actuators_manual.normalized[0] = -ctx->joy.axes[JOY_AXES_ROLL];
-        ctx->actuators_manual.normalized[1] = -ctx->joy.axes[JOY_AXES_PITCH];
-        ctx->actuators_manual.normalized[2] = -ctx->joy.axes[JOY_AXES_YAW];
+        ctx->actuators_manual.normalized[0] = ctx->joy.axes[JOY_AXES_ROLL];
+        ctx->actuators_manual.normalized[1] = ctx->joy.axes[JOY_AXES_PITCH];
+        ctx->actuators_manual.normalized[2] = ctx->joy.axes[JOY_AXES_YAW];
         ctx->actuators_manual.normalized[3] = ctx->joy.axes[JOY_AXES_THRUST] * 0.1 + 0.5;
 
         // saturation

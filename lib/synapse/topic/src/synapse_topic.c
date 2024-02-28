@@ -8,6 +8,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <synapse_protobuf/vector3.pb.h>
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
 #include <zros/private/zros_sub_struct.h>
@@ -47,6 +48,7 @@ static context_t g_ctx = {
 
 #define TOPIC_DICTIONARY()                                                     \
     (actuators, &topic_actuators, "actuators"),                                \
+        (rates_sp, &topic_rates_sp, "rates_sp"),                               \
         (actuators_manual, &topic_actuators_manual, "actuators_manual"),       \
         (altimeter, &topic_altimeter, "altimeter"),                            \
         (battery_state, &topic_battery_state, "battery_state"),                \
@@ -217,6 +219,9 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_altimeter) {
         synapse_msgs_Altimeter msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_altimeter);
+    } else if (topic == &topic_rates_sp) {
+        synapse_msgs_Vector3 msg = {};
+        handler(sh, topic, &msg, (snprint_t*)&snprint_rates_sp);
     } else if (topic == &topic_battery_state) {
         synapse_msgs_BatteryState msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_battery_state);

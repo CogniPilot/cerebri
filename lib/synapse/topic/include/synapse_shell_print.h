@@ -34,6 +34,7 @@ int snprint_twist(char* buf, size_t n, synapse_msgs_Twist* m);
 int snprint_twist_with_covariance(char* buf, size_t n, synapse_msgs_TwistWithCovariance* m);
 int snprint_vector3(char* buf, size_t n, synapse_msgs_Vector3* m);
 int snprint_wheel_odometry(char* buf, size_t n, synapse_msgs_WheelOdometry* m);
+int snprint_rates_sp(char* buf, size_t n, synapse_msgs_Vector3* m);
 
 #endif // SYNAPSE_snprint_LIST_H
 // vi: ts=4 sw=4 et

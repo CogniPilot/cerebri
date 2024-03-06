@@ -85,7 +85,7 @@ static void update_cmd_vel_manual(context* ctx)
     double pitch = kp_pitch * (pitch_rate_cmd + ctx->imu.angular_velocity.y);
     double yaw = kp_yaw * (yaw_rate_cmd + ctx->imu.angular_velocity.z);
 
-    rdd2_set_actuators(&ctx->actuators, mx, my, mz, thrust);
+    rdd2_set_actuators(&ctx->actuators, roll, pitch, yaw, thrust_cmd);
 }
 
 static void update_cmd_vel_auto_level(context* ctx)

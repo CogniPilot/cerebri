@@ -35,11 +35,13 @@ static struct k_thread my_thread_data;
 static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
 {
     struct zros_node node;
-    struct zros_sub sub_actuators;
+    struct zros_sub sub_actuators, sub_led_array;
     synapse_msgs_Actuators actuators;
+    synapse_msgs_LEDArray led_array;
 
     zros_node_init(&node, "dream_sil");
     zros_sub_init(&sub_actuators, &node, &topic_actuators, &actuators, 10);
+    zros_sub_init(&sub_led_array, &node, &topic_led_array, &led_array, 10);
 
     sil_context_t* ctx = p0;
     ARG_UNUSED(p1);
@@ -95,6 +97,24 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
             int status = pb_encode(&stream, synapse_msgs_Actuators_fields, &actuators);
             if (status) {
                 msg.type = SYNAPSE_ACTUATORS_TOPIC;
+                msg.data = buf;
+                msg.len = stream.bytes_written;
+                TF_Send(&ctx->tf, &msg);
+            } else {
+                LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
+            }
+        }
+
+        // send led array if subscription updated
+        if (zros_sub_update_available(&sub_led_array)) {
+            zros_sub_update(&sub_led_array);
+            TF_Msg msg;
+            TF_ClearMsg(&msg);
+            uint8_t buf[synapse_msgs_LEDArray_size];
+            pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
+            int status = pb_encode(&stream, synapse_msgs_LEDArray_fields, &led_array);
+            if (status) {
+                msg.type = SYNAPSE_LED_ARRAY_TOPIC;
                 msg.data = buf;
                 msg.len = stream.bytes_written;
                 TF_Send(&ctx->tf, &msg);

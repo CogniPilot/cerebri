@@ -160,10 +160,8 @@ static void lighting_work_handler(struct k_work* work)
         const double* color = NULL;
         if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE) {
             color = color_safe;
-        } else if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNSAFE) {
-            color = color_unsafe;
         } else {
-            color = color_unknown;
+            color = color_unsafe;
         }
         set_led(safety_leds[i], color, brightness, &ctx->led_array.led[led_msg_index]);
         led_msg_index++;

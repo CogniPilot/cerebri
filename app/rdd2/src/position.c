@@ -113,7 +113,6 @@ static void rdd2_position_fini(struct context* ctx)
     zros_pub_fini(&ctx->pub_attitude_sp);
 }
 
-
 static void rdd2_position_run(void* p0, void* p1, void* p2)
 {
     struct context* ctx = p0;
@@ -153,7 +152,7 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
         if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
             zros_pub_update(&ctx->pub_cmd_vel);
         }
-        
+
         if (zros_sub_update_available(&ctx->sub_velocity_sp)) {
             zros_sub_update(&ctx->sub_velocity_sp);
         }
@@ -171,7 +170,7 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
         }
 
         if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
-            //['vt', 'yt', 'Kp', 'Kv', 'vel', 'q'], 
+            //['vt', 'yt', 'Kp', 'Kv', 'vel', 'q'],
             //["u1", "e_r"])
             CASADI_FUNC_ARGS(velocity_control)
             double vt[3];
@@ -211,13 +210,12 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
             ctx->attitude_sp.z = r_e[2];
             zros_pub_update(&ctx->pub_attitude_sp);
 
-            ctx->force_sp.z = thrust/19.6 * 0.5;
+            ctx->force_sp.z = thrust / 19.6 * 0.5;
             zros_pub_update(&ctx->pub_force_sp);
         }
     }
     rdd2_position_fini(ctx);
 }
-
 
 static int start(struct context* ctx)
 {

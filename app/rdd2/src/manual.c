@@ -177,7 +177,7 @@ static void rdd2_manual_run(void* p0, void* p1, void* p2)
             zros_pub_update(&ctx->pub_force_sp);
 
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
-            
+
             ctx->velocity_sp.x = 2 * ctx->joy.axes[JOY_AXES_ROLL];
             ctx->velocity_sp.y = 2 * ctx->joy.axes[JOY_AXES_PITCH];
             ctx->velocity_sp.z = 2 * ctx->joy.axes[JOY_AXES_THRUST];

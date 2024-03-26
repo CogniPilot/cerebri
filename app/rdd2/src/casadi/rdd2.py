@@ -55,6 +55,64 @@ def derive_attitude_error():
             }
     return eqs
 
+def velocity_control():
+    #inputs: velocity trajectory, desired Yaw vel, dt, Kp, Kv
+    #state inputs: position, orientation, velocity, and angular velocity
+    #outputs: thrust force, angular errors
+    vt = ca.SX.sym('vt', 3)
+    yt = ca.SX.sym('yt')
+    Kp = ca.SX.sym('Kp')
+    Kv = ca.SX.sym('Kv')
+    
+    vel = ca.SX.sym('vel', 3)
+    q = ca.SX.sym('q', 4)
+    
+    e_p = -vt
+    e_v = vel - vt
+    at = ca.SX(0)
+    
+    zW = ca.SX([0, 0, 1])
+    
+    Fd = - Kp * e_p - Kv * e_v + 2.0*9.8*zW + 2.0*at
+    
+    zB = at + ca.SX([0, 0, 9.8])
+    zB = zB / ca.sqrt(ca.sumsqr(zB))
+    
+    u1 = ca.norm_2(Fd * zB)
+    
+    Zbd = Fd / ca.sqrt(ca.sumsqr(Fd))
+    
+    Xcd = ca.vertcat(ca.cos(yt), ca.sin(yt), ca.SX(0))
+    
+    Ybd = ca.cross(Zbd, Xcd)
+    Ybd = Ybd / ca.norm_2(Ybd)
+    
+    Xbd = ca.cross(Ybd, Zbd)
+    
+    
+    wrbd = ca.horzcat(Xbd, Ybd, Zbd)
+    
+    wRb = ca.vertcat(
+        ca.horzcat(2*(q[0]**2+q[1]**2)-1, 2*(q[1]*q[2]-q[0]*q[3]), 2*(q[1]*q[3]+q[0]*q[2])),
+        ca.horzcat(2*(q[1]*q[2]+q[0]*q[3]), 2*(q[0]**2+q[2]**2)-1, 2*(q[2]*q[3]-q[0]*q[1])),
+        ca.horzcat(2*(q[1]*q[3]-q[0]*q[2]), 2*(q[2]*q[3]-q[0]*q[1]), 2*(q[0]**2+q[3]**2)-1)
+    )
+    
+    e_r = 0.5 * (ca.transpose(wrbd) @ wRb - ca.transpose(wRb) @ wrbd)
+    e_r = ca.vertcat(e_r[2, 1], e_r[0, 2], e_r[1, 0])
+    
+    f_get_u = ca.Function(
+        "velocity_control",
+        [vt, yt, Kp, Kv, vel, q], [u1, e_r], 
+        ['vt', 'yt', 'Kp', 'Kv', 'vel', 'q'], 
+        ["u1", "e_r"])
+    
+    eqs = {
+        "velocity_control" : f_get_u
+    }
+
+    return eqs
+
 def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
     dest_dir = Path(dest_dir)
     dest_dir.mkdir(exist_ok=True)
@@ -83,6 +141,7 @@ if __name__ == "__main__":
     print("generating casadi equations")
     eqs = {}
     eqs.update(derive_attitude_error())
+    eqs.update(velocity_control())
 
     for name, eq in eqs.items():
         print('eq: ', name)

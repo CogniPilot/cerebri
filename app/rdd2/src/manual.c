@@ -39,13 +39,13 @@ static const double thrust_delta = 0.1;
 struct context {
     struct zros_node node;
     synapse_msgs_Joy joy;
-    synapse_msgs_Vector3 attitude_sp, angular_velocity_sp, force_sp;
+    synapse_msgs_Vector3 attitude_sp, angular_velocity_sp, force_sp, velocity_sp, orientation_sp;
     synapse_msgs_Status status;
     synapse_msgs_Odometry estimator_odometry;
     struct zros_sub sub_status;
     struct zros_sub sub_joy;
     struct zros_sub sub_estimator_odometry;
-    struct zros_pub pub_attitude_sp, pub_angular_velocity_sp, pub_force_sp;
+    struct zros_pub pub_attitude_sp, pub_angular_velocity_sp, pub_force_sp, pub_velocity_sp, pub_orientation_sp;
     atomic_t running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
@@ -59,12 +59,16 @@ static struct context g_ctx = {
     .angular_velocity_sp = synapse_msgs_Vector3_init_default,
     .force_sp = synapse_msgs_Vector3_init_default,
     .status = synapse_msgs_Status_init_default,
+    .velocity_sp = synapse_msgs_Vector3_init_default,
+    .orientation_sp = synapse_msgs_Vector3_init_default,
     .sub_joy = {},
     .sub_status = {},
     .sub_estimator_odometry = {},
     .pub_attitude_sp = {},
     .pub_angular_velocity_sp = {},
     .pub_force_sp = {},
+    .pub_velocity_sp = {},
+    .pub_orientation_sp = {},
     .running = ATOMIC_INIT(0),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
@@ -84,6 +88,10 @@ static void rdd2_manual_init(struct context* ctx)
         &topic_angular_velocity_sp, &ctx->angular_velocity_sp);
     zros_pub_init(&ctx->pub_force_sp, &ctx->node,
         &topic_force_sp, &ctx->force_sp);
+    zros_pub_init(&ctx->pub_velocity_sp, &ctx->node,
+        &topic_velocity_sp, &ctx->velocity_sp);
+    zros_pub_init(&ctx->pub_orientation_sp, &ctx->node,
+        &topic_orientation_sp, &ctx->orientation_sp);
     atomic_set(&ctx->running, 1);
 }
 
@@ -96,7 +104,9 @@ static void rdd2_manual_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_estimator_odometry);
     zros_pub_fini(&ctx->pub_attitude_sp);
     zros_pub_fini(&ctx->pub_angular_velocity_sp);
+    zros_pub_fini(&ctx->pub_velocity_sp);
     zros_pub_fini(&ctx->pub_force_sp);
+    zros_pub_fini(&ctx->pub_orientation_sp);
     atomic_set(&ctx->running, 0);
 }
 
@@ -163,8 +173,8 @@ static void rdd2_manual_run(void* p0, void* p1, void* p2)
 
             // attitude set point
             ctx->attitude_sp.x = -20 * deg2rad * ctx->joy.axes[JOY_AXES_ROLL];
-            ctx->attitude_sp.y = -20 * deg2rad * ctx->joy.axes[JOY_AXES_PITCH];
-            ctx->attitude_sp.z = -(e[0] + 20 * deg2rad * ctx->joy.axes[JOY_AXES_YAW]);
+            ctx->attitude_sp.y = 20 * deg2rad * ctx->joy.axes[JOY_AXES_PITCH];
+            ctx->attitude_sp.z = (e[0] + 20 * deg2rad * ctx->joy.axes[JOY_AXES_YAW]);
             zros_pub_update(&ctx->pub_attitude_sp);
 
             // thrust pass through
@@ -172,6 +182,25 @@ static void rdd2_manual_run(void* p0, void* p1, void* p2)
             zros_pub_update(&ctx->pub_force_sp);
 
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
+
+            CASADI_FUNC_ARGS(quaternion_to_euler);
+            double q[4];
+            q[0] = ctx->estimator_odometry.pose.pose.orientation.w;
+            q[1] = ctx->estimator_odometry.pose.pose.orientation.x;
+            q[2] = ctx->estimator_odometry.pose.pose.orientation.y;
+            q[3] = ctx->estimator_odometry.pose.pose.orientation.z;
+            double e[3];
+            args[0] = q;
+            res[0] = e;
+            CASADI_FUNC_CALL(quaternion_to_euler);
+
+            ctx->velocity_sp.x = 2 * ctx->joy.axes[JOY_AXES_ROLL];
+            ctx->velocity_sp.y = 2 * ctx->joy.axes[JOY_AXES_PITCH];
+            ctx->velocity_sp.z = 2 * ctx->joy.axes[JOY_AXES_THRUST];
+            zros_pub_update(&ctx->pub_velocity_sp);
+
+            ctx->orientation_sp.z = -20 * deg2rad * ctx->joy.axes[JOY_AXES_YAW];
+            zros_pub_update(&ctx->pub_orientation_sp);
         }
     }
 

@@ -57,6 +57,26 @@ int quaternion_to_euler_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int*
 #define quaternion_to_euler_SZ_RES 1
 #define quaternion_to_euler_SZ_IW 0
 #define quaternion_to_euler_SZ_W 16
+int velocity_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int velocity_control_alloc_mem(void);
+int velocity_control_init_mem(int mem);
+void velocity_control_free_mem(int mem);
+int velocity_control_checkout(void);
+void velocity_control_release(int mem);
+void velocity_control_incref(void);
+void velocity_control_decref(void);
+casadi_int velocity_control_n_in(void);
+casadi_int velocity_control_n_out(void);
+casadi_real velocity_control_default_in(casadi_int i);
+const char* velocity_control_name_in(casadi_int i);
+const char* velocity_control_name_out(casadi_int i);
+const casadi_int* velocity_control_sparsity_in(casadi_int i);
+const casadi_int* velocity_control_sparsity_out(casadi_int i);
+int velocity_control_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+#define velocity_control_SZ_ARG 6
+#define velocity_control_SZ_RES 2
+#define velocity_control_SZ_IW 0
+#define velocity_control_SZ_W 28
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

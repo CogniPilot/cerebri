@@ -35,9 +35,9 @@ struct context {
     synapse_msgs_Time clock_offset;
     synapse_msgs_Odometry pose, estimator_odometry, external_odometry;
     synapse_msgs_Twist cmd_vel;
-    synapse_msgs_Vector3 angular_velocity_sp, force_sp, velocity_sp, attitude_sp;
-    struct zros_sub sub_status, sub_clock_offset, sub_pose, sub_bezier_trajectory, sub_velocity_sp, sub_estimator_odometry, sub_external_odometry;
-    struct zros_pub pub_cmd_vel, pub_angular_velocity_sp, pub_force_sp, pub_attitude_sp;
+    synapse_msgs_Vector3 force_sp, velocity_sp, attitude_sp, orientation_sp;
+    struct zros_sub sub_status, sub_clock_offset, sub_pose, sub_bezier_trajectory, sub_velocity_sp, sub_estimator_odometry, sub_external_odometry, sub_orientation_sp;
+    struct zros_pub pub_cmd_vel, pub_force_sp, pub_attitude_sp;
     atomic_t running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
@@ -55,11 +55,11 @@ static struct context g_ctx = {
         .linear = synapse_msgs_Vector3_init_default,
         .angular = synapse_msgs_Vector3_init_default,
     },
-    .angular_velocity_sp = synapse_msgs_Vector3_init_default,
     .force_sp = synapse_msgs_Vector3_init_default,
     .estimator_odometry = synapse_msgs_Odometry_init_default,
     .external_odometry = synapse_msgs_Odometry_init_default,
     .attitude_sp = synapse_msgs_Vector3_init_default,
+    .orientation_sp = synapse_msgs_Vector3_init_default,
     .sub_status = {},
     .sub_clock_offset = {},
     .sub_pose = {},
@@ -67,8 +67,8 @@ static struct context g_ctx = {
     .sub_velocity_sp = {},
     .sub_estimator_odometry = {},
     .sub_external_odometry = {},
+    .sub_orientation_sp = {},
     .pub_cmd_vel = {},
-    .pub_angular_velocity_sp = {},
     .pub_force_sp = {},
     .pub_attitude_sp = {},
     .running = ATOMIC_INIT(0),
@@ -88,9 +88,9 @@ static void rdd2_position_init(struct context* ctx)
     zros_sub_init(&ctx->sub_velocity_sp, &ctx->node, &topic_velocity_sp, &ctx->velocity_sp, 100);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
     zros_sub_init(&ctx->sub_external_odometry, &ctx->node, &topic_external_odometry, &ctx->external_odometry, 10);
+    zros_sub_init(&ctx->sub_orientation_sp, &ctx->node, &topic_orientation_sp, &ctx->orientation_sp, 100);
     zros_pub_init(&ctx->pub_cmd_vel, &ctx->node, &topic_cmd_vel, &ctx->cmd_vel);
     zros_pub_init(&ctx->pub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp);
-    zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node, &topic_angular_velocity_sp, &ctx->angular_velocity_sp);
     zros_pub_init(&ctx->pub_attitude_sp, &ctx->node, &topic_attitude_sp, &ctx->attitude_sp);
     atomic_set(&ctx->running, 1);
 }
@@ -106,10 +106,10 @@ static void rdd2_position_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_velocity_sp);
     zros_sub_fini(&ctx->sub_estimator_odometry);
     zros_sub_fini(&ctx->sub_external_odometry);
+    zros_sub_fini(&ctx->sub_orientation_sp);
     zros_pub_fini(&ctx->pub_cmd_vel);
     atomic_set(&ctx->running, 0);
     zros_pub_fini(&ctx->pub_force_sp);
-    zros_pub_fini(&ctx->pub_angular_velocity_sp);
     zros_pub_fini(&ctx->pub_attitude_sp);
 }
 
@@ -157,8 +157,8 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_velocity_sp);
         }
 
-        if (zros_sub_update_available(&ctx->sub_velocity_sp)) {
-            zros_sub_update(&ctx->sub_velocity_sp);
+        if (zros_sub_update_available(&ctx->sub_orientation_sp)) {
+            zros_sub_update(&ctx->sub_orientation_sp);
         }
 
         if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {
@@ -174,7 +174,7 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
             //["u1", "e_r"])
             CASADI_FUNC_ARGS(velocity_control)
             double vt[3];
-            double yt = 0;
+            double yt = ctx->orientation_sp.z;
             double Kp = 1;
             double Kv = 1;
             double vel[3];
@@ -205,8 +205,8 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
 
             CASADI_FUNC_CALL(velocity_control)
 
-            ctx->attitude_sp.x = r_e[1];
-            ctx->attitude_sp.y = r_e[0];
+            ctx->attitude_sp.x = r_e[0];
+            ctx->attitude_sp.y = r_e[1];
             ctx->attitude_sp.z = r_e[2];
             zros_pub_update(&ctx->pub_attitude_sp);
 

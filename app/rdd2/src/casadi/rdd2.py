@@ -85,22 +85,21 @@ def velocity_control():
     Xcd = ca.vertcat(ca.cos(yt), ca.sin(yt), ca.SX(0))
     
     Ybd = ca.cross(Zbd, Xcd)
-    Ybd = Ybd / ca.norm_2(Ybd)
+    Ybd = ca.if_else(Ybd == 0, 0,Ybd / ca.norm_2(Ybd))
     
     Xbd = ca.cross(Ybd, Zbd)
-    
     
     wrbd = ca.horzcat(Xbd, Ybd, Zbd)
     
     wRb = ca.vertcat(
-        ca.horzcat(2*(q[0]**2+q[1]**2)-1, 2*(q[1]*q[2]-q[0]*q[3]), 2*(q[1]*q[3]+q[0]*q[2])),
-        ca.horzcat(2*(q[1]*q[2]+q[0]*q[3]), 2*(q[0]**2+q[2]**2)-1, 2*(q[2]*q[3]-q[0]*q[1])),
-        ca.horzcat(2*(q[1]*q[3]-q[0]*q[2]), 2*(q[2]*q[3]-q[0]*q[1]), 2*(q[0]**2+q[3]**2)-1)
+        ca.horzcat(1-2*q[2]**2-2*q[3]**2, 2*(q[1]*q[2]-q[0]*q[3]), 2*(q[1]*q[3]+q[0]*q[2])),
+        ca.horzcat(2*(q[1]*q[2]+q[0]*q[3]), 1-2*q[1]**2-2*q[3]**2, 2*(q[2]*q[3]-q[0]*q[1])),
+        ca.horzcat(2*(q[1]*q[3]-q[0]*q[2]), 2*(q[2]*q[3]-q[0]*q[1]), 1-2*q[1]**2-2*q[2]**2)
     )
     
     e_r = 0.5 * (ca.transpose(wrbd) @ wRb - ca.transpose(wRb) @ wrbd)
-    e_r = ca.vertcat(e_r[2, 1], e_r[0, 2], e_r[1, 0])
-    
+    e_r = ca.vertcat(e_r[0, 2], e_r[2, 1], e_r[1, 0])
+
     f_get_u = ca.Function(
         "velocity_control",
         [vt, yt, Kp, Kv, vel, q], [u1, e_r], 

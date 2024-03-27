@@ -76,7 +76,7 @@ int velocity_control_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz
 #define velocity_control_SZ_ARG 6
 #define velocity_control_SZ_RES 2
 #define velocity_control_SZ_IW 0
-#define velocity_control_SZ_W 23
+#define velocity_control_SZ_W 28
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

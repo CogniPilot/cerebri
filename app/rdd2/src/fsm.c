@@ -299,8 +299,8 @@ static void status_add_extra_info(synapse_msgs_Status* status,
     } else {
         status->fuel = synapse_msgs_Status_Fuel_FUEL_NOMINAL;
     }
-    float bat_max = CONFIG_CEREBRI_RDD2_BATTERY_MAX_MILLIVOLT / 1000.0;
-    float bat_min = CONFIG_CEREBRI_RDD2_BATTERY_MIN_MILLIVOLT / 1000.0;
+    double bat_max = CONFIG_CEREBRI_RDD2_BATTERY_MAX_MILLIVOLT / 1000.0;
+    double bat_min = CONFIG_CEREBRI_RDD2_BATTERY_MIN_MILLIVOLT / 1000.0;
     status->fuel_percentage = 100 * (ctx->battery_state.voltage - bat_min) / (bat_max - bat_min);
     status->power = ctx->battery_state.voltage * ctx->battery_state.current;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY

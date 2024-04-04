@@ -143,7 +143,7 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
                 LOG_WRN("Thrust Saturation: %10.4f", thrust);
             }
 
-            const float k = 1600;
+            const double k = 1600;
             synapse_msgs_Actuators* msg = &ctx->actuators;
             msg->velocity[0] = k * (thrust + pitch - roll + yaw);
             msg->velocity[1] = k * (thrust - pitch + roll + yaw);

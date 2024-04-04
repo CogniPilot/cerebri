@@ -110,7 +110,7 @@
 	compatible = "apa,apa102";
 		status = "okay";
 		reg = <0>;
-		spi-max-frequency = <100000>;
+		spi-max-frequency = <30000>;
 	};
 };
 

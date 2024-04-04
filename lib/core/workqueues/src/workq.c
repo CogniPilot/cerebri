@@ -36,7 +36,7 @@ int core_workqueues_entry_point(void)
         HIGH_PRIORITY_PRIORITY,
         &high_priority_cfg);
 
-    // high priority
+    // low priority
     k_work_queue_init(&g_low_priority_work_q);
     struct k_work_queue_config low_priority_cfg = {
         .name = "low_priority_q",

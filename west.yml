@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 041076e5961152a3dee7ef6de8dd502ae3269940 # airy 12/28/23
+      revision: b_mythical
       import:
         - name-allowlist:
           - nanopb
@@ -27,6 +27,8 @@ manifest:
           - hal_nxp
           - cmsis
           - ubxlib
+          - fatfs
+          - littlefs
     - name: zros
       remote: cognipilot
       revision: 467bd1042bef93ded9ba76287609ab47e76f9fa7 # main 2/12/24

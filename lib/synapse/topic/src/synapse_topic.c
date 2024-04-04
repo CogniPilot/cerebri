@@ -186,7 +186,7 @@ static int topic_echo(const struct shell* sh, struct zros_topic* topic, void* ms
         // limit to 10 hz
         k_msleep(100);
         // wait for new message
-        rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(sample_period * 1e3));
+        rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(sample_period * 1e3f));
         zros_topic_get_name(topic, name, sizeof(name));
         if (rc != 0) {
             LOG_WRN("%s not published.", name);

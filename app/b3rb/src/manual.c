@@ -78,8 +78,8 @@ static void b3rb_manual_entry_point(void* p0, void* p1, void* p2)
         }
 
         // compute turn_angle, and angular velocity from joystick
-        double turn_angle = ctx->max_turn_angle * ctx->joy.axes[JOY_AXES_ROLL];
-        double omega_fwd = ctx->max_velocity * ctx->joy.axes[JOY_AXES_THRUST] / ctx->wheel_radius;
+        double turn_angle = ctx->max_turn_angle * (double) ctx->joy.axes[JOY_AXES_ROLL];
+        double omega_fwd = ctx->max_velocity * (double) ctx->joy.axes[JOY_AXES_THRUST] / ctx->wheel_radius;
         b3rb_set_actuators(&ctx->actuators_manual, turn_angle, omega_fwd);
 
         zros_pub_update(&ctx->pub_actuators_manual);

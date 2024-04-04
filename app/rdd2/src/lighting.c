@@ -136,24 +136,21 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
         int brightness = brightness_mean + brightness_amplitude * sin(2 * 3.14159 * led_pulse_freq * t);
         int led_msg_index = 0;
 
-        const int mode_leds[] = { 2, 3 };
+        const int mode_leds[] = { 2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35 };
         const double color_auto[] = { 1, 0, 0 };
         const double color_manual[] = { 0, 1, 0 };
         const double color_cmd_vel[] = { 0, 0, 1 };
         const double color_unknown[] = { 0.33, 0.33, 0.33 };
 
-        const int arm_leds[] = { 1, 4 };
+        const int arm_leds[] = { 1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34 };
         const double color_armed[] = { 1, 0, 0 };
         const double color_disarmed[] = { 0, 1, 0 };
 
-        const int safety_leds[] = { 0, 5 };
+        const int safety_leds[] = { 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33 };
         const double color_unsafe[] = { 1, 0, 0 };
         const double color_safe[] = { 0, 1, 0 };
         const double color_battery_critical[] = { 1, 0.65, 0 };
         const double color_calibration[] = { 1, 1, 0 };
-
-        const int headlight_leds[] = { 6, 7, 8, 9, 10, 11 };
-        const double color_white[] = { 1, 1, 1 };
 
         bool battery_critical = ctx->battery_state.voltage < CONFIG_CEREBRI_RDD2_BATTERY_MIN_MILLIVOLT / 1000.0;
 
@@ -217,17 +214,6 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
             ctx->lights_on = false;
         }
 
-        if (ctx->lights_on) {
-            for (size_t i = 0; i < ARRAY_SIZE(headlight_leds); i++) {
-                set_led(headlight_leds[i], color_white, 255, &ctx->led_array.led[led_msg_index]);
-                led_msg_index++;
-            }
-        } else if (!ctx->lights_on) {
-            for (size_t i = 0; i < ARRAY_SIZE(headlight_leds); i++) {
-                set_led(headlight_leds[i], color_white, 0, &ctx->led_array.led[led_msg_index]);
-                led_msg_index++;
-            }
-        }
 
         // set timestamp
         stamp_header(&ctx->led_array.header, k_uptime_ticks());

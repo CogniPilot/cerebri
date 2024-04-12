@@ -3,8 +3,14 @@ sample:
   name: ELM4
 common:
   build_only: true
-  integration_platforms:
-    - native_sim
-    - vmu_rt1170
 tests:
-  elm4.default: {}
+  elm4.posix:
+    tags:
+      - elm4
+    integration_platforms:
+      - native_sim
+  elm4.vmu_rt1170/mimxrt1176/cm7:
+    tags:
+      - elm4
+    integration_platforms:
+      - vmu_rt1170/mimxrt1176/cm7

@@ -107,7 +107,7 @@ void baro_work_handler(struct k_work* work_item)
     // TODO add barmetric formula equation
     double press = baro_data_array[0][0];
     double temp = 15.0; // standard atmosphere temp in C
-    const float sea_press = 101.325;
+    const double sea_press = 101.325;
     double alt = ((pow((sea_press / press), 1 / 5.257) - 1.0) * (temp + 273.15)) / 0.0065;
     // LOG_DBG("press %10.4f, temp: %10.4f, alt: %10.4f", press, temp, alt);
 

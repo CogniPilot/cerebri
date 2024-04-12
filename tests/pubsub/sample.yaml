@@ -9,11 +9,11 @@ tests:
       - pubsub
     integration_platforms:
       - native_posix
-  pubsub.vmu_rt1170:
+  pubsub.vmu_rt1170/mimxrt1176/cm7:
     tags:
       - pubsub
     integration_platforms:
-      - vmu_rt1170
+      - vmu_rt1170/mimxrt1176/cm7
   pubsub.mr_canhubk3:
     tags:
       - pubsum

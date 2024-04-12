@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: b_mythical
+      revision: bf09e1183062f8de551f95c34ea519ac68ca134f # b_mythical 04/12/24
       import:
         - name-allowlist:
           - nanopb
@@ -44,4 +44,4 @@ manifest:
     - name: ubxlib
       remote: cognipilot
       path: modules/lib/ubxlib
-      revision: b_mythical
+      revision: 9c485ed5ab663b96cae6199498356fd13ee35904 # b_mythical 04/12/24

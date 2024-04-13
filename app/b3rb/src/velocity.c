@@ -146,6 +146,10 @@ static void b3rb_velocity_entry_point(void* p0, void* p1, void* p2)
             update_cmd_vel(ctx);
         }
 
+        // set motor enable line
+        ctx->actuators.normalized_count = 1;
+        ctx->actuators.normalized[0] = ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED ? 1 : -1;
+
         // publish
         zros_pub_update(&ctx->pub_actuators);
     }

@@ -31,7 +31,6 @@ typedef struct _context {
     synapse_msgs_Status status;
     struct zros_node node;
     struct zros_sub sub_actuators, sub_status;
-    struct pwm_dt_spec pwm_enable;
 } context;
 
 static context g_ctx = {
@@ -40,7 +39,6 @@ static context g_ctx = {
     .node = {},
     .sub_status = {},
     .sub_actuators = {},
-    .pwm_enable = PWM_DT_SPEC_GET(DT_CHILD(DT_NODELABEL(pwm_shell), aux2)),
 };
 
 static void actuate_pwm_init(context* ctx)
@@ -54,12 +52,6 @@ void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Actuators*
 {
     bool armed = status->arming == synapse_msgs_Status_Arming_ARMING_ARMED;
     int err = 0;
-
-    if (armed) {
-        err = pwm_set_pulse_dt(&g_ctx.pwm_enable, PWM_USEC(50));
-    } else {
-        err = pwm_set_pulse_dt(&g_ctx.pwm_enable, PWM_USEC(0));
-    }
 
     for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
         actuator_pwm_t pwm = g_actuator_pwms[i];
@@ -81,10 +73,10 @@ void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Actuators*
             } else {
                 pulse += input * (pwm.center - pwm.min);
             }
+            LOG_DBG("%s position index %d with input %f pulse %d", pwm.alias, pwm.index, (double)input, pulse);
         } else if (pwm.type == PWM_TYPE_POSITION) {
             float input = armed ? actuators->position[pwm.index] : 0;
             uint32_t output = (uint32_t)((pwm.slope * input) + pwm.intercept);
-            LOG_DBG("%s position index %d with input %f output %d", pwm.alias, pwm.index, (double)input, output);
             if (output > pwm.max) {
                 pulse = pwm.max;
                 LOG_DBG("%s  position command saturated, requested %d > %d", pwm.alias, output, pwm.max);
@@ -94,10 +86,11 @@ void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Actuators*
             } else {
                 pulse = output;
             }
+            LOG_DBG("%s position index %d with input %f output %d pulse %d",
+                pwm.alias, pwm.index, (double)input, output, pulse);
         } else if (pwm.type == PWM_TYPE_VELOCITY) {
             float input = armed ? actuators->velocity[pwm.index] : 0;
             uint32_t output = (uint32_t)((pwm.slope * input) + pwm.intercept);
-            LOG_DBG("%s  velocity index %d with input %f output %d\n", pwm.alias, pwm.index, (double)input, output);
             if (output > pwm.max) {
                 pulse = pwm.max;
                 LOG_DBG("%s velocity command saturated, requested %d > %d\n", pwm.alias, output, pwm.max);
@@ -107,6 +100,8 @@ void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Actuators*
             } else {
                 pulse = output;
             }
+            LOG_DBG("%s  velocity index %d with input %f output %d pulse %d\n",
+                pwm.alias, pwm.index, (double)input, output, pulse);
         }
 
         if (pwm.use_nano_seconds) {

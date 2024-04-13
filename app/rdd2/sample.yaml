@@ -9,11 +9,6 @@ tests:
       - rdd2
     integration_platforms:
       - native_sim
-  rdd2.mr_canhubk3:
-    tags:
-      - rdd2
-    integration_platforms:
-      - mr_canhubk3
   rdd2.vmu_rt1170/mimxrt1176/cm7:
     tags:
       - rdd2

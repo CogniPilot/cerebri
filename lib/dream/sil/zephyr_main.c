@@ -51,10 +51,7 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
     while (!ctx->shutdown) {
         // if clock not initialized, wait 1 second
         synapse_msgs_SimClock sim_clock;
-        struct timespec request, remaining;
-        request.tv_sec = 1;
-        request.tv_nsec = 0;
-        nanosleep(&request, &remaining);
+        k_msleep(1000);
         sim_clock = ctx->sim_clock;
         if (ctx->clock_initialized) {
             LOG_DBG("sim clock initialized");
@@ -145,10 +142,7 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
             LOG_DBG("wait: msec %lld\n", wait_msec);
             k_msleep(wait_msec);
         } else {
-            struct timespec request, remaining;
-            request.tv_sec = 0;
-            request.tv_nsec = 1000000;
-            nanosleep(&request, &remaining);
+            k_usleep(1);
         }
     }
     printf("zephyr main loop finished\n");

@@ -84,7 +84,7 @@ void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Actuators*
         } else if (pwm.type == PWM_TYPE_POSITION) {
             float input = armed ? actuators->position[pwm.index] : 0;
             uint32_t output = (uint32_t)((pwm.slope * input) + pwm.intercept);
-            LOG_DBG("%s position index %d with input %f output %d", pwm.alias, pwm.index, (double) input, output);
+            LOG_DBG("%s position index %d with input %f output %d", pwm.alias, pwm.index, (double)input, output);
             if (output > pwm.max) {
                 pulse = pwm.max;
                 LOG_DBG("%s  position command saturated, requested %d > %d", pwm.alias, output, pwm.max);
@@ -97,7 +97,7 @@ void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Actuators*
         } else if (pwm.type == PWM_TYPE_VELOCITY) {
             float input = armed ? actuators->velocity[pwm.index] : 0;
             uint32_t output = (uint32_t)((pwm.slope * input) + pwm.intercept);
-            LOG_DBG("%s  velocity index %d with input %f output %d\n", pwm.alias, pwm.index, (double) input, output);
+            LOG_DBG("%s  velocity index %d with input %f output %d\n", pwm.alias, pwm.index, (double)input, output);
             if (output > pwm.max) {
                 pulse = pwm.max;
                 LOG_DBG("%s velocity command saturated, requested %d > %d\n", pwm.alias, output, pwm.max);

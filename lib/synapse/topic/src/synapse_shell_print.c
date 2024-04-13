@@ -124,7 +124,7 @@ int snprint_status(char* buf, size_t n, synapse_msgs_Status* m)
         "fuel level: %0.2d\%\npower: %10.2fW\nmessage: %s\njoy: %s\n"
         "request_seq: %10d\nrequest_rejected:%2d\n",
         armed_str(m->arming), mode_str(m->mode), status_safety_str(m->safety),
-        fuel_str(m->fuel), m->fuel_percentage, (double) m->power, m->status_message,
+        fuel_str(m->fuel), m->fuel_percentage, (double)m->power, m->status_message,
         status_joy_str(m->joy), m->request_seq, m->request_rejected);
     return offset;
 }
@@ -183,7 +183,7 @@ int snprint_joy(char* buf, size_t n, synapse_msgs_Joy* m)
     size_t offset = 0;
     offset += snprintf_cat(buf + offset, n - offset, "axes\n");
     for (int i = 0; i < m->axes_count; i++) {
-        offset += snprintf_cat(buf + offset, n - offset, "%10.4f\n", (double) m->axes[i]);
+        offset += snprintf_cat(buf + offset, n - offset, "%10.4f\n", (double)m->axes[i]);
     }
 
     offset += snprintf_cat(buf + offset, n - offset, "buttons\n");

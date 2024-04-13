@@ -214,7 +214,6 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
             ctx->lights_on = false;
         }
 
-
         // set timestamp
         stamp_header(&ctx->led_array.header, k_uptime_ticks());
         ctx->led_array.header.seq++;

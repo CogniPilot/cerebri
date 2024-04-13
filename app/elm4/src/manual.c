@@ -77,8 +77,8 @@ static void elm4_manual_entry_point(void* p0, void* p1, void* p2)
         }
 
         // compute turn_angle, and angular velocity from joystick
-        double omega_turn = ctx->max_angular_velocity * (double) ctx->joy.axes[JOY_AXES_ROLL];
-        double omega_fwd = ctx->max_velocity * (double) ctx->joy.axes[JOY_AXES_THRUST] / ctx->wheel_radius;
+        double omega_turn = ctx->max_angular_velocity * (double)ctx->joy.axes[JOY_AXES_ROLL];
+        double omega_fwd = ctx->max_velocity * (double)ctx->joy.axes[JOY_AXES_THRUST] / ctx->wheel_radius;
         elm4_set_actuators(&ctx->actuators_manual, omega_fwd, omega_turn);
 
         zros_pub_update(&ctx->pub_actuators_manual);

@@ -139,13 +139,13 @@ static void rdd2_manual_run(void* p0, void* p1, void* p2)
 
         if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
             // angular velocity set point
-            ctx->angular_velocity_sp.x = -60 * deg2rad * (double) ctx->joy.axes[JOY_AXES_ROLL];
-            ctx->angular_velocity_sp.y = 60 * deg2rad * (double) ctx->joy.axes[JOY_AXES_PITCH];
-            ctx->angular_velocity_sp.z = 60 * deg2rad * (double) ctx->joy.axes[JOY_AXES_YAW];
+            ctx->angular_velocity_sp.x = -60 * deg2rad * (double)ctx->joy.axes[JOY_AXES_ROLL];
+            ctx->angular_velocity_sp.y = 60 * deg2rad * (double)ctx->joy.axes[JOY_AXES_PITCH];
+            ctx->angular_velocity_sp.z = 60 * deg2rad * (double)ctx->joy.axes[JOY_AXES_YAW];
             zros_pub_update(&ctx->pub_angular_velocity_sp);
 
             // thrust pass through
-            ctx->force_sp.z = (double) ctx->joy.axes[JOY_AXES_THRUST] * thrust_delta + thrust_trim;
+            ctx->force_sp.z = (double)ctx->joy.axes[JOY_AXES_THRUST] * thrust_delta + thrust_trim;
             zros_pub_update(&ctx->pub_force_sp);
 
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL) {
@@ -162,13 +162,13 @@ static void rdd2_manual_run(void* p0, void* p1, void* p2)
             CASADI_FUNC_CALL(quaternion_to_euler);
 
             // attitude set point
-            ctx->attitude_sp.x = -20 * deg2rad * (double) ctx->joy.axes[JOY_AXES_ROLL];
-            ctx->attitude_sp.y = -20 * deg2rad * (double) ctx->joy.axes[JOY_AXES_PITCH];
-            ctx->attitude_sp.z = -(e[0] + 20 * deg2rad * (double) ctx->joy.axes[JOY_AXES_YAW]);
+            ctx->attitude_sp.x = -20 * deg2rad * (double)ctx->joy.axes[JOY_AXES_ROLL];
+            ctx->attitude_sp.y = -20 * deg2rad * (double)ctx->joy.axes[JOY_AXES_PITCH];
+            ctx->attitude_sp.z = -(e[0] + 20 * deg2rad * (double)ctx->joy.axes[JOY_AXES_YAW]);
             zros_pub_update(&ctx->pub_attitude_sp);
 
             // thrust pass through
-            ctx->force_sp.z = (double) ctx->joy.axes[JOY_AXES_THRUST] * thrust_delta + thrust_trim;
+            ctx->force_sp.z = (double)ctx->joy.axes[JOY_AXES_THRUST] * thrust_delta + thrust_trim;
             zros_pub_update(&ctx->pub_force_sp);
 
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {

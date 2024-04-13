@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <time.h>
 
 #include <pb_decode.h>
 #include <synapse_tinyframe/SynapseTopics.h>

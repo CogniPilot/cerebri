@@ -43,7 +43,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MIN_0
 config CEREBRI_ACTUATE_PWM_PULSE_MAX_0
   int "Max pulse width PWM 0"
   default 1900
-  range 1 10000000
+  range 0 9999999
   help
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 0
@@ -51,7 +51,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MAX_0
 config CEREBRI_ACTUATE_PWM_PULSE_CENTER_0
   int "Center of pulse width PWM 0"
   default 1500
-  range 2 9999998
+  range 0 9999999
   help
     Center of pulse width in micro
     (or nano if selected) seconds for PWM 0
@@ -142,7 +142,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MIN_1
 config CEREBRI_ACTUATE_PWM_PULSE_MAX_1
   int "Max pulse width PWM 1"
   default 1900
-  range 1 10000000
+  range 0 9999999
   help
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 1
@@ -150,7 +150,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MAX_1
 config CEREBRI_ACTUATE_PWM_PULSE_CENTER_1
   int "Center of pulse width PWM 1"
   default 1500
-  range 2 9999998
+  range 0 9999999
   help
     Center of pulse width in micro
     (or nano if selected) seconds for PWM 1
@@ -241,7 +241,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MIN_2
 config CEREBRI_ACTUATE_PWM_PULSE_MAX_2
   int "Max pulse width PWM 2"
   default 1900
-  range 1 10000000
+  range 0 9999999
   help
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 2
@@ -249,7 +249,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MAX_2
 config CEREBRI_ACTUATE_PWM_PULSE_CENTER_2
   int "Center of pulse width PWM 2"
   default 1500
-  range 2 9999998
+  range 0 9999999
   help
     Center of pulse width in micro
     (or nano if selected) seconds for PWM 2
@@ -340,7 +340,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MIN_3
 config CEREBRI_ACTUATE_PWM_PULSE_MAX_3
   int "Max pulse width PWM 3"
   default 1900
-  range 1 10000000
+  range 0 9999999
   help
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 3
@@ -348,7 +348,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MAX_3
 config CEREBRI_ACTUATE_PWM_PULSE_CENTER_3
   int "Center of pulse width PWM 3"
   default 1500
-  range 2 9999998
+  range 0 9999999
   help
     Center of pulse width in micro
     (or nano if selected) seconds for PWM 3
@@ -439,7 +439,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MIN_4
 config CEREBRI_ACTUATE_PWM_PULSE_MAX_4
   int "Max pulse width PWM 4"
   default 1900
-  range 1 10000000
+  range 0 9999999
   help
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 4
@@ -447,7 +447,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MAX_4
 config CEREBRI_ACTUATE_PWM_PULSE_CENTER_4
   int "Center of pulse width PWM 4"
   default 1500
-  range 2 9999998
+  range 0 9999999
   help
     Center of pulse width in micro
     (or nano if selected) seconds for PWM 4
@@ -538,7 +538,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MIN_5
 config CEREBRI_ACTUATE_PWM_PULSE_MAX_5
   int "Max pulse width PWM 5"
   default 1900
-  range 1 10000000
+  range 0 9999999
   help
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 5
@@ -546,7 +546,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MAX_5
 config CEREBRI_ACTUATE_PWM_PULSE_CENTER_5
   int "Center of pulse width PWM 5"
   default 1500
-  range 2 9999998
+  range 0 9999999
   help
     Center of pulse width in micro
     (or nano if selected) seconds for PWM 5
@@ -637,7 +637,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MIN_6
 config CEREBRI_ACTUATE_PWM_PULSE_MAX_6
   int "Max pulse width PWM 6"
   default 1900
-  range 1 10000000
+  range 0 9999999
   help
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 6
@@ -645,7 +645,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MAX_6
 config CEREBRI_ACTUATE_PWM_PULSE_CENTER_6
   int "Center of pulse width PWM 6"
   default 1500
-  range 2 9999998
+  range 0 9999999
   help
     Center of pulse width in micro
     (or nano if selected) seconds for PWM 6
@@ -736,7 +736,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MIN_7
 config CEREBRI_ACTUATE_PWM_PULSE_MAX_7
   int "Max pulse width PWM 7"
   default 1900
-  range 1 10000000
+  range 0 9999999
   help
     Maximum allowed pulse width in micro
     (or nano if selected) seconds for PWM 7
@@ -744,7 +744,7 @@ config CEREBRI_ACTUATE_PWM_PULSE_MAX_7
 config CEREBRI_ACTUATE_PWM_PULSE_CENTER_7
   int "Center of pulse width PWM 7"
   default 1500
-  range 2 9999998
+  range 0 9999999
   help
     Center of pulse width in micro
     (or nano if selected) seconds for PWM 7

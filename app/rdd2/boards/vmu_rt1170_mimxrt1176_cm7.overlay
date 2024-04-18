@@ -60,6 +60,7 @@
 		/* safety button */
 		safety-button = &arming_button;
 		status-led = &ncp5623c;
+		buzzer = &buzzer0;
 	};
 	cfg-device-gnss {
 		status = "okay";

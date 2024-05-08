@@ -45,3 +45,7 @@ manifest:
       remote: cognipilot
       path: modules/lib/ubxlib
       revision: 9c485ed5ab663b96cae6199498356fd13ee35904 # b_mythical 04/12/24
+    - name: hal_nxp
+      remote: cognipilot
+      revision: a5c11af43a3222ef24b688c4f0b04815b1a410f9 # main 2/12/24
+      path: modules/hal/nxp

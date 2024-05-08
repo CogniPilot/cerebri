@@ -60,16 +60,18 @@ static void init_actuate_sound(context* ctx)
 
 static int play_sound(context* ctx, struct tones_t* sound, size_t sound_size)
 {
+    int err;
     for (size_t i = 0; i < sound_size; i++) {
         if (sound[i].note == REST) {
-            pwm_set_pulse_dt(&ctx->buzzer, 0);
+            err = pwm_set_pulse_dt(&ctx->buzzer, 0);
         } else {
-            pwm_set_dt(&ctx->buzzer, PWM_HZ(sound[i].note), PWM_HZ((sound[i].note)) / 2);
+            err = pwm_set_dt(&ctx->buzzer, PWM_HZ(sound[i].note), PWM_HZ((sound[i].note)) / 2);
         }
+        if (err) return err;
         k_msleep(sound[i].duration);
     }
-    pwm_set_pulse_dt(&ctx->buzzer, 0);
-    return 0;
+    err = pwm_set_pulse_dt(&ctx->buzzer, 0);
+    return err;
 }
 
 static void actuate_sound_entry_point(void* p0, void* p1, void* p2)

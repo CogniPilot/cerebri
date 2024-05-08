@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 6a7a436020788c19ce0bded549bfc2c4a2cf920b # b_mythical gppt pwm test
+      revision: b77e04ed899cdf1c89959defaeb16df29217aa8e # pr-pwm-threadsafe
       import:
         - name-allowlist:
           - nanopb
@@ -29,6 +29,7 @@ manifest:
           - ubxlib
           - fatfs
           - littlefs
+          - segger
     - name: zros
       remote: cognipilot
       revision: 467bd1042bef93ded9ba76287609ab47e76f9fa7 # main 2/12/24

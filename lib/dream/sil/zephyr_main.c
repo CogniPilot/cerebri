@@ -2,11 +2,12 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0 */
 
-#include <zephyr/logging/log.h>
-#include <zephyr/sys/ring_buffer.h>
+#include <time.h>
 
 #include <synapse_tinyframe/SynapseTopics.h>
 #include <synapse_tinyframe/TinyFrame.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/sys/ring_buffer.h>
 
 #include <pb_encode.h>
 
@@ -28,7 +29,8 @@ LOG_MODULE_REGISTER(dream_sil, CONFIG_CEREBRI_DREAM_SIL_LOG_LEVEL);
 #define MY_PRIORITY -10
 
 extern sil_context_t g_ctx;
-extern struct ring_buf g_msg_updates;
+extern struct ring_buf g_sil_recv;
+extern struct ring_buf g_sil_send;
 static K_THREAD_STACK_DEFINE(my_stack_area, MY_STACK_SIZE);
 static struct k_thread my_thread_data;
 
@@ -36,12 +38,10 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
 {
     struct zros_node node;
     struct zros_sub sub_actuators, sub_led_array;
-    synapse_msgs_Actuators actuators;
-    synapse_msgs_LEDArray led_array;
 
     zros_node_init(&node, "dream_sil");
-    zros_sub_init(&sub_actuators, &node, &topic_actuators, &actuators, 10);
-    zros_sub_init(&sub_led_array, &node, &topic_led_array, &led_array, 10);
+    zros_sub_init(&sub_actuators, &node, &topic_actuators, &g_ctx.send_actuators, 10);
+    zros_sub_init(&sub_led_array, &node, &topic_led_array, &g_ctx.send_led_array, 10);
 
     sil_context_t* ctx = p0;
     ARG_UNUSED(p1);
@@ -64,12 +64,14 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
     }
 
     LOG_DBG("running main loop");
+    uint64_t uptime_last = k_uptime_get();
+
     while (!ctx->shutdown) {
 
         //  publish new messages
         uint8_t topic;
-        while (!ring_buf_is_empty(&g_msg_updates)) {
-            ring_buf_get(&g_msg_updates, &topic, 1);
+        while (!ring_buf_is_empty(&g_sil_recv)) {
+            ring_buf_get(&g_sil_recv, &topic, 1);
             if (topic == SYNAPSE_NAV_SAT_FIX_TOPIC) {
                 zros_topic_publish(&topic_nav_sat_fix, &ctx->nav_sat_fix);
             } else if (topic == SYNAPSE_MAGNETIC_FIELD_TOPIC) {
@@ -90,41 +92,24 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
         // send actuators if subscription updated
         if (zros_sub_update_available(&sub_actuators)) {
             zros_sub_update(&sub_actuators);
-            TF_Msg msg;
-            TF_ClearMsg(&msg);
-            uint8_t buf[synapse_msgs_Actuators_size];
-            pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
-            int status = pb_encode(&stream, synapse_msgs_Actuators_fields, &actuators);
-            if (status) {
-                msg.type = SYNAPSE_ACTUATORS_TOPIC;
-                msg.data = buf;
-                msg.len = stream.bytes_written;
-                TF_Send(&ctx->tf, &msg);
-            } else {
-                LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
-            }
+            uint8_t topic = SYNAPSE_ACTUATORS_TOPIC;
+            ring_buf_put(&g_sil_send, &topic, 1);
         }
 
-        // send led array if subscription updated
+        // send led_array if subscription updated
         if (zros_sub_update_available(&sub_led_array)) {
             zros_sub_update(&sub_led_array);
-            TF_Msg msg;
-            TF_ClearMsg(&msg);
-            uint8_t buf[synapse_msgs_LEDArray_size];
-            pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
-            int status = pb_encode(&stream, synapse_msgs_LEDArray_fields, &led_array);
-            if (status) {
-                msg.type = SYNAPSE_LED_ARRAY_TOPIC;
-                msg.data = buf;
-                msg.len = stream.bytes_written;
-                TF_Send(&ctx->tf, &msg);
-            } else {
-                LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
-            }
+            uint8_t topic = SYNAPSE_LED_ARRAY_TOPIC;
+            ring_buf_put(&g_sil_send, &topic, 1);
         }
 
         // compute board time
         uint64_t uptime = k_uptime_get();
+        int uptime_delta = uptime - uptime_last;
+        if (uptime_delta != 4 && uptime_delta != 0) {
+            LOG_WRN("uptime delta: %d\n", uptime_delta);
+        }
+        uptime_last = uptime;
         struct timespec ts_board;
         ts_board.tv_sec = uptime / 1.0e3;
         ts_board.tv_nsec = (uptime - ts_board.tv_sec * 1e3) * 1e6;
@@ -147,7 +132,7 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
         } else {
             struct timespec request, remaining;
             request.tv_sec = 0;
-            request.tv_nsec = 1000000;
+            request.tv_nsec = 5000;
             nanosleep(&request, &remaining);
         }
     }

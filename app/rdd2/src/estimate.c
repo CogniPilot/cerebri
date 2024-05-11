@@ -181,9 +181,16 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
             ctx->odometry.pose.pose.orientation.y = ctx->external_odometry.pose.pose.orientation.y;
             ctx->odometry.pose.pose.orientation.z = ctx->external_odometry.pose.pose.orientation.z;
             ctx->odometry.pose.pose.orientation.w = ctx->external_odometry.pose.pose.orientation.w;
-            ctx->odometry.twist.twist.angular.x = ctx->external_odometry.twist.twist.angular.x;
-            ctx->odometry.twist.twist.angular.y = ctx->external_odometry.twist.twist.angular.y;
-            ctx->odometry.twist.twist.angular.z = ctx->external_odometry.twist.twist.angular.z;
+
+            // use gyro
+            ctx->odometry.twist.twist.angular.x = ctx->imu.angular_velocity.x;
+            ctx->odometry.twist.twist.angular.y = ctx->imu.angular_velocity.y;
+            ctx->odometry.twist.twist.angular.z = ctx->imu.angular_velocity.z;
+
+            // ctx->odometry.twist.twist.angular.x = ctx->external_odometry.twist.twist.angular.x;
+            // ctx->odometry.twist.twist.angular.y = ctx->external_odometry.twist.twist.angular.y;
+            // ctx->odometry.twist.twist.angular.z = ctx->external_odometry.twist.twist.angular.z;
+
             ctx->odometry.twist.twist.linear.x = ctx->external_odometry.twist.twist.linear.x;
             ctx->odometry.twist.twist.linear.y = ctx->external_odometry.twist.twist.linear.y;
             ctx->odometry.twist.twist.linear.z = ctx->external_odometry.twist.twist.linear.z;

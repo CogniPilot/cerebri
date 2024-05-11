@@ -9,19 +9,23 @@
 
 #include <synapse_tinyframe/TinyFrame.h>
 
+#include <synapse_protobuf/actuators.pb.h>
 #include <synapse_protobuf/altimeter.pb.h>
 #include <synapse_protobuf/battery_state.pb.h>
 #include <synapse_protobuf/imu.pb.h>
+#include <synapse_protobuf/led_array.pb.h>
 #include <synapse_protobuf/magnetic_field.pb.h>
 #include <synapse_protobuf/nav_sat_fix.pb.h>
 #include <synapse_protobuf/odometry.pb.h>
 #include <synapse_protobuf/sim_clock.pb.h>
 #include <synapse_protobuf/wheel_odometry.pb.h>
 
+#define RX_BUF_SIZE 4096
+
 typedef struct context_s {
     const char* module_name;
-    int serv;
-    int client;
+    int sock;
+    char rx_buf[RX_BUF_SIZE];
     pthread_t thread;
     bool clock_initialized;
     volatile sig_atomic_t shutdown;
@@ -35,6 +39,8 @@ typedef struct context_s {
     synapse_msgs_Altimeter altimeter;
     synapse_msgs_WheelOdometry wheel_odometry;
     synapse_msgs_Odometry external_odometry;
+    synapse_msgs_Actuators send_actuators;
+    synapse_msgs_LEDArray send_led_array;
 } sil_context_t;
 
 #endif // CEREBRI_DREAM_SIL_H

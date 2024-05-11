@@ -7,9 +7,10 @@ zephyr_library_named(cerebri_dream_sil)
 zephyr_include_directories()
 
 set_source_files_properties(native_main.c zephyr_main.c
-PROPERTIES COMPILE_DEFINITIONS
+  PROPERTIES COMPILE_DEFINITIONS
   "NO_POSIX_CHEATS;_BSD_SOURCE;_DEFAULT_SOURCE"
 )
+
 
 zephyr_library_sources(
   native_main.c

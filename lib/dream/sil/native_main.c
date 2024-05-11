@@ -7,30 +7,38 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 
 #include <pb_decode.h>
+#include <pb_encode.h>
+
 #include <synapse_tinyframe/SynapseTopics.h>
+#include <synapse_tinyframe/utils.h>
+
 #include <zephyr/sys/ring_buffer.h>
+
+#include <synapse_topic_list.h>
 
 #include "sil_context.h"
 
 // mutex locking is not necessary, as this is single threaded
 // and all consumers can only run while this process is sleeping
 
-#define BIND_PORT 4241
-#define RX_BUF_SIZE 2048
+#define GZ_PORT 4241
+#define CEREBRI_PORT 4243
 
-RING_BUF_DECLARE(g_msg_updates, 1024);
+RING_BUF_DECLARE(g_sil_recv, 128);
+RING_BUF_DECLARE(g_sil_send, 128);
 
 void write_sim(TinyFrame* tf, const uint8_t* buf, uint32_t len);
 
 sil_context_t g_ctx = {
     .module_name = "dream_sil_native",
-    .serv = 0,
-    .client = 0,
+    .sock = -1,
+    .rx_buf = {},
     .thread = 0,
     .clock_initialized = false,
     .tf = {
@@ -46,15 +54,25 @@ sil_context_t g_ctx = {
     .altimeter = synapse_msgs_Altimeter_init_default,
     .wheel_odometry = synapse_msgs_WheelOdometry_init_default,
     .external_odometry = synapse_msgs_Odometry_init_default,
+    .send_actuators = synapse_msgs_Actuators_init_default,
+    .send_led_array = synapse_msgs_LEDArray_init_default,
 };
 
 // public data
 void write_sim(TinyFrame* tf, const uint8_t* buf, uint32_t len)
 {
+    uint32_t addr_c;
+    inet_pton(AF_INET, CONFIG_NET_CONFIG_PEER_IPV4_ADDR, &addr_c);
+    struct sockaddr_in client_addr = {
+        .sin_addr.s_addr = addr_c,
+        .sin_family = AF_INET,
+        .sin_port = htons(GZ_PORT)
+    };
+    socklen_t client_addr_len = sizeof(client_addr);
     sil_context_t* ctx = (sil_context_t*)tf->userdata;
-    int client = ctx->client;
-    if (len > 0) {
-        send(client, buf, len, 0);
+    if (ctx->sock >= 0 && len > 0) {
+        sendto(ctx->sock, buf, len, 0,
+            (struct sockaddr*)&client_addr, client_addr_len);
     }
 }
 
@@ -94,7 +112,7 @@ static TF_Result nav_sat_fix_listener(TinyFrame* tf, TF_Msg* frame)
     if (rc) {
         g_ctx.nav_sat_fix = msg;
         uint8_t topic = SYNAPSE_NAV_SAT_FIX_TOPIC;
-        ring_buf_put(&g_msg_updates, &topic, 1);
+        ring_buf_put(&g_sil_recv, &topic, 1);
     } else {
         printf("%s: navsat decoding failed: %s\n",
             ctx->module_name, PB_GET_ERROR(&stream));
@@ -111,7 +129,7 @@ static TF_Result imu_listener(TinyFrame* tf, TF_Msg* frame)
     if (rc) {
         g_ctx.imu = msg;
         uint8_t topic = SYNAPSE_IMU_TOPIC;
-        ring_buf_put(&g_msg_updates, &topic, 1);
+        ring_buf_put(&g_sil_recv, &topic, 1);
     } else {
         printf("%s: imu decoding failed: %s\n",
             ctx->module_name, PB_GET_ERROR(&stream));
@@ -128,7 +146,7 @@ static TF_Result magnetic_field_listener(TinyFrame* tf, TF_Msg* frame)
     if (rc) {
         g_ctx.magnetic_field = msg;
         uint8_t topic = SYNAPSE_MAGNETIC_FIELD_TOPIC;
-        ring_buf_put(&g_msg_updates, &topic, 1);
+        ring_buf_put(&g_sil_recv, &topic, 1);
     } else {
         printf("%s: magnetic field decoding failed: %s\n",
             ctx->module_name, PB_GET_ERROR(&stream));
@@ -145,7 +163,7 @@ static TF_Result battery_state_listener(TinyFrame* tf, TF_Msg* frame)
     if (rc) {
         g_ctx.battery_state = msg;
         uint8_t topic = SYNAPSE_BATTERY_STATE_TOPIC;
-        ring_buf_put(&g_msg_updates, &topic, 1);
+        ring_buf_put(&g_sil_recv, &topic, 1);
     } else {
         printf("%s: battery state decoding failed: %s\n",
             ctx->module_name, PB_GET_ERROR(&stream));
@@ -162,7 +180,7 @@ static TF_Result wheel_odometry_listener(TinyFrame* tf, TF_Msg* frame)
     if (rc) {
         g_ctx.wheel_odometry = msg;
         uint8_t topic = SYNAPSE_WHEEL_ODOMETRY_TOPIC;
-        ring_buf_put(&g_msg_updates, &topic, 1);
+        ring_buf_put(&g_sil_recv, &topic, 1);
     } else {
         printf("%s: wheel odometry decoding failed: %s\n",
             ctx->module_name, PB_GET_ERROR(&stream));
@@ -179,12 +197,46 @@ static TF_Result odometry_listener(TinyFrame* tf, TF_Msg* frame)
     if (rc) {
         g_ctx.external_odometry = msg;
         uint8_t topic = SYNAPSE_ODOMETRY_TOPIC;
-        ring_buf_put(&g_msg_updates, &topic, 1);
+        ring_buf_put(&g_sil_recv, &topic, 1);
     } else {
         printf("%s: external odometry decoding failed: %s\n",
             ctx->module_name, PB_GET_ERROR(&stream));
     }
     return TF_STAY;
+}
+
+static void send_actuators()
+{
+    TF_Msg msg;
+    TF_ClearMsg(&msg);
+    uint8_t buf[synapse_msgs_Actuators_size];
+    pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
+    int status = pb_encode(&stream, synapse_msgs_Actuators_fields, &g_ctx.send_actuators);
+    if (status) {
+        msg.type = SYNAPSE_ACTUATORS_TOPIC;
+        msg.data = buf;
+        msg.len = stream.bytes_written;
+        TF_Send(&g_ctx.tf, &msg);
+    } else {
+        printf("encoding failed: %s", PB_GET_ERROR(&stream));
+    }
+}
+
+static void send_led_array()
+{
+    TF_Msg msg;
+    TF_ClearMsg(&msg);
+    uint8_t buf[synapse_msgs_LEDArray_size];
+    pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
+    int status = pb_encode(&stream, synapse_msgs_LEDArray_fields, &g_ctx.send_led_array);
+    if (status) {
+        msg.type = SYNAPSE_LED_ARRAY_TOPIC;
+        msg.data = buf;
+        msg.len = stream.bytes_written;
+        TF_Send(&g_ctx.tf, &msg);
+    } else {
+        printf("encoding failed: %s", PB_GET_ERROR(&stream));
+    }
 }
 
 TF_Result generic_listener(TinyFrame* tf, TF_Msg* frame)
@@ -207,77 +259,104 @@ void* native_sim_entry_point(void* p0)
     TF_AddTypeListener(&ctx->tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_listener);
     TF_AddTypeListener(&ctx->tf, SYNAPSE_ODOMETRY_TOPIC, odometry_listener);
 
-    struct sockaddr_in bind_addr;
-    static int counter;
+    struct sockaddr_in addr;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(CEREBRI_PORT);
+    ctx->sock = socket(((struct sockaddr*)&addr)->sa_family, SOCK_DGRAM, IPPROTO_UDP);
 
-    ctx->serv = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    const int trueFlag = 1;
-    if (setsockopt(ctx->serv, SOL_SOCKET, SO_REUSEADDR, &trueFlag, sizeof(int)) < 0) {
-        printf("failed to set socket options\n");
-        exit(1);
-    };
-
-    if (ctx->serv < 0) {
-        printf("%s: error: socket: %d\n", ctx->module_name, errno);
+    if (ctx->sock < 0) {
+        printf("failed to create UDP socket: %d\n", errno);
         exit(1);
     }
 
-    bind_addr.sin_family = AF_INET;
-    bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    bind_addr.sin_port = htons(BIND_PORT);
-
-    if (bind(ctx->serv, (struct sockaddr*)&bind_addr, sizeof(bind_addr)) < 0) {
-        printf("%s: bind() failed: %d\n", ctx->module_name, errno);
-        exit(1);
+    int ret = -1;
+    while (ret < 0) {
+        ret = bind(ctx->sock, (struct sockaddr*)&addr, sizeof(addr));
+        printf("failed to bind UDP socket: %d\n", errno);
+        struct timespec request, remaining;
+        request.tv_sec = 1;
+        request.tv_nsec = 0;
+        nanosleep(&request, &remaining);
     }
-
-    if (listen(ctx->serv, 5) < 0) {
-        printf("%s: error: listen: %d\n", ctx->module_name, errno);
-        exit(1);
-    }
-
-    printf("%s: listening to server on port: %d\n", ctx->module_name, BIND_PORT);
-
-    struct timespec remaining, request;
-
-    printf("%s: waiting for client connection\n", ctx->module_name);
+    printf("bound UDP socket\n");
 
     struct sigaction action;
     memset(&action, 0, sizeof(action));
     action.sa_handler = term;
     sigaction(SIGINT, &action, NULL);
 
-    uint8_t data[RX_BUF_SIZE];
+    uint32_t addr_c;
+    inet_pton(AF_INET, "127.0.0.1", &addr_c);
+    struct sockaddr_in client_addr = {
+        .sin_addr.s_addr = addr_c,
+        .sin_family = AF_INET,
+        .sin_port = htons(CEREBRI_PORT)
+    };
+    socklen_t client_addr_len = sizeof(client_addr);
 
+    // process incoming messages
     while (!ctx->shutdown) {
-        struct sockaddr_in client_addr;
-        socklen_t client_addr_len = sizeof(client_addr);
-        char addr_str[32];
-        ctx->client = accept(ctx->serv, (struct sockaddr*)&client_addr,
-            &client_addr_len);
 
-        if (ctx->client < 0) {
-            request.tv_sec = 1;
-            request.tv_nsec = 0;
-            nanosleep(&request, &remaining);
+        // send data
+        uint8_t topic;
+        while (!ring_buf_is_empty(&g_sil_send)) {
+            ring_buf_get(&g_sil_send, &topic, 1);
+            if (topic == SYNAPSE_ACTUATORS_TOPIC) {
+                send_actuators();
+            } else if (topic == SYNAPSE_LED_ARRAY_TOPIC) {
+                send_led_array();
+            }
+        }
+
+        struct pollfd pollfds[] = {
+            { ctx->sock, POLLIN | POLLHUP, 0 },
+        };
+
+        ret = poll(pollfds, ARRAY_SIZE(pollfds), 1000);
+
+        if (ret == 0) {
+            continue;
+        } else if (ret < 0) {
+            printf("poll error: %d\n", ret);
+            continue;
+        };
+
+        bool data_ready = false;
+        for (size_t i = 0; i < ARRAY_SIZE(pollfds); i++) {
+            if (pollfds[i].revents & POLLIN) {
+                data_ready = true;
+            }
+            if (pollfds[i].revents & POLLHUP) {
+                // disconnect
+                continue;
+            }
+        }
+
+        if (!data_ready) {
             continue;
         }
 
-        inet_ntop(client_addr.sin_family, &client_addr.sin_addr,
-            addr_str, sizeof(addr_str));
-        printf("%s: connection #%d from %s\n", ctx->module_name, counter++, addr_str);
+        memset(ctx->rx_buf, 0, sizeof(ctx->rx_buf));
 
-        // process incoming messages
-        while (!ctx->shutdown) {
-            // write received data to sim_rx_buf
-            int len = recv(ctx->client, data, RX_BUF_SIZE, 0);
-            if (len > 0) {
-                TF_Accept(&ctx->tf, data, len);
+        // write received data to sim_rx_buf
+        int ret = recvfrom(ctx->sock, ctx->rx_buf,
+            sizeof(ctx->rx_buf), MSG_DONTWAIT,
+            (struct sockaddr*)&client_addr, &client_addr_len);
+
+        if (ret == 0) {
+            continue;
+        } else if (ret < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;
+            } else {
+                printf("error: %d\n", errno);
+                continue;
             }
-            request.tv_sec = 0;
-            request.tv_nsec = 1000000; // 1 ms
-            nanosleep(&request, &remaining);
         }
+
+        // read data
+        TF_Accept(&ctx->tf, ctx->rx_buf, ret);
     }
 
     printf("native main exitting\n");

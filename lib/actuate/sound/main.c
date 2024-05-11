@@ -67,7 +67,8 @@ static int play_sound(context* ctx, struct tones_t* sound, size_t sound_size)
         } else {
             err = pwm_set_dt(&ctx->buzzer, PWM_HZ(sound[i].note), PWM_HZ((sound[i].note)) / 2);
         }
-        if (err) return err;
+        if (err)
+            return err;
         k_msleep(sound[i].duration);
     }
     err = pwm_set_pulse_dt(&ctx->buzzer, 0);

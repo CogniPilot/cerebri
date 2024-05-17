@@ -61,9 +61,13 @@ static struct context g_ctx = {
         .has_header = true,
         .header.frame_id = "odom",
         .has_pose = true,
+        .has_twist = true,
         .pose.has_pose = true,
         .pose.pose.has_position = true,
         .pose.pose.has_orientation = true,
+        .twist.has_twist = true,
+        .twist.twist.has_angular = true,
+        .twist.twist.has_linear = true,
     },
     .sub_external_odometry = {},
     .sub_imu = {},
@@ -161,7 +165,7 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
 
         // calculate dt
         int64_t ticks_now = k_uptime_ticks();
-        dt = (float)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         ticks_last = ticks_now;
         if (dt < 0 || dt > 0.5) {
             LOG_WRN("imu update rate too low");

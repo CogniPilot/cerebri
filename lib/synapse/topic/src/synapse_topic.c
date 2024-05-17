@@ -73,6 +73,8 @@ static context_t g_ctx = {
         (moment_sp, &topic_moment_sp, "moment_sp"),                               \
         (safety, &topic_safety, "safety"),                                        \
         (status, &topic_status, "status"),                                        \
+        (velocity_sp, &topic_velocity_sp, "velocity_sp"),                         \
+        (orientation_sp, &topic_orientation_sp, "orientation_sp"),                \
         (wheel_odometry, &topic_wheel_odometry, "wheel_odometry")
 
 static volatile bool keep_running = true;
@@ -228,7 +230,7 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_altimeter) {
         synapse_msgs_Altimeter msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_altimeter);
-    } else if (topic == &topic_angular_velocity_sp || topic == &topic_attitude_sp || topic == &topic_moment_sp || topic == &topic_force_sp) {
+    } else if (topic == &topic_angular_velocity_sp || topic == &topic_attitude_sp || topic == &topic_moment_sp || topic == &topic_force_sp || topic == &topic_velocity_sp || topic == &topic_orientation_sp || topic == &topic_position_sp) {
         synapse_msgs_Vector3 msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_vector3);
     } else if (topic == &topic_battery_state) {

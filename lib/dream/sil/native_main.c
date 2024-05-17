@@ -373,6 +373,7 @@ void native_sim_start_task(void)
 void native_sim_stop_task(void)
 {
     printf("native sim stop task\n");
+    g_ctx.shutdown = 1;
     pthread_join(g_ctx.thread, NULL);
 }
 

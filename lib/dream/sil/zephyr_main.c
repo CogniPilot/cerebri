@@ -49,17 +49,14 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
     LOG_INF("zephyr sim entry point");
     LOG_INF("waiting for sim clock");
     while (!ctx->shutdown) {
-        // if clock not initialized, wait 1 second
         synapse_msgs_SimClock sim_clock;
-        struct timespec request, remaining;
-        request.tv_sec = 1;
-        request.tv_nsec = 0;
-        nanosleep(&request, &remaining);
         sim_clock = ctx->sim_clock;
         if (ctx->clock_initialized) {
             LOG_DBG("sim clock initialized");
             zros_topic_publish(&topic_clock_offset, &ctx->clock_offset);
             break;
+        } else {
+            k_yield();
         }
     }
 
@@ -119,24 +116,24 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
         // compute time delta from sim
         int64_t delta_sec = ctx->sim_clock.sim.sec - ts_board.tv_sec;
         int32_t delta_nsec = ctx->sim_clock.sim.nanosec - ts_board.tv_nsec;
-        int64_t wait_msec = delta_sec * 1e3 + delta_nsec * 1e-6;
+        int64_t wait_usec = delta_sec * 1e6 + delta_nsec * 1e-3;
 
         // sleep to match clocks
-        if (wait_msec > 0) {
+        if (wait_usec > 0) {
             LOG_DBG("sim: sec %lld nsec %d\n",
                 ctx->sim_clock.sim.sec, ctx->sim_clock.sim.nanosec);
             LOG_DBG("board: sec %ld nsec %ld\n",
                 ts_board.tv_sec, ts_board.tv_nsec);
-            LOG_DBG("wait: msec %lld\n", wait_msec);
-            k_msleep(wait_msec);
+            LOG_DBG("wait: usec %lld\n", wait_usec);
+            k_usleep(wait_usec);
         } else {
             struct timespec request, remaining;
             request.tv_sec = 0;
-            request.tv_nsec = 5000;
+            request.tv_nsec = 1000000;
             nanosleep(&request, &remaining);
         }
     }
-    printf("zephyr main loop finished\n");
+    LOG_INF("zephyr main loop finished\n");
 }
 
 static int start()

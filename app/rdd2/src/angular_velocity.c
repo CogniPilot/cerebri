@@ -116,8 +116,8 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_angular_velocity_sp);
         }
 
-        static const double kp_x = 0.017;
-        static const double kp_y = 0.017;
+        static const double kp_x = 0.02;
+        static const double kp_y = 0.02;
         static const double kp_z = 0.1;
         static const double ff_x = 0;
         static const double ff_y = 0;

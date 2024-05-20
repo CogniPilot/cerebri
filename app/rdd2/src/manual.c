@@ -165,7 +165,7 @@ static void rdd2_manual_run(void* p0, void* p1, void* p2)
         dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         ticks_last = ticks_now;
         if (dt < 0 || dt > 0.5) {
-            LOG_WRN("joy update rate too low");
+            // LOG_WRN("joy update rate too low");
             continue;
         }
 

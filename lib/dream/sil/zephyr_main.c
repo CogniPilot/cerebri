@@ -2,13 +2,17 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0 */
 
+// host includes
+#include <signal.h>
 #include <time.h>
 
 #include <synapse_tinyframe/SynapseTopics.h>
 #include <synapse_tinyframe/TinyFrame.h>
+
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/ring_buffer.h>
 
+#include <pb_decode.h>
 #include <pb_encode.h>
 
 #include <synapse_protobuf/sim_clock.pb.h>
@@ -21,92 +25,85 @@
 
 #include <synapse_topic_list.h>
 
-#include "sil_context.h"
-
-LOG_MODULE_REGISTER(dream_sil, CONFIG_CEREBRI_DREAM_SIL_LOG_LEVEL);
-
+#define RX_BUF_SIZE 8192
+#define TX_BUF_SIZE 8192
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY -10
 
-extern sil_context_t g_ctx;
-extern struct ring_buf g_sil_recv;
-extern struct ring_buf g_sil_send;
+LOG_MODULE_REGISTER(dream_sil, CONFIG_CEREBRI_DREAM_SIL_LOG_LEVEL);
+
+RING_BUF_DECLARE(g_tx_buf, TX_BUF_SIZE);
+pthread_mutex_t g_lock_tx;
+
+RING_BUF_DECLARE(g_rx_buf, TX_BUF_SIZE);
+pthread_mutex_t g_lock_rx;
+
+struct context {
+    int sock;
+    pthread_t thread;
+    bool clock_initialized;
+    TinyFrame tf;
+    synapse_msgs_SimClock sim_clock;
+    synapse_msgs_Time clock_offset;
+    synapse_msgs_Actuators actuators;
+    synapse_msgs_LEDArray led_array;
+    uint64_t uptime_last;
+};
+
+extern volatile sig_atomic_t g_shutdown;
+
+void write_sim(TinyFrame* tf, const uint8_t* buf, uint32_t len)
+{
+    pthread_mutex_lock(&g_lock_tx);
+    int sent = ring_buf_put(&g_tx_buf, buf, len);
+    if (sent != len) {
+        LOG_ERR("failed to send: %d/%d", sent, len);
+    }
+    pthread_mutex_unlock(&g_lock_tx);
+}
+
+struct context g_ctx = {
+    .sock = -1,
+    .thread = 0,
+    .clock_initialized = false,
+    .tf = {
+        .peer_bit = TF_MASTER,
+        .write = write_sim,
+        .userdata = &g_ctx,
+    },
+    .sim_clock = synapse_msgs_SimClock_init_default,
+    .clock_offset = synapse_msgs_Time_init_default,
+    .actuators = synapse_msgs_Actuators_init_default,
+    .led_array = synapse_msgs_LEDArray_init_default,
+    .uptime_last = 0
+};
+
 static K_THREAD_STACK_DEFINE(my_stack_area, MY_STACK_SIZE);
 static struct k_thread my_thread_data;
 
-static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
+static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
 {
-    struct zros_node node;
-    struct zros_sub sub_actuators, sub_led_array;
-
-    zros_node_init(&node, "dream_sil");
-    zros_sub_init(&sub_actuators, &node, &topic_actuators, &g_ctx.send_actuators, 10);
-    zros_sub_init(&sub_led_array, &node, &topic_led_array, &g_ctx.send_led_array, 10);
-
-    sil_context_t* ctx = p0;
-    ARG_UNUSED(p1);
-    ARG_UNUSED(p2);
-    LOG_INF("zephyr sim entry point");
-    LOG_INF("waiting for sim clock");
-    while (!ctx->shutdown) {
-        synapse_msgs_SimClock sim_clock;
-        sim_clock = ctx->sim_clock;
-        if (ctx->clock_initialized) {
-            LOG_DBG("sim clock initialized");
-            zros_topic_publish(&topic_clock_offset, &ctx->clock_offset);
-            break;
-        } else {
-            k_yield();
-        }
-    }
-
-    LOG_DBG("running main loop");
-    uint64_t uptime_last = k_uptime_get();
-
-    while (!ctx->shutdown) {
-
-        //  publish new messages
-        uint8_t topic;
-        while (!ring_buf_is_empty(&g_sil_recv)) {
-            ring_buf_get(&g_sil_recv, &topic, 1);
-            if (topic == SYNAPSE_NAV_SAT_FIX_TOPIC) {
-                zros_topic_publish(&topic_nav_sat_fix, &ctx->nav_sat_fix);
-            } else if (topic == SYNAPSE_MAGNETIC_FIELD_TOPIC) {
-                zros_topic_publish(&topic_magnetic_field, &ctx->magnetic_field);
-            } else if (topic == SYNAPSE_IMU_TOPIC) {
-                zros_topic_publish(&topic_imu, &ctx->imu);
-            } else if (topic == SYNAPSE_ALTIMETER_TOPIC) {
-                zros_topic_publish(&topic_altimeter, &ctx->altimeter);
-            } else if (topic == SYNAPSE_BATTERY_STATE_TOPIC) {
-                zros_topic_publish(&topic_battery_state, &ctx->battery_state);
-            } else if (topic == SYNAPSE_WHEEL_ODOMETRY_TOPIC) {
-                zros_topic_publish(&topic_wheel_odometry, &ctx->wheel_odometry);
-            } else if (topic == SYNAPSE_ODOMETRY_TOPIC) {
-                zros_topic_publish(&topic_external_odometry, &ctx->external_odometry);
-            }
-        }
-
-        // send actuators if subscription updated
-        if (zros_sub_update_available(&sub_actuators)) {
-            zros_sub_update(&sub_actuators);
-            uint8_t topic = SYNAPSE_ACTUATORS_TOPIC;
-            ring_buf_put(&g_sil_send, &topic, 1);
-        }
-
-        // send led_array if subscription updated
-        if (zros_sub_update_available(&sub_led_array)) {
-            zros_sub_update(&sub_led_array);
-            uint8_t topic = SYNAPSE_LED_ARRAY_TOPIC;
-            ring_buf_put(&g_sil_send, &topic, 1);
+    struct context* ctx = (struct context*)tf->userdata;
+    synapse_msgs_SimClock msg = synapse_msgs_SimClock_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int rc = pb_decode(&stream, synapse_msgs_SimClock_fields, &msg);
+    if (rc) {
+        ctx->sim_clock = msg;
+        if (!ctx->clock_initialized) {
+            ctx->clock_initialized = true;
+            LOG_INF("sim clock received sec: %lld nsec: %d",
+                msg.sim.sec, msg.sim.nanosec);
+            ctx->clock_offset.sec = msg.sim.sec;
+            ctx->clock_offset.nanosec = msg.sim.nanosec;
         }
 
         // compute board time
         uint64_t uptime = k_uptime_get();
-        int uptime_delta = uptime - uptime_last;
+        int uptime_delta = uptime - ctx->uptime_last;
         if (uptime_delta != 4 && uptime_delta != 0) {
             LOG_WRN("uptime delta: %d\n", uptime_delta);
         }
-        uptime_last = uptime;
+        ctx->uptime_last = uptime;
         struct timespec ts_board;
         ts_board.tv_sec = uptime / 1.0e3;
         ts_board.tv_nsec = (uptime - ts_board.tv_sec * 1e3) * 1e6;
@@ -126,7 +123,218 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
                 ts_board.tv_sec, ts_board.tv_nsec);
             LOG_DBG("wait: usec %lld\n", wait_usec);
             k_usleep(wait_usec);
+        }
+
+    } else {
+        LOG_ERR("sim_clock decoding failed: %s", PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
+static TF_Result nav_sat_fix_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    synapse_msgs_NavSatFix msg = synapse_msgs_NavSatFix_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int rc = pb_decode(&stream, synapse_msgs_NavSatFix_fields, &msg);
+    if (rc) {
+        zros_topic_publish(&topic_nav_sat_fix, &msg);
+    } else {
+        LOG_ERR("navsat decoding failed: %s", PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
+static TF_Result imu_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    synapse_msgs_Imu msg = synapse_msgs_Imu_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int rc = pb_decode(&stream, synapse_msgs_Imu_fields, &msg);
+    if (rc) {
+        zros_topic_publish(&topic_imu, &msg);
+    } else {
+        LOG_ERR("imu decoding failed: %s", PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
+static TF_Result magnetic_field_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    synapse_msgs_MagneticField msg = synapse_msgs_MagneticField_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int rc = pb_decode(&stream, synapse_msgs_MagneticField_fields, &msg);
+    if (rc) {
+        zros_topic_publish(&topic_magnetic_field, &msg);
+    } else {
+        LOG_ERR("magnetic field decoding failed: %s",
+            PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
+static TF_Result battery_state_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    synapse_msgs_BatteryState msg = synapse_msgs_BatteryState_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int rc = pb_decode(&stream, synapse_msgs_BatteryState_fields, &msg);
+    if (rc) {
+        zros_topic_publish(&topic_battery_state, &msg);
+    } else {
+        LOG_ERR("battery state decoding failed: %s",
+            PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
+static TF_Result wheel_odometry_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    synapse_msgs_WheelOdometry msg = synapse_msgs_WheelOdometry_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int rc = pb_decode(&stream, synapse_msgs_WheelOdometry_fields, &msg);
+    if (rc) {
+        zros_topic_publish(&topic_wheel_odometry, &msg);
+    } else {
+        LOG_ERR("wheel odometry decoding failed: %s\n",
+            PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
+static TF_Result odometry_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    synapse_msgs_Odometry msg = synapse_msgs_Odometry_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    int rc = pb_decode(&stream, synapse_msgs_Odometry_fields, &msg);
+    if (rc) {
+        zros_topic_publish(&topic_external_odometry, &msg);
+    } else {
+        LOG_ERR("external odometry decoding failed: %s",
+            PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
+static void send_actuators(struct context* ctx)
+{
+    TF_Msg msg;
+    TF_ClearMsg(&msg);
+    uint8_t buf[synapse_msgs_Actuators_size];
+    pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
+    int status = pb_encode(&stream, synapse_msgs_Actuators_fields, &ctx->actuators);
+    if (status) {
+        msg.type = SYNAPSE_ACTUATORS_TOPIC;
+        msg.data = buf;
+        msg.len = stream.bytes_written;
+        TF_Send(&ctx->tf, &msg);
+    } else {
+        LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
+    }
+}
+
+static void send_led_array(struct context* ctx)
+{
+    TF_Msg msg;
+    TF_ClearMsg(&msg);
+    uint8_t buf[synapse_msgs_LEDArray_size];
+    pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
+    int status = pb_encode(&stream, synapse_msgs_LEDArray_fields, &ctx->led_array);
+    if (status) {
+        msg.type = SYNAPSE_LED_ARRAY_TOPIC;
+        msg.data = buf;
+        msg.len = stream.bytes_written;
+        TF_Send(&ctx->tf, &msg);
+    } else {
+        LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
+    }
+}
+
+TF_Result generic_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    return TF_STAY;
+}
+
+static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
+{
+    LOG_INF("zephry sim entry point\n");
+    struct context* ctx = p0;
+    ARG_UNUSED(p1);
+    ARG_UNUSED(p2);
+
+    struct zros_node node;
+    struct zros_sub sub_actuators, sub_led_array;
+
+    LOG_INF("zros node init");
+
+    zros_node_init(&node, "dream_sil");
+    zros_sub_init(&sub_actuators, &node, &topic_actuators, &ctx->actuators, 10);
+    zros_sub_init(&sub_led_array, &node, &topic_led_array, &ctx->led_array, 10);
+
+    LOG_INF("setup tinyframe");
+
+    // setup tinyframe
+    int ret = TF_InitStatic(&ctx->tf, TF_MASTER, write_sim);
+    if (ret < 0) {
+        LOG_ERR("tf init failed: %d", ret);
+        return;
+    }
+    TF_AddGenericListener(&ctx->tf, generic_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_SIM_CLOCK_TOPIC, sim_clock_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_NAV_SAT_FIX_TOPIC, nav_sat_fix_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_IMU_TOPIC, imu_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_MAGNETIC_FIELD_TOPIC, magnetic_field_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_BATTERY_STATE_TOPIC, battery_state_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_listener);
+    TF_AddTypeListener(&ctx->tf, SYNAPSE_ODOMETRY_TOPIC, odometry_listener);
+
+    static uint8_t buf[RX_BUF_SIZE];
+
+    while (!g_shutdown) {
+        LOG_INF("waiting for sim clock");
+
+        //  publish new messages
+        memset(buf, 0, RX_BUF_SIZE);
+        pthread_mutex_lock(&g_lock_rx);
+        int len = ring_buf_get(&g_rx_buf, buf, RX_BUF_SIZE);
+        pthread_mutex_unlock(&g_lock_rx);
+        if (len > 0) {
+            // LOG_INF("zephyr received %d", len);
+            TF_Accept(&ctx->tf, buf, len);
+        }
+
+        if (ctx->clock_initialized) {
+            LOG_DBG("sim clock initialized");
+            zros_topic_publish(&topic_clock_offset, &ctx->clock_offset);
+            break;
         } else {
+            struct timespec request, remaining;
+            request.tv_sec = 1;
+            request.tv_nsec = 0;
+            nanosleep(&request, &remaining);
+        }
+    }
+
+    LOG_DBG("running main loop");
+
+    while (!g_shutdown) {
+
+        // send actuators if subscription updated
+        if (zros_sub_update_available(&sub_actuators)) {
+            zros_sub_update(&sub_actuators);
+            send_actuators(ctx);
+        }
+
+        // send led_array if subscription updated
+        if (zros_sub_update_available(&sub_led_array)) {
+            zros_sub_update(&sub_led_array);
+            send_led_array(ctx);
+        }
+
+        //  publish new messages
+        int len = ring_buf_get(&g_rx_buf, buf, RX_BUF_SIZE);
+        if (len > 0) {
+            // LOG_INF("zephyr received %d\n", len);
+            TF_Accept(&ctx->tf, buf, len);
+        } else {
+            // wait for new meessage
             struct timespec request, remaining;
             request.tv_sec = 0;
             request.tv_nsec = 1000000;

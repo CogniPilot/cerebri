@@ -35,7 +35,8 @@ struct context {
     synapse_msgs_Time clock_offset;
     synapse_msgs_Odometry pose, estimator_odometry, external_odometry;
     synapse_msgs_Twist cmd_vel;
-    synapse_msgs_Vector3 force_sp, velocity_sp, position_sp, attitude_sp, orientation_sp;
+    synapse_msgs_Vector3 force_sp, velocity_sp, position_sp;
+    synapse_msgs_Quaternion attitude_sp, orientation_sp;
     struct zros_sub sub_status, sub_clock_offset, sub_pose, sub_bezier_trajectory, sub_velocity_sp,
         sub_position_sp, sub_estimator_odometry,
         sub_external_odometry, sub_orientation_sp;
@@ -60,8 +61,8 @@ static struct context g_ctx = {
     .force_sp = synapse_msgs_Vector3_init_default,
     .estimator_odometry = synapse_msgs_Odometry_init_default,
     .external_odometry = synapse_msgs_Odometry_init_default,
-    .attitude_sp = synapse_msgs_Vector3_init_default,
-    .orientation_sp = synapse_msgs_Vector3_init_default,
+    .attitude_sp = synapse_msgs_Quaternion_init_default,
+    .orientation_sp = synapse_msgs_Quaternion_init_default,
     .velocity_sp = synapse_msgs_Vector3_init_default,
     .position_sp = synapse_msgs_Vector3_init_default,
     .sub_status = {},
@@ -181,69 +182,68 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
         }
 
         if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
-            CASADI_FUNC_ARGS(position_control)
-            const double m = 2.0;
-            const double g = 9.8;
-            double pt_w[3];
-            double vt_w[3];
-            double at_w[3];
-            double yt = ctx->orientation_sp.x; // desired yaw
-            double Kp = 2.0;
-            double Kv = 2.0;
-            double p_w[3];
-            double v_b[3];
-            double q_wb[4];
+            double nT; // normalized magnitude of thrust (ratio of weight)
+            double qr_wb[4];
+            {
+                CASADI_FUNC_ARGS(position_control)
+                double pt_w[3];
+                double vt_w[3];
+                double at_w[3];
+                double qc_wb[4];
+                double p_w[3];
+                double v_b[3];
+                double q_wb[4];
 
-            double thrust;
-            double euler[3];
+                // set position as current position for now, kills pos feedback
 
-            // set position as current position for now, kills pos feedback
+                // set points
+                pt_w[0] = ctx->position_sp.x;
+                pt_w[1] = ctx->position_sp.y;
+                pt_w[2] = ctx->position_sp.z;
+                vt_w[0] = 0;
+                vt_w[1] = 0;
+                vt_w[2] = 0;
+                at_w[0] = 0;
+                at_w[1] = 0;
+                at_w[2] = 0;
+                qc_wb[0] = ctx->orientation_sp.w;
+                qc_wb[1] = ctx->orientation_sp.x;
+                qc_wb[2] = ctx->orientation_sp.y;
+                qc_wb[3] = ctx->orientation_sp.z;
 
-            // set points
-            pt_w[0] = ctx->position_sp.x;
-            pt_w[1] = ctx->position_sp.y;
-            pt_w[2] = ctx->position_sp.z;
-            vt_w[0] = 0;
-            vt_w[1] = 0;
-            vt_w[2] = 0;
-            at_w[0] = 0;
-            at_w[1] = 0;
-            at_w[2] = 0;
+                // estimates
+                q_wb[0] = ctx->estimator_odometry.pose.pose.orientation.w;
+                q_wb[1] = ctx->estimator_odometry.pose.pose.orientation.x;
+                q_wb[2] = ctx->estimator_odometry.pose.pose.orientation.y;
+                q_wb[3] = ctx->estimator_odometry.pose.pose.orientation.z;
+                p_w[0] = ctx->estimator_odometry.pose.pose.position.x;
+                p_w[1] = ctx->estimator_odometry.pose.pose.position.y;
+                p_w[2] = ctx->estimator_odometry.pose.pose.position.z;
+                v_b[0] = ctx->external_odometry.twist.twist.linear.x;
+                v_b[1] = ctx->external_odometry.twist.twist.linear.y;
+                v_b[2] = ctx->external_odometry.twist.twist.linear.z;
 
-            // estimates
-            q_wb[0] = ctx->estimator_odometry.pose.pose.orientation.w;
-            q_wb[1] = ctx->estimator_odometry.pose.pose.orientation.x;
-            q_wb[2] = ctx->estimator_odometry.pose.pose.orientation.y;
-            q_wb[3] = ctx->estimator_odometry.pose.pose.orientation.z;
-            p_w[0] = ctx->estimator_odometry.pose.pose.position.x;
-            p_w[1] = ctx->estimator_odometry.pose.pose.position.y;
-            p_w[2] = ctx->estimator_odometry.pose.pose.position.z;
-            v_b[0] = ctx->external_odometry.twist.twist.linear.x;
-            v_b[1] = ctx->external_odometry.twist.twist.linear.y;
-            v_b[2] = ctx->external_odometry.twist.twist.linear.z;
+                /* position_control:(pt_w[3],vt_w[3],at_w[3],qc_wb[4],p_w[3],v_b[3],q_wb[4])->(nT,qr_wb[4]) */
+                args[0] = pt_w;
+                args[1] = vt_w;
+                args[2] = at_w;
+                args[3] = qc_wb;
+                args[4] = p_w;
+                args[5] = v_b;
+                args[6] = q_wb;
+                res[0] = &nT;
+                res[1] = qr_wb;
 
-            /* position_control:(m,pt_w[3],vt_w[3],at_w[3],yt,Kp,Kv,
-             * p_w[3],v_b[3],q_wb[4])->(nT,euler[3]) */
-            args[0] = &m;
-            args[1] = pt_w;
-            args[2] = vt_w;
-            args[3] = at_w;
-            args[4] = &yt;
-            args[5] = &Kp;
-            args[6] = &Kv;
-            args[7] = p_w;
-            args[8] = v_b;
-            args[9] = q_wb;
-            res[0] = &thrust;
-            res[1] = euler;
+                CASADI_FUNC_CALL(position_control)
+            }
 
-            CASADI_FUNC_CALL(position_control)
-            ctx->attitude_sp.x = euler[0];
-            ctx->attitude_sp.y = euler[1];
-            ctx->attitude_sp.z = euler[2];
+            ctx->attitude_sp.w = qr_wb[0];
+            ctx->attitude_sp.x = qr_wb[1];
+            ctx->attitude_sp.y = qr_wb[2];
+            ctx->attitude_sp.z = qr_wb[3];
             zros_pub_update(&ctx->pub_attitude_sp);
 
-            ctx->force_sp.z = thrust / (m * g);
+            ctx->force_sp.z = nT;
             zros_pub_update(&ctx->pub_force_sp);
         }
     }

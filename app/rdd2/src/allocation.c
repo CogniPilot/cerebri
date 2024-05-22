@@ -71,8 +71,8 @@ static void rdd2_allocation_init(struct context* ctx)
     LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_allocation");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
-    zros_sub_init(&ctx->sub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp, 10);
-    zros_sub_init(&ctx->sub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp, 100);
+    zros_sub_init(&ctx->sub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp, 300);
+    zros_sub_init(&ctx->sub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp, 300);
     zros_pub_init(&ctx->pub_actuators, &ctx->node, &topic_actuators, &ctx->actuators);
     atomic_set(&ctx->running, 1);
 }
@@ -140,7 +140,9 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
 
             if (thrust + fabs(pitch) + fabs(roll) + fabs(yaw) > 1) {
                 thrust = 1 - fabs(pitch) - fabs(roll) - fabs(yaw);
-                LOG_WRN("Thrust Saturation: %10.4f", thrust);
+                LOG_WRN("motor saturaction: roll: %10.4f, "
+                        "pitch: %10.4f, yaw: %10.4f, thrust: %10.4f",
+                    roll, pitch, yaw, thrust);
             }
 
             const double k = 1600;

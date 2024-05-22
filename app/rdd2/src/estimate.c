@@ -83,9 +83,9 @@ static void rdd2_estimate_init(struct context* ctx)
 {
     LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_estimate");
-    zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->imu, 100);
+    zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->imu, 300);
     zros_sub_init(&ctx->sub_external_odometry, &ctx->node, &topic_external_odometry,
-        &ctx->external_odometry, 100);
+        &ctx->external_odometry, 300);
     zros_pub_init(&ctx->pub_odometry, &ctx->node, &topic_estimator_odometry, &ctx->odometry);
     atomic_set(&ctx->running, 1);
 }

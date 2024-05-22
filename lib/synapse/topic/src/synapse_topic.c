@@ -230,9 +230,12 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_altimeter) {
         synapse_msgs_Altimeter msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_altimeter);
-    } else if (topic == &topic_angular_velocity_sp || topic == &topic_attitude_sp || topic == &topic_moment_sp || topic == &topic_force_sp || topic == &topic_velocity_sp || topic == &topic_orientation_sp || topic == &topic_position_sp) {
+    } else if (topic == &topic_angular_velocity_sp || topic == &topic_moment_sp || topic == &topic_force_sp || topic == &topic_velocity_sp || topic == &topic_position_sp) {
         synapse_msgs_Vector3 msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_vector3);
+    } else if (topic == &topic_attitude_sp || topic == &topic_orientation_sp) {
+        synapse_msgs_Quaternion msg = {};
+        handler(sh, topic, &msg, (snprint_t*)&snprint_quaternion);
     } else if (topic == &topic_battery_state) {
         synapse_msgs_BatteryState msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_battery_state);

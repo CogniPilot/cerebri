@@ -66,9 +66,9 @@ static void rdd2_angular_velocity_init(struct context* ctx)
     zros_node_init(&ctx->node, "rdd2_angular_velocity");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_angular_velocity_sp, &ctx->node,
-        &topic_angular_velocity_sp, &ctx->angular_velocity_sp, 250);
+        &topic_angular_velocity_sp, &ctx->angular_velocity_sp, 300);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
-        &topic_estimator_odometry, &ctx->estimator_odometry, 250);
+        &topic_estimator_odometry, &ctx->estimator_odometry, 300);
     zros_pub_init(&ctx->pub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp);
     atomic_set(&ctx->running, 1);
 }
@@ -116,8 +116,8 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_angular_velocity_sp);
         }
 
-        static const double kp_x = 0.02;
-        static const double kp_y = 0.02;
+        static const double kp_x = 0.025;
+        static const double kp_y = 0.025;
         static const double kp_z = 0.1;
         static const double ff_x = 0;
         static const double ff_y = 0;

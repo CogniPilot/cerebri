@@ -36,7 +36,8 @@ struct context {
     struct zros_node node;
     synapse_msgs_Status status;
     synapse_msgs_Odometry estimator_odometry;
-    synapse_msgs_Vector3 attitude_sp, angular_velocity_sp;
+    synapse_msgs_Quaternion attitude_sp;
+    synapse_msgs_Vector3 angular_velocity_sp;
     struct zros_sub sub_status, sub_attitude_sp, sub_estimator_odometry;
     struct zros_pub pub_angular_velocity_sp;
     atomic_t running;
@@ -48,7 +49,7 @@ struct context {
 static struct context g_ctx = {
     .node = {},
     .status = synapse_msgs_Status_init_default,
-    .attitude_sp = synapse_msgs_Vector3_init_default,
+    .attitude_sp = synapse_msgs_Quaternion_init_default,
     .angular_velocity_sp = synapse_msgs_Vector3_init_default,
     .estimator_odometry = synapse_msgs_Odometry_init_default,
     .sub_status = {},
@@ -67,9 +68,9 @@ static void rdd2_attitude_init(struct context* ctx)
     zros_node_init(&ctx->node, "rdd2_attiude");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_attitude_sp, &ctx->node,
-        &topic_attitude_sp, &ctx->attitude_sp, 100);
+        &topic_attitude_sp, &ctx->attitude_sp, 300);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
-        &topic_estimator_odometry, &ctx->estimator_odometry, 100);
+        &topic_estimator_odometry, &ctx->estimator_odometry, 300);
     zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node, &topic_angular_velocity_sp, &ctx->angular_velocity_sp);
     atomic_set(&ctx->running, 1);
 }
@@ -117,37 +118,33 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
         }
 
         if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_MANUAL) {
-            /* attitude_error:(q[4],yaw_r,pitch_r,roll_r)->(omega[3]) */
-            CASADI_FUNC_ARGS(attitude_error);
-            double q[4];
-            double angle_error[3];
+            double omega[3];
+            {
+                /* attitude_control:(q[4],q_r[4])->(omega[3]) */
+                CASADI_FUNC_ARGS(attitude_control);
+                double q[4];
+                double q_r[4];
 
-            double yaw_sp = ctx->attitude_sp.x; // yaw
-            double pitch_sp = ctx->attitude_sp.y; // pitch
-            double roll_sp = ctx->attitude_sp.z; // roll
+                q[0] = ctx->estimator_odometry.pose.pose.orientation.w;
+                q[1] = ctx->estimator_odometry.pose.pose.orientation.x;
+                q[2] = ctx->estimator_odometry.pose.pose.orientation.y;
+                q[3] = ctx->estimator_odometry.pose.pose.orientation.z;
 
-            q[0] = ctx->estimator_odometry.pose.pose.orientation.w;
-            q[1] = ctx->estimator_odometry.pose.pose.orientation.x;
-            q[2] = ctx->estimator_odometry.pose.pose.orientation.y;
-            q[3] = ctx->estimator_odometry.pose.pose.orientation.z;
-            args[0] = q;
-            args[1] = &yaw_sp;
-            args[2] = &pitch_sp;
-            args[3] = &roll_sp;
-            res[0] = angle_error;
-            CASADI_FUNC_CALL(attitude_error);
+                q_r[0] = ctx->attitude_sp.w;
+                q_r[1] = ctx->attitude_sp.x;
+                q_r[2] = ctx->attitude_sp.y;
+                q_r[3] = ctx->attitude_sp.z;
 
-            LOG_DBG("q: %10.4f %10.4f %10.4f %10.4f", q[0], q[1], q[2], q[3]);
-            LOG_DBG("yaw: %10.4f pitch: %10.4f roll: %10.4f", yaw_sp, pitch_sp, roll_sp);
-            LOG_DBG("angle_error: %10.4f %10.4f %10.4f", angle_error[0], angle_error[1], angle_error[2]);
-
-            // set rate setpoints
-
-            ctx->angular_velocity_sp.x = 4 * angle_error[0];
-            ctx->angular_velocity_sp.y = 4 * angle_error[1];
-            ctx->angular_velocity_sp.z = 2 * angle_error[2];
+                args[0] = q;
+                args[1] = q_r;
+                res[0] = omega;
+                CASADI_FUNC_CALL(attitude_control);
+            }
 
             // publish
+            ctx->angular_velocity_sp.x = omega[0];
+            ctx->angular_velocity_sp.y = omega[1];
+            ctx->angular_velocity_sp.z = omega[2];
             zros_pub_update(&ctx->pub_angular_velocity_sp);
         }
     }

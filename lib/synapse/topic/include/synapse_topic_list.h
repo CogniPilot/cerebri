@@ -17,6 +17,7 @@
 #include <synapse_protobuf/magnetic_field.pb.h>
 #include <synapse_protobuf/nav_sat_fix.pb.h>
 #include <synapse_protobuf/odometry.pb.h>
+#include <synapse_protobuf/quaternion.pb.h>
 #include <synapse_protobuf/safety.pb.h>
 #include <synapse_protobuf/status.pb.h>
 #include <synapse_protobuf/time.pb.h>
@@ -59,7 +60,7 @@ enum {
 ZROS_TOPIC_DECLARE(topic_actuators, synapse_msgs_Actuators);
 ZROS_TOPIC_DECLARE(topic_actuators_manual, synapse_msgs_Actuators);
 ZROS_TOPIC_DECLARE(topic_altimeter, synapse_msgs_Altimeter);
-ZROS_TOPIC_DECLARE(topic_attitude_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DECLARE(topic_attitude_sp, synapse_msgs_Quaternion);
 ZROS_TOPIC_DECLARE(topic_battery_state, synapse_msgs_BatteryState);
 ZROS_TOPIC_DECLARE(topic_bezier_trajectory, synapse_msgs_BezierTrajectory);
 ZROS_TOPIC_DECLARE(topic_clock_offset, synapse_msgs_Time);

@@ -24,10 +24,6 @@
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY 4
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
 LOG_MODULE_REGISTER(rdd2_attitude, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
@@ -78,12 +74,12 @@ static void rdd2_attitude_init(struct context* ctx)
 static void rdd2_attitude_fini(struct context* ctx)
 {
     LOG_INF("fini");
+    atomic_set(&ctx->running, 0);
     zros_node_fini(&ctx->node);
     zros_sub_fini(&ctx->sub_status);
     zros_sub_fini(&ctx->sub_attitude_sp);
     zros_sub_fini(&ctx->sub_estimator_odometry);
     zros_pub_fini(&ctx->pub_angular_velocity_sp);
-    atomic_set(&ctx->running, 0);
 }
 
 static void rdd2_attitude_run(void* p0, void* p1, void* p2)
@@ -117,7 +113,8 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_attitude_sp);
         }
 
-        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_MANUAL) {
+        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN) {
+            // TODO add acro mode
             double omega[3];
             {
                 /* attitude_control:(q[4],q_r[4])->(omega[3]) */

@@ -17,6 +17,27 @@ extern "C" {
 #define casadi_int long long int
 #endif
 
+int attitude_rate_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int attitude_rate_control_alloc_mem(void);
+int attitude_rate_control_init_mem(int mem);
+void attitude_rate_control_free_mem(int mem);
+int attitude_rate_control_checkout(void);
+void attitude_rate_control_release(int mem);
+void attitude_rate_control_incref(void);
+void attitude_rate_control_decref(void);
+casadi_int attitude_rate_control_n_in(void);
+casadi_int attitude_rate_control_n_out(void);
+casadi_real attitude_rate_control_default_in(casadi_int i);
+const char* attitude_rate_control_name_in(casadi_int i);
+const char* attitude_rate_control_name_out(casadi_int i);
+const casadi_int* attitude_rate_control_sparsity_in(casadi_int i);
+const casadi_int* attitude_rate_control_sparsity_out(casadi_int i);
+int attitude_rate_control_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+int attitude_rate_control_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+#define attitude_rate_control_SZ_ARG 2
+#define attitude_rate_control_SZ_RES 1
+#define attitude_rate_control_SZ_IW 0
+#define attitude_rate_control_SZ_W 3
 int attitude_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 int attitude_control_alloc_mem(void);
 int attitude_control_init_mem(int mem);
@@ -122,6 +143,48 @@ int joy_acro_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_i
 #define joy_acro_SZ_RES 2
 #define joy_acro_SZ_IW 0
 #define joy_acro_SZ_W 2
+int joy_auto_level(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int joy_auto_level_alloc_mem(void);
+int joy_auto_level_init_mem(int mem);
+void joy_auto_level_free_mem(int mem);
+int joy_auto_level_checkout(void);
+void joy_auto_level_release(int mem);
+void joy_auto_level_incref(void);
+void joy_auto_level_decref(void);
+casadi_int joy_auto_level_n_in(void);
+casadi_int joy_auto_level_n_out(void);
+casadi_real joy_auto_level_default_in(casadi_int i);
+const char* joy_auto_level_name_in(casadi_int i);
+const char* joy_auto_level_name_out(casadi_int i);
+const casadi_int* joy_auto_level_sparsity_in(casadi_int i);
+const casadi_int* joy_auto_level_sparsity_out(casadi_int i);
+int joy_auto_level_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+int joy_auto_level_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+#define joy_auto_level_SZ_ARG 5
+#define joy_auto_level_SZ_RES 2
+#define joy_auto_level_SZ_IW 0
+#define joy_auto_level_SZ_W 28
+int joy_position(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int joy_position_alloc_mem(void);
+int joy_position_init_mem(int mem);
+void joy_position_free_mem(int mem);
+int joy_position_checkout(void);
+void joy_position_release(int mem);
+void joy_position_incref(void);
+void joy_position_decref(void);
+casadi_int joy_position_n_in(void);
+casadi_int joy_position_n_out(void);
+casadi_real joy_position_default_in(casadi_int i);
+const char* joy_position_name_in(casadi_int i);
+const char* joy_position_name_out(casadi_int i);
+const casadi_int* joy_position_sparsity_in(casadi_int i);
+const casadi_int* joy_position_sparsity_out(casadi_int i);
+int joy_position_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+int joy_position_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+#define joy_position_SZ_ARG 5
+#define joy_position_SZ_RES 2
+#define joy_position_SZ_IW 0
+#define joy_position_SZ_W 28
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

@@ -4,7 +4,6 @@
  */
 
 #include <assert.h>
-#include <math.h>
 
 #include <synapse_topic_list.h>
 #include <zephyr/logging/log.h>
@@ -23,10 +22,6 @@
 
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY 4
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 LOG_MODULE_REGISTER(rdd2_angular_velocity, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
@@ -116,20 +111,30 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_angular_velocity_sp);
         }
 
-        static const double kp_x = 0.025;
-        static const double kp_y = 0.025;
-        static const double kp_z = 0.1;
-        static const double ff_x = 0;
-        static const double ff_y = 0;
-        static const double ff_z = 0;
+        {
+            /* attitude_rate_control:(omega[3],omega_r[3])->(M[3]) */
+            CASADI_FUNC_ARGS(attitude_rate_control);
+            double omega[3];
+            double omega_r[3];
+            double M[3];
+            omega[0] = ctx->estimator_odometry.twist.twist.angular.x;
+            omega[1] = ctx->estimator_odometry.twist.twist.angular.y;
+            omega[2] = ctx->estimator_odometry.twist.twist.angular.z;
 
-        synapse_msgs_Vector3 omega_r = ctx->angular_velocity_sp;
-        synapse_msgs_Vector3 omega = ctx->estimator_odometry.twist.twist.angular;
+            omega_r[0] = ctx->angular_velocity_sp.x;
+            omega_r[1] = ctx->angular_velocity_sp.y;
+            omega_r[2] = ctx->angular_velocity_sp.z;
 
-        // compute control
-        ctx->moment_sp.x = kp_x * (omega_r.x - omega.x) + ff_x * omega_r.x;
-        ctx->moment_sp.y = kp_y * (omega_r.y - omega.y) + ff_y * omega_r.y;
-        ctx->moment_sp.z = kp_z * (omega_r.z - omega.z) + ff_z * omega_r.z;
+            args[0] = omega;
+            args[1] = omega_r;
+            res[0] = M;
+            CASADI_FUNC_CALL(attitude_rate_control);
+
+            // compute control
+            ctx->moment_sp.x = M[0];
+            ctx->moment_sp.y = M[1];
+            ctx->moment_sp.z = M[2];
+        }
 
         // publish
         zros_pub_update(&ctx->pub_moment_sp);

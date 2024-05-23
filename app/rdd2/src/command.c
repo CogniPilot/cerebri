@@ -30,25 +30,26 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-LOG_MODULE_REGISTER(rdd2_joy, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
+LOG_MODULE_REGISTER(rdd2_command, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 static const double deg2rad = M_PI / 180.0;
-static const double thrust_trim = 0.5;
-static const double thrust_delta = 0.1;
 
 struct context {
     struct zros_node node;
     synapse_msgs_Joy joy;
-    synapse_msgs_Vector3 angular_velocity_sp, force_sp, velocity_sp, position_sp;
+    synapse_msgs_Vector3 angular_velocity_sp, force_sp, accel_sp, velocity_sp, position_sp;
     synapse_msgs_Quaternion attitude_sp, orientation_sp;
+    synapse_msgs_BezierTrajectory bezier_trajectory;
     synapse_msgs_Status status;
     synapse_msgs_Status last_status;
     synapse_msgs_Odometry estimator_odometry;
+    struct zros_sub sub_bezier_trajectory;
     struct zros_sub sub_status;
     struct zros_sub sub_joy;
     struct zros_sub sub_estimator_odometry;
-    struct zros_pub pub_attitude_sp, pub_angular_velocity_sp, pub_force_sp, pub_velocity_sp, pub_orientation_sp, pub_position_sp;
+    struct zros_pub pub_attitude_sp, pub_angular_velocity_sp, pub_force_sp, pub_accel_sp,
+        pub_velocity_sp, pub_orientation_sp, pub_position_sp;
     atomic_t running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
@@ -62,18 +63,22 @@ static struct context g_ctx = {
     .attitude_sp = synapse_msgs_Quaternion_init_default,
     .angular_velocity_sp = synapse_msgs_Vector3_init_default,
     .force_sp = synapse_msgs_Vector3_init_default,
+    .bezier_trajectory = synapse_msgs_BezierTrajectory_init_default,
     .status = synapse_msgs_Status_init_default,
     .last_status = synapse_msgs_Status_init_default,
     .velocity_sp = synapse_msgs_Vector3_init_default,
+    .accel_sp = synapse_msgs_Vector3_init_default,
     .orientation_sp = synapse_msgs_Quaternion_init_default,
     .position_sp = synapse_msgs_Vector3_init_default,
     .sub_joy = {},
     .sub_status = {},
+    .sub_bezier_trajectory = {},
     .sub_estimator_odometry = {},
     .pub_attitude_sp = {},
     .pub_angular_velocity_sp = {},
     .pub_force_sp = {},
     .pub_velocity_sp = {},
+    .pub_accel_sp = {},
     .pub_orientation_sp = {},
     .pub_position_sp = {},
     .running = ATOMIC_INIT(0),
@@ -83,12 +88,13 @@ static struct context g_ctx = {
     .camera_yaw = 0,
 };
 
-static void rdd2_joy_init(struct context* ctx)
+static void rdd2_command_init(struct context* ctx)
 {
     LOG_INF("init");
-    zros_node_init(&ctx->node, "rdd2_joy");
+    zros_node_init(&ctx->node, "rdd2_command");
     zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 10);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
+    zros_sub_init(&ctx->sub_bezier_trajectory, &ctx->node, &topic_bezier_trajectory, &ctx->bezier_trajectory, 10);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
     zros_pub_init(&ctx->pub_attitude_sp, &ctx->node,
         &topic_attitude_sp, &ctx->attitude_sp);
@@ -98,6 +104,8 @@ static void rdd2_joy_init(struct context* ctx)
         &topic_force_sp, &ctx->force_sp);
     zros_pub_init(&ctx->pub_velocity_sp, &ctx->node,
         &topic_velocity_sp, &ctx->velocity_sp);
+    zros_pub_init(&ctx->pub_accel_sp, &ctx->node,
+        &topic_accel_sp, &ctx->accel_sp);
     zros_pub_init(&ctx->pub_orientation_sp, &ctx->node,
         &topic_orientation_sp, &ctx->orientation_sp);
     zros_pub_init(&ctx->pub_position_sp, &ctx->node,
@@ -105,29 +113,31 @@ static void rdd2_joy_init(struct context* ctx)
     atomic_set(&ctx->running, 1);
 }
 
-static void rdd2_joy_fini(struct context* ctx)
+static void rdd2_command_fini(struct context* ctx)
 {
     LOG_INF("fini");
     zros_node_fini(&ctx->node);
     zros_sub_fini(&ctx->sub_joy);
     zros_sub_fini(&ctx->sub_status);
+    zros_sub_fini(&ctx->sub_bezier_trajectory);
     zros_sub_fini(&ctx->sub_estimator_odometry);
     zros_pub_fini(&ctx->pub_attitude_sp);
     zros_pub_fini(&ctx->pub_angular_velocity_sp);
     zros_pub_fini(&ctx->pub_velocity_sp);
+    zros_pub_fini(&ctx->pub_accel_sp);
     zros_pub_fini(&ctx->pub_force_sp);
     zros_pub_fini(&ctx->pub_orientation_sp);
     zros_pub_fini(&ctx->pub_position_sp);
     atomic_set(&ctx->running, 0);
 }
 
-static void rdd2_joy_run(void* p0, void* p1, void* p2)
+static void rdd2_command_run(void* p0, void* p1, void* p2)
 {
     struct context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
 
-    rdd2_joy_init(ctx);
+    rdd2_command_init(ctx);
 
     struct k_poll_event events[] = {
         *zros_sub_get_event(&ctx->sub_joy),
@@ -142,7 +152,7 @@ static void rdd2_joy_run(void* p0, void* p1, void* p2)
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
             // LOG_DBG("not receiving joy");
-            ctx->status.mode = synapse_msgs_Status_Mode_MODE_CMD_VEL;
+            ctx->status.mode = synapse_msgs_Status_Mode_MODE_MANUAL;
             ctx->joy.axes[JOY_AXES_ROLL] = 0;
             ctx->joy.axes[JOY_AXES_PITCH] = 0;
             ctx->joy.axes[JOY_AXES_YAW] = 0;
@@ -159,6 +169,10 @@ static void rdd2_joy_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_status);
         }
 
+        if (zros_sub_update_available(&ctx->sub_bezier_trajectory)) {
+            zros_sub_update(&ctx->sub_bezier_trajectory);
+        }
+
         if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {
             zros_sub_update(&ctx->sub_estimator_odometry);
         }
@@ -172,81 +186,38 @@ static void rdd2_joy_run(void* p0, void* p1, void* p2)
             continue;
         }
 
+        // joy data
+        double joy_roll = (double)ctx->joy.axes[JOY_AXES_ROLL];
+        double joy_pitch = (double)ctx->joy.axes[JOY_AXES_PITCH];
+        double joy_yaw = (double)ctx->joy.axes[JOY_AXES_YAW];
+        double joy_thrust = (double)ctx->joy.axes[JOY_AXES_THRUST];
+
+        // estimated attitude quaternion
+        double q[4];
+        q[0] = ctx->estimator_odometry.pose.pose.orientation.w;
+        q[1] = ctx->estimator_odometry.pose.pose.orientation.x;
+        q[2] = ctx->estimator_odometry.pose.pose.orientation.y;
+        q[3] = ctx->estimator_odometry.pose.pose.orientation.z;
+
         // handle joy based on mode
         if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
-            // attitude rate
-            double omega[3];
+
+            double qr[4];
             double thrust;
             {
-                /* joy_acro:(joy_roll,joy_pitch,joy_yaw,joy_thrust)->(omega[3],thrust) */
-                CASADI_FUNC_ARGS(joy_acro);
+                /* joy_auto_level:(joy_roll,joy_pitch,joy_yaw,joy_thrust,q[4])->(qr[4],thrust) */
+                CASADI_FUNC_ARGS(joy_auto_level);
 
-                double joy_roll = (double)ctx->joy.axes[JOY_AXES_ROLL];
-                double joy_pitch = (double)ctx->joy.axes[JOY_AXES_PITCH];
-                double joy_yaw = (double)ctx->joy.axes[JOY_AXES_YAW];
-                double joy_thrust = (double)ctx->joy.axes[JOY_AXES_THRUST];
                 args[0] = &joy_roll;
                 args[1] = &joy_pitch;
                 args[2] = &joy_yaw;
                 args[3] = &joy_thrust;
+                args[4] = q;
 
-                res[0] = omega;
+                res[0] = qr;
                 res[1] = &thrust;
 
-                CASADI_FUNC_CALL(joy_acro);
-            }
-
-            // angular velocity set point
-            ctx->angular_velocity_sp.x = omega[0];
-            ctx->angular_velocity_sp.y = omega[1];
-            ctx->angular_velocity_sp.z = omega[2];
-            zros_pub_update(&ctx->pub_angular_velocity_sp);
-
-            // thrust pass through
-            ctx->force_sp.z = thrust;
-            zros_pub_update(&ctx->pub_force_sp);
-
-        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL) {
-            // attitude
-
-            double roll_max = 20 * deg2rad;
-            double pitch_max = 20 * deg2rad;
-            double yaw_rate_max = 60 * deg2rad;
-
-            double joy_roll = (double)ctx->joy.axes[JOY_AXES_ROLL];
-            double joy_pitch = (double)ctx->joy.axes[JOY_AXES_PITCH];
-            double joy_yaw = (double)ctx->joy.axes[JOY_AXES_YAW];
-            double joy_thrust = (double)ctx->joy.axes[JOY_AXES_THRUST];
-            double yaw, pitch, roll;
-            double qr[4];
-
-            {
-                /* quat_to_eulerB321:(q[4])->(yaw, pitch, roll) */
-                CASADI_FUNC_ARGS(quat_to_eulerB321);
-                double q[4];
-                q[0] = ctx->estimator_odometry.pose.pose.orientation.w;
-                q[1] = ctx->estimator_odometry.pose.pose.orientation.x;
-                q[2] = ctx->estimator_odometry.pose.pose.orientation.y;
-                q[3] = ctx->estimator_odometry.pose.pose.orientation.z;
-                args[0] = q;
-
-                res[0] = &yaw;
-                res[1] = &pitch;
-                res[2] = &roll;
-                CASADI_FUNC_CALL(quat_to_eulerB321);
-            }
-
-            {
-                /* eulerB321_to_quat:(yaw, pitch, roll)->(q[4]) */
-                CASADI_FUNC_ARGS(eulerB321_to_quat);
-                double yaw_r = (yaw + yaw_rate_max * joy_yaw);
-                double pitch_r = pitch_max * joy_pitch;
-                double roll_r = -roll_max * joy_roll;
-                args[0] = &yaw_r;
-                args[1] = &pitch_r;
-                args[2] = &roll_r;
-                res[0] = qr;
-                CASADI_FUNC_CALL(eulerB321_to_quat);
+                CASADI_FUNC_CALL(joy_auto_level);
             }
 
             // attitude set point
@@ -257,43 +228,36 @@ static void rdd2_joy_run(void* p0, void* p1, void* p2)
             zros_pub_update(&ctx->pub_attitude_sp);
 
             // thrust pass through
-            ctx->force_sp.z = joy_thrust * thrust_delta + thrust_trim;
+            ctx->force_sp.z = thrust;
             zros_pub_update(&ctx->pub_force_sp);
 
-        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
+        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL) {
 
-            bool now_auto = ctx->last_status.mode != synapse_msgs_Status_Mode_MODE_AUTO;
+            bool now_cmd_vel = ctx->last_status.mode != synapse_msgs_Status_Mode_MODE_CMD_VEL;
             bool now_armed = (ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED) && (ctx->last_status.arming != synapse_msgs_Status_Arming_ARMING_ARMED);
 
             double yaw, pitch, roll;
             {
                 /* quat_to_eulerB321:(q[4])->(yaw, pitch, roll) */
                 CASADI_FUNC_ARGS(quat_to_eulerB321);
-                double q[4];
-                q[0] = ctx->estimator_odometry.pose.pose.orientation.w;
-                q[1] = ctx->estimator_odometry.pose.pose.orientation.x;
-                q[2] = ctx->estimator_odometry.pose.pose.orientation.y;
-                q[3] = ctx->estimator_odometry.pose.pose.orientation.z;
+
                 args[0] = q;
+
                 res[0] = &yaw;
                 res[1] = &pitch;
                 res[2] = &roll;
+
                 CASADI_FUNC_CALL(quat_to_eulerB321);
             }
 
-            // reset position setpoint if now auto or now armed
-            if (now_auto || now_armed) {
+            // reset position setpoint if now cmd_vel or now armed
+            if (now_cmd_vel || now_armed) {
                 LOG_INF("position_sp, camera_yaw reset");
                 ctx->position_sp.x = ctx->estimator_odometry.pose.pose.position.x;
                 ctx->position_sp.y = ctx->estimator_odometry.pose.pose.position.y;
                 ctx->position_sp.z = ctx->estimator_odometry.pose.pose.position.z;
                 ctx->camera_yaw = yaw;
             }
-
-            double joy_roll = (double)ctx->joy.axes[JOY_AXES_ROLL];
-            double joy_pitch = (double)ctx->joy.axes[JOY_AXES_PITCH];
-            double joy_yaw = (double)ctx->joy.axes[JOY_AXES_YAW];
-            double joy_thrust = (double)ctx->joy.axes[JOY_AXES_THRUST];
 
             double yaw_rate = 60 * deg2rad * joy_yaw;
             double vbx = 2.0 * joy_pitch;
@@ -322,9 +286,10 @@ static void rdd2_joy_run(void* p0, void* p1, void* p2)
                 ctx->position_sp.z = ctx->estimator_odometry.pose.pose.position.z + e_z * pos_error_max / norm_e;
             }
 
+            // position setpoint
             zros_pub_update(&ctx->pub_position_sp);
 
-            // velocity
+            // velocity setpoint
             ctx->velocity_sp.x = vwx;
             ctx->velocity_sp.y = vwy;
             ctx->velocity_sp.z = vwz;
@@ -346,30 +311,70 @@ static void rdd2_joy_run(void* p0, void* p1, void* p2)
                 CASADI_FUNC_CALL(eulerB321_to_quat);
             }
 
+            // orientation setpoint
             ctx->orientation_sp.w = qc[0];
             ctx->orientation_sp.x = qc[1];
             ctx->orientation_sp.y = qc[2];
             ctx->orientation_sp.z = qc[3];
             zros_pub_update(&ctx->pub_orientation_sp);
+
+            // acceleration setpoint
+            ctx->accel_sp.x = 0;
+            ctx->accel_sp.y = 0;
+            ctx->accel_sp.z = 0;
+            zros_pub_update(&ctx->pub_accel_sp);
+
+        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
+            // TODO bezier curve here
+
+        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_UNKNOWN) {
+            // TODO: make acro mode
+
+            double omega[3];
+            double thrust;
+            {
+                // joy_acro:(joy_roll,joy_pitch,joy_yaw,joy_thrust)->(omega[3],thrust)
+                CASADI_FUNC_ARGS(joy_acro);
+
+                args[0] = &joy_roll;
+                args[1] = &joy_pitch;
+                args[2] = &joy_yaw;
+                args[3] = &joy_thrust;
+
+                res[0] = omega;
+                res[1] = &thrust;
+
+                CASADI_FUNC_CALL(joy_acro);
+            }
+
+            // angular velocity set point
+            ctx->angular_velocity_sp.x = omega[0];
+            ctx->angular_velocity_sp.y = omega[1];
+            ctx->angular_velocity_sp.z = omega[2];
+            zros_pub_update(&ctx->pub_angular_velocity_sp);
+
+            // thrust pass through
+            ctx->force_sp.z = thrust;
+            zros_pub_update(&ctx->pub_force_sp);
         }
     }
 
-    rdd2_joy_fini(ctx);
+    rdd2_command_fini(ctx);
 }
 
 static int start(struct context* ctx)
 {
     k_tid_t tid = k_thread_create(&ctx->thread_data, ctx->stack_area,
         ctx->stack_size,
-        rdd2_joy_run,
+        rdd2_command_run,
         ctx, NULL, NULL,
         MY_PRIORITY, 0, K_FOREVER);
-    k_thread_name_set(tid, "rdd2_joy");
+    k_thread_name_set(tid, "rdd2_command");
     k_thread_start(tid);
     return 0;
 }
 
-static int rdd2_joy_cmd_handler(const struct shell* sh,
+static int rdd2_command_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
@@ -393,18 +398,18 @@ static int rdd2_joy_cmd_handler(const struct shell* sh,
     return 0;
 }
 
-SHELL_SUBCMD_DICT_SET_CREATE(sub_rdd2_joy, rdd2_joy_cmd_handler,
+SHELL_SUBCMD_DICT_SET_CREATE(sub_rdd2_command, rdd2_command_cmd_handler,
     (start, &g_ctx, "start"),
     (stop, &g_ctx, "stop"),
     (status, &g_ctx, "status"));
 
-SHELL_CMD_REGISTER(rdd2_joy, &sub_rdd2_joy, "rdd2 joy commands", NULL);
+SHELL_CMD_REGISTER(rdd2_command, &sub_rdd2_command, "rdd2 command arguments", NULL);
 
-static int rdd2_joy_sys_init(void)
+static int rdd2_command_sys_init(void)
 {
     return start(&g_ctx);
 };
 
-SYS_INIT(rdd2_joy_sys_init, APPLICATION, 1);
+SYS_INIT(rdd2_command_sys_init, APPLICATION, 1);
 
 // vi: ts=4 sw=4 et

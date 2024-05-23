@@ -15,25 +15,38 @@ thrust_trim = 0.5 # thrust trim
 deg2rad = np.pi/180 # degree to radian
 g = 9.8 # grav accel m/s^2
 m = 2.0 # mass of vehicle
-roll_rate_max = 60 # deg/s
-Kp = 2 # position proportional gain
-Kv = 2 # velocity proportional gain
+rollpitch_rate_max = 60 # deg/s
+yaw_rate_max = 60 # deg/s
+rollpitch_max = 20 # deg
+k_pos = 0.5 # position proportional gain
+k_vel = 1 # velocity proportional gain
+k_rollpitch = 3
+k_yaw = 2
+k_rollpitch_rate = 0.02
+k_yaw_rate = 0.1
+pos_sp_dist_max = 2 # position setpoint max distance
+vel_max = 2.0 # max velocity command
 
 
 def derive_joy_acro():
-    w = ca.SX.sym('omega', 3)
 
+    # INPUTS
+    # -------------------------------
     joy_roll = ca.SX.sym('joy_roll')
     joy_pitch = ca.SX.sym('joy_pitch')
     joy_yaw = ca.SX.sym('joy_yaw')
     joy_thrust = ca.SX.sym('joy_thrust')
 
-    w[0] = -roll_rate_max*deg2rad*joy_roll
-    w[1] = roll_rate_max*deg2rad*joy_pitch
-    w[2] = roll_rate_max*deg2rad*joy_yaw
-
+    # CALC
+    # -------------------------------
+    w = ca.vertcat(
+        -rollpitch_rate_max*deg2rad*joy_roll,
+        rollpitch_rate_max*deg2rad*joy_pitch,
+        yaw_rate_max*deg2rad*joy_yaw)
     thrust = joy_thrust * thrust_delta + thrust_trim
 
+    # FUNCTION
+    # -------------------------------
     f_joy_acro = ca.Function(
        "joy_acro",
        [joy_roll, joy_pitch, joy_yaw, joy_thrust],
@@ -46,11 +59,117 @@ def derive_joy_acro():
     }
 
 
+def derive_joy_auto_level():
+
+    # INPUTS
+    # -------------------------------
+    joy_roll = ca.SX.sym('joy_roll')
+    joy_pitch = ca.SX.sym('joy_pitch')
+    joy_yaw = ca.SX.sym('joy_yaw')
+    joy_thrust = ca.SX.sym('joy_thrust')
+
+    q = SO3Quat.elem(ca.SX.sym('q', 4))
+
+    # CALC
+    # -------------------------------
+    euler = SO3EulerB321.from_Quat(q)
+    yaw = euler.param[0]
+    pitch = euler.param[1]
+    roll = euler.param[2]
+
+    euler_r = SO3EulerB321.elem(ca.vertcat(
+        yaw + yaw_rate_max * deg2rad * joy_yaw,
+        rollpitch_max * deg2rad * joy_pitch,
+        -rollpitch_max * deg2rad * joy_roll))
+
+    q_r = SO3Quat.from_Euler(euler_r)
+    thrust = joy_thrust * thrust_delta + thrust_trim
+
+    # FUNCTION
+    # -------------------------------
+    f_joy_auto_level = ca.Function(
+       "joy_auto_level",
+       [joy_roll, joy_pitch, joy_yaw, joy_thrust, q.param],
+       [q_r.param, thrust],
+       ["joy_roll", "joy_pitch", "joy_yaw", "joy_thrust", "q"],
+       ["q_r", "thrust"])
+
+    return {
+        "joy_auto_level": f_joy_auto_level
+    }
+
+
+def derive_joy_position():
+
+    # INPUTS
+    # -------------------------------
+
+    # joy, -1 to 1
+    joy_roll = ca.SX.sym('joy_roll')
+    joy_pitch = ca.SX.sym('joy_pitch')
+    joy_yaw = ca.SX.sym('joy_yaw')
+    joy_thrust = ca.SX.sym('joy_thrust')
+
+    p = ca.SX.sym('p', 3)  # position
+    p_r = ca.SX.sym('p_r', 3)  # position set point
+
+    # CALC
+    # -------------------------------
+
+    # attitude
+    q = SO3Quat.elem(ca.SX.sym('q', 4))
+    euler = SO3EulerB321.from_Quat(q)
+    yaw = euler.param[0]
+    pitch = euler.param[1]
+    roll = euler.param[2]
+
+    yaw_rate = 60 * deg2rad * joy_yaw
+
+    # velocity in body frame
+    vbx = vel_max * joy_pitch
+    vby = vel_max * joy_roll
+
+    # velocity in world frame
+    vwx = vbx * ca.cos(yaw) - vby * ca.sin(yaw)
+    vwy = vbx * ca.sin(yaw) + vby * ca.cos(yaw)
+    vwz = joy_thrust
+
+    p_e = p_r - p  # position error
+    norm_e = ca.norm_2(p_e)
+    #ca.if_else(norm_e > pos_eror_max, 
+
+    euler_r = SO3EulerB321.elem(ca.vertcat(
+        yaw + yaw_rate_max * joy_yaw,
+        rollpitch_max * joy_pitch,
+        -rollpitch_max * joy_roll))
+
+    q_r = SO3Quat.from_Euler(euler_r)
+    thrust = joy_thrust * thrust_delta + thrust_trim
+
+    # FUNCTION
+    # -------------------------------
+    f_joy_position = ca.Function(
+       "joy_position",
+       [joy_roll, joy_pitch, joy_yaw, joy_thrust, q.param],
+       [q_r.param, thrust],
+       ["joy_roll", "joy_pitch", "joy_yaw", "joy_thrust", "q"],
+       ["q_r", "thrust"])
+
+    return {
+        "joy_position": f_joy_position
+    }
+
+
 def derive_quat_to_eulerB321():
+
+    # INPUTS
+    # -------------------------------
     q_wb = ca.SX.sym('q', 4)
     X = SO3Quat.elem(q_wb)
     e = SO3EulerB321.from_Quat(X)
 
+    # FUNCTION
+    # -------------------------------
     f_quat_to_eulerB321 = ca.Function(
        "quat_to_eulerB321",
        [q_wb], [e.param[0], e.param[1], e.param[2]],
@@ -61,8 +180,17 @@ def derive_quat_to_eulerB321():
     }
 
 def derive_eulerB321_to_quat():
+
+    # INPUTS
+    # -------------------------------
     e = SO3EulerB321.elem(ca.SX.sym('e', 3))
+
+    # CALC
+    # -------------------------------
     X = SO3Quat.from_Euler(e)
+
+    # FUNCTION
+    # -------------------------------
     f_eulerB321_to_quat = ca.Function(
        "eulerB321_to_quat",
        [e.param[0], e.param[1], e.param[2]], [X.param],
@@ -74,13 +202,17 @@ def derive_eulerB321_to_quat():
 
 
 def derive_attitude_control():
-    kp = ca.vertcat(4, 4, 2)
+    # INPUT
+    # -------------------------------
+    q = ca.SX.sym('q', 4) # actual quat
+    q_r = ca.SX.sym('q_r', 4) # quat setpoint
 
-    # actual attitude, expressed as quaternion
-    q = ca.SX.sym('q', 4)
+    # CALC
+    # -------------------------------
+    kp = ca.vertcat(k_rollpitch, k_rollpitch, k_yaw)
+
     X = SO3Quat.elem(q)
 
-    q_r = ca.SX.sym('q_r', 4)
     X_r = SO3Quat.elem(q_r)
 
     # Lie algebra
@@ -88,6 +220,8 @@ def derive_attitude_control():
 
     omega = kp * e.param # elementwise
 
+    # FUNCTION
+    # -------------------------------
     f_attitude_control = ca.Function(
         "attitude_control",
         [q, q_r],
@@ -100,7 +234,39 @@ def derive_attitude_control():
     }
 
 
+def derive_attitude_rate_control():
+
+    # INPUT
+    # -------------------------------
+    omega = ca.SX.sym('omega', 3)
+    omega_r = ca.SX.sym('omega_r', 3)
+
+    # CALC
+    # -------------------------------
+    kp = ca.vertcat(k_rollpitch_rate, k_rollpitch_rate, k_yaw_rate)
+
+    # actual attitude, expressed as quaternion
+    M = kp * (omega_r - omega)
+
+    # FUNCTION
+    # -------------------------------
+    f_attitude_rate_control = ca.Function(
+        "attitude_rate_control",
+        [omega, omega_r],
+        [M],
+        ["omega", "omega_r"],
+        ["M"])
+
+    return {
+        "attitude_rate_control": f_attitude_rate_control
+    }
+
+
 def derive_position_control():
+
+    # INPUT
+    # -------------------------------
+
     #inputs: position trajectory, velocity trajectory, desired Yaw vel, dt
     #state inputs: position, orientation, velocity, and angular velocity
     #outputs: thrust force, angular errors
@@ -112,6 +278,9 @@ def derive_position_control():
     p_w = ca.SX.sym('p_w', 3) # position in world frame
     v_b = ca.SX.sym('v_b', 3) # velocity in body frame
     q_wb = SO3Quat.elem(ca.SX.sym('q_wb', 4))
+
+    # CALC
+    # -------------------------------
     R_wb = q_wb.to_Matrix()
     
     v_w = R_wb @ v_b
@@ -129,7 +298,7 @@ def derive_position_control():
 
     # normalized thrust vector, normalized by twice weight
     p_norm_max = 0.3
-    p_term = -Kp * e_p / (2*g) - Kv * e_v / (2*g) + at_w / (2*g)
+    p_term = -k_pos * e_p / (2*g) - k_vel * e_v / (2*g) + at_w / (2*g)
     p_norm = ca.norm_2(p_term)
     p_term = ca.if_else(p_norm > p_norm_max, p_norm_max*p_term/p_norm, p_term)
 
@@ -166,6 +335,8 @@ def derive_position_control():
     # using Lie group approach for control
     qr_wb = SO3Quat.from_Matrix(Rd_wb)
 
+    # FUNCTION
+    # -------------------------------
     f_get_u = ca.Function(
         "position_control",
         [pt_w, vt_w, at_w, qc_wb.param, p_w, v_b, q_wb.param], [nT, qr_wb.param], 
@@ -204,11 +375,14 @@ def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
 if __name__ == "__main__":
     print("generating casadi equations")
     eqs = {}
+    eqs.update(derive_attitude_rate_control())
     eqs.update(derive_attitude_control())
     eqs.update(derive_position_control())
     eqs.update(derive_eulerB321_to_quat())
     eqs.update(derive_quat_to_eulerB321())
     eqs.update(derive_joy_acro())
+    eqs.update(derive_joy_auto_level())
+    eqs.update(derive_joy_position())
 
     for name, eq in eqs.items():
         print('eq: ', name)

@@ -20,8 +20,8 @@ config CEREBRI_RDD2_LIGHTING
   help
     Enable lighting
 
-config CEREBRI_RDD2_JOY
-  bool "enable joyh"
+config CEREBRI_RDD2_COMMAND
+  bool "enable command"
   depends on CEREBRI_RDD2_ALLOCATION
   help
     Enable joy

@@ -181,15 +181,16 @@ int snprint_imu(char* buf, size_t n, synapse_msgs_Imu* m)
 int snprint_joy(char* buf, size_t n, synapse_msgs_Joy* m)
 {
     size_t offset = 0;
-    offset += snprintf_cat(buf + offset, n - offset, "axes\n");
+    offset += snprintf_cat(buf + offset, n - offset, "\naxes:\t");
     for (int i = 0; i < m->axes_count; i++) {
-        offset += snprintf_cat(buf + offset, n - offset, "%10.4f\n", (double)m->axes[i]);
+        offset += snprintf_cat(buf + offset, n - offset, "%10.4f\t", (double)m->axes[i]);
     }
 
-    offset += snprintf_cat(buf + offset, n - offset, "buttons\n");
+    offset += snprintf_cat(buf + offset, n - offset, "\nbuttons:\t");
     for (int i = 0; i < m->buttons_count; i++) {
-        offset += snprintf_cat(buf + offset, n - offset, "%10d\n", m->buttons[i]);
+        offset += snprintf_cat(buf + offset, n - offset, "%10d\t", m->buttons[i]);
     }
+    offset += snprintf_cat(buf + offset, n - offset, "\n");
     return offset;
 }
 

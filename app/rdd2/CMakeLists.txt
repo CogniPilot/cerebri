@@ -52,6 +52,11 @@ if (CONFIG_CEREBRI_RDD2_CASADI)
     src/casadi/gen/rdd2.c)
 endif()
 
+if (CONFIG_CEREBRI_RDD2_CASADI)
+  list(APPEND SOURCE_FILES
+    src/casadi/gen/bezier.c)
+endif()
+
 set(flags
   -std=c11
   -Wall
@@ -91,6 +96,15 @@ set_source_files_properties(
 
 set_source_files_properties(
   src/casadi/gen/rdd2.c
+  PROPERTIES COMPILE_FLAGS
+  "${flags}\
+  -Wno-unused-parameter\
+  -Wno-missing-prototypes\
+  -Wno-missing-declarations\
+  -Wno-float-equal")
+
+set_source_files_properties(
+  src/casadi/gen/bezier.c
   PROPERTIES COMPILE_FLAGS
   "${flags}\
   -Wno-unused-parameter\

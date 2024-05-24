@@ -30,9 +30,9 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 struct context {
     struct zros_node node;
     synapse_msgs_Status status;
-    synapse_msgs_Vector3 angular_velocity_sp, moment_sp;
+    synapse_msgs_Vector3 angular_velocity_sp, moment_sp, moment_ff;
     synapse_msgs_Odometry estimator_odometry;
-    struct zros_sub sub_status, sub_angular_velocity_sp, sub_estimator_odometry;
+    struct zros_sub sub_status, sub_angular_velocity_sp, sub_estimator_odometry, sub_moment_ff;
     struct zros_pub pub_moment_sp;
     atomic_t running;
     size_t stack_size;
@@ -48,6 +48,7 @@ static struct context g_ctx = {
     .sub_status = {},
     .sub_angular_velocity_sp = {},
     .sub_estimator_odometry = {},
+    .sub_moment_ff = {},
     .pub_moment_sp = {},
     .running = ATOMIC_INIT(0),
     .stack_size = MY_STACK_SIZE,
@@ -64,6 +65,7 @@ static void rdd2_angular_velocity_init(struct context* ctx)
         &topic_angular_velocity_sp, &ctx->angular_velocity_sp, 300);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
         &topic_estimator_odometry, &ctx->estimator_odometry, 300);
+    zros_sub_init(&ctx->sub_moment_ff, &ctx->node, &topic_moment_ff, &ctx->moment_ff, 300);
     zros_pub_init(&ctx->pub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp);
     atomic_set(&ctx->running, 1);
 }
@@ -75,6 +77,7 @@ static void rdd2_angular_velocity_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_status);
     zros_sub_fini(&ctx->sub_angular_velocity_sp);
     zros_sub_fini(&ctx->sub_estimator_odometry);
+    zros_sub_fini(&ctx->sub_moment_ff);
     zros_pub_fini(&ctx->pub_moment_sp);
     atomic_set(&ctx->running, 0);
 }
@@ -111,6 +114,10 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_angular_velocity_sp);
         }
 
+		if (zros_sub_update_available(&ctx->sub_moment_ff)) {
+			zros_sub_update(&ctx->sub_moment_ff);
+		}
+
         {
             /* attitude_rate_control:(omega[3],omega_r[3])->(M[3]) */
             CASADI_FUNC_ARGS(attitude_rate_control);
@@ -131,9 +138,9 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             CASADI_FUNC_CALL(attitude_rate_control);
 
             // compute control
-            ctx->moment_sp.x = M[0];
-            ctx->moment_sp.y = M[1];
-            ctx->moment_sp.z = M[2];
+            ctx->moment_sp.x = M[0] + (double)ctx->moment_ff.x;
+            ctx->moment_sp.y = M[1] + (double)ctx->moment_ff.y;
+            ctx->moment_sp.z = M[2] + (double)ctx->moment_ff.z;
         }
 
         // publish

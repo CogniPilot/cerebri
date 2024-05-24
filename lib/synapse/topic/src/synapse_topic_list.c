@@ -132,6 +132,9 @@ ZROS_TOPIC_DEFINE(velocity_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(accel_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(orientation_sp, synapse_msgs_Quaternion);
 ZROS_TOPIC_DEFINE(position_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(accel_ff, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(moment_ff, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(angular_velocity_ff, synapse_msgs_Vector3);
 
 static struct zros_topic* topic_list[] = {
     &topic_accel_sp,
@@ -157,6 +160,9 @@ static struct zros_topic* topic_list[] = {
     &topic_status,
     &topic_velocity_sp,
     &topic_wheel_odometry,
+	&topic_accel_ff,
+	&topic_angular_velocity_ff,
+	&topic_moment_ff,
 };
 
 static int set_topic_list()

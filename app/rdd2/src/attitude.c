@@ -33,8 +33,8 @@ struct context {
     synapse_msgs_Status status;
     synapse_msgs_Odometry estimator_odometry;
     synapse_msgs_Quaternion attitude_sp;
-    synapse_msgs_Vector3 angular_velocity_sp;
-    struct zros_sub sub_status, sub_attitude_sp, sub_estimator_odometry;
+    synapse_msgs_Vector3 angular_velocity_sp, angular_velocity_ff;
+    struct zros_sub sub_status, sub_attitude_sp, sub_estimator_odometry, sub_angular_velocity_ff;
     struct zros_pub pub_angular_velocity_sp;
     atomic_t running;
     size_t stack_size;
@@ -113,6 +113,10 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_attitude_sp);
         }
 
+        if (zros_sub_update_available(&ctx->sub_angular_velocity_ff)) {
+			zros_sub_update(&ctx->sub_angular_velocity_ff);
+		}
+
         if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN) {
             // TODO add acro mode
             double omega[3];
@@ -139,9 +143,9 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             }
 
             // publish
-            ctx->angular_velocity_sp.x = omega[0];
-            ctx->angular_velocity_sp.y = omega[1];
-            ctx->angular_velocity_sp.z = omega[2];
+            ctx->angular_velocity_sp.x = omega[0] + (double)ctx->angular_velocity_ff.x;
+            ctx->angular_velocity_sp.y = omega[1] + (double)ctx->angular_velocity_ff.y;
+            ctx->angular_velocity_sp.z = omega[2] + (double)ctx->angular_velocity_ff.z;
             zros_pub_update(&ctx->pub_angular_velocity_sp);
         }
     }

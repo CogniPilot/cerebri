@@ -82,6 +82,9 @@ ZROS_TOPIC_DECLARE(topic_position_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DECLARE(topic_velocity_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DECLARE(topic_accel_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DECLARE(topic_orientation_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DECLARE(topic_accel_ff, synapse_msgs_Vector3);
+ZROS_TOPIC_DECLARE(topic_moment_ff, synapse_msgs_Vector3);
+ZROS_TOPIC_DECLARE(topic_angular_velocity_ff, synapse_msgs_Vector3);
 
 #endif // SYNAPSE_TOPIC_LIST_H_
 // vi: ts=4 sw=4 et

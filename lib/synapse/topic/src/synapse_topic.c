@@ -76,7 +76,10 @@ static context_t g_ctx = {
         (velocity_sp, &topic_velocity_sp, "velocity_sp"),                         \
         (accel_sp, &topic_accel_sp, "accel_sp"),                                  \
         (orientation_sp, &topic_orientation_sp, "orientation_sp"),                \
-        (wheel_odometry, &topic_wheel_odometry, "wheel_odometry")
+        (wheel_odometry, &topic_wheel_odometry, "wheel_odometry"),                \
+        (accel_ff, &topic_accel_ff, "accel_ff"),                                  \
+        (moment_ff, &topic_moment_ff, "moment_ff"),                               \
+        (angular_velocity_ff, &topic_angular_velocity_ff, "angular_velocity_ff")
 
 static volatile bool keep_running = true;
 
@@ -236,7 +239,10 @@ void topic_work_handler(struct k_work* work)
         || topic == &topic_moment_sp
         || topic == &topic_force_sp
         || topic == &topic_velocity_sp
-        || topic == &topic_position_sp) {
+        || topic == &topic_position_sp
+        || topic == &topic_accel_ff
+        || topic == &topic_moment_ff
+        || topic == &topic_angular_velocity_ff) {
         synapse_msgs_Vector3 msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_vector3);
     } else if (topic == &topic_attitude_sp || topic == &topic_orientation_sp) {

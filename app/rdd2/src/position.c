@@ -32,10 +32,10 @@ struct context {
     synapse_msgs_Status status;
     synapse_msgs_Time clock_offset;
     synapse_msgs_Odometry estimator_odometry;
-    synapse_msgs_Vector3 force_sp, position_sp, velocity_sp, accel_sp;
+    synapse_msgs_Vector3 force_sp, position_sp, velocity_sp, accel_ff;
     synapse_msgs_Quaternion attitude_sp, orientation_sp;
     struct zros_sub sub_status, sub_clock_offset,
-        sub_position_sp, sub_velocity_sp, sub_accel_sp, sub_estimator_odometry,
+        sub_position_sp, sub_velocity_sp, sub_accel_ff, sub_estimator_odometry,
         sub_orientation_sp;
     struct zros_pub pub_force_sp, pub_attitude_sp;
     atomic_t running;
@@ -53,12 +53,12 @@ static struct context g_ctx = {
     .orientation_sp = synapse_msgs_Quaternion_init_default,
     .position_sp = synapse_msgs_Vector3_init_default,
     .velocity_sp = synapse_msgs_Vector3_init_default,
-    .accel_sp = synapse_msgs_Vector3_init_default,
+    .accel_ff = synapse_msgs_Vector3_init_default,
     .sub_status = {},
     .sub_clock_offset = {},
     .sub_position_sp = {},
     .sub_velocity_sp = {},
-    .sub_accel_sp = {},
+    .sub_accel_ff = {},
     .sub_estimator_odometry = {},
     .sub_orientation_sp = {},
     .pub_force_sp = {},
@@ -77,7 +77,7 @@ static void rdd2_position_init(struct context* ctx)
     zros_sub_init(&ctx->sub_clock_offset, &ctx->node, &topic_clock_offset, &ctx->clock_offset, 10);
     zros_sub_init(&ctx->sub_position_sp, &ctx->node, &topic_position_sp, &ctx->position_sp, 100);
     zros_sub_init(&ctx->sub_velocity_sp, &ctx->node, &topic_velocity_sp, &ctx->velocity_sp, 100);
-    zros_sub_init(&ctx->sub_accel_sp, &ctx->node, &topic_accel_sp, &ctx->accel_sp, 100);
+    zros_sub_init(&ctx->sub_accel_ff, &ctx->node, &topic_accel_ff, &ctx->accel_ff, 100);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
     zros_sub_init(&ctx->sub_orientation_sp, &ctx->node, &topic_orientation_sp, &ctx->orientation_sp, 100);
     zros_pub_init(&ctx->pub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp);
@@ -94,7 +94,7 @@ static void rdd2_position_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_clock_offset);
     zros_sub_fini(&ctx->sub_position_sp);
     zros_sub_fini(&ctx->sub_velocity_sp);
-    zros_sub_fini(&ctx->sub_accel_sp);
+    zros_sub_fini(&ctx->sub_accel_ff);
     zros_sub_fini(&ctx->sub_estimator_odometry);
     zros_sub_fini(&ctx->sub_orientation_sp);
     zros_pub_fini(&ctx->pub_force_sp);
@@ -137,8 +137,8 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_velocity_sp);
         }
 
-        if (zros_sub_update_available(&ctx->sub_accel_sp)) {
-            zros_sub_update(&ctx->sub_accel_sp);
+        if (zros_sub_update_available(&ctx->sub_accel_ff)) {
+            zros_sub_update(&ctx->sub_accel_ff);
         }
 
         if (zros_sub_update_available(&ctx->sub_orientation_sp)) {
@@ -172,9 +172,9 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 vt_w[0] = ctx->velocity_sp.x;
                 vt_w[1] = ctx->velocity_sp.y;
                 vt_w[2] = ctx->velocity_sp.z;
-                at_w[0] = ctx->accel_sp.x;
-                at_w[1] = ctx->accel_sp.y;
-                at_w[2] = ctx->accel_sp.z;
+                at_w[0] = ctx->accel_ff.x;
+                at_w[1] = ctx->accel_ff.y;
+                at_w[2] = ctx->accel_ff.z;
                 qc_wb[0] = ctx->orientation_sp.w;
                 qc_wb[1] = ctx->orientation_sp.x;
                 qc_wb[2] = ctx->orientation_sp.y;

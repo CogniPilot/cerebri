@@ -344,17 +344,19 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
     		// get current time
     		uint64_t time_nsec = k_uptime_get() * 1e6 + ctx->clock_offset.sec * 1e9 + ctx->clock_offset.nanosec;
-
+			
+			/*	
 			if (time_nsec < time_start_nsec) {
         		LOG_DBG("time current: %" PRIu64
                 		" ns < time start: %" PRIu64
                 		"  ns, time out of range of trajectory\n",
             		time_nsec, time_start_nsec);
         		return;
-    		}
+    		}*/
 			
 			// find current trajectory index, time_start, and time_stop
     		int curve_index = 0;
+			/*
 			while (true) {
 
         		// check if time handled by current trajectory
@@ -374,7 +376,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             		// LOG_ERR("curve index exceeds bounds");
             		return;
         		}
-    		}
+    		}*/
 
 			double T = (time_stop_nsec - time_start_nsec) * 1e-9;
 			double t = (time_nsec - time_start_nsec) * 1e-9;

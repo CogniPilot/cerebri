@@ -47,7 +47,7 @@ static struct context g_ctx = {
 static void term(int signum)
 {
     g_shutdown = 1;
-    printf("handling term\n");
+    printf("%s handling term\n", g_ctx.module_name);
 }
 
 void udp_init(struct context* ctx)
@@ -61,20 +61,20 @@ void udp_init(struct context* ctx)
     ctx->sock = socket(((struct sockaddr*)&addr)->sa_family, SOCK_DGRAM, IPPROTO_UDP);
 
     if (ctx->sock < 0) {
-        printf("failed to create UDP socket: %d\n", errno);
+        printf("%s failed to create UDP socket: %d\n", ctx->module_name, errno);
         exit(1);
     }
 
     int ret = -1;
     while (ret < 0) {
         ret = bind(ctx->sock, (struct sockaddr*)&addr, sizeof(addr));
-        printf("failed to bind UDP socket: %d\n", errno);
+        printf("%s failed to bind UDP socket: %d\n", ctx->module_name, errno);
         struct timespec request, remaining;
         request.tv_sec = 1;
         request.tv_nsec = 0;
         nanosleep(&request, &remaining);
     }
-    printf("bound UDP socket\n");
+    printf("%s bound UDP socket\n", ctx->module_name);
 
     // setup client addr
     uint32_t addr_c;
@@ -114,10 +114,10 @@ void udp_rx(struct context* ctx)
     int ret = poll(pollfds, ARRAY_SIZE(pollfds), 1000);
 
     if (ret == 0) {
-        printf("no data\n");
+        printf("%s no data\n", ctx->module_name);
         return;
     } else if (ret < 0) {
-        printf("poll error: %d\n", ret);
+        printf("%s poll error: %d\n", ctx->module_name, ret);
         return;
     };
 
@@ -149,7 +149,7 @@ void udp_rx(struct context* ctx)
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return;
         } else {
-            printf("error: %d\n", errno);
+            printf("%s error: %d\n", ctx->module_name, errno);
             return;
         }
     }
@@ -168,26 +168,22 @@ void* native_sim_entry_point(void* p0)
 
     // process incoming messages
     while (!g_shutdown) {
-        // printf("udp rx\n");
         udp_rx(ctx);
-        // printf("udp tx\n");
         udp_tx(ctx);
     }
 
-    printf("native main exitting\n");
+    printf("%s exitting\n", ctx->module_name);
     exit(0);
     return 0;
 }
 
 void native_sim_start_task(void)
 {
-    printf("native sim start task\n");
     pthread_create(&g_ctx.thread, NULL, native_sim_entry_point, &g_ctx);
 }
 
 void native_sim_stop_task(void)
 {
-    printf("native sim stop task\n");
     g_shutdown = 1;
     pthread_join(g_ctx.thread, NULL);
 }

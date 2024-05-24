@@ -143,6 +143,48 @@ static void rdd2_command_fini(struct context* ctx)
     atomic_set(&ctx->running, 0);
 }
 
+static void stop(struct context* ctx)
+{
+    ctx->position_sp.x = 0;
+    ctx->position_sp.y = 0;
+    ctx->position_sp.z = 0;
+
+    ctx->velocity_sp.x = 0;
+    ctx->velocity_sp.y = 0;
+    ctx->velocity_sp.z = 0;
+
+	ctx->attitude_sp.w = 0;
+    ctx->attitude_sp.x = 0;
+    ctx->attitude_sp.y = 0;
+    ctx->attitude_sp.z = 0;
+
+	ctx->orientation_sp.w = 0;
+    ctx->orientation_sp.x = 0;
+    ctx->orientation_sp.y = 0;
+    ctx->orientation_sp.z = 0;
+
+	ctx->accel_ff.x = 0;
+    ctx->accel_ff.y = 0;
+    ctx->accel_ff.z = 0;
+
+	ctx->moment_ff.x = 0;
+    ctx->moment_ff.y = 0;
+    ctx->moment_ff.z = 0;
+
+	ctx->angular_velocity_ff.x = 0;
+    ctx->angular_velocity_ff.y = 0;
+    ctx->angular_velocity_ff.z = 0;
+	
+	zros_pub_update(&ctx->pub_position_sp);
+	zros_pub_update(&ctx->pub_velocity_sp);
+	zros_pub_update(&ctx->pub_attitude_sp);
+	zros_pub_update(&ctx->pub_orientation_sp);
+	zros_pub_update(&ctx->pub_accel_ff);
+	zros_pub_update(&ctx->pub_moment_ff);
+	zros_pub_update(&ctx->pub_angular_velocity_ff);
+
+}
+
 static void rdd2_command_run(void* p0, void* p1, void* p2)
 {
     struct context* ctx = p0;
@@ -339,24 +381,25 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
             // TODO bezier curve here
 			// goal -> given position goal, find cmd_vel
-    		uint64_t time_start_nsec = ctx->bezier_trajectory.time_start;
+			uint64_t time_start_nsec = ctx->bezier_trajectory.time_start;
     		uint64_t time_stop_nsec = time_start_nsec;
 
     		// get current time
     		uint64_t time_nsec = k_uptime_get() * 1e6 + ctx->clock_offset.sec * 1e9 + ctx->clock_offset.nanosec;
 			
-			/*	
+				
 			if (time_nsec < time_start_nsec) {
         		LOG_DBG("time current: %" PRIu64
                 		" ns < time start: %" PRIu64
                 		"  ns, time out of range of trajectory\n",
             		time_nsec, time_start_nsec);
-        		return;
-    		}*/
+        		stop(ctx);
+				return;
+    		}
 			
 			// find current trajectory index, time_start, and time_stop
     		int curve_index = 0;
-			/*
+			
 			while (true) {
 
         		// check if time handled by current trajectory
@@ -370,13 +413,15 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
         		// next index
         		curve_index++;
-	
-        		// check if index exceeds bounds
+
+				// check if index exceeds bounds
         		if (curve_index >= ctx->bezier_trajectory.curves_count) {
             		// LOG_ERR("curve index exceeds bounds");
+            		stop(ctx);
             		return;
         		}
-    		}*/
+	
+    		}
 
 			double T = (time_stop_nsec - time_start_nsec) * 1e-9;
 			double t = (time_nsec - time_start_nsec) * 1e-9;
@@ -468,22 +513,26 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 			ctx->attitude_sp.x = q_att[1];
 			ctx->attitude_sp.y = q_att[2];
 			ctx->attitude_sp.z = q_att[3];
+			zros_pub_update(&ctx->pub_attitude_sp);
 
 			// angular velocity ff
 			ctx->angular_velocity_ff.x = omega[0];
 			ctx->angular_velocity_ff.y = omega[1];
 			ctx->angular_velocity_ff.z = omega[2];
+			zros_pub_update(&ctx->pub_angular_velocity_ff);
 			
 			// moment ff
 			ctx->moment_ff.x = M[0];
 			ctx->moment_ff.y = M[0];
 			ctx->moment_ff.z = M[0];
+			zros_pub_update(&ctx->pub_moment_ff);
 			
 			// orientation sp
 			ctx->orientation_sp.w = q_orientation[0];
 			ctx->orientation_sp.x = q_orientation[1];
 			ctx->orientation_sp.y = q_orientation[2];
 			ctx->orientation_sp.z = q_orientation[3];
+			zros_pub_update(&ctx->pub_orientation_sp);
 
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_UNKNOWN) {
             // TODO: make acro mode

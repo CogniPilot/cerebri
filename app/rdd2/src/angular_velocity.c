@@ -91,6 +91,12 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
         *zros_sub_get_event(&ctx->sub_estimator_odometry),
     };
 
+    double dt = 0;
+    int64_t ticks_last = k_uptime_ticks();
+
+    // angular velocity integrator states
+    double omega_i[3] = { 0, 0, 0 };
+
     while (atomic_get(&ctx->running)) {
         // wait for estimator odometry, publish at 10 Hz regardless
         int rc = 0;
@@ -111,8 +117,19 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_angular_velocity_sp);
         }
 
+        // calculate dt
+        int64_t ticks_now = k_uptime_ticks();
+        dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        ticks_last = ticks_now;
+        if (dt < 0 || dt > 0.1) {
+            LOG_DBG("odometry rate too low");
+            continue;
+        }
+
         {
-            /* attitude_rate_control:(omega[3],omega_r[3])->(M[3]) */
+            /* attitude_rate_control:
+             * (omega[3],omega_r[3],omega_i[3],dt)
+             * ->(M[3],omega_i_update[3]) */
             CASADI_FUNC_ARGS(attitude_rate_control);
             double omega[3];
             double omega_r[3];
@@ -127,8 +144,14 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
 
             args[0] = omega;
             args[1] = omega_r;
+            args[2] = omega_i;
+            args[3] = &dt;
             res[0] = M;
+            res[1] = omega_i;
             CASADI_FUNC_CALL(attitude_rate_control);
+
+            LOG_DBG("omega_i: %10.4f %10.4f %10.4f",
+                omega_i[0], omega_i[1], omega_i[2]);
 
             // compute control
             ctx->moment_sp.x = M[0];

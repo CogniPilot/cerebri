@@ -15,20 +15,46 @@ thrust_trim = 0.5 # thrust trim
 deg2rad = np.pi/180 # degree to radian
 g = 9.8 # grav accel m/s^2
 m = 2.0 # mass of vehicle
-rollpitch_rate_max = 60 # deg/s
+
+# position loop
+kp_pos = 0.2 # position proportional gain
+kp_vel = 1 # velocity proportional gain
+
+# attitude loop
+kp_rollpitch = 2
+kp_yaw = 2
 yaw_rate_max = 60 # deg/s
 rollpitch_max = 20 # deg
-k_pos = 0.5 # position proportional gain
-k_vel = 1 # velocity proportional gain
-k_rollpitch = 3
-k_yaw = 2
-k_rollpitch_rate = 0.02
-k_yaw_rate = 0.1
+
+# attittude rate loop
+rollpitch_rate_max = 60 # deg/s
+kp_rollpitch_rate = 0.015
+ki_rollpitch_rate = 0.05
+kp_yaw_rate = 0.1
+ki_yaw_rate = 0.02
+
 pos_sp_dist_max = 2 # position setpoint max distance
 vel_max = 2.0 # max velocity command
 
+rollpitch_rate_integral_max = 1.0
+yaw_rate_integral_max = 1.0
+
+
+def saturate(x, x_min, x_max):
+    """
+    saturate a vector
+    """
+    y = x
+    for i in range(x.shape[0]):
+        y[i] =  ca.if_else(x[i] > x_max[i], x_max[i], ca.if_else(x[i] < x_min[i], x_min[i], x[i]))
+    return y
 
 def derive_joy_acro():
+    """
+    Acro mode manual input:
+
+    Given joy input, find roll rate and thrust setpoints
+    """
 
     # INPUTS
     # -------------------------------
@@ -60,6 +86,11 @@ def derive_joy_acro():
 
 
 def derive_joy_auto_level():
+    """
+    Auto level mode manual input:
+
+    Given joy input, find attitude and thrust set points
+    """
 
     # INPUTS
     # -------------------------------
@@ -100,6 +131,11 @@ def derive_joy_auto_level():
 
 
 def derive_joy_position():
+    """
+    Position mode manual input:
+
+    Given joy input, find position and velocity set points
+    """
 
     # INPUTS
     # -------------------------------
@@ -161,6 +197,9 @@ def derive_joy_position():
 
 
 def derive_quat_to_eulerB321():
+    """
+    quaternion to eulerB321 converion
+    """
 
     # INPUTS
     # -------------------------------
@@ -180,6 +219,9 @@ def derive_quat_to_eulerB321():
     }
 
 def derive_eulerB321_to_quat():
+    """
+    eulerB321 to quaternion converion
+    """
 
     # INPUTS
     # -------------------------------
@@ -202,6 +244,12 @@ def derive_eulerB321_to_quat():
 
 
 def derive_attitude_control():
+    """
+    Attitude control loop
+
+    Given desired attitude, and attitude, find desired angular velocity
+    """
+
     # INPUT
     # -------------------------------
     q = ca.SX.sym('q', 4) # actual quat
@@ -209,7 +257,7 @@ def derive_attitude_control():
 
     # CALC
     # -------------------------------
-    kp = ca.vertcat(k_rollpitch, k_rollpitch, k_yaw)
+    kp = ca.vertcat(kp_rollpitch, kp_rollpitch, kp_yaw)
 
     X = SO3Quat.elem(q)
 
@@ -235,27 +283,44 @@ def derive_attitude_control():
 
 
 def derive_attitude_rate_control():
+    """
+    Attitude rate control loop
+
+    Given angular velocity , angular vel. set point, and angular velocity error integral,
+    find the desired moment and updated angular velocity error integral.
+    """
 
     # INPUT
     # -------------------------------
     omega = ca.SX.sym('omega', 3)
     omega_r = ca.SX.sym('omega_r', 3)
+    omega_i = ca.SX.sym('omega_i', 3)
+    dt = ca.SX.sym('dt')
 
     # CALC
     # -------------------------------
-    kp = ca.vertcat(k_rollpitch_rate, k_rollpitch_rate, k_yaw_rate)
+    kp = ca.vertcat(kp_rollpitch_rate, kp_rollpitch_rate, kp_yaw_rate)
 
     # actual attitude, expressed as quaternion
-    M = kp * (omega_r - omega)
+    omega_e = omega_r - omega
+
+    # integral action helps balance distrubance moments (e.g. center of gravity offset)
+    ki = ca.vertcat(ki_rollpitch_rate, ki_rollpitch_rate, ki_yaw_rate)
+    omega_i_2 = omega_i + omega_e * dt
+    integral_max = ca.vertcat(rollpitch_rate_integral_max,
+            rollpitch_rate_integral_max, yaw_rate_integral_max)
+    omega_i_2 = saturate(omega_i_2, -integral_max, integral_max)
+
+    M = kp * omega_e + ki * omega_i_2
 
     # FUNCTION
     # -------------------------------
     f_attitude_rate_control = ca.Function(
         "attitude_rate_control",
-        [omega, omega_r],
-        [M],
-        ["omega", "omega_r"],
-        ["M"])
+        [omega, omega_r, omega_i, dt],
+        [M, omega_i_2],
+        ["omega", "omega_r", "omega_i", "dt"],
+        ["M", "omega_i_update"])
 
     return {
         "attitude_rate_control": f_attitude_rate_control
@@ -263,6 +328,10 @@ def derive_attitude_rate_control():
 
 
 def derive_position_control():
+    """
+    Given the position, velocity ,and acceleration set points, find the
+    desired attitude and thrust.
+    """
 
     # INPUT
     # -------------------------------
@@ -298,7 +367,7 @@ def derive_position_control():
 
     # normalized thrust vector, normalized by twice weight
     p_norm_max = 0.3
-    p_term = -k_pos * e_p / (2*g) - k_vel * e_v / (2*g) + at_w / (2*g)
+    p_term = -kp_pos * e_p / (2*g) - kp_vel * e_v / (2*g) + at_w / (2*g)
     p_norm = ca.norm_2(p_term)
     p_term = ca.if_else(p_norm > p_norm_max, p_norm_max*p_term/p_norm, p_term)
 
@@ -349,6 +418,9 @@ def derive_position_control():
 
 
 def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
+    """
+    Generate C Code from python CasADi functions.
+    """
     dest_dir = Path(dest_dir)
     dest_dir.mkdir(exist_ok=True)
     p = {

@@ -34,10 +34,10 @@ const casadi_int* attitude_rate_control_sparsity_in(casadi_int i);
 const casadi_int* attitude_rate_control_sparsity_out(casadi_int i);
 int attitude_rate_control_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
 int attitude_rate_control_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define attitude_rate_control_SZ_ARG 2
-#define attitude_rate_control_SZ_RES 1
+#define attitude_rate_control_SZ_ARG 4
+#define attitude_rate_control_SZ_RES 2
 #define attitude_rate_control_SZ_IW 0
-#define attitude_rate_control_SZ_W 3
+#define attitude_rate_control_SZ_W 11
 int attitude_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 int attitude_control_alloc_mem(void);
 int attitude_control_init_mem(int mem);
@@ -58,7 +58,7 @@ int attitude_control_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_i
 #define attitude_control_SZ_ARG 2
 #define attitude_control_SZ_RES 1
 #define attitude_control_SZ_IW 0
-#define attitude_control_SZ_W 15
+#define attitude_control_SZ_W 14
 int position_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 int position_control_alloc_mem(void);
 int position_control_init_mem(int mem);

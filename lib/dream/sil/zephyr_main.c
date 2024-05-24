@@ -342,6 +342,10 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
         }
     }
     LOG_INF("zephyr main loop finished\n");
+
+    zros_node_fini(&node);
+    zros_sub_fini(&sub_actuators);
+    zros_sub_fini(&sub_led_array);
 }
 
 static int start()

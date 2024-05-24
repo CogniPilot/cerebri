@@ -5,10 +5,11 @@
 
 #include "casadi/gen/rdd2.h"
 
-#include <assert.h>
+#include <math.h>
 
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
+#include <zephyr/sys/__assert.h>
 
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
@@ -139,6 +140,10 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             }
 
             // publish
+            __ASSERT(isfinite(omega[0]), "omega[0] not finite: %10.4f", omega[0]);
+            __ASSERT(isfinite(omega[1]), "omega[1] not finite: %10.4f", omega[1]);
+            __ASSERT(isfinite(omega[2]), "omega[2] not finite: %10.4f", omega[2]);
+
             ctx->angular_velocity_sp.x = omega[0];
             ctx->angular_velocity_sp.y = omega[1];
             ctx->angular_velocity_sp.z = omega[2];
@@ -165,7 +170,7 @@ static int rdd2_attitude_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    __ASSERT(argc == 1, "one argument allowed");
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

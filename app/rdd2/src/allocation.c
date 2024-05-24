@@ -5,10 +5,10 @@
 
 #include "casadi/gen/rdd2.h"
 #include "math.h"
-#include <assert.h>
 
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
+#include <zephyr/sys/__assert.h>
 
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
@@ -151,6 +151,11 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
             msg->velocity[1] = k * (thrust - pitch + roll + yaw);
             msg->velocity[2] = k * (thrust + pitch + roll - yaw);
             msg->velocity[3] = k * (thrust - pitch - roll - yaw);
+
+            __ASSERT(isfinite(msg->velocity[0]), "velocity[0] not finite: %10.4f", msg->velocity[0]);
+            __ASSERT(isfinite(msg->velocity[1]), "velocity[1] not finite: %10.4f", msg->velocity[1]);
+            __ASSERT(isfinite(msg->velocity[2]), "velocity[2] not finite: %10.4f", msg->velocity[2]);
+            __ASSERT(isfinite(msg->velocity[3]), "velocity[3] not finite: %10.4f", msg->velocity[3]);
         }
 
         stamp_header(&ctx->actuators.header, k_uptime_ticks());
@@ -179,7 +184,7 @@ static int rdd2_allocation_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    __ASSERT(argc == 1, "arg count must be 1");
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

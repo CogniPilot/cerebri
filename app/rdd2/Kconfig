@@ -58,7 +58,7 @@ config CEREBRI_RDD2_CASADI
 
 config CEREBRI_RDD2_BATTERY_MIN_MILLIVOLT
   int "min battery voltage in milli volts before shut off"
-  default 10000
+  default 14000
   help
     Minimum battery voltage in mV before auto-disarm
 
@@ -70,7 +70,7 @@ config CEREBRI_RDD2_BATTERY_LOW_MILLIVOLT
 
 config CEREBRI_RDD2_BATTERY_MAX_MILLIVOLT
   int "max battery voltage in milli volts"
-  default 12600
+  default 17000
   help
     Maximum battery voltage
 

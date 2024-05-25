@@ -6,8 +6,10 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
+
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/shell/shell.h>
 
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
@@ -22,8 +24,6 @@
 
 #include "casadi/gen/b3rb.h"
 
-LOG_MODULE_REGISTER(b3rb_estimate, CONFIG_CEREBRI_B3RB_LOG_LEVEL);
-
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
 
@@ -31,8 +31,12 @@ LOG_MODULE_REGISTER(b3rb_estimate, CONFIG_CEREBRI_B3RB_LOG_LEVEL);
 #define M_PI 3.14159265358979323846
 #endif
 
+LOG_MODULE_REGISTER(b3rb_estimate, CONFIG_CEREBRI_B3RB_LOG_LEVEL);
+
+static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
+
 // private context
-typedef struct _context {
+struct context {
     struct zros_node node;
     synapse_msgs_WheelOdometry wheel_odometry;
     synapse_msgs_Imu imu;
@@ -41,10 +45,14 @@ typedef struct _context {
     struct zros_pub pub_odometry;
     double x[3];
     const double wheel_radius;
-} context;
+    atomic_t running;
+    size_t stack_size;
+    k_thread_stack_t* stack_area;
+    struct k_thread thread_data;
+};
 
 // private initialization
-static context g_ctx = {
+static struct context g_ctx = {
     .node = {},
     .wheel_odometry = synapse_msgs_WheelOdometry_init_default,
     .imu = synapse_msgs_Imu_init_default,
@@ -62,15 +70,31 @@ static context g_ctx = {
     .pub_odometry = {},
     .x = {},
     .wheel_radius = CONFIG_CEREBRI_B3RB_WHEEL_RADIUS_MM / 1000.0,
+    .running = ATOMIC_INIT(0),
+    .stack_size = MY_STACK_SIZE,
+    .stack_area = g_my_stack_area,
+    .thread_data = {},
 };
 
-static void estimate_rover2d_init(context* ctx)
+static void b3rb_estimate_init(struct context* ctx)
 {
+    LOG_INF("init");
     zros_node_init(&ctx->node, "b3rb_estimate");
     zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->imu, 10);
     zros_sub_init(&ctx->sub_wheel_odometry, &ctx->node, &topic_wheel_odometry,
         &ctx->wheel_odometry, 10);
     zros_pub_init(&ctx->pub_odometry, &ctx->node, &topic_estimator_odometry, &ctx->odometry);
+    atomic_set(&ctx->running, 1);
+}
+
+static void b3rb_estimate_fini(struct context* ctx)
+{
+    LOG_INF("fini");
+    atomic_set(&ctx->running, 0);
+    zros_pub_fini(&ctx->pub_odometry);
+    zros_sub_fini(&ctx->sub_wheel_odometry);
+    zros_sub_fini(&ctx->sub_imu);
+    zros_node_fini(&ctx->node);
 }
 
 static bool all_finite(double* src, size_t n)
@@ -83,7 +107,7 @@ static bool all_finite(double* src, size_t n)
     return true;
 }
 
-static void handle_update(context* ctx, double* x1)
+static void handle_update(struct context* ctx, double* x1)
 {
     bool x1_finite = all_finite(x1, ARRAY_SIZE(ctx->x));
 
@@ -96,17 +120,16 @@ static void handle_update(context* ctx, double* x1)
     }
 }
 
-static void b3rb_estimate_entry_point(void* p0, void* p1, void* p2)
+static void b3rb_estimate_run(void* p0, void* p1, void* p2)
 {
-    LOG_INF("init");
-    context* ctx = p0;
+    struct context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
 
     int rc = 0;
 
     // LOG_DBG("started");
-    estimate_rover2d_init(ctx);
+    b3rb_estimate_init(ctx);
 
     // variables
     int32_t seq = 0;
@@ -145,7 +168,7 @@ static void b3rb_estimate_entry_point(void* p0, void* p1, void* p2)
     events[0] = *zros_sub_get_event(&ctx->sub_imu);
 
     // estimator state
-    while (true) {
+    while (atomic_get(&ctx->running)) {
 
         // poll for imu
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
@@ -164,7 +187,7 @@ static void b3rb_estimate_entry_point(void* p0, void* p1, void* p2)
 
         // calculate dt
         int64_t ticks_now = k_uptime_ticks();
-        dt = (float)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         ticks_last = ticks_now;
         if (dt < 0 || dt > 0.5) {
             LOG_WRN("imu update rate too low");
@@ -216,9 +239,61 @@ static void b3rb_estimate_entry_point(void* p0, void* p1, void* p2)
             zros_pub_update(&ctx->pub_odometry);
         }
     }
+
+    b3rb_estimate_fini(ctx);
 }
 
-K_THREAD_DEFINE(b3rb_estimate, MY_STACK_SIZE, b3rb_estimate_entry_point,
-    &g_ctx, NULL, NULL, MY_PRIORITY, 0, 1000);
+static int start(struct context* ctx)
+{
+    k_tid_t tid = k_thread_create(&ctx->thread_data, ctx->stack_area,
+        ctx->stack_size,
+        b3rb_estimate_run,
+        ctx, NULL, NULL,
+        MY_PRIORITY, 0, K_FOREVER);
+    k_thread_name_set(tid, "b3rb_estimate");
+    k_thread_start(tid);
+    return 0;
+}
 
-/* vi: ts=4 sw=4 et */
+static int b3rb_estimate_cmd_handler(const struct shell* sh,
+    size_t argc, char** argv, void* data)
+{
+    struct context* ctx = data;
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
+
+    if (strcmp(argv[0], "start") == 0) {
+        if (atomic_get(&ctx->running)) {
+            shell_print(sh, "already running");
+        } else {
+            start(ctx);
+        }
+    } else if (strcmp(argv[0], "stop") == 0) {
+        if (atomic_get(&ctx->running)) {
+            atomic_set(&ctx->running, 0);
+        } else {
+            shell_print(sh, "not running");
+        }
+    } else if (strcmp(argv[0], "status") == 0) {
+        shell_print(sh, "running: %d", (int)atomic_get(&ctx->running));
+    }
+    return 0;
+}
+
+SHELL_SUBCMD_DICT_SET_CREATE(sub_b3rb_estimate, b3rb_estimate_cmd_handler,
+    (start, &g_ctx, "start"),
+    (stop, &g_ctx, "stop"),
+    (status, &g_ctx, "status"));
+
+SHELL_CMD_REGISTER(b3rb_estimate, &sub_b3rb_estimate, "b3rb estimate arguments", NULL);
+
+static int b3rb_estimate_sys_init(void)
+{
+    return start(&g_ctx);
+};
+
+SYS_INIT(b3rb_estimate_sys_init, APPLICATION, 1);
+
+// vi: ts=4 sw=4 et

@@ -23,14 +23,14 @@
 LOG_MODULE_REGISTER(zros_topic);
 
 #include "synapse_shell_print.h"
-//#include "synapse_topic_list.h"
 
 #define TOPIC_QUEUE_STACK_SIZE 8192
-#define TOPIC_QUEUE_PRIORITY 6
+#define TOPIC_QUEUE_PRIORITY 10
 
 K_THREAD_STACK_DEFINE(topic_queue_stack_area, TOPIC_QUEUE_STACK_SIZE);
 
 struct k_work_q g_topic_work_q;
+struct k_poll_signal signal_quit;
 
 typedef int msg_handler_t(const struct shell* sh, struct zros_topic* topic, void* msg, snprint_t* echo);
 void topic_work_handler(struct k_work* work);
@@ -51,38 +51,38 @@ static context_t g_ctx = {
     .lock = Z_MUTEX_INITIALIZER(g_ctx.lock)
 };
 
-#define TOPIC_DICTIONARY()                                                        \
-    (actuators, &topic_actuators, "actuators"),                                   \
-        (actuators_manual, &topic_actuators_manual, "actuators_manual"),          \
-        (altimeter, &topic_altimeter, "altimeter"),                               \
-        (attitude_sp, &topic_attitude_sp, "attitude_sp"),                         \
-        (battery_state, &topic_battery_state, "battery_state"),                   \
-        (bezier_trajectory, &topic_bezier_trajectory, "bezier_trajectory"),       \
-        (clock_offset, &topic_clock_offset, "clock_offset"),                      \
-        (cmd_vel, &topic_cmd_vel, "cmd_vel"),                                     \
-        (estimator_odometry, &topic_estimator_odometry, "estimator_odometry"),    \
-        (external_odometry, &topic_external_odometry, "external_odometry"),       \
-        (imu, &topic_imu, "imu"),                                                 \
-        (joy, &topic_joy, "joy"),                                                 \
-        (led_array, &topic_led_array, "led_array"),                               \
-        (magnetic_field, &topic_magnetic_field, "magnetic_field"),                \
-        (nav_sat_fix, &topic_nav_sat_fix, "nav_sat_fix"),                         \
-        (angular_velocity_sp, &topic_angular_velocity_sp, "angular_velocity_sp"), \
-        (position_sp, &topic_position_sp, "position_sp"),                         \
-        (force_sp, &topic_force_sp, "force_sp"),                                  \
-        (moment_sp, &topic_moment_sp, "moment_sp"),                               \
-        (safety, &topic_safety, "safety"),                                        \
-        (status, &topic_status, "status"),                                        \
-        (velocity_sp, &topic_velocity_sp, "velocity_sp"),                         \
-        (accel_sp, &topic_accel_sp, "accel_sp"),                                  \
-        (orientation_sp, &topic_orientation_sp, "orientation_sp"),                \
+#define TOPIC_DICTIONARY()                                                                             \
+    (accel_sp, &topic_accel_sp, "accel_sp"),                                                           \
+        (actuators, &topic_actuators, "actuators"),                                                    \
+        (altimeter, &topic_altimeter, "altimeter"),                                                    \
+        (angular_velocity_sp, &topic_angular_velocity_sp, "angular_velocity_sp"),                      \
+        (attitude_sp, &topic_attitude_sp, "attitude_sp"),                                              \
+        (battery_state, &topic_battery_state, "battery_state"),                                        \
+        (cmd_vel, &topic_cmd_vel, "cmd_vel"),                                                          \
+        (estimator_odometry, &topic_estimator_odometry, "estimator_odometry"),                         \
+        (force_sp, &topic_force_sp, "force_sp"),                                                       \
+        (imu, &topic_imu, "imu"),                                                                      \
+        (joy, &topic_joy, "joy"),                                                                      \
+        (led_array, &topic_led_array, "led_array"),                                                    \
+        (magnetic_field, &topic_magnetic_field, "magnetic_field"),                                     \
+        (moment_sp, &topic_moment_sp, "moment_sp"),                                                    \
+        (nav_sat_fix, &topic_nav_sat_fix, "nav_sat_fix"),                                              \
+        (offboard_bezier_trajectory, &topic_offboard_bezier_trajectory, "offboard_bezier_trajectory"), \
+        (offboard_clock_offset, &topic_offboard_clock_offset, "offboard_clock_offset"),                \
+        (offboard_cmd_vel, &topic_offboard_cmd_vel, "offboard_cmd_vel"),                               \
+        (offboard_joy, &topic_offboard_joy, "offboard_joy"),                                           \
+        (offboard_odometry, &topic_offboard_odometry, "offboard_odometry"),                            \
+        (orientation_sp, &topic_orientation_sp, "orientation_sp"),                                     \
+        (position_sp, &topic_position_sp, "position_sp"),                                              \
+        (pwm, &topic_pwm, "pwm"),                                                                      \
+        (safety, &topic_safety, "safety"),                                                             \
+        (status, &topic_status, "status"),                                                             \
+        (velocity_sp, &topic_velocity_sp, "velocity_sp"),                                              \
         (wheel_odometry, &topic_wheel_odometry, "wheel_odometry")
-
-static volatile bool keep_running = true;
 
 static void shell_callback(const struct shell* sh, uint8_t* data, size_t len)
 {
-    keep_running = false;
+    k_poll_signal_raise(&signal_quit, 1);
 }
 
 static int topic_count_hz(const struct shell* sh, struct zros_topic* topic, void* msg, snprint_t* echo)
@@ -135,7 +135,7 @@ static int topic_count_hz(const struct shell* sh, struct zros_topic* topic, void
     double max = 0;
     shell_print(sh, "sample   delta");
     for (int i = 0; i < msg_count - 1; i++) {
-        sample_sec[i] = (float)(msg_tick[i + 1] - msg_tick[i]) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        sample_sec[i] = (double)(msg_tick[i + 1] - msg_tick[i]) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         if (i == 0) {
             min = sample_sec[i];
             max = sample_sec[i];
@@ -173,31 +173,38 @@ static int topic_echo(const struct shell* sh, struct zros_topic* topic, void* ms
     struct zros_sub sub;
     struct zros_node node;
     zros_node_init(&node, "sub hz");
-    zros_sub_init(&sub, &node, topic, msg, 1000);
-    char name[20] = {};
-    struct k_poll_event events[1] = {
+    // limit to 10 Hz
+    zros_sub_init(&sub, &node, topic, msg, 10);
+    char name[50] = {};
+
+    // reinit
+    k_poll_signal_init(&signal_quit);
+
+    struct k_poll_event events[2] = {
         *zros_sub_get_event(&sub),
+        K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL, K_POLL_MODE_NOTIFY_ONLY, &signal_quit)
     };
-    float sample_period = 2.0;
     int rc = 0;
 
-    keep_running = true;
     shell_print(sh, "press any key to exit");
     shell_set_bypass(sh, shell_callback);
 
-    while (keep_running) {
-        // limit to 10 hz
-        k_msleep(100);
-        // wait for new message
-        rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(sample_period * 1e3f));
+    while (true) {
+        // wait for new message, for 10 seconds
+        // allow abort every second
+        rc = k_poll(events, ARRAY_SIZE(events), K_FOREVER);
         zros_topic_get_name(topic, name, sizeof(name));
         if (rc != 0) {
-            LOG_WRN("%s not published.", name);
-            keep_running = false;
+            shell_print(sh, "not published");
+            break;
         } else {
+            int quit_signaled, result;
+            k_poll_signal_check(&signal_quit, &quit_signaled, &result);
+            if (quit_signaled)
+                break;
             if (!zros_sub_update_available(&sub)) {
                 LOG_WRN("%s no update available.", name);
-                keep_running = false;
+                break;
             } else {
                 zros_sub_update(&sub);
                 echo(buf, sizeof(buf), msg);
@@ -225,7 +232,7 @@ void topic_work_handler(struct k_work* work)
     struct zros_topic* topic = ctx->topic;
     msg_handler_t* handler = ctx->handler;
 
-    if (topic == &topic_actuators || topic == &topic_actuators_manual) {
+    if (topic == &topic_actuators) {
         synapse_msgs_Actuators msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_actuators);
     } else if (topic == &topic_altimeter) {
@@ -245,13 +252,13 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_battery_state) {
         synapse_msgs_BatteryState msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_battery_state);
-    } else if (topic == &topic_bezier_trajectory) {
+    } else if (topic == &topic_offboard_bezier_trajectory) {
         synapse_msgs_BezierTrajectory msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_bezier_trajectory);
-    } else if (topic == &topic_clock_offset) {
+    } else if (topic == &topic_offboard_clock_offset) {
         synapse_msgs_Time msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_time);
-    } else if (topic == &topic_cmd_vel) {
+    } else if (topic == &topic_cmd_vel || topic == &topic_offboard_cmd_vel) {
         synapse_msgs_Twist msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_twist);
     } else if (topic == &topic_status) {
@@ -260,19 +267,22 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_imu) {
         synapse_msgs_Imu msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_imu);
-    } else if (topic == &topic_joy) {
+    } else if (topic == &topic_joy || topic == &topic_offboard_joy) {
         synapse_msgs_Joy msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_joy);
     } else if (topic == &topic_led_array) {
         synapse_msgs_LEDArray msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_ledarray);
+    } else if (topic == &topic_pwm) {
+        synapse_msgs_Pwm msg = {};
+        handler(sh, topic, &msg, (snprint_t*)&snprint_pwm);
     } else if (topic == &topic_magnetic_field) {
         synapse_msgs_MagneticField msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_magnetic_field);
     } else if (topic == &topic_nav_sat_fix) {
         synapse_msgs_NavSatFix msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_navsatfix);
-    } else if (topic == &topic_estimator_odometry || topic == &topic_external_odometry) {
+    } else if (topic == &topic_estimator_odometry || topic == &topic_offboard_odometry) {
         synapse_msgs_Odometry msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_odometry);
     } else if (topic == &topic_safety) {
@@ -315,7 +325,7 @@ static int cmd_zros_topic_echo(const struct shell* sh,
 void topic_print_iterator(const struct zros_topic* topic, void* data)
 {
     const struct shell* sh = (const struct shell*)data;
-    char name[20];
+    char name[50];
     zros_topic_get_name(topic, name, sizeof(name));
     shell_print(sh, "%s", name);
 }
@@ -330,7 +340,7 @@ static int cmd_zros_topic_list(const struct shell* sh,
 void pub_print_iterator(const struct zros_pub* pub, void* data)
 {
     const struct shell* sh = (const struct shell*)data;
-    char name[30];
+    char name[50];
     zros_node_get_name(pub->_node, name, sizeof(name));
     shell_print(sh, "\t%s", name);
 }
@@ -338,7 +348,7 @@ void pub_print_iterator(const struct zros_pub* pub, void* data)
 void sub_print_iterator(const struct zros_sub* sub, void* data)
 {
     const struct shell* sh = (const struct shell*)data;
-    char name[30];
+    char name[50];
     zros_node_get_name(sub->_node, name, sizeof(name));
     shell_print(sh, "\t%s", name);
 }
@@ -357,7 +367,7 @@ static int cmd_zros_topic_info(const struct shell* sh,
 void node_print_iterator(const struct zros_node* node, void* data)
 {
     const struct shell* sh = (const struct shell*)data;
-    char name[30];
+    char name[50];
     zros_node_get_name(node, name, sizeof(name));
     shell_print(sh, "%s", name);
 }

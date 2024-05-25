@@ -5,7 +5,7 @@
 
 #include "casadi/gen/rdd2.h"
 
-#include <assert.h>
+#include <math.h>
 
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
@@ -64,9 +64,9 @@ static void rdd2_attitude_init(struct context* ctx)
     zros_node_init(&ctx->node, "rdd2_attiude");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_attitude_sp, &ctx->node,
-        &topic_attitude_sp, &ctx->attitude_sp, 300);
+        &topic_attitude_sp, &ctx->attitude_sp, 50);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
-        &topic_estimator_odometry, &ctx->estimator_odometry, 300);
+        &topic_estimator_odometry, &ctx->estimator_odometry, 50);
     zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node, &topic_angular_velocity_sp, &ctx->angular_velocity_sp);
     atomic_set(&ctx->running, 1);
 }
@@ -75,11 +75,11 @@ static void rdd2_attitude_fini(struct context* ctx)
 {
     LOG_INF("fini");
     atomic_set(&ctx->running, 0);
-    zros_node_fini(&ctx->node);
     zros_sub_fini(&ctx->sub_status);
     zros_sub_fini(&ctx->sub_attitude_sp);
     zros_sub_fini(&ctx->sub_estimator_odometry);
     zros_pub_fini(&ctx->pub_angular_velocity_sp);
+    zros_node_fini(&ctx->node);
 }
 
 static void rdd2_attitude_run(void* p0, void* p1, void* p2)
@@ -113,36 +113,53 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_attitude_sp);
         }
 
-        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN) {
-            // TODO add acro mode
+        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE) {
+
             double omega[3];
             {
-                /* attitude_control:(q[4],q_r[4])->(omega[3]) */
+                /* attitude_control:(kp[3],q[4],q_r[4])->(omega[3]) */
+                const double kp[3] = {
+                    CONFIG_CEREBRI_RDD2_ROLL_KP * 1e-3,
+                    CONFIG_CEREBRI_RDD2_PITCH_KP * 1e-3,
+                    CONFIG_CEREBRI_RDD2_YAW_KP * 1e-3,
+                };
+
                 CASADI_FUNC_ARGS(attitude_control);
-                double q[4];
-                double q_r[4];
+                double q[4] = {
+                    ctx->estimator_odometry.pose.pose.orientation.w,
+                    ctx->estimator_odometry.pose.pose.orientation.x,
+                    ctx->estimator_odometry.pose.pose.orientation.y,
+                    ctx->estimator_odometry.pose.pose.orientation.z,
+                };
 
-                q[0] = ctx->estimator_odometry.pose.pose.orientation.w;
-                q[1] = ctx->estimator_odometry.pose.pose.orientation.x;
-                q[2] = ctx->estimator_odometry.pose.pose.orientation.y;
-                q[3] = ctx->estimator_odometry.pose.pose.orientation.z;
-
-                q_r[0] = ctx->attitude_sp.w;
-                q_r[1] = ctx->attitude_sp.x;
-                q_r[2] = ctx->attitude_sp.y;
-                q_r[3] = ctx->attitude_sp.z;
-
-                args[0] = q;
-                args[1] = q_r;
+                double q_r[4] = {
+                    ctx->attitude_sp.w,
+                    ctx->attitude_sp.x,
+                    ctx->attitude_sp.y,
+                    ctx->attitude_sp.z,
+                };
+                args[0] = kp;
+                args[1] = q;
+                args[2] = q_r;
                 res[0] = omega;
                 CASADI_FUNC_CALL(attitude_control);
             }
 
             // publish
-            ctx->angular_velocity_sp.x = omega[0];
-            ctx->angular_velocity_sp.y = omega[1];
-            ctx->angular_velocity_sp.z = omega[2];
-            zros_pub_update(&ctx->pub_angular_velocity_sp);
+            bool data_ok = true;
+            for (int i = 0; i < 3; i++) {
+                if (!isfinite(omega[i])) {
+                    LOG_ERR("omega[0] not finite: %10.4f", omega[i]);
+                    data_ok = false;
+                }
+            }
+
+            if (data_ok) {
+                ctx->angular_velocity_sp.x = omega[0];
+                ctx->angular_velocity_sp.y = omega[1];
+                ctx->angular_velocity_sp.z = omega[2];
+                zros_pub_update(&ctx->pub_angular_velocity_sp);
+            }
         }
     }
 
@@ -165,7 +182,10 @@ static int rdd2_attitude_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {
@@ -197,6 +217,6 @@ static int rdd2_attitude_sys_init(void)
     return start(&g_ctx);
 };
 
-SYS_INIT(rdd2_attitude_sys_init, APPLICATION, 3);
+SYS_INIT(rdd2_attitude_sys_init, APPLICATION, 1);
 
 // vi: ts=4 sw=4 et

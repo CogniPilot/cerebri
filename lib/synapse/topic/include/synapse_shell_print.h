@@ -26,6 +26,7 @@ int snprint_odometry(char* buf, size_t n, synapse_msgs_Odometry* m);
 int snprint_point(char* buf, size_t n, synapse_msgs_Point* m);
 int snprint_pose(char* buf, size_t n, synapse_msgs_Pose* m);
 int snprint_pose_with_covariance(char* buf, size_t n, synapse_msgs_PoseWithCovariance* m);
+int snprint_pwm(char* buf, size_t n, synapse_msgs_Pwm* m);
 int snprint_quaternion(char* buf, size_t n, synapse_msgs_Quaternion* m);
 int snprint_safety(char* buf, size_t n, synapse_msgs_Safety* m);
 int snprint_status(char* buf, size_t n, synapse_msgs_Status* m);

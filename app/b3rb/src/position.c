@@ -28,11 +28,11 @@ LOG_MODULE_REGISTER(b3rb_position, CONFIG_CEREBRI_B3RB_LOG_LEVEL);
 typedef struct _context {
     struct zros_node node;
     synapse_msgs_Status status;
-    synapse_msgs_BezierTrajectory bezier_trajectory;
-    synapse_msgs_Time clock_offset;
+    synapse_msgs_BezierTrajectory offboard_bezier_trajectory;
+    synapse_msgs_Time offboard_clock_offset;
     synapse_msgs_Odometry pose;
     synapse_msgs_Twist cmd_vel;
-    struct zros_sub sub_status, sub_clock_offset, sub_pose, sub_bezier_trajectory;
+    struct zros_sub sub_status, sub_offboard_clock_offset, sub_pose, sub_offboard_bezier_trajectory;
     struct zros_pub pub_cmd_vel;
     const double wheel_base;
     const double gain_along_track;
@@ -42,8 +42,8 @@ typedef struct _context {
 
 static context g_ctx = {
     .status = synapse_msgs_Status_init_default,
-    .bezier_trajectory = synapse_msgs_BezierTrajectory_init_default,
-    .clock_offset = synapse_msgs_Time_init_default,
+    .offboard_bezier_trajectory = synapse_msgs_BezierTrajectory_init_default,
+    .offboard_clock_offset = synapse_msgs_Time_init_default,
     .pose = synapse_msgs_Odometry_init_default,
     .cmd_vel = {
         .has_angular = true,
@@ -52,9 +52,9 @@ static context g_ctx = {
         .angular = synapse_msgs_Vector3_init_default,
     },
     .sub_status = {},
-    .sub_clock_offset = {},
+    .sub_offboard_clock_offset = {},
     .sub_pose = {},
-    .sub_bezier_trajectory = {},
+    .sub_offboard_bezier_trajectory = {},
     .pub_cmd_vel = {},
     .wheel_base = CONFIG_CEREBRI_B3RB_WHEEL_BASE_MM / 1000.0,
     .gain_along_track = CONFIG_CEREBRI_B3RB_GAIN_ALONG_TRACK / 1000.0,
@@ -66,9 +66,9 @@ static void init(context* ctx)
 {
     zros_node_init(&ctx->node, "b3rb_position");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
-    zros_sub_init(&ctx->sub_clock_offset, &ctx->node, &topic_clock_offset, &ctx->clock_offset, 10);
+    zros_sub_init(&ctx->sub_offboard_clock_offset, &ctx->node, &topic_offboard_clock_offset, &ctx->offboard_clock_offset, 10);
     zros_sub_init(&ctx->sub_pose, &ctx->node, &topic_estimator_odometry, &ctx->pose, 10);
-    zros_sub_init(&ctx->sub_bezier_trajectory, &ctx->node, &topic_bezier_trajectory, &ctx->bezier_trajectory, 10);
+    zros_sub_init(&ctx->sub_offboard_bezier_trajectory, &ctx->node, &topic_offboard_bezier_trajectory, &ctx->offboard_bezier_trajectory, 10);
     zros_pub_init(&ctx->pub_cmd_vel, &ctx->node, &topic_cmd_vel, &ctx->cmd_vel);
 }
 
@@ -79,14 +79,14 @@ static void stop(context* ctx)
 }
 
 // computes thrust/steering in auto mode
-static void auto_mode(context* ctx)
+static void bezier_mode(context* ctx)
 {
     // goal -> given position goal, find cmd_vel
-    uint64_t time_start_nsec = ctx->bezier_trajectory.time_start;
+    uint64_t time_start_nsec = ctx->offboard_bezier_trajectory.time_start;
     uint64_t time_stop_nsec = time_start_nsec;
 
     // get current time
-    uint64_t time_nsec = k_uptime_get() * 1e6 + ctx->clock_offset.sec * 1e9 + ctx->clock_offset.nanosec;
+    uint64_t time_nsec = k_uptime_get() * 1e6 + ctx->offboard_clock_offset.sec * 1e9 + ctx->offboard_clock_offset.nanosec;
 
     if (time_nsec < time_start_nsec) {
         LOG_DBG("time current: %" PRIu64
@@ -102,10 +102,10 @@ static void auto_mode(context* ctx)
     while (true) {
 
         // check if time handled by current trajectory
-        if (time_nsec < ctx->bezier_trajectory.curves[curve_index].time_stop) {
-            time_stop_nsec = ctx->bezier_trajectory.curves[curve_index].time_stop;
+        if (time_nsec < ctx->offboard_bezier_trajectory.curves[curve_index].time_stop) {
+            time_stop_nsec = ctx->offboard_bezier_trajectory.curves[curve_index].time_stop;
             if (curve_index > 0) {
-                time_start_nsec = ctx->bezier_trajectory.curves[curve_index - 1].time_stop;
+                time_start_nsec = ctx->offboard_bezier_trajectory.curves[curve_index - 1].time_stop;
             }
             break;
         }
@@ -114,7 +114,7 @@ static void auto_mode(context* ctx)
         curve_index++;
 
         // check if index exceeds bounds
-        if (curve_index >= ctx->bezier_trajectory.curves_count) {
+        if (curve_index >= ctx->offboard_bezier_trajectory.curves_count) {
             // LOG_ERR("curve index exceeds bounds");
             stop(ctx);
             return;
@@ -128,8 +128,8 @@ static void auto_mode(context* ctx)
 
     double PX[6], PY[6];
     for (int i = 0; i < 6; i++) {
-        PX[i] = ctx->bezier_trajectory.curves[curve_index].x[i];
-        PY[i] = ctx->bezier_trajectory.curves[curve_index].y[i];
+        PX[i] = ctx->offboard_bezier_trajectory.curves[curve_index].x[i];
+        PY[i] = ctx->offboard_bezier_trajectory.curves[curve_index].y[i];
     }
 
     /* bezier6_rover:(t,T,PX[1x6],PY[1x6],L)->(x,y,psi,V,omega) */
@@ -189,7 +189,6 @@ static void b3rb_position_entry_point(void* p0, void* p1, void* p2)
 
     while (true) {
 
-        // LOG_DBG("polling on pose");
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
@@ -197,8 +196,8 @@ static void b3rb_position_entry_point(void* p0, void* p1, void* p2)
             continue;
         }
 
-        if (zros_sub_update_available(&ctx->sub_bezier_trajectory)) {
-            zros_sub_update(&ctx->sub_bezier_trajectory);
+        if (zros_sub_update_available(&ctx->sub_offboard_bezier_trajectory)) {
+            zros_sub_update(&ctx->sub_offboard_bezier_trajectory);
         }
 
         if (zros_sub_update_available(&ctx->sub_status)) {
@@ -209,17 +208,14 @@ static void b3rb_position_entry_point(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_pose);
         }
 
-        if (zros_sub_update_available(&ctx->sub_clock_offset)) {
-            zros_sub_update(&ctx->sub_clock_offset);
+        if (zros_sub_update_available(&ctx->sub_offboard_clock_offset)) {
+            zros_sub_update(&ctx->sub_offboard_clock_offset);
         }
 
-        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_AUTO) {
-            // LOG_DBG("not auto mode");
-            continue;
+        if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
+            bezier_mode(ctx);
+            zros_pub_update(&ctx->pub_cmd_vel);
         }
-
-        auto_mode(ctx);
-        zros_pub_update(&ctx->pub_cmd_vel);
     }
 }
 

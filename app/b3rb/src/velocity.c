@@ -6,7 +6,9 @@
 #include "casadi/gen/b3rb.h"
 #include "math.h"
 
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/shell/shell.h>
 
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
@@ -24,45 +26,61 @@
 
 LOG_MODULE_REGISTER(b3rb_velocity, CONFIG_CEREBRI_B3RB_LOG_LEVEL);
 
-typedef struct _context {
+static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
+
+struct context {
     struct zros_node node;
     synapse_msgs_Twist cmd_vel;
     synapse_msgs_Status status;
     synapse_msgs_Actuators actuators;
-    synapse_msgs_Actuators actuators_manual;
-    struct zros_sub sub_status, sub_cmd_vel, sub_actuators_manual;
+    struct zros_sub sub_status, sub_cmd_vel;
     struct zros_pub pub_actuators;
     const double wheel_radius;
     const double wheel_base;
-} context;
+    atomic_t running;
+    size_t stack_size;
+    k_thread_stack_t* stack_area;
+    struct k_thread thread_data;
+};
 
-static context g_ctx = {
+static struct context g_ctx = {
     .node = {},
     .cmd_vel = synapse_msgs_Twist_init_default,
     .status = synapse_msgs_Status_init_default,
     .actuators = synapse_msgs_Actuators_init_default,
-    .actuators_manual = synapse_msgs_Actuators_init_default,
     .sub_status = {},
     .sub_cmd_vel = {},
-    .sub_actuators_manual = {},
     .pub_actuators = {},
     .wheel_radius = CONFIG_CEREBRI_B3RB_WHEEL_RADIUS_MM / 1000.0,
     .wheel_base = CONFIG_CEREBRI_B3RB_WHEEL_BASE_MM / 1000.0,
+    .running = ATOMIC_INIT(0),
+    .stack_size = MY_STACK_SIZE,
+    .stack_area = g_my_stack_area,
+    .thread_data = {},
 };
 
-static void init_b3rb_vel(context* ctx)
+static void b3rb_velocity_init(struct context* ctx)
 {
-    LOG_DBG("init vel");
+    LOG_INF("init");
     zros_node_init(&ctx->node, "b3rb_velocity");
     zros_sub_init(&ctx->sub_cmd_vel, &ctx->node, &topic_cmd_vel, &ctx->cmd_vel, 10);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
-    zros_sub_init(&ctx->sub_actuators_manual, &ctx->node,
-        &topic_actuators_manual, &ctx->actuators_manual, 10);
     zros_pub_init(&ctx->pub_actuators, &ctx->node, &topic_actuators, &ctx->actuators);
+    atomic_set(&ctx->running, 1);
 }
 
-// computes rc_input from V, omega
-static void update_cmd_vel(context* ctx)
+static void b3rb_velocity_fini(struct context* ctx)
+{
+    LOG_INF("fini");
+    atomic_set(&ctx->running, 0);
+    zros_pub_fini(&ctx->pub_actuators);
+    zros_sub_fini(&ctx->sub_status);
+    zros_sub_fini(&ctx->sub_cmd_vel);
+    zros_node_fini(&ctx->node);
+}
+
+// computes actuators from cmd_vel
+static void b3rb_velocity_update(struct context* ctx)
 {
     double turn_angle = 0;
     double omega_fwd = 0;
@@ -81,43 +99,32 @@ static void update_cmd_vel(context* ctx)
     if (fabs(V) > 0.01) {
         turn_angle = delta;
     }
-    b3rb_set_actuators(&ctx->actuators, turn_angle, omega_fwd);
+
+    bool armed = ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED;
+
+    b3rb_set_actuators(&ctx->actuators, turn_angle, omega_fwd, armed);
+
+    // publish
+    zros_pub_update(&ctx->pub_actuators);
 }
 
-static void stop(context* ctx)
+static void b3rb_velocity_run(void* p0, void* p1, void* p2)
 {
-    b3rb_set_actuators(&ctx->actuators, 0, 0);
-}
-
-static void b3rb_velocity_entry_point(void* p0, void* p1, void* p2)
-{
-    LOG_INF("init");
-    context* ctx = p0;
+    struct context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
 
-    init_b3rb_vel(ctx);
+    b3rb_velocity_init(ctx);
 
-    while (true) {
-        synapse_msgs_Status_Mode mode = ctx->status.mode;
+    while (atomic_get(&ctx->running)) {
+        struct k_poll_event events[] = {
+            *zros_sub_get_event(&ctx->sub_cmd_vel),
+        };
+        int rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
 
-        int rc = 0;
-        if (mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
-            struct k_poll_event events[] = {
-                *zros_sub_get_event(&ctx->sub_actuators_manual),
-            };
-            rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
-            if (rc != 0) {
-                LOG_DBG("not receiving manual actuators");
-            }
-        } else {
-            struct k_poll_event events[] = {
-                *zros_sub_get_event(&ctx->sub_cmd_vel),
-            };
-            rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
-            if (rc != 0) {
-                LOG_DBG("not receiving cmd_vel");
-            }
+        if (rc < 0) {
+            LOG_DBG("not receiving cmd_vel");
+            continue;
         }
 
         if (zros_sub_update_available(&ctx->sub_status)) {
@@ -128,35 +135,66 @@ static void b3rb_velocity_entry_point(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_cmd_vel);
         }
 
-        if (zros_sub_update_available(&ctx->sub_actuators_manual)) {
-            zros_sub_update(&ctx->sub_actuators_manual);
-        }
-
         // handle modes
-        if (rc < 0) {
-            stop(ctx);
-            LOG_DBG("no data, stopped");
-        } else if (ctx->status.arming != synapse_msgs_Status_Arming_ARMING_ARMED) {
-            stop(ctx);
-            LOG_DBG("not armed, stopped");
-        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
-            LOG_DBG("manual mode");
-            ctx->actuators = ctx->actuators_manual;
-        } else {
-            update_cmd_vel(ctx);
+        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_MANUAL) {
+            b3rb_velocity_update(ctx);
         }
-
-        // set motor enable line
-        ctx->actuators.normalized_count = 1;
-        ctx->actuators.normalized[0] = ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED ? 1 : -1;
-
-        // publish
-        zros_pub_update(&ctx->pub_actuators);
     }
+
+    b3rb_velocity_fini(ctx);
 }
 
-K_THREAD_DEFINE(b3rb_velocity, MY_STACK_SIZE,
-    b3rb_velocity_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 1000);
+static int start(struct context* ctx)
+{
+    k_tid_t tid = k_thread_create(&ctx->thread_data, ctx->stack_area,
+        ctx->stack_size,
+        b3rb_velocity_run,
+        ctx, NULL, NULL,
+        MY_PRIORITY, 0, K_FOREVER);
+    k_thread_name_set(tid, "b3rb_velocity");
+    k_thread_start(tid);
+    return 0;
+}
 
-/* vi: ts=4 sw=4 et */
+static int b3rb_velocity_cmd_handler(const struct shell* sh,
+    size_t argc, char** argv, void* data)
+{
+    struct context* ctx = data;
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
+
+    if (strcmp(argv[0], "start") == 0) {
+        if (atomic_get(&ctx->running)) {
+            shell_print(sh, "already running");
+        } else {
+            start(ctx);
+        }
+    } else if (strcmp(argv[0], "stop") == 0) {
+        if (atomic_get(&ctx->running)) {
+            atomic_set(&ctx->running, 0);
+        } else {
+            shell_print(sh, "not running");
+        }
+    } else if (strcmp(argv[0], "status") == 0) {
+        shell_print(sh, "running: %d", (int)atomic_get(&ctx->running));
+    }
+    return 0;
+}
+
+SHELL_SUBCMD_DICT_SET_CREATE(sub_b3rb_velocity, b3rb_velocity_cmd_handler,
+    (start, &g_ctx, "start"),
+    (stop, &g_ctx, "stop"),
+    (status, &g_ctx, "status"));
+
+SHELL_CMD_REGISTER(b3rb_velocity, &sub_b3rb_velocity, "b3rb velocity arguments", NULL);
+
+static int b3rb_velocity_sys_init(void)
+{
+    return start(&g_ctx);
+};
+
+SYS_INIT(b3rb_velocity_sys_init, APPLICATION, 1);
+
+// vi: ts=4 sw=4 et

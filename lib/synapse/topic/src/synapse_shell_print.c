@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <synapse_topic_list.h>
 
+#include "../../../core/common/src/casadi/gen/common.h"
+#include <cerebri/core/casadi.h>
+
 #include "synapse_shell_print.h"
 
 int snprintf_cat(char* buf, int n, char const* fmt, ...)
@@ -17,6 +20,17 @@ int snprintf_cat(char* buf, int n, char const* fmt, ...)
     result = vsnprintf(buf, n, fmt, args);
     va_end(args);
     return result;
+}
+
+int snprint_pwm(char* buf, size_t n, synapse_msgs_Pwm* m)
+{
+    size_t offset = 0;
+
+    for (int i = 0; i < m->channel_count; i++) {
+        offset += snprintf_cat(buf + offset, n - offset, "%4d: %10ld", i, m->channel[i]);
+    }
+    offset += snprintf_cat(buf + offset, n - offset, "\n");
+    return offset;
 }
 
 int snprint_actuators(char* buf, size_t n, synapse_msgs_Actuators* m)
@@ -120,10 +134,10 @@ int snprint_status(char* buf, size_t n, synapse_msgs_Status* m)
         offset += snprint_header(buf + offset, n - offset, &m->header);
     }
     offset += snprintf_cat(buf + offset, n - offset,
-        "armed: %s\nmode: %s\nsafety: %s\nfuel: %s\n"
+        "armed: %s\ncommand source: %s\nmode: %s\nsafety: %s\nfuel: %s\n"
         "fuel level: %0.2d\%\npower: %10.2fW\nmessage: %s\njoy: %s\n"
         "request_seq: %10d\nrequest_rejected:%2d\n",
-        armed_str(m->arming), mode_str(m->mode), status_safety_str(m->safety),
+        armed_str(m->arming), command_source_str(m->command_source), mode_str(m->mode), status_safety_str(m->safety),
         fuel_str(m->fuel), m->fuel_percentage, (double)m->power, m->status_message,
         status_joy_str(m->joy), m->request_seq, m->request_rejected);
     return offset;
@@ -296,8 +310,17 @@ int snprint_pose_with_covariance(char* buf, size_t n, synapse_msgs_PoseWithCovar
 
 int snprint_quaternion(char* buf, size_t n, synapse_msgs_Quaternion* m)
 {
-    return snprintf_cat(buf, n, "w: %10.4f x: %10.4f y: %10.4f z: %10.4f\n",
-        m->w, m->x, m->y, m->z);
+    double q[4] = { m->w, m->x, m->y, m->z };
+    double yaw, pitch, roll;
+    double rad2deg = 180 / 3.14159;
+    CASADI_FUNC_ARGS(quat_to_eulerB321)
+    args[0] = q;
+    res[0] = &yaw;
+    res[1] = &pitch;
+    res[2] = &roll;
+    CASADI_FUNC_CALL(quat_to_eulerB321)
+    return snprintf_cat(buf, n, "yaw: %8.2f pitch: %8.2f roll: %8.2f [deg]\nw: %10.4f x: %10.4f y: %10.4f z: %10.4f\n",
+        rad2deg * yaw, rad2deg * pitch, rad2deg * roll, m->w, m->x, m->y, m->z);
 }
 
 int snprint_safety(char* buf, size_t n, synapse_msgs_Safety* m)

@@ -43,12 +43,12 @@
 		telem1 = &lpuart8; /* Use telem2 as telem1 */
 		/* accelerometers */
 		accel0 = &bmi08x_accel;
-		accel1 = &icm42688_0;
-		accel2 = &icm42688_1;
+		/* accel1 = &icm42688_0; */
+		accel1 = &icm42688_1;
 		/* gyroscopes */
-		gyro0 = &icm42688_0;
-		gyro1 = &icm42688_1;
-		gyro2 = &bmi08x_gyro;
+		/* gyro0 = &icm42688_0; */
+		gyro0 = &icm42688_1;
+		gyro1 = &bmi08x_gyro;
 		/* magnetometers */
 		mag0 = &ist8310;
 		mag1 = &bmm150;
@@ -147,6 +147,10 @@
 				 LED_COLOR_ID_GREEN
 				 LED_COLOR_ID_RED>;
 	};
+};
+
+&lpspi1 {
+	/delete-node/ icm42688p0@0;
 };
 
 /* GNSS 1 */

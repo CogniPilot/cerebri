@@ -53,8 +53,8 @@
 		mag0 = &ist8310;
 		mag1 = &bmm150;
 		/* barometric altimeters */
-		baro0 = &bmp388_0;
-		baro1 = &bmp388_1;
+		/* baro0 = &bmp388_0; */
+		baro0 = &bmp388_1;
 		/* power sensors */
 		power0 = &ina230;
 		/* safety button */
@@ -151,6 +151,10 @@
 
 &lpspi1 {
 	/delete-node/ icm42688p0@0;
+};
+
+&lpi2c2 {
+	/delete-node/ bmp388@76;
 };
 
 /* GNSS 1 */

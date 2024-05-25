@@ -142,6 +142,10 @@
 		reg = <0>;
 		spi-max-frequency = <4000000>;
 		status = "okay";
+		chain-length = <36>;
+		color-mapping = <LED_COLOR_ID_BLUE
+				 LED_COLOR_ID_GREEN
+				 LED_COLOR_ID_RED>;
 	};
 };
 

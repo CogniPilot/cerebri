@@ -133,6 +133,12 @@ void imu_read(context_t* ctx)
                 for (int j = 0; j < 3; j++) {
                     ctx->accel_raw[i][j] = accel_value[j].val1 + accel_value[j].val2 * 1e-6;
                 }
+                for (int j=0; j<3; j++) {
+                    if (ctx->gyro_raw[i][j] > 15*g_accel || ctx->accel_raw[i][j] < -15*g_accel) {
+                        LOG_ERR("accel saturating: %d, %d: %10.4f", i, j, ctx->accel_raw[i][j]);
+                    }
+                }
+
                 LOG_DBG("accel %d: %d.%06d %d.%06d %d.%06d", i,
                     accel_value[0].val1, accel_value[0].val2,
                     accel_value[1].val1, accel_value[1].val2,
@@ -150,6 +156,11 @@ void imu_read(context_t* ctx)
                 sensor_channel_get(ctx->gyro_dev[i], SENSOR_CHAN_GYRO_XYZ, gyro_value);
                 for (int j = 0; j < 3; j++) {
                     ctx->gyro_raw[i][j] = gyro_value[j].val1 + gyro_value[j].val2 * 1e-6;
+                }
+                for (int j=0; j<3; j++) {
+                    if (ctx->gyro_raw[i][j] > 34 || ctx->gyro_raw[i][j] < -34) {
+                        LOG_ERR("gyro saturating: %d, %d: %10.4f", i, j, ctx->gyro_raw[i][j]);
+                    }
                 }
                 LOG_DBG("gyro %d: %d.%06d %d.%06d %d.%06d", i,
                     gyro_value[0].val1, gyro_value[0].val2,
@@ -291,6 +302,8 @@ void imu_publish(context_t* ctx)
     // update message
     stamp_header(&ctx->imu.header, k_uptime_ticks());
     ctx->imu.header.seq++;
+    if (fabs(ctx->gyro_raw[gyro_select][0]) > 1000) {
+    }
     ctx->imu.angular_velocity.x = ctx->gyro_raw[gyro_select][0] - ctx->gyro_bias[gyro_select][0];
     ctx->imu.angular_velocity.y = ctx->gyro_raw[gyro_select][1] - ctx->gyro_bias[gyro_select][1];
     ctx->imu.angular_velocity.z = ctx->gyro_raw[gyro_select][2] - ctx->gyro_bias[gyro_select][2];
@@ -340,7 +353,7 @@ int sense_imu_entry_point(context_t* ctx)
     imu_init(ctx);
     // delay initiali calibration 1 s
     k_msleep(1000);
-    k_timer_start(&ctx->timer, K_MSEC(5), K_MSEC(5));
+    k_timer_start(&ctx->timer, K_MSEC(2), K_MSEC(2));
     return 0;
 }
 

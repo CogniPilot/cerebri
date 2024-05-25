@@ -42,9 +42,9 @@
 		can2 = &flexcan3;
 		telem1 = &lpuart8; /* Use telem2 as telem1 */
 		/* accelerometers */
-		accel0 = &bmi08x_accel;
+		accel0 = &icm42688_1;
+		accel1 = &bmi08x_accel;
 		/* accel1 = &icm42688_0; */
-		accel1 = &icm42688_1;
 		/* gyroscopes */
 		/* gyro0 = &icm42688_0; */
 		gyro0 = &icm42688_1;

@@ -128,18 +128,6 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
         zros_sub_update(&ctx->sub_imu);
     }
 
-    // wait for external odometry
-    LOG_DBG("waiting for external odometry");
-    events[0] = *zros_sub_get_event(&ctx->sub_external_odometry);
-    rc = k_poll(events, ARRAY_SIZE(events), K_FOREVER);
-    if (rc != 0) {
-        LOG_DBG("did not receive external odometry");
-        return;
-    }
-    if (zros_sub_update_available(&ctx->sub_external_odometry)) {
-        zros_sub_update(&ctx->sub_external_odometry);
-    }
-
     double dt = 0;
     int64_t ticks_last = k_uptime_ticks();
 
@@ -149,7 +137,11 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
     // poll on imu
     events[0] = *zros_sub_get_event(&ctx->sub_imu);
 
+    int j = 0;
+
     while (atomic_get(&ctx->running)) {
+
+        j += 1;
 
         // poll for imu
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
@@ -161,6 +153,19 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
         if (zros_sub_update_available(&ctx->sub_imu)) {
             zros_sub_update(&ctx->sub_imu);
         }
+
+        /*
+        if (j % 100 == 0) {
+            int offset = 0;
+            static char buf[1024];
+            int n = 1024;
+            offset += snprintf(buf + offset, n - offset, "x: ");
+            for (int i=0; i<10;i++) {
+                offset += snprintf(buf + offset, n - offset, " %6.2f", x[i]);
+            }
+            LOG_INF("%s", buf);
+        }
+        */
 
         if (zros_sub_update_available(&ctx->sub_external_odometry)) {
             // LOG_INF("correct external odometry");
@@ -215,7 +220,7 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
             stamp_header(&ctx->odometry.header, k_uptime_ticks());
             ctx->odometry.header.seq = seq++;
 
-            bool use_external = true;
+            bool use_external = false;
 
             if (use_external) {
                 ctx->odometry.pose.pose.position.x = ctx->external_odometry.pose.pose.position.x;

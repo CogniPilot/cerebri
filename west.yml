@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: b77e04ed899cdf1c89959defaeb16df29217aa8e # pr-pwm-threadsafe
+      revision: 9a9dda0899ee3799c17662bb2df251f1db2f150a # bennu_alpha
       import:
         - name-allowlist:
           - nanopb
@@ -48,5 +48,5 @@ manifest:
       revision: 9c485ed5ab663b96cae6199498356fd13ee35904 # b_mythical 04/12/24
     - name: hal_nxp
       remote: cognipilot
-      revision: a5c11af43a3222ef24b688c4f0b04815b1a410f9 # main 2/12/24
+      revision: a092d490a5bd7ed2db6fceb8c0b720cb4ead099a # pr-qtmr-pwm
       path: modules/hal/nxp

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <assert.h>
 #include <math.h>
 
 #include <zephyr/kernel.h>
@@ -241,7 +240,7 @@ static int rdd2_lighting_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    __ASSERT(argc == 1, "one argument allowed");
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

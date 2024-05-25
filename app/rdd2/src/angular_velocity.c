@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <assert.h>
+#include <math.h>
 
 #include <synapse_topic_list.h>
 #include <zephyr/logging/log.h>
@@ -126,6 +126,7 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             continue;
         }
 
+        double M[3];
         {
             /* attitude_rate_control:
              * (omega[3],omega_r[3],omega_i[3],dt)
@@ -133,7 +134,6 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             CASADI_FUNC_ARGS(attitude_rate_control);
             double omega[3];
             double omega_r[3];
-            double M[3];
             omega[0] = ctx->estimator_odometry.twist.twist.angular.x;
             omega[1] = ctx->estimator_odometry.twist.twist.angular.y;
             omega[2] = ctx->estimator_odometry.twist.twist.angular.z;
@@ -149,17 +149,23 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             res[0] = M;
             res[1] = omega_i;
             CASADI_FUNC_CALL(attitude_rate_control);
-
-            LOG_DBG("omega_i: %10.4f %10.4f %10.4f",
-                omega_i[0], omega_i[1], omega_i[2]);
-
-            // compute control
-            ctx->moment_sp.x = M[0];
-            ctx->moment_sp.y = M[1];
-            ctx->moment_sp.z = M[2];
         }
 
-        // publish
+        LOG_DBG("omega_i: %10.4f %10.4f %10.4f",
+            omega_i[0], omega_i[1], omega_i[2]);
+
+        __ASSERT(isfinite(omega_i[0]), "omega_i[0] not finite: %10.4f", omega_i[0]);
+        __ASSERT(isfinite(omega_i[1]), "omega_i[1] not finite: %10.4f", omega_i[1]);
+        __ASSERT(isfinite(omega_i[2]), "omega_i[2] not finite: %10.4f", omega_i[2]);
+
+        __ASSERT(isfinite(M[0]), "M[0] not finite: %10.4f", M[0]);
+        __ASSERT(isfinite(M[1]), "M[1] not finite: %10.4f", M[1]);
+        __ASSERT(isfinite(M[2]), "M[2] not finite: %10.4f", M[2]);
+
+        // publish moment setpoint
+        ctx->moment_sp.x = M[0];
+        ctx->moment_sp.y = M[1];
+        ctx->moment_sp.z = M[2];
         zros_pub_update(&ctx->pub_moment_sp);
     }
 
@@ -182,7 +188,7 @@ static int rdd2_angular_velocity_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    __ASSERT(argc == 1, "one argument allowed");
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

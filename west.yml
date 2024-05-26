@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: e1be1d68887c375e36271605c4c4b1d773da19b2 # pr-icm42688-fs
+      revision: 5b9e1e20bedab993ca6b958341bee977cbbab3b3 # pr-icm42688-fs 5/26/24
       import:
         - name-allowlist:
           - nanopb
@@ -32,7 +32,7 @@ manifest:
           - segger
     - name: zros
       remote: cognipilot
-      revision: 467bd1042bef93ded9ba76287609ab47e76f9fa7 # main 2/12/24
+      revision: d8d10aa092bf69af6e8b8d1bda9d8097a2c600ec # main 5/26/24
       path: modules/lib/zros
     - name: synapse_tinyframe
       remote: cognipilot

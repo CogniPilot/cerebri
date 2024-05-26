@@ -145,7 +145,7 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
                     roll, pitch, yaw, thrust);
             }
 
-            const double k = 1600;
+            const double k = 1162;
             synapse_msgs_Actuators* msg = &ctx->actuators;
             msg->velocity[0] = k * (thrust + pitch - roll + yaw);
             msg->velocity[1] = k * (thrust - pitch + roll + yaw);

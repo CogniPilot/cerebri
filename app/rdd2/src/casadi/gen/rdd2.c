@@ -1489,7 +1489,7 @@ static int casadi_f5(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[0] = 1.0000000000000001e-01;
     w[1] = arg[3] ? arg[3][0] : 0;
     w[0] = (w[0] * w[1]);
-    w[1] = 5.0000000000000000e-01;
+    w[1] = 2.0000000000000001e-01;
     w[0] = (w[0] + w[1]);
     if (res[1] != 0)
         res[1][0] = w[0];
@@ -1761,9 +1761,9 @@ static int casadi_f6(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[18] = (w[18] - w[2]);
     w[18] = (w[18] + w[17]);
     w[18] = sqrt(w[18]);
-    w[18] = (w[14] * w[18]);
-    w[17] = (w[23] * w[18]);
-    w[7] = (w[7] / w[17]);
+    w[14] = (w[14] * w[18]);
+    w[18] = (w[23] * w[14]);
+    w[7] = (w[7] / w[18]);
     w[7] = (w[27] ? w[7] : 0);
     w[16] = (w[16] + w[7]);
     w[16] = (w[25] ? w[16] : 0);
@@ -1782,8 +1782,8 @@ static int casadi_f6(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[16] = (w[16] / w[7]);
     w[16] = (w[26] ? w[16] : 0);
     w[7] = (w[3] - w[12]);
-    w[17] = (w[23] * w[18]);
-    w[7] = (w[7] / w[17]);
+    w[18] = (w[23] * w[14]);
+    w[7] = (w[7] / w[18]);
     w[7] = (w[27] ? w[7] : 0);
     w[16] = (w[16] + w[7]);
     w[16] = (w[25] ? w[16] : 0);
@@ -1802,8 +1802,8 @@ static int casadi_f6(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[5] = (w[22] ? w[5] : 0);
     w[16] = (w[26] ? w[11] : 0);
     w[7] = (w[9] + w[15]);
-    w[17] = (w[23] * w[18]);
-    w[7] = (w[7] / w[17]);
+    w[18] = (w[23] * w[14]);
+    w[7] = (w[7] / w[18]);
     w[7] = (w[27] ? w[7] : 0);
     w[16] = (w[16] + w[7]);
     w[16] = (w[25] ? w[16] : 0);
@@ -1824,7 +1824,7 @@ static int casadi_f6(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[23] = (w[23] * w[11]);
     w[9] = (w[9] / w[23]);
     w[26] = (w[26] ? w[9] : 0);
-    w[27] = (w[27] ? w[18] : 0);
+    w[27] = (w[27] ? w[14] : 0);
     w[26] = (w[26] + w[27]);
     w[25] = (w[25] ? w[26] : 0);
     w[22] = (w[22] + w[25]);
@@ -1835,7 +1835,8 @@ static int casadi_f6(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[0] = 1.0000000000000001e-01;
     w[21] = arg[3] ? arg[3][0] : 0;
     w[0] = (w[0] * w[21]);
-    w[0] = (w[0] + w[14]);
+    w[21] = 2.0000000000000001e-01;
+    w[0] = (w[0] + w[21]);
     if (res[1] != 0)
         res[1][0] = w[0];
     return 0;
@@ -2110,9 +2111,9 @@ static int casadi_f7(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[18] = (w[18] - w[2]);
     w[18] = (w[18] + w[17]);
     w[18] = sqrt(w[18]);
-    w[18] = (w[14] * w[18]);
-    w[17] = (w[23] * w[18]);
-    w[7] = (w[7] / w[17]);
+    w[14] = (w[14] * w[18]);
+    w[18] = (w[23] * w[14]);
+    w[7] = (w[7] / w[18]);
     w[7] = (w[27] ? w[7] : 0);
     w[16] = (w[16] + w[7]);
     w[16] = (w[25] ? w[16] : 0);
@@ -2131,8 +2132,8 @@ static int casadi_f7(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[16] = (w[16] / w[7]);
     w[16] = (w[26] ? w[16] : 0);
     w[7] = (w[3] - w[12]);
-    w[17] = (w[23] * w[18]);
-    w[7] = (w[7] / w[17]);
+    w[18] = (w[23] * w[14]);
+    w[7] = (w[7] / w[18]);
     w[7] = (w[27] ? w[7] : 0);
     w[16] = (w[16] + w[7]);
     w[16] = (w[25] ? w[16] : 0);
@@ -2151,8 +2152,8 @@ static int casadi_f7(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[5] = (w[22] ? w[5] : 0);
     w[16] = (w[26] ? w[11] : 0);
     w[7] = (w[9] + w[15]);
-    w[17] = (w[23] * w[18]);
-    w[7] = (w[7] / w[17]);
+    w[18] = (w[23] * w[14]);
+    w[7] = (w[7] / w[18]);
     w[7] = (w[27] ? w[7] : 0);
     w[16] = (w[16] + w[7]);
     w[16] = (w[25] ? w[16] : 0);
@@ -2173,7 +2174,7 @@ static int casadi_f7(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[23] = (w[23] * w[11]);
     w[9] = (w[9] / w[23]);
     w[26] = (w[26] ? w[9] : 0);
-    w[27] = (w[27] ? w[18] : 0);
+    w[27] = (w[27] ? w[14] : 0);
     w[26] = (w[26] + w[27]);
     w[25] = (w[25] ? w[26] : 0);
     w[22] = (w[22] + w[25]);
@@ -2184,7 +2185,8 @@ static int casadi_f7(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[0] = 1.0000000000000001e-01;
     w[21] = arg[3] ? arg[3][0] : 0;
     w[0] = (w[0] * w[21]);
-    w[0] = (w[0] + w[14]);
+    w[21] = 2.0000000000000001e-01;
+    w[0] = (w[0] + w[21]);
     if (res[1] != 0)
         res[1][0] = w[0];
     return 0;

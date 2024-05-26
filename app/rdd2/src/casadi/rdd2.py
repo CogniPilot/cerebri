@@ -13,7 +13,7 @@ from cyecca.symbolic import SERIES
 
 # parameters
 thrust_delta = 0.1 # thrust delta from trim
-thrust_trim = 0.5 # thrust trim
+thrust_trim = 0.2 # thrust trim
 deg2rad = np.pi/180 # degree to radian
 g = 9.8 # grav accel m/s^2
 m = 2.0 # mass of vehicle

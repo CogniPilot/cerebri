@@ -28,8 +28,8 @@ static const double g_accel = 9.8;
 static const int g_calibration_count = 100;
 
 extern struct k_work_q g_high_priority_work_q;
-void imu_work_handler(struct k_work* work);
-void imu_timer_handler(struct k_timer* dummy);
+static void imu_work_handler(struct k_work* work);
+static void imu_timer_handler(struct k_timer* dummy);
 
 typedef struct context_t {
     // work
@@ -133,8 +133,8 @@ void imu_read(context_t* ctx)
                 for (int j = 0; j < 3; j++) {
                     ctx->accel_raw[i][j] = accel_value[j].val1 + accel_value[j].val2 * 1e-6;
                 }
-                for (int j=0; j<3; j++) {
-                    if (ctx->gyro_raw[i][j] > 15*g_accel || ctx->accel_raw[i][j] < -15*g_accel) {
+                for (int j = 0; j < 3; j++) {
+                    if (ctx->gyro_raw[i][j] > 15 * g_accel || ctx->accel_raw[i][j] < -15 * g_accel) {
                         LOG_ERR("accel saturating: %d, %d: %10.4f", i, j, ctx->accel_raw[i][j]);
                     }
                 }
@@ -157,7 +157,7 @@ void imu_read(context_t* ctx)
                 for (int j = 0; j < 3; j++) {
                     ctx->gyro_raw[i][j] = gyro_value[j].val1 + gyro_value[j].val2 * 1e-6;
                 }
-                for (int j=0; j<3; j++) {
+                for (int j = 0; j < 3; j++) {
                     if (ctx->gyro_raw[i][j] > 34 || ctx->gyro_raw[i][j] < -34) {
                         LOG_ERR("gyro saturating: %d, %d: %10.4f", i, j, ctx->gyro_raw[i][j]);
                     }

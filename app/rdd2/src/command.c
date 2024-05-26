@@ -22,7 +22,7 @@
 
 #include "casadi/gen/rdd2.h"
 
-#define MY_STACK_SIZE 1024
+#define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
 
 #ifndef M_PI

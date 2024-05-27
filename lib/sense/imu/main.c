@@ -134,7 +134,7 @@ void imu_read(context_t* ctx)
                     ctx->accel_raw[i][j] = accel_value[j].val1 + accel_value[j].val2 * 1e-6;
                 }
                 for (int j = 0; j < 3; j++) {
-                    if (ctx->gyro_raw[i][j] > 15 * g_accel || ctx->accel_raw[i][j] < -15 * g_accel) {
+                    if (ctx->accel_raw[i][j] > 15 * g_accel || ctx->accel_raw[i][j] < -15 * g_accel) {
                         LOG_ERR("accel saturating: %d, %d: %10.4f", i, j, ctx->accel_raw[i][j]);
                     }
                 }
@@ -304,11 +304,15 @@ void imu_publish(context_t* ctx)
     ctx->imu.header.seq++;
     if (fabs(ctx->gyro_raw[gyro_select][0]) > 1000) {
     }
-    ctx->imu.angular_velocity.x = ctx->gyro_raw[gyro_select][0] - ctx->gyro_bias[gyro_select][0];
-    ctx->imu.angular_velocity.y = ctx->gyro_raw[gyro_select][1] - ctx->gyro_bias[gyro_select][1];
+    // TODO handle board specific transforms
+    // x: forward: (-y for icm42688)
+    // y: left: (x for icm42688)
+    // z: up: (z for icm42688)
+    ctx->imu.angular_velocity.x = -1*(ctx->gyro_raw[gyro_select][1] - ctx->gyro_bias[gyro_select][1]);
+    ctx->imu.angular_velocity.y = ctx->gyro_raw[gyro_select][0] - ctx->gyro_bias[gyro_select][0];
     ctx->imu.angular_velocity.z = ctx->gyro_raw[gyro_select][2] - ctx->gyro_bias[gyro_select][2];
-    ctx->imu.linear_acceleration.x = (ctx->accel_raw[accel_select][0] - ctx->accel_bias[accel_select][0]) / ctx->accel_scale[accel_select];
-    ctx->imu.linear_acceleration.y = (ctx->accel_raw[accel_select][1] - ctx->accel_bias[accel_select][1]) / ctx->accel_scale[accel_select];
+    ctx->imu.linear_acceleration.x = -1*(ctx->accel_raw[accel_select][1] - ctx->accel_bias[accel_select][1]) / ctx->accel_scale[accel_select];
+    ctx->imu.linear_acceleration.y = (ctx->accel_raw[accel_select][0] - ctx->accel_bias[accel_select][0]) / ctx->accel_scale[accel_select];
     ctx->imu.linear_acceleration.z = (ctx->accel_raw[accel_select][2] - ctx->accel_bias[accel_select][2]) / ctx->accel_scale[accel_select];
 
     // publish message

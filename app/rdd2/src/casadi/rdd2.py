@@ -14,7 +14,7 @@ from cyecca.symbolic import SERIES
 # parameters
 g = 9.8 # grav accel m/s^2
 m = 2.24 # mass of vehicle
-thrust_delta = 0.4*m*g # thrust delta from trim
+thrust_delta = 0.9*m*g # thrust delta from trim
 thrust_trim = m*g # thrust trim
 deg2rad = np.pi/180 # degree to radian
 
@@ -56,10 +56,10 @@ def derive_control_allocation(
     My = ca.SX.sym('My')
     Mz = ca.SX.sym('Mz')
     A = ca.vertcat(
-        ca.horzcat(1/4, -1/(4*l), -1/(4*l), -1/(4*Cm)),
-        ca.horzcat(1/4, 1/(4*l), 1/(4*l), -1/(4*Cm)),
-        ca.horzcat(1/4, 1/(4*l), -1/(4*l), 1/(4*Cm)),
-        ca.horzcat(1/4, -1/(4*l), 1/(4*l), 1/(4*Cm)))
+        ca.horzcat(1/4, -1/(4*l), -1/(4*l), 1/(4*Cm)),
+        ca.horzcat(1/4, 1/(4*l), 1/(4*l), 1/(4*Cm)),
+        ca.horzcat(1/4, 1/(4*l), -1/(4*l), -1/(4*Cm)),
+        ca.horzcat(1/4, -1/(4*l), 1/(4*l), -1/(4*Cm)))
     M = A@ca.vertcat(T, Mx, My, Mz)
     for i in range(4):
         M[i] = ca.if_else(M[i] < 0, 0, M[i])
@@ -100,7 +100,7 @@ def derive_joy_acro():
     # CALC
     # -------------------------------
     w = ca.vertcat(
-        -rollpitch_rate_max*deg2rad*joy_roll,
+        rollpitch_rate_max*deg2rad*joy_roll,
         rollpitch_rate_max*deg2rad*joy_pitch,
         yaw_rate_max*deg2rad*joy_yaw)
     thrust = joy_thrust * thrust_delta + thrust_trim
@@ -145,7 +145,7 @@ def derive_joy_auto_level():
     euler_r = SO3EulerB321.elem(ca.vertcat(
         yaw + yaw_rate_max * deg2rad * joy_yaw,
         rollpitch_max * deg2rad * joy_pitch,
-        -rollpitch_max * deg2rad * joy_roll))
+        rollpitch_max * deg2rad * joy_roll))
 
     q_r = SO3Quat.from_Euler(euler_r)
     thrust = joy_thrust * thrust_delta + thrust_trim
@@ -211,7 +211,7 @@ def derive_joy_position():
     euler_r = SO3EulerB321.elem(ca.vertcat(
         yaw + yaw_rate_max * joy_yaw,
         rollpitch_max * joy_pitch,
-        -rollpitch_max * joy_roll))
+        rollpitch_max * joy_roll))
 
     q_r = SO3Quat.from_Euler(euler_r)
     thrust = joy_thrust * thrust_delta + thrust_trim

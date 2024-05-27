@@ -153,6 +153,16 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
             CASADI_FUNC_CALL(control_allocation)
             for (int i = 0; i < 4; i++) {
                 __ASSERT(isfinite(omega[i]), "omega[%d] not finite: %10.4f", i, omega[i]);
+                if (!isfinite(omega[i])) {
+                    LOG_WRN("omega is not finite: %10.4f", omega[i]);
+                    omega[i] = 0;
+                } else if (omega[i] > 1400) {
+                    LOG_WRN("omega too large: %10.4f", omega[i]);
+                    omega[i] = 1400;
+                } else if (omega[i] < 0) {
+                    LOG_WRN("omega negative: %10.4f", omega[i]);
+                    omega[i] = 0;
+                }
                 ctx->actuators.velocity[i] = omega[i];
             }
         }

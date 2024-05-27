@@ -215,12 +215,19 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
             CASADI_FUNC_CALL(strapdown_ins_propagate)
         }
 
+        for (int i=0; i <10;i++) {
+            if (!isfinite(x[i])) {
+                LOG_WRN("x[%d] is not finite", i);
+                x[i] = 0;
+            }
+        }
+
         // publish odometry
         {
             stamp_header(&ctx->odometry.header, k_uptime_ticks());
             ctx->odometry.header.seq = seq++;
 
-            bool use_external = true;
+            bool use_external = false;
 
             if (use_external) {
                 ctx->odometry.pose.pose.position.x = ctx->external_odometry.pose.pose.position.x;

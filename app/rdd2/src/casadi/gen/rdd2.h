@@ -37,7 +37,7 @@ int attitude_rate_control_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, cas
 #define attitude_rate_control_SZ_ARG 4
 #define attitude_rate_control_SZ_RES 2
 #define attitude_rate_control_SZ_IW 0
-#define attitude_rate_control_SZ_W 11
+#define attitude_rate_control_SZ_W 12
 int attitude_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 int attitude_control_alloc_mem(void);
 int attitude_control_init_mem(int mem);
@@ -76,10 +76,10 @@ const casadi_int* position_control_sparsity_in(casadi_int i);
 const casadi_int* position_control_sparsity_out(casadi_int i);
 int position_control_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
 int position_control_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define position_control_SZ_ARG 7
-#define position_control_SZ_RES 2
+#define position_control_SZ_ARG 9
+#define position_control_SZ_RES 3
 #define position_control_SZ_IW 0
-#define position_control_SZ_W 27
+#define position_control_SZ_W 29
 int eulerB321_to_quat(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 int eulerB321_to_quat_alloc_mem(void);
 int eulerB321_to_quat_init_mem(int mem);
@@ -206,6 +206,27 @@ int strapdown_ins_propagate_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, c
 #define strapdown_ins_propagate_SZ_RES 1
 #define strapdown_ins_propagate_SZ_IW 0
 #define strapdown_ins_propagate_SZ_W 45
+int control_allocation(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int control_allocation_alloc_mem(void);
+int control_allocation_init_mem(int mem);
+void control_allocation_free_mem(int mem);
+int control_allocation_checkout(void);
+void control_allocation_release(int mem);
+void control_allocation_incref(void);
+void control_allocation_decref(void);
+casadi_int control_allocation_n_in(void);
+casadi_int control_allocation_n_out(void);
+casadi_real control_allocation_default_in(casadi_int i);
+const char* control_allocation_name_in(casadi_int i);
+const char* control_allocation_name_out(casadi_int i);
+const casadi_int* control_allocation_sparsity_in(casadi_int i);
+const casadi_int* control_allocation_sparsity_out(casadi_int i);
+int control_allocation_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+int control_allocation_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+#define control_allocation_SZ_ARG 7
+#define control_allocation_SZ_RES 1
+#define control_allocation_SZ_IW 0
+#define control_allocation_SZ_W 13
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

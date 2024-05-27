@@ -40,7 +40,7 @@ struct context {
     struct k_sem sem;
 };
 
-struct context g_ctx = {
+static struct context g_ctx = {
     .work_item = Z_WORK_INITIALIZER(sense_joy_work_handler),
     .timer = Z_TIMER_INITIALIZER(g_ctx.timer, sense_joy_timer_handler, NULL),
     .running = ATOMIC_INIT(0),
@@ -58,13 +58,13 @@ struct context g_ctx = {
 
 void sense_joy_work_handler(struct k_work* work)
 {
-    struct context* ctx = CONTAINER_OF(work, struct context, work_item);
+    // struct context* ctx = CONTAINER_OF(work, struct context, work_item);
 }
 
 void sense_joy_timer_handler(struct k_timer* timer)
 {
-    struct context* ctx = CONTAINER_OF(timer, struct context, timer);
-    k_work_submit_to_queue(&g_high_priority_work_q, &ctx->work_item);
+    // struct context* ctx = CONTAINER_OF(timer, struct context, timer);
+    // k_work_submit_to_queue(&g_high_priority_work_q, &ctx->work_item);
 }
 
 static void sense_joy_init(struct context* ctx)

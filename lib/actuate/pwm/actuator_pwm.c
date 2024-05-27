@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include "actuator_pwm.h"
-#include <stdio.h>
 #include <zephyr/drivers/pwm.h>
 
 #define PWM_SHELL_NODE DT_NODE_EXISTS(DT_NODELABEL(pwm_shell))
@@ -13,6 +12,7 @@
 actuator_pwm_t g_actuator_pwms[] = {
 #if CONFIG_CEREBRI_ACTUATE_PWM_NUMBER > 0
     {
+        .disarmed = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_DISARM_0,
         .min = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MIN_0,
         .max = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MAX_0,
         .center = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_CENTER_0,
@@ -42,6 +42,7 @@ actuator_pwm_t g_actuator_pwms[] = {
 #endif
 #if CONFIG_CEREBRI_ACTUATE_PWM_NUMBER > 1
     {
+        .disarmed = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_DISARM_1,
         .min = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MIN_1,
         .max = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MAX_1,
         .center = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_CENTER_1,
@@ -71,6 +72,7 @@ actuator_pwm_t g_actuator_pwms[] = {
 #endif
 #if CONFIG_CEREBRI_ACTUATE_PWM_NUMBER > 2
     {
+        .disarmed = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_DISARM_2,
         .min = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MIN_2,
         .max = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MAX_2,
         .center = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_CENTER_2,
@@ -100,6 +102,7 @@ actuator_pwm_t g_actuator_pwms[] = {
 #endif
 #if CONFIG_CEREBRI_ACTUATE_PWM_NUMBER > 3
     {
+        .disarmed = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_DISARM_3,
         .min = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MIN_3,
         .max = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MAX_3,
         .center = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_CENTER_3,
@@ -129,6 +132,7 @@ actuator_pwm_t g_actuator_pwms[] = {
 #endif
 #if CONFIG_CEREBRI_ACTUATE_PWM_NUMBER > 4
     {
+        .disarmed = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_DISARM_4,
         .min = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MIN_4,
         .max = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MAX_4,
         .center = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_CENTER_4,
@@ -158,6 +162,7 @@ actuator_pwm_t g_actuator_pwms[] = {
 #endif
 #if CONFIG_CEREBRI_ACTUATE_PWM_NUMBER > 5
     {
+        .disarmed = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_DISARM_5,
         .min = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MIN_5,
         .max = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MAX_5,
         .center = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_CENTER_5,
@@ -187,6 +192,7 @@ actuator_pwm_t g_actuator_pwms[] = {
 #endif
 #if CONFIG_CEREBRI_ACTUATE_PWM_NUMBER > 6
     {
+        .disarmed = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_DISARM_6,
         .min = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MIN_6,
         .max = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MAX_6,
         .center = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_CENTER_6,
@@ -216,6 +222,7 @@ actuator_pwm_t g_actuator_pwms[] = {
 #endif
 #if CONFIG_CEREBRI_ACTUATE_PWM_NUMBER > 7
     {
+        .disarmed = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_DISARM_7,
         .min = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MIN_7,
         .max = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_MAX_7,
         .center = CONFIG_CEREBRI_ACTUATE_PWM_PULSE_CENTER_7,

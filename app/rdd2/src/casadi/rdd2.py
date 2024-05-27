@@ -12,35 +12,67 @@ from cyecca.lie.group_se23 import SE23Quat, se23, SE23LieGroupElement, SE23LieAl
 from cyecca.symbolic import SERIES
 
 # parameters
-thrust_delta = 0.1 # thrust delta from trim
-thrust_trim = 0.2 # thrust trim
-deg2rad = np.pi/180 # degree to radian
 g = 9.8 # grav accel m/s^2
-m = 2.0 # mass of vehicle
+m = 2.24 # mass of vehicle
+thrust_delta = 0.4*m*g # thrust delta from trim
+thrust_trim = m*g # thrust trim
+deg2rad = np.pi/180 # degree to radian
 
-# position loop
-kp_pos = 0.2 # position proportional gain
-kp_vel = 1 # velocity proportional gain
-
-# attitude loop
-kp_rollpitch = 2
-kp_yaw = 2
+# attitude rate loop
+rollpitch_rate_max = 30 # deg/s
 yaw_rate_max = 60 # deg/s
-rollpitch_max = 20 # deg
 
-# attittude rate loop
-rollpitch_rate_max = 60 # deg/s
-kp_rollpitch_rate = 0.015
+kp_rollpitch_rate = 0.3
 ki_rollpitch_rate = 0.05
-kp_yaw_rate = 0.1
-ki_yaw_rate = 0.02
-
-pos_sp_dist_max = 2 # position setpoint max distance
-vel_max = 2.0 # max velocity command
-
 rollpitch_rate_integral_max = 1.0
+
+kp_yaw_rate = 0.3
+ki_yaw_rate = 0.05
 yaw_rate_integral_max = 1.0
 
+# attitude loop
+rollpitch_max = 20 # deg
+kp_rollpitch = 2
+kp_yaw = 1
+
+# position loop
+kp_pos = 0.5 # position proportional gain
+kp_vel = 2.0 # velocity proportional gain
+pos_sp_dist_max = 2 # position setpoint max distance
+vel_max = 2.0 # max velocity command
+z_integral_max = 5.0
+ki_z = 0.05 # velocity z integral gain
+
+def derive_control_allocation(
+):
+    """
+    quadrotor control allocation
+    """
+    l = ca.SX.sym('l')
+    Cm = ca.SX.sym('Cm')
+    Ct = ca.SX.sym('Ct')
+    T = ca.SX.sym('T')
+    Mx = ca.SX.sym('Mx')
+    My = ca.SX.sym('My')
+    Mz = ca.SX.sym('Mz')
+    A = ca.vertcat(
+        ca.horzcat(1/4, -1/(4*l), -1/(4*l), -1/(4*Cm)),
+        ca.horzcat(1/4, 1/(4*l), 1/(4*l), -1/(4*Cm)),
+        ca.horzcat(1/4, 1/(4*l), -1/(4*l), 1/(4*Cm)),
+        ca.horzcat(1/4, -1/(4*l), 1/(4*l), 1/(4*Cm)))
+    M = A@ca.vertcat(T, Mx, My, Mz)
+    for i in range(4):
+        M[i] = ca.if_else(M[i] < 0, 0, M[i])
+    omega = ca.sqrt(M/Ct)
+    f_alloc = ca.Function("control_allocation",
+            [l, Cm, Ct, T, Mx, My, Mz],
+            [omega],
+            ['l', 'Cm', 'Ct', 'T', 'Mx', 'My', 'Mz'],
+            ['omega']
+            )
+    return {
+        "control_allocation": f_alloc
+    }
 
 def saturate(x, x_min, x_max):
     """
@@ -349,6 +381,8 @@ def derive_position_control():
     p_w = ca.SX.sym('p_w', 3) # position in world frame
     v_b = ca.SX.sym('v_b', 3) # velocity in body frame
     q_wb = SO3Quat.elem(ca.SX.sym('q_wb', 4))
+    z_i = ca.SX.sym('z_i') # z velocity error integral
+    dt = ca.SX.sym('dt') # time step
 
     # CALC
     # -------------------------------
@@ -367,16 +401,19 @@ def derive_position_control():
     # F = - m * Kp' ep - m * Kv' * ev + mg zW + m at_w
     # Force is normalized by the weight (mg)
 
-    # normalized thrust vector, normalized by twice weight
-    p_norm_max = 0.3
-    p_term = -kp_pos * e_p / (2*g) - kp_vel * e_v / (2*g) + at_w / (2*g)
+    # normalized thrust vector
+    p_norm_max = 0.3*m*g
+    p_term = -kp_pos * e_p - kp_vel * e_v + m * at_w
     p_norm = ca.norm_2(p_term)
     p_term = ca.if_else(p_norm > p_norm_max, p_norm_max*p_term/p_norm, p_term)
 
-    # trim throttle
-    T0 = zW / 2
+    # throttle integral
+    z_i_2 = z_i - e_p[2] * dt
+    z_i_2 = saturate(z_i_2,
+            -ca.vertcat(z_integral_max), ca.vertcat(z_integral_max))
 
-    T = p_term + T0
+    # trim throttle
+    T = p_term + thrust_trim * zW + ki_z * z_i * zW
 
     # thrust
     nT = ca.norm_2(T)
@@ -410,9 +447,9 @@ def derive_position_control():
     # -------------------------------
     f_get_u = ca.Function(
         "position_control",
-        [pt_w, vt_w, at_w, qc_wb.param, p_w, v_b, q_wb.param], [nT, qr_wb.param], 
-        ['pt_w', 'vt_w', 'at_w', 'qc_wb', 'p_w', 'v_b', 'q_wb'], 
-        ['nT', 'qr_wb'])
+        [pt_w, vt_w, at_w, qc_wb.param, p_w, v_b, q_wb.param, z_i, dt], [nT, qr_wb.param, z_i_2], 
+        ['pt_w', 'vt_w', 'at_w', 'qc_wb', 'p_w', 'v_b', 'q_wb', 'z_i', 'dt'], 
+        ['nT', 'qr_wb', 'z_i_2'])
     
     return {
         "position_control" : f_get_u
@@ -534,6 +571,7 @@ if __name__ == "__main__":
     eqs.update(derive_joy_auto_level())
     eqs.update(derive_joy_position())
     eqs.update(derive_strapdown_ins_propagation())
+    eqs.update(derive_control_allocation())
 
     for name, eq in eqs.items():
         print('eq: ', name)

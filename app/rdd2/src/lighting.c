@@ -151,7 +151,7 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
         const double color_battery_critical[] = { 1, 0.65, 0 };
         const double color_calibration[] = { 1, 1, 0 };
 
-        bool battery_critical = ctx->battery_state.voltage < CONFIG_CEREBRI_RDD2_BATTERY_MIN_MILLIVOLT / 1000.0;
+        bool battery_critical = ctx->battery_state.voltage < CONFIG_CEREBRI_RDD2_BATTERY_NCELLS * CONFIG_CEREBRI_RDD2_BATTERY_CELL_MIN_MILLIVOLT / 1000.0;
 
         // mode leds
         for (size_t i = 0; i < ARRAY_SIZE(mode_leds); i++) {

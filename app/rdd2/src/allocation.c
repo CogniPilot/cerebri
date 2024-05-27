@@ -133,29 +133,28 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
             stop(ctx);
             LOG_DBG("not armed, stopped");
         } else {
-            double thrust = ctx->force_sp.z;
-            double roll = ctx->moment_sp.x;
-            double pitch = -ctx->moment_sp.y;
-            double yaw = -ctx->moment_sp.z;
+            static double const l = 0.174;
+            static double const Cm = 0.016;
+            static double const Ct = 8.5485e-6;
+            double omega[4];
 
-            if (thrust + fabs(pitch) + fabs(roll) + fabs(yaw) > 1) {
-                thrust = 1 - fabs(pitch) - fabs(roll) - fabs(yaw);
-                LOG_WRN("motor saturaction: roll: %10.4f, "
-                        "pitch: %10.4f, yaw: %10.4f, thrust: %10.4f",
-                    roll, pitch, yaw, thrust);
+            // LOG_INF("thrust: %10.4f", ctx->force_sp.z);
+
+            /* control_allocation:(l,Cm,Ct,T,Mx,My,Mz)->(omega[4]) */
+            CASADI_FUNC_ARGS(control_allocation)
+            args[0] = &l;
+            args[1] = &Cm;
+            args[2] = &Ct;
+            args[3] = &ctx->force_sp.z;
+            args[4] = &ctx->moment_sp.x;
+            args[5] = &ctx->moment_sp.y;
+            args[6] = &ctx->moment_sp.z;
+            res[0] = omega;
+            CASADI_FUNC_CALL(control_allocation)
+            for (int i = 0; i < 4; i++) {
+                __ASSERT(isfinite(omega[i]), "omega[%d] not finite: %10.4f", i, omega[i]);
+                ctx->actuators.velocity[i] = omega[i];
             }
-
-            const double k = 1162;
-            synapse_msgs_Actuators* msg = &ctx->actuators;
-            msg->velocity[0] = k * (thrust + pitch - roll + yaw);
-            msg->velocity[1] = k * (thrust - pitch + roll + yaw);
-            msg->velocity[2] = k * (thrust + pitch + roll - yaw);
-            msg->velocity[3] = k * (thrust - pitch - roll - yaw);
-
-            __ASSERT(isfinite(msg->velocity[0]), "velocity[0] not finite: %10.4f", msg->velocity[0]);
-            __ASSERT(isfinite(msg->velocity[1]), "velocity[1] not finite: %10.4f", msg->velocity[1]);
-            __ASSERT(isfinite(msg->velocity[2]), "velocity[2] not finite: %10.4f", msg->velocity[2]);
-            __ASSERT(isfinite(msg->velocity[3]), "velocity[3] not finite: %10.4f", msg->velocity[3]);
         }
 
         stamp_header(&ctx->actuators.header, k_uptime_ticks());

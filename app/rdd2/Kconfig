@@ -56,23 +56,35 @@ config CEREBRI_RDD2_CASADI
   help
     Enable Casadi generated code
 
-config CEREBRI_RDD2_BATTERY_MIN_MILLIVOLT
-  int "min battery voltage in milli volts before shut off"
-  default 14000
+config CEREBRI_RDD2_BATTERY_NCELLS
+  int "number of cells in battery"
+  default 4
   help
-    Minimum battery voltage in mV before auto-disarm
+    Number of cells in battery
 
-config CEREBRI_RDD2_BATTERY_LOW_MILLIVOLT
-  int "low battery voltage in milli volts before warning"
-  default 10500
+config CEREBRI_RDD2_BATTERY_CELL_MIN_MILLIVOLT
+  int "millivolts per cell before shutdown"
+  default 3300
   help
-    Low battery voltage in mV before warning
+    millivolts per cell before shutdown
 
-config CEREBRI_RDD2_BATTERY_MAX_MILLIVOLT
-  int "max battery voltage in milli volts"
-  default 17000
+config CEREBRI_RDD2_BATTERY_CELL_LOW_MILLIVOLT
+  int "millivolts per cell before warning"
+  default 3500
   help
-    Maximum battery voltage
+    millivolts per cell before warning
+
+config CEREBRI_RDD2_BATTERY_CELL_NOM_MILLIVOLT
+  int "nominal millivolts per cell"
+  default 3700
+  help
+    nominal millivolts per cell
+
+config CEREBRI_RDD2_BATTERY_CELL_MAX_MILLIVOLT
+  int "max millivolts per cell before warning"
+  default 4300
+  help
+    max millivolts per cell before warning
 
 config CEREBRI_RDD2_GAIN_HEADING
   int "heading gain"

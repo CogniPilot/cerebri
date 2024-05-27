@@ -114,6 +114,10 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
         *zros_sub_get_event(&ctx->sub_estimator_odometry),
     };
 
+    double dt = 0;
+    int64_t ticks_last = k_uptime_ticks();
+    double z_i = 0; // altitude error integral
+
     while (atomic_get(&ctx->running)) {
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
@@ -148,6 +152,15 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
 
         if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {
             zros_sub_update(&ctx->sub_estimator_odometry);
+        }
+
+        // calculate dt
+        int64_t ticks_now = k_uptime_ticks();
+        dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        ticks_last = ticks_now;
+        if (dt < 0 || dt > 0.5) {
+            LOG_WRN("position update rate too low");
+            continue;
         }
 
         if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL
@@ -193,7 +206,8 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 v_b[1] = ctx->estimator_odometry.twist.twist.linear.y;
                 v_b[2] = ctx->estimator_odometry.twist.twist.linear.z;
 
-                /* position_control:(pt_w[3],vt_w[3],at_w[3],qc_wb[4],p_w[3],v_b[3],q_wb[4])->(nT,qr_wb[4]) */
+                /* position_control:(pt_w[3],vt_w[3],at_w[3],qc_wb[4],
+                 * p_w[3],v_b[3],q_wb[4],z_i,dt)->(nT,qr_wb[4],z_i_2) */
                 args[0] = pt_w;
                 args[1] = vt_w;
                 args[2] = at_w;
@@ -201,10 +215,14 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 args[4] = p_w;
                 args[5] = v_b;
                 args[6] = q_wb;
+                args[7] = &z_i;
+                args[8] = &dt;
                 res[0] = &nT;
                 res[1] = qr_wb;
+                res[2] = &z_i;
 
                 CASADI_FUNC_CALL(position_control)
+                LOG_INF("z_i: %10.4f", z_i);
             }
 
             __ASSERT(isfinite(qr_wb[0]), "qr_wb[0] not finite: %10.4f", qr_wb[0]);

@@ -32,6 +32,14 @@ config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_0
   help
     Enable to use nanoseconds for the pulse widths of PWM 0.
 
+config CEREBRI_ACTUATE_PWM_PULSE_DISARM_0
+  int "Disarm pulse width PWM 0"
+  default 1000
+  range 0 9999999
+  help
+    Disarmed pulse width in micro
+    (or nano if selected) seconds for PWM 0
+
 config CEREBRI_ACTUATE_PWM_PULSE_MIN_0
   int "Min pulse width PWM 0"
   default 1100
@@ -130,6 +138,14 @@ config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_1
   bool "Use nano seconds for PWM 1"
   help
     Enable to use nanoseconds for the pulse widths of PWM 1.
+
+config CEREBRI_ACTUATE_PWM_PULSE_DISARM_1
+  int "Disarm pulse width PWM 1"
+  default 1000
+  range 0 9999999
+  help
+    Disarmed pulse width in micro
+    (or nano if selected) seconds for PWM 1
 
 config CEREBRI_ACTUATE_PWM_PULSE_MIN_1
   int "Min pulse width PWM 1"
@@ -230,6 +246,14 @@ config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_2
   help
     Enable to use nanoseconds for the pulse widths of PWM 2.
 
+config CEREBRI_ACTUATE_PWM_PULSE_DISARM_2
+  int "Disarm pulse width PWM 2"
+  default 1000
+  range 0 9999999
+  help
+    Disarmed pulse width in micro
+    (or nano if selected) seconds for PWM 2
+
 config CEREBRI_ACTUATE_PWM_PULSE_MIN_2
   int "Min pulse width PWM 2"
   default 1100
@@ -328,6 +352,14 @@ config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_3
   bool "Use nano seconds for PWM 3"
   help
     Enable to use nanoseconds for the pulse widths of PWM 3.
+
+config CEREBRI_ACTUATE_PWM_PULSE_DISARM_3
+  int "Disarm pulse width PWM 3"
+  default 1000
+  range 0 9999999
+  help
+    Disarmed pulse width in micro
+    (or nano if selected) seconds for PWM 3
 
 config CEREBRI_ACTUATE_PWM_PULSE_MIN_3
   int "Min pulse width PWM 3"
@@ -428,6 +460,14 @@ config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_4
   help
     Enable to use nanoseconds for the pulse widths of PWM 4.
 
+config CEREBRI_ACTUATE_PWM_PULSE_DISARM_4
+  int "Disarm pulse width PWM 4"
+  default 1000
+  range 0 9999999
+  help
+    Disarmed pulse width in micro
+    (or nano if selected) seconds for PWM 4
+
 config CEREBRI_ACTUATE_PWM_PULSE_MIN_4
   int "Min pulse width PWM 4"
   default 1100
@@ -526,6 +566,14 @@ config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_5
   bool "Use nano seconds for PWM 5"
   help
     Enable to use nanoseconds for the pulse widths of PWM 5.
+
+config CEREBRI_ACTUATE_PWM_PULSE_DISARM_5
+  int "Disarm pulse width PWM 5"
+  default 1000
+  range 0 9999999
+  help
+    Disarmed pulse width in micro
+    (or nano if selected) seconds for PWM 5
 
 config CEREBRI_ACTUATE_PWM_PULSE_MIN_5
   int "Min pulse width PWM 5"
@@ -626,6 +674,14 @@ config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_6
   help
     Enable to use nanoseconds for the pulse widths of PWM 6.
 
+config CEREBRI_ACTUATE_PWM_PULSE_DISARM_6
+  int "Disarm pulse width PWM 6"
+  default 1000
+  range 0 9999999
+  help
+    Disarmed pulse width in micro
+    (or nano if selected) seconds for PWM 6
+
 config CEREBRI_ACTUATE_PWM_PULSE_MIN_6
   int "Min pulse width PWM 6"
   default 1100
@@ -724,6 +780,14 @@ config CEREBRI_ACTUATE_PWM_USE_NANO_SECONDS_7
   bool "Use nano seconds for PWM 7"
   help
     Enable to use nanoseconds for the pulse widths of PWM 7.
+
+config CEREBRI_ACTUATE_PWM_PULSE_DISARM_7
+  int "Disarm pulse width PWM 7"
+  default 1000
+  range 0 9999999
+  help
+    Disarmed pulse width in micro
+    (or nano if selected) seconds for PWM 7
 
 config CEREBRI_ACTUATE_PWM_PULSE_MIN_7
   int "Min pulse width PWM 7"

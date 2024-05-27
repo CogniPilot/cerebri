@@ -137,11 +137,11 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
     // poll on imu
     events[0] = *zros_sub_get_event(&ctx->sub_imu);
 
-    int j = 0;
+    // int j = 0;
 
     while (atomic_get(&ctx->running)) {
 
-        j += 1;
+        // j += 1;
 
         // poll for imu
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
@@ -220,7 +220,7 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
             stamp_header(&ctx->odometry.header, k_uptime_ticks());
             ctx->odometry.header.seq = seq++;
 
-            bool use_external = false;
+            bool use_external = true;
 
             if (use_external) {
                 ctx->odometry.pose.pose.position.x = ctx->external_odometry.pose.pose.position.x;

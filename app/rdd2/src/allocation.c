@@ -133,9 +133,9 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
             stop(ctx);
             LOG_DBG("not armed, stopped");
         } else {
-            static double const l = 0.174;
-            static double const Cm = 0.016;
-            static double const Ct = 8.5485e-6;
+            static double const l = CONFIG_CEREBRI_RDD2_MOTOR_L_MM * 1e-3;
+            static double const Cm = CONFIG_CEREBRI_RDD2_MOTOR_CM * 1e-6;
+            static double const Ct = CONFIG_CEREBRI_RDD2_MOTOR_CT * 1e-9;
             double omega[4];
 
             // LOG_INF("thrust: %10.4f", ctx->force_sp.z);

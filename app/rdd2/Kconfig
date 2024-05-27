@@ -110,6 +110,24 @@ config CEREBRI_RDD2_MAX_VELOCITY_MM_S
   help
     Max velocity in mm/s
 
+config CEREBRI_RDD2_MOTOR_L_MM
+  int "moment arm for props"
+  default 174
+  help
+    moment arm for props
+
+config CEREBRI_RDD2_MOTOR_CM
+  int "motor moment coefficient * 1e6"
+  default 16000
+  help
+    moment arm for props
+
+config CEREBRI_RDD2_MOTOR_CT
+  int "motor thrust coefficient * 1e9"
+  default 8549
+  help
+    moment thrust coefficient * 1e9
+
 module = CEREBRI_RDD2
 module-str = cerebri_rdd2
 source "subsys/logging/Kconfig.template.log_config"

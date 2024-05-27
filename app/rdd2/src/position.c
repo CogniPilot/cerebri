@@ -222,7 +222,7 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 res[2] = &z_i;
 
                 CASADI_FUNC_CALL(position_control)
-                LOG_INF("z_i: %10.4f", z_i);
+                LOG_DBG("z_i: %10.4f", z_i);
             }
 
             __ASSERT(isfinite(qr_wb[0]), "qr_wb[0] not finite: %10.4f", qr_wb[0]);

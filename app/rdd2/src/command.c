@@ -480,11 +480,11 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 			double q_orientation[4];
 			{
 				CASADI_FUNC_ARGS(eulerB321_to_quat);
-				double rho = 0;
+				double phi = 0;
 				double theta = 0;
 				args[0] = &psi;
-				args[1] = &rho;
-				args[2] = &theta;
+				args[1] = &theta;
+				args[2] = &phi;
 
 				res[0] = q_orientation;
 				CASADI_FUNC_CALL(eulerB321_to_quat);

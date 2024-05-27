@@ -415,11 +415,11 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
 				// check if index exceeds bounds
 				if (curve_index >= ctx->bezier_trajectory.curves_count) {
-					// LOG_ERR("curve index exceeds bounds");
+					LOG_ERR("curve index exceeds bounds");
 					stop(ctx);
 					return;
 				}
-	
+			
 			}
 
 			double T = (time_stop_nsec - time_start_nsec) * 1e-9;
@@ -477,13 +477,14 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 			}
 
 			/* euler to quat */
-			double e[3], q_orientation[4];
-			e[0] = psi;
-			e[1] = 0;
-			e[2] = 0;
+			double q_orientation[4];
 			{
 				CASADI_FUNC_ARGS(eulerB321_to_quat);
-				args[0] = e;
+				double rho = 0;
+				double theta = 0;
+				args[0] = &psi;
+				args[1] = &rho;
+				args[2] = &theta;
 
 				res[0] = q_orientation;
 				CASADI_FUNC_CALL(eulerB321_to_quat);

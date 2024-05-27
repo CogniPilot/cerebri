@@ -160,9 +160,9 @@ static struct zros_topic* topic_list[] = {
     &topic_status,
     &topic_velocity_sp,
     &topic_wheel_odometry,
-	&topic_accel_ff,
-	&topic_angular_velocity_ff,
-	&topic_moment_ff,
+    &topic_accel_ff,
+    &topic_angular_velocity_ff,
+    &topic_moment_ff,
 };
 
 static int set_topic_list()

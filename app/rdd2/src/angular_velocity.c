@@ -46,7 +46,7 @@ static struct context g_ctx = {
     .moment_sp = synapse_msgs_Vector3_init_default,
     .angular_velocity_sp = synapse_msgs_Vector3_init_default,
     .moment_ff = synapse_msgs_Vector3_init_default,
-	.sub_status = {},
+    .sub_status = {},
     .sub_angular_velocity_sp = {},
     .sub_estimator_odometry = {},
     .sub_moment_ff = {},
@@ -115,9 +115,9 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_angular_velocity_sp);
         }
 
-		if (zros_sub_update_available(&ctx->sub_moment_ff)) {
-			zros_sub_update(&ctx->sub_moment_ff);
-		}
+        if (zros_sub_update_available(&ctx->sub_moment_ff)) {
+            zros_sub_update(&ctx->sub_moment_ff);
+        }
 
         {
             /* attitude_rate_control:(omega[3],omega_r[3])->(M[3]) */

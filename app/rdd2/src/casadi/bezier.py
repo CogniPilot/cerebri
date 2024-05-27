@@ -11,10 +11,10 @@ from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321, SO3Dcm
 
 g = 9.8 # grav accel m/s^2
 m = 2.0 # mass of vehicle
-J_xx = 1
-J_yy = 1
-J_zz = 1
-J_xz = 1
+J_xx = 0.0216666
+J_yy = 0.0216666
+J_zz = 0.04
+J_xz = 0
 
 class Bezier:
     """

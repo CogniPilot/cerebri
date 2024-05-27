@@ -118,8 +118,8 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
         }
 
         if (zros_sub_update_available(&ctx->sub_angular_velocity_ff)) {
-			zros_sub_update(&ctx->sub_angular_velocity_ff);
-		}
+            zros_sub_update(&ctx->sub_angular_velocity_ff);
+        }
 
         if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN) {
             // TODO add acro mode

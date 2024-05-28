@@ -76,7 +76,7 @@ const casadi_int* position_control_sparsity_in(casadi_int i);
 const casadi_int* position_control_sparsity_out(casadi_int i);
 int position_control_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
 int position_control_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define position_control_SZ_ARG 9
+#define position_control_SZ_ARG 10
 #define position_control_SZ_RES 3
 #define position_control_SZ_IW 0
 #define position_control_SZ_W 29
@@ -97,7 +97,7 @@ const casadi_int* joy_acro_sparsity_in(casadi_int i);
 const casadi_int* joy_acro_sparsity_out(casadi_int i);
 int joy_acro_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
 int joy_acro_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define joy_acro_SZ_ARG 4
+#define joy_acro_SZ_ARG 6
 #define joy_acro_SZ_RES 2
 #define joy_acro_SZ_IW 0
 #define joy_acro_SZ_W 2
@@ -118,31 +118,10 @@ const casadi_int* joy_auto_level_sparsity_in(casadi_int i);
 const casadi_int* joy_auto_level_sparsity_out(casadi_int i);
 int joy_auto_level_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
 int joy_auto_level_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define joy_auto_level_SZ_ARG 5
+#define joy_auto_level_SZ_ARG 7
 #define joy_auto_level_SZ_RES 2
 #define joy_auto_level_SZ_IW 0
 #define joy_auto_level_SZ_W 28
-int joy_position(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int joy_position_alloc_mem(void);
-int joy_position_init_mem(int mem);
-void joy_position_free_mem(int mem);
-int joy_position_checkout(void);
-void joy_position_release(int mem);
-void joy_position_incref(void);
-void joy_position_decref(void);
-casadi_int joy_position_n_in(void);
-casadi_int joy_position_n_out(void);
-casadi_real joy_position_default_in(casadi_int i);
-const char* joy_position_name_in(casadi_int i);
-const char* joy_position_name_out(casadi_int i);
-const casadi_int* joy_position_sparsity_in(casadi_int i);
-const casadi_int* joy_position_sparsity_out(casadi_int i);
-int joy_position_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-int joy_position_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define joy_position_SZ_ARG 5
-#define joy_position_SZ_RES 2
-#define joy_position_SZ_IW 0
-#define joy_position_SZ_W 28
 int strapdown_ins_propagate(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 int strapdown_ins_propagate_alloc_mem(void);
 int strapdown_ins_propagate_init_mem(int mem);

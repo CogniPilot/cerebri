@@ -34,6 +34,8 @@ LOG_MODULE_REGISTER(rdd2_command, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 static const double deg2rad = M_PI / 180.0;
+static const double thrust_trim = CONFIG_CEREBRI_RDD2_THRUST_TRIM * 1e-3;
+static const double thrust_delta = CONFIG_CEREBRI_RDD2_THRUST_DELTA * 1e-3;
 
 struct context {
     struct zros_node node;
@@ -205,13 +207,15 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             double omega[3];
             double thrust;
             {
-                // joy_acro:(joy_roll,joy_pitch,joy_yaw,joy_thrust)->(omega[3],thrust)
+                // joy_acro:(thrust_trim,thrust_delta,joy_roll,joy_pitch,joy_yaw,joy_thrust)->(omega[3],thrust)
                 CASADI_FUNC_ARGS(joy_acro);
 
-                args[0] = &joy_roll;
-                args[1] = &joy_pitch;
-                args[2] = &joy_yaw;
-                args[3] = &joy_thrust;
+                args[0] = &thrust_trim;
+                args[1] = &thrust_delta;
+                args[2] = &joy_roll;
+                args[3] = &joy_pitch;
+                args[4] = &joy_yaw;
+                args[5] = &joy_thrust;
 
                 res[0] = omega;
                 res[1] = &thrust;
@@ -233,14 +237,16 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             double qr[4];
             double thrust;
             {
-                /* joy_auto_level:(joy_roll,joy_pitch,joy_yaw,joy_thrust,q[4])->(q_r[4],thrust) */
+                /* joy_auto_level:(thrust_trim,thrust_delta,joy_roll,joy_pitch,joy_yaw,joy_thrust,q[4])->(q_r[4],thrust) */
                 CASADI_FUNC_ARGS(joy_auto_level);
 
-                args[0] = &joy_roll;
-                args[1] = &joy_pitch;
-                args[2] = &joy_yaw;
-                args[3] = &joy_thrust;
-                args[4] = q;
+                args[0] = &thrust_trim;
+                args[1] = &thrust_delta;
+                args[2] = &joy_roll;
+                args[3] = &joy_pitch;
+                args[4] = &joy_yaw;
+                args[5] = &joy_thrust;
+                args[6] = q;
 
                 res[0] = qr;
                 res[1] = &thrust;

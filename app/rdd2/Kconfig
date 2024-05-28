@@ -188,7 +188,6 @@ config CEREBRI_RDD2_ROLLRATE_IMAX
   help
     rollrate imax * 1e3
 
-
 config CEREBRI_RDD2_PITCHRATE_IMAX
   int "pitchate imax * 1e3"
   default 20
@@ -200,6 +199,20 @@ config CEREBRI_RDD2_YAWRATE_IMAX
   default 20
   help
     yawrate imax * 1e3
+
+config CEREBRI_RDD2_THRUST_TRIM
+  int "thrust_trim * 1e3 [N}"
+  default 21952
+  help
+    thrust trim * 1e3 [N]
+
+config CEREBRI_RDD2_THRUST_DELTA
+  int "thrust delta* 1e3 [N}"
+  default 19756
+  help
+    thrust delta imax * 1e3 [N}
+
+
 
 module = CEREBRI_RDD2
 module-str = cerebri_rdd2

@@ -36,7 +36,6 @@ extern "C" {
 #define casadi_f4 CASADI_PREFIX(f4)
 #define casadi_f5 CASADI_PREFIX(f5)
 #define casadi_f6 CASADI_PREFIX(f6)
-#define casadi_f7 CASADI_PREFIX(f7)
 #define casadi_fabs CASADI_PREFIX(fabs)
 #define casadi_s0 CASADI_PREFIX(s0)
 #define casadi_s1 CASADI_PREFIX(s1)
@@ -533,54 +532,54 @@ int attitude_control_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_i
     return 0;
 }
 
-/* position_control:(pt_w[3],vt_w[3],at_w[3],qc_wb[4],p_w[3],v_b[3],q_wb[4],z_i,dt)->(nT,qr_wb[4],z_i_2) */
+/* position_control:(thrust_trim,pt_w[3],vt_w[3],at_w[3],qc_wb[4],p_w[3],v_b[3],q_wb[4],z_i,dt)->(nT,qr_wb[4],z_i_2) */
 static int casadi_f2(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
     w[0] = 6.5856000000000012e+00;
     w[1] = -5.0000000000000000e-01;
-    w[2] = arg[4] ? arg[4][0] : 0;
-    w[3] = arg[0] ? arg[0][0] : 0;
+    w[2] = arg[5] ? arg[5][0] : 0;
+    w[3] = arg[1] ? arg[1][0] : 0;
     w[2] = (w[2] - w[3]);
     w[2] = (w[1] * w[2]);
     w[3] = 2.;
-    w[4] = arg[6] ? arg[6][0] : 0;
+    w[4] = arg[7] ? arg[7][0] : 0;
     w[5] = casadi_sq(w[4]);
-    w[6] = arg[6] ? arg[6][1] : 0;
+    w[6] = arg[7] ? arg[7][1] : 0;
     w[7] = casadi_sq(w[6]);
     w[8] = (w[5] + w[7]);
-    w[9] = arg[6] ? arg[6][2] : 0;
+    w[9] = arg[7] ? arg[7][2] : 0;
     w[10] = casadi_sq(w[9]);
     w[8] = (w[8] - w[10]);
-    w[11] = arg[6] ? arg[6][3] : 0;
+    w[11] = arg[7] ? arg[7][3] : 0;
     w[12] = casadi_sq(w[11]);
     w[8] = (w[8] - w[12]);
-    w[13] = arg[5] ? arg[5][0] : 0;
+    w[13] = arg[6] ? arg[6][0] : 0;
     w[8] = (w[8] * w[13]);
     w[14] = (w[6] * w[9]);
     w[15] = (w[4] * w[11]);
     w[16] = (w[14] - w[15]);
     w[16] = (w[3] * w[16]);
-    w[17] = arg[5] ? arg[5][1] : 0;
+    w[17] = arg[6] ? arg[6][1] : 0;
     w[16] = (w[16] * w[17]);
     w[8] = (w[8] + w[16]);
     w[16] = (w[6] * w[11]);
     w[18] = (w[4] * w[9]);
     w[19] = (w[16] + w[18]);
     w[19] = (w[3] * w[19]);
-    w[20] = arg[5] ? arg[5][2] : 0;
+    w[20] = arg[6] ? arg[6][2] : 0;
     w[19] = (w[19] * w[20]);
     w[8] = (w[8] + w[19]);
-    w[19] = arg[1] ? arg[1][0] : 0;
+    w[19] = arg[2] ? arg[2][0] : 0;
     w[8] = (w[8] - w[19]);
     w[8] = (w[3] * w[8]);
     w[2] = (w[2] - w[8]);
     w[8] = 2.2400000000000002e+00;
-    w[19] = arg[2] ? arg[2][0] : 0;
+    w[19] = arg[3] ? arg[3][0] : 0;
     w[19] = (w[8] * w[19]);
     w[2] = (w[2] + w[19]);
     w[19] = casadi_sq(w[2]);
-    w[21] = arg[4] ? arg[4][1] : 0;
-    w[22] = arg[0] ? arg[0][1] : 0;
+    w[21] = arg[5] ? arg[5][1] : 0;
+    w[22] = arg[1] ? arg[1][1] : 0;
     w[21] = (w[21] - w[22]);
     w[21] = (w[1] * w[21]);
     w[14] = (w[14] + w[15]);
@@ -597,17 +596,17 @@ static int casadi_f2(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[6] = (w[3] * w[6]);
     w[6] = (w[6] * w[20]);
     w[14] = (w[14] + w[6]);
-    w[6] = arg[1] ? arg[1][1] : 0;
+    w[6] = arg[2] ? arg[2][1] : 0;
     w[14] = (w[14] - w[6]);
     w[14] = (w[3] * w[14]);
     w[21] = (w[21] - w[14]);
-    w[14] = arg[2] ? arg[2][1] : 0;
+    w[14] = arg[3] ? arg[3][1] : 0;
     w[14] = (w[8] * w[14]);
     w[21] = (w[21] + w[14]);
     w[14] = casadi_sq(w[21]);
     w[19] = (w[19] + w[14]);
-    w[14] = arg[4] ? arg[4][2] : 0;
-    w[6] = arg[0] ? arg[0][2] : 0;
+    w[14] = arg[5] ? arg[5][2] : 0;
+    w[6] = arg[1] ? arg[1][2] : 0;
     w[14] = (w[14] - w[6]);
     w[1] = (w[1] * w[14]);
     w[16] = (w[16] - w[18]);
@@ -622,11 +621,11 @@ static int casadi_f2(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[5] = (w[5] - w[10]);
     w[5] = (w[5] * w[20]);
     w[16] = (w[16] + w[5]);
-    w[5] = arg[1] ? arg[1][2] : 0;
+    w[5] = arg[2] ? arg[2][2] : 0;
     w[16] = (w[16] - w[5]);
     w[16] = (w[3] * w[16]);
     w[1] = (w[1] - w[16]);
-    w[16] = arg[2] ? arg[2][2] : 0;
+    w[16] = arg[3] ? arg[3][2] : 0;
     w[8] = (w[8] * w[16]);
     w[1] = (w[1] + w[8]);
     w[8] = casadi_sq(w[1]);
@@ -652,10 +651,10 @@ static int casadi_f2(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[8] = (w[8] ? w[0] : 0);
     w[5] = (w[5] ? w[1] : 0);
     w[8] = (w[8] + w[5]);
-    w[5] = 2.1952000000000005e+01;
+    w[5] = arg[0] ? arg[0][0] : 0;
     w[8] = (w[8] + w[5]);
     w[5] = 5.0000000000000003e-02;
-    w[1] = arg[7] ? arg[7][0] : 0;
+    w[1] = arg[8] ? arg[8][0] : 0;
     w[5] = (w[5] * w[1]);
     w[8] = (w[8] + w[5]);
     w[5] = casadi_sq(w[8]);
@@ -672,11 +671,11 @@ static int casadi_f2(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[10] = 1.;
     w[21] = (w[21] ? w[10] : 0);
     w[8] = (w[8] + w[21]);
-    w[21] = arg[3] ? arg[3][1] : 0;
-    w[7] = arg[3] ? arg[3][3] : 0;
+    w[21] = arg[4] ? arg[4][1] : 0;
+    w[7] = arg[4] ? arg[4][3] : 0;
     w[12] = (w[21] * w[7]);
-    w[9] = arg[3] ? arg[3][0] : 0;
-    w[17] = arg[3] ? arg[3][2] : 0;
+    w[9] = arg[4] ? arg[4][0] : 0;
+    w[17] = arg[4] ? arg[4][2] : 0;
     w[4] = (w[9] * w[17]);
     w[13] = (w[12] - w[4]);
     w[13] = (w[3] * w[13]);
@@ -879,7 +878,7 @@ static int casadi_f2(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     if (res[1] != 0)
         res[1][3] = w[5];
     w[5] = 5.;
-    w[21] = arg[8] ? arg[8][0] : 0;
+    w[21] = arg[9] ? arg[9][0] : 0;
     w[14] = (w[14] * w[21]);
     w[1] = (w[1] - w[14]);
     w[14] = (w[5] < w[1]);
@@ -934,7 +933,7 @@ void position_control_decref(void)
 {
 }
 
-casadi_int position_control_n_in(void) { return 9; }
+casadi_int position_control_n_in(void) { return 10; }
 
 casadi_int position_control_n_out(void) { return 3; }
 
@@ -950,22 +949,24 @@ const char* position_control_name_in(casadi_int i)
 {
     switch (i) {
     case 0:
-        return "pt_w";
+        return "thrust_trim";
     case 1:
-        return "vt_w";
+        return "pt_w";
     case 2:
-        return "at_w";
+        return "vt_w";
     case 3:
-        return "qc_wb";
+        return "at_w";
     case 4:
-        return "p_w";
+        return "qc_wb";
     case 5:
-        return "v_b";
+        return "p_w";
     case 6:
-        return "q_wb";
+        return "v_b";
     case 7:
-        return "z_i";
+        return "q_wb";
     case 8:
+        return "z_i";
+    case 9:
         return "dt";
     default:
         return 0;
@@ -990,22 +991,24 @@ const casadi_int* position_control_sparsity_in(casadi_int i)
 {
     switch (i) {
     case 0:
-        return casadi_s0;
+        return casadi_s1;
     case 1:
         return casadi_s0;
     case 2:
         return casadi_s0;
     case 3:
-        return casadi_s2;
-    case 4:
         return casadi_s0;
+    case 4:
+        return casadi_s2;
     case 5:
         return casadi_s0;
     case 6:
-        return casadi_s2;
+        return casadi_s0;
     case 7:
-        return casadi_s1;
+        return casadi_s2;
     case 8:
+        return casadi_s1;
+    case 9:
         return casadi_s1;
     default:
         return 0;
@@ -1029,7 +1032,7 @@ const casadi_int* position_control_sparsity_out(casadi_int i)
 int position_control_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w)
 {
     if (sz_arg)
-        *sz_arg = 9;
+        *sz_arg = 10;
     if (sz_res)
         *sz_res = 3;
     if (sz_iw)
@@ -1042,7 +1045,7 @@ int position_control_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz
 int position_control_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w)
 {
     if (sz_arg)
-        *sz_arg = 9 * sizeof(const casadi_real*);
+        *sz_arg = 10 * sizeof(const casadi_real*);
     if (sz_res)
         *sz_res = 3 * sizeof(casadi_real*);
     if (sz_iw)
@@ -1052,27 +1055,27 @@ int position_control_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_i
     return 0;
 }
 
-/* joy_acro:(joy_roll,joy_pitch,joy_yaw,joy_thrust)->(omega[3],thrust) */
+/* joy_acro:(thrust_trim,thrust_delta,joy_roll,joy_pitch,joy_yaw,joy_thrust)->(omega[3],thrust) */
 static int casadi_f3(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
     w[0] = 5.2359877559829882e-01;
-    w[1] = arg[0] ? arg[0][0] : 0;
+    w[1] = arg[2] ? arg[2][0] : 0;
     w[1] = (w[0] * w[1]);
     if (res[0] != 0)
         res[0][0] = w[1];
-    w[1] = arg[1] ? arg[1][0] : 0;
+    w[1] = arg[3] ? arg[3][0] : 0;
     w[0] = (w[0] * w[1]);
     if (res[0] != 0)
         res[0][1] = w[0];
     w[0] = 1.0471975511965976e+00;
-    w[1] = arg[2] ? arg[2][0] : 0;
+    w[1] = arg[4] ? arg[4][0] : 0;
     w[0] = (w[0] * w[1]);
     if (res[0] != 0)
         res[0][2] = w[0];
-    w[0] = 1.9756800000000005e+01;
-    w[1] = arg[3] ? arg[3][0] : 0;
+    w[0] = arg[5] ? arg[5][0] : 0;
+    w[1] = arg[1] ? arg[1][0] : 0;
     w[0] = (w[0] * w[1]);
-    w[1] = 2.1952000000000005e+01;
+    w[1] = arg[0] ? arg[0][0] : 0;
     w[0] = (w[0] + w[1]);
     if (res[1] != 0)
         res[1][0] = w[0];
@@ -1115,7 +1118,7 @@ void joy_acro_decref(void)
 {
 }
 
-casadi_int joy_acro_n_in(void) { return 4; }
+casadi_int joy_acro_n_in(void) { return 6; }
 
 casadi_int joy_acro_n_out(void) { return 2; }
 
@@ -1131,12 +1134,16 @@ const char* joy_acro_name_in(casadi_int i)
 {
     switch (i) {
     case 0:
-        return "joy_roll";
+        return "thrust_trim";
     case 1:
-        return "joy_pitch";
+        return "thrust_delta";
     case 2:
-        return "joy_yaw";
+        return "joy_roll";
     case 3:
+        return "joy_pitch";
+    case 4:
+        return "joy_yaw";
+    case 5:
         return "joy_thrust";
     default:
         return 0;
@@ -1166,6 +1173,10 @@ const casadi_int* joy_acro_sparsity_in(casadi_int i)
         return casadi_s1;
     case 3:
         return casadi_s1;
+    case 4:
+        return casadi_s1;
+    case 5:
+        return casadi_s1;
     default:
         return 0;
     }
@@ -1186,7 +1197,7 @@ const casadi_int* joy_acro_sparsity_out(casadi_int i)
 int joy_acro_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w)
 {
     if (sz_arg)
-        *sz_arg = 4;
+        *sz_arg = 6;
     if (sz_res)
         *sz_res = 2;
     if (sz_iw)
@@ -1199,7 +1210,7 @@ int joy_acro_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, cas
 int joy_acro_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w)
 {
     if (sz_arg)
-        *sz_arg = 4 * sizeof(const casadi_real*);
+        *sz_arg = 6 * sizeof(const casadi_real*);
     if (sz_res)
         *sz_res = 2 * sizeof(casadi_real*);
     if (sz_iw)
@@ -1209,16 +1220,16 @@ int joy_acro_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_i
     return 0;
 }
 
-/* joy_auto_level:(joy_roll,joy_pitch,joy_yaw,joy_thrust,q[4])->(q_r[4],thrust) */
+/* joy_auto_level:(thrust_trim,thrust_delta,joy_roll,joy_pitch,joy_yaw,joy_thrust,q[4])->(q_r[4],thrust) */
 static int casadi_f4(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
     w[0] = 0.;
     w[1] = 2.;
-    w[2] = arg[4] ? arg[4][1] : 0;
-    w[3] = arg[4] ? arg[4][3] : 0;
+    w[2] = arg[6] ? arg[6][1] : 0;
+    w[3] = arg[6] ? arg[6][3] : 0;
     w[4] = (w[2] * w[3]);
-    w[5] = arg[4] ? arg[4][0] : 0;
-    w[6] = arg[4] ? arg[4][2] : 0;
+    w[5] = arg[6] ? arg[6][0] : 0;
+    w[6] = arg[6] ? arg[6][2] : 0;
     w[7] = (w[5] * w[6]);
     w[8] = (w[4] - w[7]);
     w[8] = (w[1] * w[8]);
@@ -1263,17 +1274,17 @@ static int casadi_f4(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[10] = (w[10] ? w[12] : 0);
     w[7] = (w[7] + w[10]);
     w[10] = 1.0471975511965976e+00;
-    w[12] = arg[2] ? arg[2][0] : 0;
+    w[12] = arg[4] ? arg[4][0] : 0;
     w[10] = (w[10] * w[12]);
     w[7] = (w[7] + w[10]);
     w[10] = cos(w[7]);
     w[12] = 3.4906585039886590e-01;
-    w[8] = arg[1] ? arg[1][0] : 0;
+    w[8] = arg[3] ? arg[3][0] : 0;
     w[8] = (w[12] * w[8]);
     w[1] = cos(w[8]);
     w[5] = (w[10] * w[1]);
     w[3] = cos(w[7]);
-    w[6] = arg[0] ? arg[0][0] : 0;
+    w[6] = arg[2] ? arg[2][0] : 0;
     w[12] = (w[12] * w[6]);
     w[6] = cos(w[12]);
     w[2] = (w[3] * w[6]);
@@ -1414,10 +1425,10 @@ static int casadi_f4(const casadi_real** arg, casadi_real** res, casadi_int* iw,
     w[0] = (w[0] + w[21]);
     if (res[0] != 0)
         res[0][3] = w[0];
-    w[0] = 1.9756800000000005e+01;
-    w[21] = arg[3] ? arg[3][0] : 0;
+    w[0] = arg[5] ? arg[5][0] : 0;
+    w[21] = arg[1] ? arg[1][0] : 0;
     w[0] = (w[0] * w[21]);
-    w[21] = 2.1952000000000005e+01;
+    w[21] = arg[0] ? arg[0][0] : 0;
     w[0] = (w[0] + w[21]);
     if (res[1] != 0)
         res[1][0] = w[0];
@@ -1460,7 +1471,7 @@ void joy_auto_level_decref(void)
 {
 }
 
-casadi_int joy_auto_level_n_in(void) { return 5; }
+casadi_int joy_auto_level_n_in(void) { return 7; }
 
 casadi_int joy_auto_level_n_out(void) { return 2; }
 
@@ -1476,14 +1487,18 @@ const char* joy_auto_level_name_in(casadi_int i)
 {
     switch (i) {
     case 0:
-        return "joy_roll";
+        return "thrust_trim";
     case 1:
-        return "joy_pitch";
+        return "thrust_delta";
     case 2:
-        return "joy_yaw";
+        return "joy_roll";
     case 3:
-        return "joy_thrust";
+        return "joy_pitch";
     case 4:
+        return "joy_yaw";
+    case 5:
+        return "joy_thrust";
+    case 6:
         return "q";
     default:
         return 0;
@@ -1514,6 +1529,10 @@ const casadi_int* joy_auto_level_sparsity_in(casadi_int i)
     case 3:
         return casadi_s1;
     case 4:
+        return casadi_s1;
+    case 5:
+        return casadi_s1;
+    case 6:
         return casadi_s2;
     default:
         return 0;
@@ -1535,7 +1554,7 @@ const casadi_int* joy_auto_level_sparsity_out(casadi_int i)
 int joy_auto_level_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w)
 {
     if (sz_arg)
-        *sz_arg = 5;
+        *sz_arg = 7;
     if (sz_res)
         *sz_res = 2;
     if (sz_iw)
@@ -1548,356 +1567,7 @@ int joy_auto_level_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_i
 int joy_auto_level_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w)
 {
     if (sz_arg)
-        *sz_arg = 5 * sizeof(const casadi_real*);
-    if (sz_res)
-        *sz_res = 2 * sizeof(casadi_real*);
-    if (sz_iw)
-        *sz_iw = 0 * sizeof(casadi_int);
-    if (sz_w)
-        *sz_w = 28 * sizeof(casadi_real);
-    return 0;
-}
-
-/* joy_position:(joy_roll,joy_pitch,joy_yaw,joy_thrust,q[4])->(q_r[4],thrust) */
-static int casadi_f5(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
-{
-    w[0] = 0.;
-    w[1] = 2.;
-    w[2] = arg[4] ? arg[4][1] : 0;
-    w[3] = arg[4] ? arg[4][3] : 0;
-    w[4] = (w[2] * w[3]);
-    w[5] = arg[4] ? arg[4][0] : 0;
-    w[6] = arg[4] ? arg[4][2] : 0;
-    w[7] = (w[5] * w[6]);
-    w[8] = (w[4] - w[7]);
-    w[8] = (w[1] * w[8]);
-    w[8] = (-w[8]);
-    w[8] = asin(w[8]);
-    w[9] = 1.5707963267948966e+00;
-    w[10] = (w[8] - w[9]);
-    w[10] = casadi_fabs(w[10]);
-    w[11] = 1.0000000000000000e-03;
-    w[10] = (w[10] < w[11]);
-    w[12] = (w[6] * w[3]);
-    w[13] = (w[5] * w[2]);
-    w[12] = (w[12] - w[13]);
-    w[12] = (w[1] * w[12]);
-    w[4] = (w[4] + w[7]);
-    w[4] = (w[1] * w[4]);
-    w[7] = atan2(w[12], w[4]);
-    w[7] = (w[10] ? w[7] : 0);
-    w[10] = (!w[10]);
-    w[8] = (w[8] + w[9]);
-    w[8] = casadi_fabs(w[8]);
-    w[8] = (w[8] < w[11]);
-    w[12] = (-w[12]);
-    w[4] = (-w[4]);
-    w[12] = atan2(w[12], w[4]);
-    w[12] = (w[8] ? w[12] : 0);
-    w[8] = (!w[8]);
-    w[4] = (w[2] * w[6]);
-    w[11] = (w[5] * w[3]);
-    w[4] = (w[4] + w[11]);
-    w[1] = (w[1] * w[4]);
-    w[5] = casadi_sq(w[5]);
-    w[2] = casadi_sq(w[2]);
-    w[5] = (w[5] + w[2]);
-    w[6] = casadi_sq(w[6]);
-    w[5] = (w[5] - w[6]);
-    w[3] = casadi_sq(w[3]);
-    w[5] = (w[5] - w[3]);
-    w[1] = atan2(w[1], w[5]);
-    w[8] = (w[8] ? w[1] : 0);
-    w[12] = (w[12] + w[8]);
-    w[10] = (w[10] ? w[12] : 0);
-    w[7] = (w[7] + w[10]);
-    w[10] = 60.;
-    w[12] = arg[2] ? arg[2][0] : 0;
-    w[10] = (w[10] * w[12]);
-    w[7] = (w[7] + w[10]);
-    w[10] = cos(w[7]);
-    w[12] = 20.;
-    w[8] = arg[1] ? arg[1][0] : 0;
-    w[8] = (w[12] * w[8]);
-    w[1] = cos(w[8]);
-    w[5] = (w[10] * w[1]);
-    w[3] = cos(w[7]);
-    w[6] = arg[0] ? arg[0][0] : 0;
-    w[12] = (w[12] * w[6]);
-    w[6] = cos(w[12]);
-    w[2] = (w[3] * w[6]);
-    w[4] = sin(w[7]);
-    w[11] = sin(w[8]);
-    w[9] = (w[4] * w[11]);
-    w[13] = sin(w[12]);
-    w[14] = (w[9] * w[13]);
-    w[2] = (w[2] + w[14]);
-    w[14] = (w[5] + w[2]);
-    w[15] = cos(w[8]);
-    w[16] = cos(w[12]);
-    w[17] = (w[15] * w[16]);
-    w[14] = (w[14] + w[17]);
-    w[0] = (w[0] < w[14]);
-    w[14] = 5.0000000000000000e-01;
-    w[18] = 1.;
-    w[19] = (w[18] + w[5]);
-    w[19] = (w[19] + w[2]);
-    w[19] = (w[19] + w[17]);
-    w[19] = sqrt(w[19]);
-    w[19] = (w[14] * w[19]);
-    w[20] = (w[0] ? w[19] : 0);
-    w[21] = (!w[0]);
-    w[22] = (w[2] < w[5]);
-    w[23] = (w[17] < w[5]);
-    w[22] = (w[22] && w[23]);
-    w[15] = (w[15] * w[13]);
-    w[9] = (w[9] * w[16]);
-    w[12] = sin(w[12]);
-    w[3] = (w[3] * w[12]);
-    w[9] = (w[9] - w[3]);
-    w[3] = (w[15] - w[9]);
-    w[23] = 4.;
-    w[24] = (w[18] + w[5]);
-    w[24] = (w[24] - w[2]);
-    w[24] = (w[24] - w[17]);
-    w[24] = sqrt(w[24]);
-    w[24] = (w[14] * w[24]);
-    w[25] = (w[23] * w[24]);
-    w[3] = (w[3] / w[25]);
-    w[3] = (w[22] ? w[3] : 0);
-    w[25] = (!w[22]);
-    w[26] = (w[17] < w[2]);
-    w[7] = sin(w[7]);
-    w[12] = (w[7] * w[12]);
-    w[10] = (w[10] * w[11]);
-    w[16] = (w[10] * w[16]);
-    w[12] = (w[12] + w[16]);
-    w[8] = sin(w[8]);
-    w[16] = (w[12] + w[8]);
-    w[11] = (w[18] - w[5]);
-    w[11] = (w[11] + w[2]);
-    w[11] = (w[11] - w[17]);
-    w[11] = sqrt(w[11]);
-    w[11] = (w[14] * w[11]);
-    w[27] = (w[23] * w[11]);
-    w[16] = (w[16] / w[27]);
-    w[16] = (w[26] ? w[16] : 0);
-    w[27] = (!w[26]);
-    w[4] = (w[4] * w[1]);
-    w[10] = (w[10] * w[13]);
-    w[7] = (w[7] * w[6]);
-    w[10] = (w[10] - w[7]);
-    w[7] = (w[4] - w[10]);
-    w[18] = (w[18] - w[5]);
-    w[18] = (w[18] - w[2]);
-    w[18] = (w[18] + w[17]);
-    w[18] = sqrt(w[18]);
-    w[14] = (w[14] * w[18]);
-    w[18] = (w[23] * w[14]);
-    w[7] = (w[7] / w[18]);
-    w[7] = (w[27] ? w[7] : 0);
-    w[16] = (w[16] + w[7]);
-    w[16] = (w[25] ? w[16] : 0);
-    w[3] = (w[3] + w[16]);
-    w[3] = (w[21] ? w[3] : 0);
-    w[20] = (w[20] + w[3]);
-    if (res[0] != 0)
-        res[0][0] = w[20];
-    w[20] = (w[15] - w[9]);
-    w[3] = (w[23] * w[19]);
-    w[20] = (w[20] / w[3]);
-    w[20] = (w[0] ? w[20] : 0);
-    w[3] = (w[22] ? w[24] : 0);
-    w[16] = (w[10] + w[4]);
-    w[7] = (w[23] * w[11]);
-    w[16] = (w[16] / w[7]);
-    w[16] = (w[26] ? w[16] : 0);
-    w[7] = (w[12] - w[8]);
-    w[18] = (w[23] * w[14]);
-    w[7] = (w[7] / w[18]);
-    w[7] = (w[27] ? w[7] : 0);
-    w[16] = (w[16] + w[7]);
-    w[16] = (w[25] ? w[16] : 0);
-    w[3] = (w[3] + w[16]);
-    w[3] = (w[21] ? w[3] : 0);
-    w[20] = (w[20] + w[3]);
-    if (res[0] != 0)
-        res[0][1] = w[20];
-    w[20] = (w[12] + w[8]);
-    w[3] = (w[23] * w[19]);
-    w[20] = (w[20] / w[3]);
-    w[20] = (w[0] ? w[20] : 0);
-    w[3] = (w[10] + w[4]);
-    w[16] = (w[23] * w[24]);
-    w[3] = (w[3] / w[16]);
-    w[3] = (w[22] ? w[3] : 0);
-    w[16] = (w[26] ? w[11] : 0);
-    w[7] = (w[9] + w[15]);
-    w[18] = (w[23] * w[14]);
-    w[7] = (w[7] / w[18]);
-    w[7] = (w[27] ? w[7] : 0);
-    w[16] = (w[16] + w[7]);
-    w[16] = (w[25] ? w[16] : 0);
-    w[3] = (w[3] + w[16]);
-    w[3] = (w[21] ? w[3] : 0);
-    w[20] = (w[20] + w[3]);
-    if (res[0] != 0)
-        res[0][2] = w[20];
-    w[4] = (w[4] - w[10]);
-    w[19] = (w[23] * w[19]);
-    w[4] = (w[4] / w[19]);
-    w[0] = (w[0] ? w[4] : 0);
-    w[12] = (w[12] - w[8]);
-    w[24] = (w[23] * w[24]);
-    w[12] = (w[12] / w[24]);
-    w[22] = (w[22] ? w[12] : 0);
-    w[9] = (w[9] + w[15]);
-    w[23] = (w[23] * w[11]);
-    w[9] = (w[9] / w[23]);
-    w[26] = (w[26] ? w[9] : 0);
-    w[27] = (w[27] ? w[14] : 0);
-    w[26] = (w[26] + w[27]);
-    w[25] = (w[25] ? w[26] : 0);
-    w[22] = (w[22] + w[25]);
-    w[21] = (w[21] ? w[22] : 0);
-    w[0] = (w[0] + w[21]);
-    if (res[0] != 0)
-        res[0][3] = w[0];
-    w[0] = 1.9756800000000005e+01;
-    w[21] = arg[3] ? arg[3][0] : 0;
-    w[0] = (w[0] * w[21]);
-    w[21] = 2.1952000000000005e+01;
-    w[0] = (w[0] + w[21]);
-    if (res[1] != 0)
-        res[1][0] = w[0];
-    return 0;
-}
-
-int joy_position(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
-{
-    return casadi_f5(arg, res, iw, w, mem);
-}
-
-int joy_position_alloc_mem(void)
-{
-    return 0;
-}
-
-int joy_position_init_mem(int mem)
-{
-    return 0;
-}
-
-void joy_position_free_mem(int mem)
-{
-}
-
-int joy_position_checkout(void)
-{
-    return 0;
-}
-
-void joy_position_release(int mem)
-{
-}
-
-void joy_position_incref(void)
-{
-}
-
-void joy_position_decref(void)
-{
-}
-
-casadi_int joy_position_n_in(void) { return 5; }
-
-casadi_int joy_position_n_out(void) { return 2; }
-
-casadi_real joy_position_default_in(casadi_int i)
-{
-    switch (i) {
-    default:
-        return 0;
-    }
-}
-
-const char* joy_position_name_in(casadi_int i)
-{
-    switch (i) {
-    case 0:
-        return "joy_roll";
-    case 1:
-        return "joy_pitch";
-    case 2:
-        return "joy_yaw";
-    case 3:
-        return "joy_thrust";
-    case 4:
-        return "q";
-    default:
-        return 0;
-    }
-}
-
-const char* joy_position_name_out(casadi_int i)
-{
-    switch (i) {
-    case 0:
-        return "q_r";
-    case 1:
-        return "thrust";
-    default:
-        return 0;
-    }
-}
-
-const casadi_int* joy_position_sparsity_in(casadi_int i)
-{
-    switch (i) {
-    case 0:
-        return casadi_s1;
-    case 1:
-        return casadi_s1;
-    case 2:
-        return casadi_s1;
-    case 3:
-        return casadi_s1;
-    case 4:
-        return casadi_s2;
-    default:
-        return 0;
-    }
-}
-
-const casadi_int* joy_position_sparsity_out(casadi_int i)
-{
-    switch (i) {
-    case 0:
-        return casadi_s2;
-    case 1:
-        return casadi_s1;
-    default:
-        return 0;
-    }
-}
-
-int joy_position_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w)
-{
-    if (sz_arg)
-        *sz_arg = 5;
-    if (sz_res)
-        *sz_res = 2;
-    if (sz_iw)
-        *sz_iw = 0;
-    if (sz_w)
-        *sz_w = 28;
-    return 0;
-}
-
-int joy_position_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w)
-{
-    if (sz_arg)
-        *sz_arg = 5 * sizeof(const casadi_real*);
+        *sz_arg = 7 * sizeof(const casadi_real*);
     if (sz_res)
         *sz_res = 2 * sizeof(casadi_real*);
     if (sz_iw)
@@ -1908,7 +1578,7 @@ int joy_position_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* 
 }
 
 /* strapdown_ins_propagate:(x0[10],a_b[3],omega_b[3],g,dt)->(x1[10]) */
-static int casadi_f6(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
+static int casadi_f5(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
     w[0] = arg[0] ? arg[0][6] : 0;
     w[1] = casadi_sq(w[0]);
@@ -2235,7 +1905,7 @@ static int casadi_f6(const casadi_real** arg, casadi_real** res, casadi_int* iw,
 
 int strapdown_ins_propagate(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
-    return casadi_f6(arg, res, iw, w, mem);
+    return casadi_f5(arg, res, iw, w, mem);
 }
 
 int strapdown_ins_propagate_alloc_mem(void)
@@ -2364,7 +2034,7 @@ int strapdown_ins_propagate_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, c
 }
 
 /* control_allocation:(l,Cm,Ct,T,Mx,My,Mz)->(omega[4]) */
-static int casadi_f7(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
+static int casadi_f6(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
     w[0] = 2.5000000000000000e-01;
     w[1] = arg[3] ? arg[3][0] : 0;
@@ -2456,7 +2126,7 @@ static int casadi_f7(const casadi_real** arg, casadi_real** res, casadi_int* iw,
 
 int control_allocation(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
-    return casadi_f7(arg, res, iw, w, mem);
+    return casadi_f6(arg, res, iw, w, mem);
 }
 
 int control_allocation_alloc_mem(void)

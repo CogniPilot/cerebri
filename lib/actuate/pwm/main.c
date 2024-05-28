@@ -80,7 +80,7 @@ static void actuate_pwm_fini(struct context* ctx)
     zros_node_fini(&ctx->node);
 }
 
-void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Actuators* actuators)
+static void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Actuators* actuators)
 {
     bool armed = status->arming == synapse_msgs_Status_Arming_ARMING_ARMED;
     int err = 0;
@@ -136,47 +136,12 @@ void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Actuators*
         if (pwm.use_nano_seconds) {
             err = pwm_set_pulse_dt(&pwm.device, PWM_NSEC(pulse));
         } else {
+            // LOG_INF("pulse set: %d", pulse);
             err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pulse));
         }
 
         if (err) {
             LOG_ERR("failed to set pulse %d on %s (err %d)", pulse, pwm.alias, err);
-        }
-    }
-}
-
-void pwm_max(struct context* ctx)
-{
-    LOG_INF("max pwm sending");
-    for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
-        actuator_pwm_t pwm = g_actuator_pwms[i];
-        int err = 0;
-        if (pwm.use_nano_seconds) {
-            err = pwm_set_pulse_dt(&pwm.device, PWM_NSEC(pwm.max));
-        } else {
-            err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pwm.max));
-        }
-
-        if (err) {
-            LOG_ERR("failed to set pulse %d on %s (err %d)", pwm.max, pwm.alias, err);
-        }
-    }
-}
-
-void pwm_min(struct context* ctx)
-{
-    LOG_INF("min pwm sending");
-    for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
-        actuator_pwm_t pwm = g_actuator_pwms[i];
-        int err = 0;
-        if (pwm.use_nano_seconds) {
-            err = pwm_set_pulse_dt(&pwm.device, PWM_NSEC(pwm.min));
-        } else {
-            err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pwm.min));
-        }
-
-        if (err) {
-            LOG_ERR("failed to set pulse %d on %s (err %d)", pwm.min, pwm.alias, err);
         }
     }
 }
@@ -237,6 +202,43 @@ static int start(struct context* ctx)
     return 0;
 }
 
+//#if CONFIG_ACTUATE_PWM_SHELL
+static void pwm_max(struct context* ctx)
+{
+    LOG_INF("max pwm sending");
+    for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
+        actuator_pwm_t pwm = g_actuator_pwms[i];
+        int err = 0;
+        if (pwm.use_nano_seconds) {
+            err = pwm_set_pulse_dt(&pwm.device, PWM_NSEC(pwm.max));
+        } else {
+            err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pwm.max));
+        }
+
+        if (err) {
+            LOG_ERR("failed to set pulse %d on %s (err %d)", pwm.max, pwm.alias, err);
+        }
+    }
+}
+
+static void pwm_min(struct context* ctx)
+{
+    LOG_INF("min pwm sending");
+    for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
+        actuator_pwm_t pwm = g_actuator_pwms[i];
+        int err = 0;
+        if (pwm.use_nano_seconds) {
+            err = pwm_set_pulse_dt(&pwm.device, PWM_NSEC(pwm.min));
+        } else {
+            err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pwm.min));
+        }
+
+        if (err) {
+            LOG_ERR("failed to set pulse %d on %s (err %d)", pwm.min, pwm.alias, err);
+        }
+    }
+}
+
 static int actuate_pwm_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
@@ -282,6 +284,7 @@ SHELL_SUBCMD_DICT_SET_CREATE(sub_actuate_pwm, actuate_pwm_cmd_handler,
     (status, &g_ctx, "status"));
 
 SHELL_CMD_REGISTER(actuate_pwm, &sub_actuate_pwm, "actuate pwm commands", NULL);
+//#endif
 
 static int actuate_pwm_sys_init(void)
 {

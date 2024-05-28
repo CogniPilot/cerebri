@@ -8,7 +8,6 @@
 
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
-#include <zephyr/sys/__assert.h>
 
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
@@ -152,7 +151,6 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
             res[0] = omega;
             CASADI_FUNC_CALL(control_allocation)
             for (int i = 0; i < 4; i++) {
-                __ASSERT(isfinite(omega[i]), "omega[%d] not finite: %10.4f", i, omega[i]);
                 if (!isfinite(omega[i])) {
                     LOG_WRN("omega is not finite: %10.4f", omega[i]);
                     omega[i] = 0;
@@ -193,7 +191,10 @@ static int rdd2_allocation_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    __ASSERT(argc == 1, "arg count must be 1");
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

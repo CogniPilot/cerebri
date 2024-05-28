@@ -23,13 +23,13 @@ LOG_MODULE_REGISTER(sense_joy, CONFIG_CEREBRI_SENSE_JOY_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
-extern struct k_work_q g_high_priority_work_q;
-static void sense_joy_work_handler(struct k_work* work);
-static void sense_joy_timer_handler(struct k_timer* dummy);
+// jextern struct k_work_q g_high_priority_work_q;
+// static void sense_joy_work_handler(struct k_work* work);
+// static void sense_joy_timer_handler(struct k_timer* dummy);
 
 struct context {
-    struct k_work work_item;
-    struct k_timer timer;
+    // struct k_work work_item;
+    // struct k_timer timer;
     struct zros_node node;
     struct zros_pub pub_joy;
     synapse_msgs_Joy joy;
@@ -38,11 +38,12 @@ struct context {
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
     struct k_sem sem;
+    int counter;
 };
 
 static struct context g_ctx = {
-    .work_item = Z_WORK_INITIALIZER(sense_joy_work_handler),
-    .timer = Z_TIMER_INITIALIZER(g_ctx.timer, sense_joy_timer_handler, NULL),
+    //.work_item = Z_WORK_INITIALIZER(sense_joy_work_handler),
+    //.timer = Z_TIMER_INITIALIZER(g_ctx.timer, sense_joy_timer_handler, NULL),
     .running = ATOMIC_INIT(0),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
@@ -53,9 +54,11 @@ static struct context g_ctx = {
         .buttons_count = 8,
         .axes = {},
         .buttons = {},
-    }
+    },
+    .counter = 0,
 };
 
+/*
 void sense_joy_work_handler(struct k_work* work)
 {
     // struct context* ctx = CONTAINER_OF(work, struct context, work_item);
@@ -66,6 +69,7 @@ void sense_joy_timer_handler(struct k_timer* timer)
     // struct context* ctx = CONTAINER_OF(timer, struct context, timer);
     // k_work_submit_to_queue(&g_high_priority_work_q, &ctx->work_item);
 }
+*/
 
 static void sense_joy_init(struct context* ctx)
 {
@@ -94,6 +98,10 @@ static void sense_joy_run(void* p0, void* p1, void* p2)
 
     while (atomic_get(&ctx->running)) {
         k_msleep(1000);
+        // k_msleep(100);
+        // g_ctx.joy.buttons[JOY_BUTTON_ARM] = 0;
+        // g_ctx.joy.buttons[JOY_BUTTON_DISARM] = 0;
+        // zros_pub_update(&ctx->pub_joy);
     }
 
     sense_joy_fini(ctx);
@@ -148,7 +156,13 @@ static void input_cb(struct input_event* evt)
     } else {
         LOG_INF("unhandled event: %d %d %d %d", evt->code, evt->sync, evt->type, evt->value);
     }
-    zros_pub_update(&g_ctx.pub_joy);
+
+    if (g_ctx.counter < 50) {
+        g_ctx.counter += 1;
+    } else {
+        g_ctx.counter = 0;
+        zros_pub_update(&g_ctx.pub_joy);
+    }
     k_sem_give(&g_ctx.sem);
 }
 

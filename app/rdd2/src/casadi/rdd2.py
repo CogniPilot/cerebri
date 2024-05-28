@@ -56,10 +56,10 @@ def derive_control_allocation(
     My = ca.SX.sym('My')
     Mz = ca.SX.sym('Mz')
     A = ca.vertcat(
-        ca.horzcat(1/4, -1/(4*l), -1/(4*l), 1/(4*Cm)),
-        ca.horzcat(1/4, 1/(4*l), 1/(4*l), 1/(4*Cm)),
-        ca.horzcat(1/4, 1/(4*l), -1/(4*l), -1/(4*Cm)),
-        ca.horzcat(1/4, -1/(4*l), 1/(4*l), -1/(4*Cm)))
+        ca.horzcat(1/4, -1/(4*l), -1/(4*l), -1/(4*Cm)),
+        ca.horzcat(1/4, 1/(4*l), 1/(4*l), -1/(4*Cm)),
+        ca.horzcat(1/4, 1/(4*l), -1/(4*l), 1/(4*Cm)),
+        ca.horzcat(1/4, -1/(4*l), 1/(4*l), 1/(4*Cm)))
     M = A@ca.vertcat(T, Mx, My, Mz)
     for i in range(4):
         M[i] = ca.if_else(M[i] < 0, 0, M[i])
@@ -227,53 +227,6 @@ def derive_joy_position():
 
     return {
         "joy_position": f_joy_position
-    }
-
-
-def derive_quat_to_eulerB321():
-    """
-    quaternion to eulerB321 converion
-    """
-
-    # INPUTS
-    # -------------------------------
-    q_wb = ca.SX.sym('q', 4)
-    X = SO3Quat.elem(q_wb)
-    e = SO3EulerB321.from_Quat(X)
-
-    # FUNCTION
-    # -------------------------------
-    f_quat_to_eulerB321 = ca.Function(
-       "quat_to_eulerB321",
-       [q_wb], [e.param[0], e.param[1], e.param[2]],
-       ["q_wb"], ["yaw", "pitch", "roll"])
-
-    return {
-        "quat_to_eulerB321": f_quat_to_eulerB321
-    }
-
-def derive_eulerB321_to_quat():
-    """
-    eulerB321 to quaternion converion
-    """
-
-    # INPUTS
-    # -------------------------------
-    e = SO3EulerB321.elem(ca.SX.sym('e', 3))
-
-    # CALC
-    # -------------------------------
-    X = SO3Quat.from_Euler(e)
-
-    # FUNCTION
-    # -------------------------------
-    f_eulerB321_to_quat = ca.Function(
-       "eulerB321_to_quat",
-       [e.param[0], e.param[1], e.param[2]], [X.param],
-       ["yaw", "pitch", "roll"], ["q"])
-
-    return {
-        "eulerB321_to_quat": f_eulerB321_to_quat
     }
 
 
@@ -565,8 +518,6 @@ if __name__ == "__main__":
     eqs.update(derive_attitude_rate_control())
     eqs.update(derive_attitude_control())
     eqs.update(derive_position_control())
-    eqs.update(derive_eulerB321_to_quat())
-    eqs.update(derive_quat_to_eulerB321())
     eqs.update(derive_joy_acro())
     eqs.update(derive_joy_auto_level())
     eqs.update(derive_joy_position())

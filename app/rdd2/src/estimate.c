@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
@@ -215,7 +214,7 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
             CASADI_FUNC_CALL(strapdown_ins_propagate)
         }
 
-        for (int i=0; i <10;i++) {
+        for (int i = 0; i < 10; i++) {
             if (!isfinite(x[i])) {
                 LOG_WRN("x[%d] is not finite", i);
                 x[i] = 0;
@@ -267,33 +266,6 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
                 ctx->odometry.twist.twist.angular.z = ctx->imu.angular_velocity.z;
             }
 
-            __ASSERT(isfinite(ctx->odometry.pose.pose.position.x),
-                "pos x not finite: %10.4f", ctx->odometry.pose.pose.position.x);
-            __ASSERT(isfinite(ctx->odometry.pose.pose.position.y),
-                "pos y not finite: %10.4f", ctx->odometry.pose.pose.position.y);
-            __ASSERT(isfinite(ctx->odometry.pose.pose.position.z),
-                "pos z not finite: %10.4f", ctx->odometry.pose.pose.position.z);
-            __ASSERT(isfinite(ctx->odometry.pose.pose.orientation.w),
-                "qw not finite: %10.4f", ctx->odometry.pose.pose.orientation.w);
-            __ASSERT(isfinite(ctx->odometry.pose.pose.orientation.x),
-                "qx not finite: %10.4f", ctx->odometry.pose.pose.orientation.x);
-            __ASSERT(isfinite(ctx->odometry.pose.pose.orientation.y),
-                "qy not finite: %10.4f", ctx->odometry.pose.pose.orientation.y);
-            __ASSERT(isfinite(ctx->odometry.pose.pose.orientation.z),
-                "qz not finite: %10.4f", ctx->odometry.pose.pose.orientation.z);
-            __ASSERT(isfinite(ctx->odometry.twist.twist.linear.x),
-                "vx not finite: %10.4f", ctx->odometry.twist.twist.linear.x);
-            __ASSERT(isfinite(ctx->odometry.twist.twist.linear.y),
-                "vy not finite: %10.4f", ctx->odometry.twist.twist.linear.y);
-            __ASSERT(isfinite(ctx->odometry.twist.twist.linear.z),
-                "vz not finite: %10.4f", ctx->odometry.twist.twist.linear.z);
-            __ASSERT(isfinite(ctx->odometry.twist.twist.angular.x),
-                "wx not finite: %10.4f", ctx->odometry.twist.twist.angular.x);
-            __ASSERT(isfinite(ctx->odometry.twist.twist.angular.y),
-                "wy not finite: %10.4f", ctx->odometry.twist.twist.angular.y);
-            __ASSERT(isfinite(ctx->odometry.twist.twist.angular.z),
-                "wz not finite: %10.4f", ctx->odometry.twist.twist.angular.z);
-
             zros_pub_update(&ctx->pub_odometry);
         }
     }
@@ -317,7 +289,10 @@ static int rdd2_estimate_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

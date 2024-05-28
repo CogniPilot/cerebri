@@ -10,6 +10,11 @@ menuconfig CEREBRI_ACTUATE_PWM
 
 if CEREBRI_ACTUATE_PWM
 
+config CEREBRI_ACTUATE_PWM_SHELL
+  bool "Enable shell"
+  help
+    Enable shell
+
 config CEREBRI_ACTUATE_PWM_NUMBER
   int "Number of PWM actuators"
   default 1

@@ -308,10 +308,10 @@ void imu_publish(context_t* ctx)
     // x: forward: (-y for icm42688)
     // y: left: (x for icm42688)
     // z: up: (z for icm42688)
-    ctx->imu.angular_velocity.x = -1*(ctx->gyro_raw[gyro_select][1] - ctx->gyro_bias[gyro_select][1]);
+    ctx->imu.angular_velocity.x = -1 * (ctx->gyro_raw[gyro_select][1] - ctx->gyro_bias[gyro_select][1]);
     ctx->imu.angular_velocity.y = ctx->gyro_raw[gyro_select][0] - ctx->gyro_bias[gyro_select][0];
     ctx->imu.angular_velocity.z = ctx->gyro_raw[gyro_select][2] - ctx->gyro_bias[gyro_select][2];
-    ctx->imu.linear_acceleration.x = -1*(ctx->accel_raw[accel_select][1] - ctx->accel_bias[accel_select][1]) / ctx->accel_scale[accel_select];
+    ctx->imu.linear_acceleration.x = -1 * (ctx->accel_raw[accel_select][1] - ctx->accel_bias[accel_select][1]) / ctx->accel_scale[accel_select];
     ctx->imu.linear_acceleration.y = (ctx->accel_raw[accel_select][0] - ctx->accel_bias[accel_select][0]) / ctx->accel_scale[accel_select];
     ctx->imu.linear_acceleration.z = (ctx->accel_raw[accel_select][2] - ctx->accel_bias[accel_select][2]) / ctx->accel_scale[accel_select];
 
@@ -357,7 +357,7 @@ int sense_imu_entry_point(context_t* ctx)
     imu_init(ctx);
     // delay initiali calibration 1 s
     k_msleep(1000);
-    k_timer_start(&ctx->timer, K_MSEC(2), K_MSEC(2));
+    k_timer_start(&ctx->timer, K_MSEC(4), K_MSEC(4));
     return 0;
 }
 

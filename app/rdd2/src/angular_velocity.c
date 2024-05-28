@@ -61,9 +61,9 @@ static void rdd2_angular_velocity_init(struct context* ctx)
     zros_node_init(&ctx->node, "rdd2_angular_velocity");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_angular_velocity_sp, &ctx->node,
-        &topic_angular_velocity_sp, &ctx->angular_velocity_sp, 300);
+        &topic_angular_velocity_sp, &ctx->angular_velocity_sp, 50);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
-        &topic_estimator_odometry, &ctx->estimator_odometry, 300);
+        &topic_estimator_odometry, &ctx->estimator_odometry, 50);
     zros_pub_init(&ctx->pub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp);
     atomic_set(&ctx->running, 1);
 }
@@ -154,13 +154,16 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
         LOG_DBG("omega_i: %10.4f %10.4f %10.4f",
             omega_i[0], omega_i[1], omega_i[2]);
 
-        __ASSERT(isfinite(omega_i[0]), "omega_i[0] not finite: %10.4f", omega_i[0]);
-        __ASSERT(isfinite(omega_i[1]), "omega_i[1] not finite: %10.4f", omega_i[1]);
-        __ASSERT(isfinite(omega_i[2]), "omega_i[2] not finite: %10.4f", omega_i[2]);
-
-        __ASSERT(isfinite(M[0]), "M[0] not finite: %10.4f", M[0]);
-        __ASSERT(isfinite(M[1]), "M[1] not finite: %10.4f", M[1]);
-        __ASSERT(isfinite(M[2]), "M[2] not finite: %10.4f", M[2]);
+        for (int i = 0; i < 3; i++) {
+            if (!isfinite(omega_i[i])) {
+                LOG_ERR("omega_i[%d] not finite: %10.4f", i, omega_i[i]);
+                omega_i[i] = i;
+            }
+            if (!isfinite(M[i])) {
+                LOG_ERR("M[%d] not finite: %10.4f", i, M[i]);
+                omega_i[i] = i;
+            }
+        }
 
         // publish moment setpoint
         ctx->moment_sp.x = M[0];
@@ -188,7 +191,10 @@ static int rdd2_angular_velocity_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    __ASSERT(argc == 1, "one argument allowed");
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

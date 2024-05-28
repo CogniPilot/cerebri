@@ -80,48 +80,6 @@ int position_control_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_i
 #define position_control_SZ_RES 3
 #define position_control_SZ_IW 0
 #define position_control_SZ_W 29
-int eulerB321_to_quat(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int eulerB321_to_quat_alloc_mem(void);
-int eulerB321_to_quat_init_mem(int mem);
-void eulerB321_to_quat_free_mem(int mem);
-int eulerB321_to_quat_checkout(void);
-void eulerB321_to_quat_release(int mem);
-void eulerB321_to_quat_incref(void);
-void eulerB321_to_quat_decref(void);
-casadi_int eulerB321_to_quat_n_in(void);
-casadi_int eulerB321_to_quat_n_out(void);
-casadi_real eulerB321_to_quat_default_in(casadi_int i);
-const char* eulerB321_to_quat_name_in(casadi_int i);
-const char* eulerB321_to_quat_name_out(casadi_int i);
-const casadi_int* eulerB321_to_quat_sparsity_in(casadi_int i);
-const casadi_int* eulerB321_to_quat_sparsity_out(casadi_int i);
-int eulerB321_to_quat_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
-int eulerB321_to_quat_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
-#define eulerB321_to_quat_SZ_ARG 3
-#define eulerB321_to_quat_SZ_RES 1
-#define eulerB321_to_quat_SZ_IW 0
-#define eulerB321_to_quat_SZ_W 28
-int quat_to_eulerB321(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
-int quat_to_eulerB321_alloc_mem(void);
-int quat_to_eulerB321_init_mem(int mem);
-void quat_to_eulerB321_free_mem(int mem);
-int quat_to_eulerB321_checkout(void);
-void quat_to_eulerB321_release(int mem);
-void quat_to_eulerB321_incref(void);
-void quat_to_eulerB321_decref(void);
-casadi_int quat_to_eulerB321_n_in(void);
-casadi_int quat_to_eulerB321_n_out(void);
-casadi_real quat_to_eulerB321_default_in(casadi_int i);
-const char* quat_to_eulerB321_name_in(casadi_int i);
-const char* quat_to_eulerB321_name_out(casadi_int i);
-const casadi_int* quat_to_eulerB321_sparsity_in(casadi_int i);
-const casadi_int* quat_to_eulerB321_sparsity_out(casadi_int i);
-int quat_to_eulerB321_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
-int quat_to_eulerB321_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
-#define quat_to_eulerB321_SZ_ARG 1
-#define quat_to_eulerB321_SZ_RES 3
-#define quat_to_eulerB321_SZ_IW 0
-#define quat_to_eulerB321_SZ_W 16
 int joy_acro(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 int joy_acro_alloc_mem(void);
 int joy_acro_init_mem(int mem);

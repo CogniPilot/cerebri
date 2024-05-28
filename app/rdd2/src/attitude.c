@@ -9,7 +9,6 @@
 
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
-#include <zephyr/sys/__assert.h>
 
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
@@ -65,9 +64,9 @@ static void rdd2_attitude_init(struct context* ctx)
     zros_node_init(&ctx->node, "rdd2_attiude");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_attitude_sp, &ctx->node,
-        &topic_attitude_sp, &ctx->attitude_sp, 300);
+        &topic_attitude_sp, &ctx->attitude_sp, 50);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
-        &topic_estimator_odometry, &ctx->estimator_odometry, 300);
+        &topic_estimator_odometry, &ctx->estimator_odometry, 50);
     zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node, &topic_angular_velocity_sp, &ctx->angular_velocity_sp);
     atomic_set(&ctx->running, 1);
 }
@@ -140,10 +139,12 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             }
 
             // publish
-            __ASSERT(isfinite(omega[0]), "omega[0] not finite: %10.4f", omega[0]);
-            __ASSERT(isfinite(omega[1]), "omega[1] not finite: %10.4f", omega[1]);
-            __ASSERT(isfinite(omega[2]), "omega[2] not finite: %10.4f", omega[2]);
-
+            for (int i = 0; i < 3; i++) {
+                if (!isfinite(omega[i])) {
+                    LOG_ERR("omega[0] not finite: %10.4f", omega[i]);
+                    omega[i] = 0;
+                }
+            }
             ctx->angular_velocity_sp.x = omega[0];
             ctx->angular_velocity_sp.y = omega[1];
             ctx->angular_velocity_sp.z = omega[2];
@@ -170,7 +171,10 @@ static int rdd2_attitude_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    __ASSERT(argc == 1, "one argument allowed");
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

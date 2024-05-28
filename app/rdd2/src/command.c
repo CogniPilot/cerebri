@@ -21,6 +21,7 @@
 #include <cerebri/core/casadi.h>
 
 #include "casadi/gen/rdd2.h"
+#include "../../lib/core/common/src/casadi/gen/common.h"
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
@@ -377,7 +378,10 @@ static int rdd2_command_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    __ASSERT(argc == 1, "arg count must be 1");
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

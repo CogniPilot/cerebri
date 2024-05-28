@@ -225,18 +225,16 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 LOG_DBG("z_i: %10.4f", z_i);
             }
 
-            __ASSERT(isfinite(qr_wb[0]), "qr_wb[0] not finite: %10.4f", qr_wb[0]);
-            __ASSERT(isfinite(qr_wb[1]), "qr_wb[1] not finite: %10.4f", qr_wb[1]);
-            __ASSERT(isfinite(qr_wb[2]), "qr_wb[2] not finite: %10.4f", qr_wb[2]);
-            __ASSERT(isfinite(qr_wb[3]), "qr_wb[3] not finite: %10.4f", qr_wb[3]);
-
-            ctx->attitude_sp.w = qr_wb[0];
-            ctx->attitude_sp.x = qr_wb[1];
-            ctx->attitude_sp.y = qr_wb[2];
-            ctx->attitude_sp.z = qr_wb[3];
+            for (int i = 0; i < 4; i++) {
+                if (!isfinite(qr_wb[i])) {
+                    LOG_ERR("qr_wb[%d] not finite: %10.4f", i, qr_wb[i]);
+                }
+            }
             zros_pub_update(&ctx->pub_attitude_sp);
 
-            __ASSERT(isfinite(nT), "nT not finite: %10.4f", nT);
+            if (!isfinite(nT)) {
+                LOG_ERR("nT not finite: %10.4f", nT);
+            }
 
             ctx->force_sp.z = nT;
             zros_pub_update(&ctx->pub_force_sp);
@@ -261,7 +259,10 @@ static int rdd2_position_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    __ASSERT(argc == 1, "one argument allowed");
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

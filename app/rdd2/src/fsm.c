@@ -8,7 +8,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
-#include <zephyr/sys/__assert.h>
 
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
@@ -146,10 +145,10 @@ static void rdd2_fsm_init(struct context* ctx)
 {
     LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_fsm");
-    zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 10);
+    zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 5);
     zros_sub_init(&ctx->sub_battery_state, &ctx->node,
-        &topic_battery_state, &ctx->battery_state, 10);
-    zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 10);
+        &topic_battery_state, &ctx->battery_state, 1);
+    zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 5);
     zros_pub_init(&ctx->pub_status, &ctx->node, &topic_status, &ctx->status);
     atomic_set(&ctx->running, 1);
 }
@@ -394,7 +393,10 @@ static int rdd2_fsm_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    __ASSERT(argc == 1, "one argument allowed");
+    if (argc == 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

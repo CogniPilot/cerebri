@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <synapse_topic_list.h>
 
+#include <cerebri/core/casadi.h>
+#include "../../../core/common/src/casadi/gen/common.h"
+
 #include "synapse_shell_print.h"
 
 int snprintf_cat(char* buf, int n, char const* fmt, ...)
@@ -296,8 +299,17 @@ int snprint_pose_with_covariance(char* buf, size_t n, synapse_msgs_PoseWithCovar
 
 int snprint_quaternion(char* buf, size_t n, synapse_msgs_Quaternion* m)
 {
-    return snprintf_cat(buf, n, "w: %10.4f x: %10.4f y: %10.4f z: %10.4f\n",
-        m->w, m->x, m->y, m->z);
+    double q[4] = {m->w, m->x, m->y, m->z};
+    double yaw, pitch, roll;
+    double rad2deg = 180/3.14159;
+    CASADI_FUNC_ARGS(quat_to_eulerB321)
+    args[0] = q;
+    res[0] = &yaw;
+    res[1] = &pitch;
+    res[2] = &roll;
+    CASADI_FUNC_CALL(quat_to_eulerB321)
+    return snprintf_cat(buf, n, "yaw: %8.2f pitch: %8.2f roll: %8.2f [deg]\nw: %10.4f x: %10.4f y: %10.4f z: %10.4f\n",
+        rad2deg*yaw, rad2deg*pitch, rad2deg*roll, m->w, m->x, m->y, m->z);
 }
 
 int snprint_safety(char* buf, size_t n, synapse_msgs_Safety* m)

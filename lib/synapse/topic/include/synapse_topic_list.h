@@ -58,7 +58,7 @@ enum {
  * topics
  ********************************************************************/
 ZROS_TOPIC_DECLARE(topic_actuators, synapse_msgs_Actuators);
-//ZROS_TOPIC_DECLARE(topic_actuators_manual, synapse_msgs_Actuators);
+// ZROS_TOPIC_DECLARE(topic_actuators_manual, synapse_msgs_Actuators);
 ZROS_TOPIC_DECLARE(topic_altimeter, synapse_msgs_Altimeter);
 ZROS_TOPIC_DECLARE(topic_attitude_sp, synapse_msgs_Quaternion);
 ZROS_TOPIC_DECLARE(topic_battery_state, synapse_msgs_BatteryState);

@@ -108,7 +108,7 @@ const char* fuel_str(synapse_msgs_Status_Fuel fuel)
  * topics
  ********************************************************************/
 ZROS_TOPIC_DEFINE(actuators, synapse_msgs_Actuators);
-//ZROS_TOPIC_DEFINE(actuators_manual, synapse_msgs_Actuators);
+// ZROS_TOPIC_DEFINE(actuators_manual, synapse_msgs_Actuators);
 ZROS_TOPIC_DEFINE(altimeter, synapse_msgs_Altimeter);
 ZROS_TOPIC_DEFINE(battery_state, synapse_msgs_BatteryState);
 ZROS_TOPIC_DEFINE(bezier_trajectory, synapse_msgs_BezierTrajectory);

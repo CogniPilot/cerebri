@@ -469,9 +469,7 @@ def derive_strapdown_ins_propagation():
     r = lie.se23.elem(ca.vertcat(0, 0, 0, 0, 0, -g, 0, 0, 0))
     B = ca.sparsify(ca.SX([[0, 1], [0, 0]]))
     X1 = exp_mixed(X0, l * dt, r * dt, B * dt)
-    #r1 = lie.SO3Quat.elem(X1.param[6:10])
-    #lie.SO3EulerB321.shadow_if_necessary(r1)
-    #X1.param[6:10] = r1.param
+    # should do q renormalize check here
     f_ins =  ca.Function(
         "strapdown_ins_propagate",
         [X0.param, a_b, omega_b, g, dt],

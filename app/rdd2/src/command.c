@@ -20,8 +20,8 @@
 
 #include <cerebri/core/casadi.h>
 
-#include "casadi/gen/rdd2.h"
 #include "../../lib/core/common/src/casadi/gen/common.h"
+#include "casadi/gen/rdd2.h"
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4

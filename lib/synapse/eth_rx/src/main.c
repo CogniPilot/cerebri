@@ -69,7 +69,6 @@ static struct context g_ctx = {
 
 // topic listeners
 TOPIC_LISTENER(bezier_trajectory, synapse_msgs_BezierTrajectory)
-TOPIC_LISTENER(joy, synapse_msgs_Joy)
 TOPIC_LISTENER(clock_offset, synapse_msgs_Time)
 #ifdef CONFIG_CEREBRI_DREAM_HIL
 TOPIC_LISTENER(battery_state, synapse_msgs_BatteryState)
@@ -98,9 +97,23 @@ static TF_Result cmd_vel_listener(TinyFrame* tf, TF_Msg* frame)
     int rc = pb_decode(&stream, synapse_msgs_Twist_fields, &msg);
     if (rc) {
         zros_topic_publish(&topic_cmd_vel, &msg);
-        LOG_DBG("cmd_vel decoding\n");
     } else {
         LOG_WRN("cmd_vel decoding failed: %s\n", PB_GET_ERROR(&stream));
+    }
+    return TF_STAY;
+}
+
+static TF_Result joy_listener(TinyFrame* tf, TF_Msg* frame)
+{
+    synapse_msgs_Joy msg = synapse_msgs_Joy_init_default;
+    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
+    // flip roll axis to match sbus convention
+    int rc = pb_decode(&stream, synapse_msgs_Joy_fields, &msg);
+    msg.axes[JOY_AXES_ROLL] = -msg.axes[JOY_AXES_ROLL];
+    if (rc) {
+        zros_topic_publish(&topic_joy, &msg);
+    } else {
+        LOG_WRN("joy decoding failed: %s\n", PB_GET_ERROR(&stream));
     }
     return TF_STAY;
 }

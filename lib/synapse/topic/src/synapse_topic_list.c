@@ -108,7 +108,7 @@ const char* fuel_str(synapse_msgs_Status_Fuel fuel)
  * topics
  ********************************************************************/
 ZROS_TOPIC_DEFINE(actuators, synapse_msgs_Actuators);
-ZROS_TOPIC_DEFINE(actuators_manual, synapse_msgs_Actuators);
+//ZROS_TOPIC_DEFINE(actuators_manual, synapse_msgs_Actuators);
 ZROS_TOPIC_DEFINE(altimeter, synapse_msgs_Altimeter);
 ZROS_TOPIC_DEFINE(battery_state, synapse_msgs_BatteryState);
 ZROS_TOPIC_DEFINE(bezier_trajectory, synapse_msgs_BezierTrajectory);
@@ -136,7 +136,7 @@ ZROS_TOPIC_DEFINE(position_sp, synapse_msgs_Vector3);
 static struct zros_topic* topic_list[] = {
     &topic_accel_sp,
     &topic_actuators,
-    &topic_actuators_manual,
+    //&topic_actuators_manual,
     &topic_altimeter,
     &topic_angular_velocity_sp,
     &topic_attitude_sp,

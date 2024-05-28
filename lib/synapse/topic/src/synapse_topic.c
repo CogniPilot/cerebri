@@ -53,7 +53,6 @@ static context_t g_ctx = {
 
 #define TOPIC_DICTIONARY()                                                        \
     (actuators, &topic_actuators, "actuators"),                                   \
-        (actuators_manual, &topic_actuators_manual, "actuators_manual"),          \
         (altimeter, &topic_altimeter, "altimeter"),                               \
         (attitude_sp, &topic_attitude_sp, "attitude_sp"),                         \
         (battery_state, &topic_battery_state, "battery_state"),                   \
@@ -225,7 +224,7 @@ void topic_work_handler(struct k_work* work)
     struct zros_topic* topic = ctx->topic;
     msg_handler_t* handler = ctx->handler;
 
-    if (topic == &topic_actuators || topic == &topic_actuators_manual) {
+    if (topic == &topic_actuators) {
         synapse_msgs_Actuators msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_actuators);
     } else if (topic == &topic_altimeter) {

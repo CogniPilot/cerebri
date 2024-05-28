@@ -172,7 +172,11 @@ static int sense_joy_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    __ASSERT(argc == 1, "one argument allowed");
+
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

@@ -163,8 +163,7 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
             continue;
         }
 
-        if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL
-            || ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
+        if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
             double nT; // normalized magnitude of thrust (ratio of twice weight)
             double qr_wb[4];
             {

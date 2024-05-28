@@ -22,13 +22,13 @@ deg2rad = np.pi/180 # degree to radian
 rollpitch_rate_max = 30 # deg/s
 yaw_rate_max = 60 # deg/s
 
-kp_rollpitch_rate = 0.3
-ki_rollpitch_rate = 0.05
-rollpitch_rate_integral_max = 1.0
+#done kp_rollpitch_rate = 0.3
+#done ki_rollpitch_rate = 0.05
+#done rollpitch_rate_integral_max = 1.0
 
-kp_yaw_rate = 0.3
-ki_yaw_rate = 0.05
-yaw_rate_integral_max = 1.0
+# done kp_yaw_rate = 0.3
+# done ki_yaw_rate = 0.05
+# done yaw_rate_integral_max = 1.0
 
 # attitude loop
 rollpitch_max = 20 # deg
@@ -237,17 +237,18 @@ def derive_attitude_control():
     Given desired attitude, and attitude, find desired angular velocity
     """
 
-    # INPUT
+    # INPUT CONSTANTS
+    # -------------------------------
+    kp = ca.SX.sym('kp', 3)
+
+    # INPUT VARIABLES
     # -------------------------------
     q = ca.SX.sym('q', 4) # actual quat
     q_r = ca.SX.sym('q_r', 4) # quat setpoint
 
     # CALC
     # -------------------------------
-    kp = ca.vertcat(kp_rollpitch, kp_rollpitch, kp_yaw)
-
     X = SO3Quat.elem(q)
-
     X_r = SO3Quat.elem(q_r)
 
     # Lie algebra
@@ -259,9 +260,9 @@ def derive_attitude_control():
     # -------------------------------
     f_attitude_control = ca.Function(
         "attitude_control",
-        [q, q_r],
+        [kp, q, q_r],
         [omega],
-        ["q", "q_r"],
+        ["kp", "q", "q_r"],
         ["omega"])
 
     return {
@@ -277,37 +278,38 @@ def derive_attitude_rate_control():
     find the desired moment and updated angular velocity error integral.
     """
 
-    # INPUT
+    # CONSTANTS
+    # -------------------------------
+    kp = ca.SX.sym('kp', 3)
+    ki = ca.SX.sym('ki', 3)
+    i_max = ca.SX.sym('i_max', 3)
+
+    # VARIABLES
     # -------------------------------
     omega = ca.SX.sym('omega', 3)
     omega_r = ca.SX.sym('omega_r', 3)
-    omega_i = ca.SX.sym('omega_i', 3)
+    i0 = ca.SX.sym('i0', 3)
     dt = ca.SX.sym('dt')
 
     # CALC
     # -------------------------------
-    kp = ca.vertcat(kp_rollpitch_rate, kp_rollpitch_rate, kp_yaw_rate)
 
     # actual attitude, expressed as quaternion
-    omega_e = omega_r - omega
+    e = omega_r - omega
 
     # integral action helps balance distrubance moments (e.g. center of gravity offset)
-    ki = ca.vertcat(ki_rollpitch_rate, ki_rollpitch_rate, ki_yaw_rate)
-    omega_i_2 = omega_i + omega_e * dt
-    integral_max = ca.vertcat(rollpitch_rate_integral_max,
-            rollpitch_rate_integral_max, yaw_rate_integral_max)
-    omega_i_2 = saturate(omega_i_2, -integral_max, integral_max)
+    i1 = saturate(i0 + e * dt, -i_max, i_max)
 
-    M = kp * omega_e + ki * omega_i_2
+    M = kp * e + ki * i1
 
     # FUNCTION
     # -------------------------------
     f_attitude_rate_control = ca.Function(
         "attitude_rate_control",
-        [omega, omega_r, omega_i, dt],
-        [M, omega_i_2],
-        ["omega", "omega_r", "omega_i", "dt"],
-        ["M", "omega_i_update"])
+        [kp, ki, i_max, omega, omega_r, i0, dt],
+        [M, i1],
+        ["kp", "ki", "i_max", "omega", "omega_r", "i0", "dt"],
+        ["M", "i1"])
 
     return {
         "attitude_rate_control": f_attitude_rate_control

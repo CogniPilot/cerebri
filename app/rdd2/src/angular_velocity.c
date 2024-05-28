@@ -128,24 +128,42 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
 
         double M[3];
         {
-            /* attitude_rate_control:
-             * (omega[3],omega_r[3],omega_i[3],dt)
-             * ->(M[3],omega_i_update[3]) */
+            /* attitude_rate_control:(
+             * kp[3],ki[3],i_max[3],
+             * omega[3],omega_r[3],i0[3],dt)->(M[3],i1[3]) */
             CASADI_FUNC_ARGS(attitude_rate_control);
-            double omega[3];
-            double omega_r[3];
-            omega[0] = ctx->estimator_odometry.twist.twist.angular.x;
-            omega[1] = ctx->estimator_odometry.twist.twist.angular.y;
-            omega[2] = ctx->estimator_odometry.twist.twist.angular.z;
-
-            omega_r[0] = ctx->angular_velocity_sp.x;
-            omega_r[1] = ctx->angular_velocity_sp.y;
-            omega_r[2] = ctx->angular_velocity_sp.z;
-
-            args[0] = omega;
-            args[1] = omega_r;
-            args[2] = omega_i;
-            args[3] = &dt;
+            double omega[3] = {
+                ctx->estimator_odometry.twist.twist.angular.x,
+                ctx->estimator_odometry.twist.twist.angular.y,
+                ctx->estimator_odometry.twist.twist.angular.z,
+            };
+            double omega_r[3] = {
+                ctx->angular_velocity_sp.x,
+                ctx->angular_velocity_sp.y,
+                ctx->angular_velocity_sp.z
+            };
+            const double kp[3] = {
+                CONFIG_CEREBRI_RDD2_ROLLRATE_KP * 1e-3,
+                CONFIG_CEREBRI_RDD2_PITCHRATE_KP * 1e-3,
+                CONFIG_CEREBRI_RDD2_YAWRATE_KP * 1e-3,
+            };
+            const double ki[3] = {
+                CONFIG_CEREBRI_RDD2_ROLLRATE_KI * 1e-3,
+                CONFIG_CEREBRI_RDD2_PITCHRATE_KI * 1e-3,
+                CONFIG_CEREBRI_RDD2_YAWRATE_KI * 1e-3,
+            };
+            const double i_max[3] = {
+                CONFIG_CEREBRI_RDD2_ROLLRATE_IMAX * 1e-3,
+                CONFIG_CEREBRI_RDD2_PITCHRATE_IMAX * 1e-3,
+                CONFIG_CEREBRI_RDD2_YAWRATE_IMAX * 1e-3,
+            };
+            args[0] = kp;
+            args[1] = ki;
+            args[2] = i_max;
+            args[3] = omega;
+            args[4] = omega_r;
+            args[5] = omega_i;
+            args[6] = &dt;
             res[0] = M;
             res[1] = omega_i;
             CASADI_FUNC_CALL(attitude_rate_control);

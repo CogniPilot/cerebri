@@ -128,6 +128,79 @@ config CEREBRI_RDD2_MOTOR_CT
   help
     moment thrust coefficient * 1e9
 
+config CEREBRI_RDD2_ROLL_KP
+  int "roll kp * 1e3"
+  default 2000
+  help
+    roll kp * 1e3
+
+config CEREBRI_RDD2_PITCH_KP
+  int "pitch kp * 1e3"
+  default 2000
+  help
+    pitch kp * 1e3
+
+config CEREBRI_RDD2_YAW_KP
+  int "yaw kp * 1e3"
+  default 1000
+  help
+    yaw kp * 1e3
+
+config CEREBRI_RDD2_ROLLRATE_KP
+  int "rollrate kp * 1e3"
+  default 300
+  help
+    rollrate kp * 1e3
+
+config CEREBRI_RDD2_PITCHRATE_KP
+  int "pitchrate kp * 1e3"
+  default 300
+  help
+    pitchrate kp * 1e3
+
+config CEREBRI_RDD2_YAWRATE_KP
+  int "yawrate kp * 1e3"
+  default 300
+  help
+    yawrate kp * 1e3
+
+config CEREBRI_RDD2_ROLLRATE_KI
+  int "rollrate ki * 1e3"
+  default 50
+  help
+    rollrate ki * 1e3
+
+config CEREBRI_RDD2_PITCHRATE_KI
+  int "pitchrate ki * 1e3"
+  default 50
+  help
+    pitchrate ki * 1e3
+
+config CEREBRI_RDD2_YAWRATE_KI
+  int "yawrate ki * 1e3"
+  default 50
+  help
+    yawrate ki * 1e3
+
+config CEREBRI_RDD2_ROLLRATE_IMAX
+  int "rollrate imax * 1e3"
+  default 20
+  help
+    rollrate imax * 1e3
+
+
+config CEREBRI_RDD2_PITCHRATE_IMAX
+  int "pitchate imax * 1e3"
+  default 20
+  help
+    pitchrate imax * 1e3
+
+config CEREBRI_RDD2_YAWRATE_IMAX
+  int "yawrate imax * 1e3"
+  default 20
+  help
+    yawrate imax * 1e3
+
 module = CEREBRI_RDD2
 module-str = cerebri_rdd2
 source "subsys/logging/Kconfig.template.log_config"

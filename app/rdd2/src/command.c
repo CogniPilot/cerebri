@@ -193,19 +193,47 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
         double joy_thrust = (double)ctx->joy.axes[JOY_AXES_THRUST];
 
         // estimated attitude quaternion
-        double q[4];
-        q[0] = ctx->estimator_odometry.pose.pose.orientation.w;
-        q[1] = ctx->estimator_odometry.pose.pose.orientation.x;
-        q[2] = ctx->estimator_odometry.pose.pose.orientation.y;
-        q[3] = ctx->estimator_odometry.pose.pose.orientation.z;
+        double q[4] = {
+            ctx->estimator_odometry.pose.pose.orientation.w,
+            ctx->estimator_odometry.pose.pose.orientation.x,
+            ctx->estimator_odometry.pose.pose.orientation.y,
+            ctx->estimator_odometry.pose.pose.orientation.z
+        };
 
         // handle joy based on mode
         if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
+            double omega[3];
+            double thrust;
+            {
+                // joy_acro:(joy_roll,joy_pitch,joy_yaw,joy_thrust)->(omega[3],thrust)
+                CASADI_FUNC_ARGS(joy_acro);
 
+                args[0] = &joy_roll;
+                args[1] = &joy_pitch;
+                args[2] = &joy_yaw;
+                args[3] = &joy_thrust;
+
+                res[0] = omega;
+                res[1] = &thrust;
+
+                CASADI_FUNC_CALL(joy_acro);
+            }
+
+            // angular velocity set point
+            ctx->angular_velocity_sp.x = omega[0];
+            ctx->angular_velocity_sp.y = omega[1];
+            ctx->angular_velocity_sp.z = omega[2];
+            zros_pub_update(&ctx->pub_angular_velocity_sp);
+
+            // thrust pass through
+            ctx->force_sp.z = thrust;
+            zros_pub_update(&ctx->pub_force_sp);
+
+        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL) {
             double qr[4];
             double thrust;
             {
-                /* joy_auto_level:(joy_roll,joy_pitch,joy_yaw,joy_thrust,q[4])->(qr[4],thrust) */
+                /* joy_auto_level:(joy_roll,joy_pitch,joy_yaw,joy_thrust,q[4])->(q_r[4],thrust) */
                 CASADI_FUNC_ARGS(joy_auto_level);
 
                 args[0] = &joy_roll;
@@ -231,9 +259,9 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             ctx->force_sp.z = thrust;
             zros_pub_update(&ctx->pub_force_sp);
 
-        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL) {
+        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
 
-            bool now_cmd_vel = ctx->last_status.mode != synapse_msgs_Status_Mode_MODE_CMD_VEL;
+            bool now_auto = ctx->last_status.mode != synapse_msgs_Status_Mode_MODE_AUTO;
             bool now_armed = (ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED) && (ctx->last_status.arming != synapse_msgs_Status_Arming_ARMING_ARMED);
 
             double yaw, pitch, roll;
@@ -250,8 +278,8 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                 CASADI_FUNC_CALL(quat_to_eulerB321);
             }
 
-            // reset position setpoint if now cmd_vel or now armed
-            if (now_cmd_vel || now_armed) {
+            // reset position setpoint if now auto or now armed
+            if (now_auto || now_armed) {
                 LOG_INF("position_sp, camera_yaw reset");
                 ctx->position_sp.x = ctx->estimator_odometry.pose.pose.position.x;
                 ctx->position_sp.y = ctx->estimator_odometry.pose.pose.position.y;
@@ -324,38 +352,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             ctx->accel_sp.z = 0;
             zros_pub_update(&ctx->pub_accel_sp);
 
-        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
-            // TODO bezier curve here
-
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_UNKNOWN) {
-            // TODO: make acro mode
-
-            double omega[3];
-            double thrust;
-            {
-                // joy_acro:(joy_roll,joy_pitch,joy_yaw,joy_thrust)->(omega[3],thrust)
-                CASADI_FUNC_ARGS(joy_acro);
-
-                args[0] = &joy_roll;
-                args[1] = &joy_pitch;
-                args[2] = &joy_yaw;
-                args[3] = &joy_thrust;
-
-                res[0] = omega;
-                res[1] = &thrust;
-
-                CASADI_FUNC_CALL(joy_acro);
-            }
-
-            // angular velocity set point
-            ctx->angular_velocity_sp.x = omega[0];
-            ctx->angular_velocity_sp.y = omega[1];
-            ctx->angular_velocity_sp.z = omega[2];
-            zros_pub_update(&ctx->pub_angular_velocity_sp);
-
-            // thrust pass through
-            ctx->force_sp.z = thrust;
-            zros_pub_update(&ctx->pub_force_sp);
         }
     }
 

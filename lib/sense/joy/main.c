@@ -138,9 +138,9 @@ static void input_cb(struct input_event* evt)
     } else if (evt->code == CODE_YAW) {
         g_ctx.joy.axes[JOY_AXES_LEFT_STICK_LEFT] = -(evt->value - x0) / scale;
     } else if (evt->code == CODE_ROLL) {
-        g_ctx.joy.axes[JOY_AXES_LEFT_STICK_LEFT] = (evt->value - x0) / scale;
+        g_ctx.joy.axes[JOY_AXES_RIGHT_STICK_LEFT] = -(evt->value - x0) / scale;
     } else if (evt->code == CODE_PITCH) {
-        g_ctx.joy.axes[JOY_AXES_RIGHT_STICK_UP] = -(evt->value - x0) / scale;
+        g_ctx.joy.axes[JOY_AXES_RIGHT_STICK_UP] = (evt->value - x0) / scale;
     } else if (evt->code == CODE_KILL) {
         if (evt->value == 1) {
             g_ctx.joy.buttons[JOY_BUTTON_STOP] = 1;

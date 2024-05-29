@@ -98,10 +98,6 @@ static void sense_joy_run(void* p0, void* p1, void* p2)
 
     while (atomic_get(&ctx->running)) {
         k_msleep(1000);
-        // k_msleep(100);
-        // g_ctx.joy.buttons[JOY_BUTTON_ARM] = 0;
-        // g_ctx.joy.buttons[JOY_BUTTON_DISARM] = 0;
-        // zros_pub_update(&ctx->pub_joy);
     }
 
     sense_joy_fini(ctx);
@@ -138,20 +134,20 @@ static void input_cb(struct input_event* evt)
 
     k_sem_take(&g_ctx.sem, K_FOREVER);
     if (evt->code == CODE_THROTTLE) {
-        g_ctx.joy.axes[JOY_AXES_THRUST] = (evt->value - x0) / scale;
+        g_ctx.joy.axes[JOY_AXES_LEFT_STICK_UP] = (evt->value - x0) / scale;
     } else if (evt->code == CODE_YAW) {
-        g_ctx.joy.axes[JOY_AXES_YAW] = (evt->value - x0) / scale;
+        g_ctx.joy.axes[JOY_AXES_LEFT_STICK_LEFT] = -(evt->value - x0) / scale;
     } else if (evt->code == CODE_ROLL) {
-        g_ctx.joy.axes[JOY_AXES_ROLL] = (evt->value - x0) / scale;
+        g_ctx.joy.axes[JOY_AXES_LEFT_STICK_LEFT] = (evt->value - x0) / scale;
     } else if (evt->code == CODE_PITCH) {
-        g_ctx.joy.axes[JOY_AXES_PITCH] = (evt->value - x0) / scale;
+        g_ctx.joy.axes[JOY_AXES_RIGHT_STICK_UP] = -(evt->value - x0) / scale;
     } else if (evt->code == CODE_KILL) {
         if (evt->value == 1) {
-            g_ctx.joy.buttons[JOY_BUTTON_ARM] = 1;
-            g_ctx.joy.buttons[JOY_BUTTON_DISARM] = 0;
+            g_ctx.joy.buttons[JOY_BUTTON_STOP] = 1;
+            g_ctx.joy.buttons[JOY_BUTTON_START] = 0;
         } else if (evt->value == 0) {
-            g_ctx.joy.buttons[JOY_BUTTON_DISARM] = 1;
-            g_ctx.joy.buttons[JOY_BUTTON_ARM] = 0;
+            g_ctx.joy.buttons[JOY_BUTTON_STOP] = 0;
+            g_ctx.joy.buttons[JOY_BUTTON_START] = 1;
         }
     } else {
         LOG_INF("unhandled event: %d %d %d %d", evt->code, evt->sync, evt->type, evt->value);

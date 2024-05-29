@@ -166,12 +166,12 @@ static void rdd2_fsm_fini(struct context* ctx)
 
 static void fsm_compute_input(status_input_t* input, const struct context* ctx)
 {
-    input->request_arm = ctx->joy.buttons[JOY_BUTTON_ARM] == 1;
-    input->request_disarm = ctx->joy.buttons[JOY_BUTTON_DISARM] == 1;
-    input->request_manual = ctx->joy.buttons[JOY_BUTTON_MANUAL] == 1;
-    input->request_auto = ctx->joy.buttons[JOY_BUTTON_AUTO] == 1;
-    input->request_cmd_vel = ctx->joy.buttons[JOY_BUTTON_CMD_VEL] == 1;
-    input->request_calibration = ctx->joy.buttons[JOY_BUTTON_CALIBRATION] == 1;
+    input->request_arm = ctx->joy.buttons[JOY_BUTTON_START] == 1;
+    input->request_disarm = ctx->joy.buttons[JOY_BUTTON_STOP] == 1;
+    input->request_manual = ctx->joy.buttons[JOY_BUTTON_A] == 1;
+    input->request_auto = ctx->joy.buttons[JOY_BUTTON_B] == 1;
+    input->request_cmd_vel = ctx->joy.buttons[JOY_BUTTON_X] == 1;
+    input->request_calibration = ctx->joy.buttons[JOY_BUTTON_Y] == 1;
     input->mode_set = ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
     input->safe = ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE || ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNKNOWN;

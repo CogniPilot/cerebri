@@ -37,21 +37,28 @@ const char* status_safety_str(synapse_msgs_Status_Safety safety);
 const char* status_joy_str(synapse_msgs_Status_Joy joy);
 
 enum {
-    JOY_BUTTON_MANUAL = 0,
-    JOY_BUTTON_AUTO = 1,
-    JOY_BUTTON_CMD_VEL = 2,
-    JOY_BUTTON_CALIBRATION = 3,
-    JOY_BUTTON_LIGHTS_OFF = 4,
-    JOY_BUTTON_LIGHTS_ON = 5,
-    JOY_BUTTON_DISARM = 6,
-    JOY_BUTTON_ARM = 7,
+    JOY_BUTTON_A = 0,
+    JOY_BUTTON_B = 1,
+    JOY_BUTTON_X = 2,
+    JOY_BUTTON_Y = 3,
+    JOY_BUTTON_LB = 4,
+    JOY_BUTTON_RB = 5,
+    JOY_BUTTON_STOP = 6,
+    JOY_BUTTON_START = 7,
+    JOY_BUTTON_CENTER = 8,
+    JOY_BUTTON_LEFT_STICK_PUSH = 9,
+    JOY_BUTTON_RIGHT_STICK_PUSH = 10,
 };
 
 enum {
-    JOY_AXES_THRUST = 1,
-    JOY_AXES_PITCH = 2,
-    JOY_AXES_ROLL = 3,
-    JOY_AXES_YAW = 4,
+    JOY_AXES_LEFT_STICK_LEFT = 0,
+    JOY_AXES_LEFT_STICK_UP = 1,
+    JOY_AXES_LEFT_TRIGGER_UP = 2,
+    JOY_AXES_RIGHT_STICK_LEFT = 3,
+    JOY_AXES_RIGHT_STICK_UP = 4,
+    JOY_AXES_RIGHT_TRIGGER_UP = 5,
+    JOY_AXES_DPAD_LEFT = 6,
+    JOY_AXES_DPAD_UP = 7,
 };
 
 /********************************************************************

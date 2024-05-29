@@ -108,7 +108,6 @@ static TF_Result joy_listener(TinyFrame* tf, TF_Msg* frame)
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
     // flip roll axis to match sbus convention
     int rc = pb_decode(&stream, synapse_msgs_Joy_fields, &msg);
-    msg.axes[JOY_AXES_ROLL] = -msg.axes[JOY_AXES_ROLL];
     if (rc) {
         zros_topic_publish(&topic_joy, &msg);
     } else {

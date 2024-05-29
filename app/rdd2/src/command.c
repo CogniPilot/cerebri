@@ -155,10 +155,10 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
         if (rc != 0) {
             // LOG_DBG("not receiving joy");
             ctx->status.mode = synapse_msgs_Status_Mode_MODE_MANUAL;
-            ctx->joy.axes[JOY_AXES_ROLL] = 0;
-            ctx->joy.axes[JOY_AXES_PITCH] = 0;
-            ctx->joy.axes[JOY_AXES_YAW] = 0;
-            ctx->joy.axes[JOY_AXES_THRUST] = 0;
+            ctx->joy.axes[JOY_AXES_LEFT_STICK_LEFT] = 0;
+            ctx->joy.axes[JOY_AXES_LEFT_STICK_UP] = 0;
+            ctx->joy.axes[JOY_AXES_RIGHT_STICK_LEFT] = 0;
+            ctx->joy.axes[JOY_AXES_RIGHT_STICK_UP] = 0;
         }
 
         if (zros_sub_update_available(&ctx->sub_joy)) {
@@ -189,10 +189,10 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
         }
 
         // joy data
-        double joy_roll = (double)ctx->joy.axes[JOY_AXES_ROLL];
-        double joy_pitch = (double)ctx->joy.axes[JOY_AXES_PITCH];
-        double joy_yaw = (double)ctx->joy.axes[JOY_AXES_YAW];
-        double joy_thrust = (double)ctx->joy.axes[JOY_AXES_THRUST];
+        double joy_roll = -(double)ctx->joy.axes[JOY_AXES_RIGHT_STICK_LEFT];
+        double joy_pitch = (double)ctx->joy.axes[JOY_AXES_RIGHT_STICK_UP];
+        double joy_yaw = (double)ctx->joy.axes[JOY_AXES_LEFT_STICK_LEFT];
+        double joy_thrust = (double)ctx->joy.axes[JOY_AXES_LEFT_STICK_UP];
 
         // estimated attitude quaternion
         double q[4] = {

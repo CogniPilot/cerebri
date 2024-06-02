@@ -22,6 +22,17 @@ int snprintf_cat(char* buf, int n, char const* fmt, ...)
     return result;
 }
 
+int snprint_pwm(char* buf, size_t n, synapse_msgs_Pwm* m)
+{
+    size_t offset = 0;
+
+    for (int i = 0; i < m->channel_count; i++) {
+        offset += snprintf_cat(buf + offset, n - offset, "%4d: %10ld", i, m->channel[i]);
+    }
+    offset += snprintf_cat(buf + offset, n - offset, "\n");
+    return offset;
+}
+
 int snprint_actuators(char* buf, size_t n, synapse_msgs_Actuators* m)
 {
     size_t offset = 0;

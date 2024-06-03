@@ -33,7 +33,7 @@
 LOG_MODULE_REGISTER(rdd2_command, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
-static const double deg2rad = M_PI / 180.0;
+// static const double deg2rad = M_PI / 180.0;
 
 struct context {
     struct zros_node node;
@@ -44,10 +44,12 @@ struct context {
     synapse_msgs_Status status;
     synapse_msgs_Status last_status;
     synapse_msgs_Odometry estimator_odometry;
+    synapse_msgs_Twist cmd_vel;
     struct zros_sub sub_bezier_trajectory;
     struct zros_sub sub_status;
     struct zros_sub sub_joy;
     struct zros_sub sub_estimator_odometry;
+    struct zros_sub sub_cmd_vel;
     struct zros_pub pub_attitude_sp, pub_angular_velocity_sp, pub_force_sp, pub_accel_sp,
         pub_velocity_sp, pub_orientation_sp, pub_position_sp;
     atomic_t running;
@@ -70,10 +72,12 @@ static struct context g_ctx = {
     .accel_sp = synapse_msgs_Vector3_init_default,
     .orientation_sp = synapse_msgs_Quaternion_init_default,
     .position_sp = synapse_msgs_Vector3_init_default,
+    .cmd_vel = synapse_msgs_Twist_init_default,
     .sub_joy = {},
     .sub_status = {},
     .sub_bezier_trajectory = {},
     .sub_estimator_odometry = {},
+    .sub_cmd_vel = {},
     .pub_attitude_sp = {},
     .pub_angular_velocity_sp = {},
     .pub_force_sp = {},
@@ -96,6 +100,7 @@ static void rdd2_command_init(struct context* ctx)
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_bezier_trajectory, &ctx->node, &topic_bezier_trajectory, &ctx->bezier_trajectory, 10);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
+    zros_sub_init(&ctx->sub_cmd_vel, &ctx->node, &topic_cmd_vel, &ctx->cmd_vel, 10);
     zros_pub_init(&ctx->pub_attitude_sp, &ctx->node,
         &topic_attitude_sp, &ctx->attitude_sp);
     zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node,
@@ -121,6 +126,7 @@ static void rdd2_command_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_status);
     zros_sub_fini(&ctx->sub_bezier_trajectory);
     zros_sub_fini(&ctx->sub_estimator_odometry);
+    zros_sub_fini(&ctx->sub_cmd_vel);
     zros_pub_fini(&ctx->pub_attitude_sp);
     zros_pub_fini(&ctx->pub_angular_velocity_sp);
     zros_pub_fini(&ctx->pub_velocity_sp);
@@ -138,9 +144,9 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
     ARG_UNUSED(p2);
 
     rdd2_command_init(ctx);
-
     struct k_poll_event events[] = {
         *zros_sub_get_event(&ctx->sub_joy),
+        *zros_sub_get_event(&ctx->sub_cmd_vel),
     };
 
     double dt = 0;
@@ -157,6 +163,14 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             ctx->joy.axes[JOY_AXES_PITCH] = 0;
             ctx->joy.axes[JOY_AXES_YAW] = 0;
             ctx->joy.axes[JOY_AXES_THRUST] = 0;
+            ctx->cmd_vel.linear.x = 0;
+            ctx->cmd_vel.linear.y = 0;
+            ctx->cmd_vel.linear.z = 0;
+            ctx->cmd_vel.angular.x = 0;
+            ctx->cmd_vel.angular.y = 0;
+            ctx->cmd_vel.angular.z = 0;
+            ctx->cmd_vel.has_linear = true;
+            ctx->cmd_vel.has_angular = true;
         }
 
         if (zros_sub_update_available(&ctx->sub_joy)) {
@@ -175,6 +189,10 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
         if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {
             zros_sub_update(&ctx->sub_estimator_odometry);
+        }
+
+        if (zros_sub_update_available(&ctx->sub_cmd_vel)) {
+            zros_sub_update(&ctx->sub_cmd_vel);
         }
 
         // calculate dt
@@ -259,17 +277,23 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                 ctx->camera_yaw = yaw;
             }
 
-            double yaw_rate = 60 * deg2rad * joy_yaw;
-            double vbx = 2.0 * joy_pitch;
-            double vby = 2.0 * joy_roll;
+            // double yaw_rate = 60 * deg2rad * joy_yaw;
+            // double vbx = 2.0 * joy_pitch;
+            // double vby = 2.0 * joy_roll;
+            // vbz=joy_thrust
+            double yaw_rate = ctx->cmd_vel.angular.z;
+            double vbx = ctx->cmd_vel.linear.x;
+            double vby = ctx->cmd_vel.linear.y;
+            double vbz = 0;
             double vwx = vbx * cos(yaw) - vby * sin(yaw);
             double vwy = vbx * sin(yaw) + vby * cos(yaw);
-            double vwz = joy_thrust;
+            double vwz = vbz;
 
             // position
             ctx->position_sp.x += dt * vwx;
             ctx->position_sp.y += dt * vwy;
-            ctx->position_sp.z += dt * vwz;
+            // ctx->position_sp.z += dt * vwz;
+            ctx->position_sp.z = 0.5;
 
             double e_x = ctx->position_sp.x - ctx->estimator_odometry.pose.pose.position.x;
             double e_y = ctx->position_sp.y - ctx->estimator_odometry.pose.pose.position.y;
@@ -277,7 +301,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
             double norm_e = sqrt(e_x * e_x + e_y * e_y + e_z * e_z);
 
-            const double pos_error_max = 2.0;
+            const double pos_error_max = 0.1;
 
             // saturate position setpoint distance from vehicle
             if (norm_e > pos_error_max) {

@@ -17,6 +17,27 @@ extern "C" {
 #define casadi_int long long int
 #endif
 
+int butterworth_2_filter(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int butterworth_2_filter_alloc_mem(void);
+int butterworth_2_filter_init_mem(int mem);
+void butterworth_2_filter_free_mem(int mem);
+int butterworth_2_filter_checkout(void);
+void butterworth_2_filter_release(int mem);
+void butterworth_2_filter_incref(void);
+void butterworth_2_filter_decref(void);
+casadi_int butterworth_2_filter_n_in(void);
+casadi_int butterworth_2_filter_n_out(void);
+casadi_real butterworth_2_filter_default_in(casadi_int i);
+const char* butterworth_2_filter_name_in(casadi_int i);
+const char* butterworth_2_filter_name_out(casadi_int i);
+const casadi_int* butterworth_2_filter_sparsity_in(casadi_int i);
+const casadi_int* butterworth_2_filter_sparsity_out(casadi_int i);
+int butterworth_2_filter_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+int butterworth_2_filter_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
+#define butterworth_2_filter_SZ_ARG 4
+#define butterworth_2_filter_SZ_RES 2
+#define butterworth_2_filter_SZ_IW 0
+#define butterworth_2_filter_SZ_W 12
 int eulerB321_to_quat(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 int eulerB321_to_quat_alloc_mem(void);
 int eulerB321_to_quat_init_mem(int mem);

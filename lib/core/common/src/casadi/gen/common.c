@@ -31,10 +31,17 @@ extern "C" {
 /* Add prefix to internal symbols */
 #define casadi_f0 CASADI_PREFIX(f0)
 #define casadi_f1 CASADI_PREFIX(f1)
+#define casadi_f2 CASADI_PREFIX(f2)
 #define casadi_fabs CASADI_PREFIX(fabs)
 #define casadi_s0 CASADI_PREFIX(s0)
 #define casadi_s1 CASADI_PREFIX(s1)
+#define casadi_s2 CASADI_PREFIX(s2)
 #define casadi_sq CASADI_PREFIX(sq)
+
+casadi_real casadi_sq(casadi_real x)
+{
+    return x * x;
+}
 
 casadi_real casadi_fabs(casadi_real x)
 {
@@ -46,13 +53,199 @@ casadi_real casadi_fabs(casadi_real x)
 #endif
 }
 
-casadi_real casadi_sq(casadi_real x) { return x * x; }
-
 static const casadi_int casadi_s0[5] = { 1, 1, 0, 1, 0 };
-static const casadi_int casadi_s1[8] = { 4, 1, 0, 4, 0, 1, 2, 3 };
+static const casadi_int casadi_s1[6] = { 2, 1, 0, 2, 0, 1 };
+static const casadi_int casadi_s2[8] = { 4, 1, 0, 4, 0, 1, 2, 3 };
+
+/* butterworth_2_filter:(T,w_n,x[2],u)->(x_1[2],y) */
+static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
+{
+    w[0] = arg[2] ? arg[2][1] : 0;
+    if (res[0] != 0)
+        res[0][0] = w[0];
+    w[1] = -2.;
+    w[2] = 2.;
+    w[3] = 1.4142135623730951e+00;
+    w[4] = arg[0] ? arg[0][0] : 0;
+    w[5] = (w[3] * w[4]);
+    w[6] = arg[1] ? arg[1][0] : 0;
+    w[5] = (w[5] * w[6]);
+    w[2] = (w[2] * w[5]);
+    w[7] = 4.;
+    w[8] = casadi_sq(w[4]);
+    w[9] = casadi_sq(w[6]);
+    w[8] = (w[8] * w[9]);
+    w[9] = (w[7] + w[8]);
+    w[10] = (w[2] + w[9]);
+    w[1] = (w[1] / w[10]);
+    w[11] = -4.;
+    w[11] = (w[11] + w[8]);
+    w[1] = (w[1] * w[11]);
+    w[1] = (w[1] * w[0]);
+    w[9] = (w[9] - w[2]);
+    w[9] = (w[9] / w[10]);
+    w[2] = arg[2] ? arg[2][0] : 0;
+    w[9] = (w[9] * w[2]);
+    w[1] = (w[1] - w[9]);
+    w[9] = arg[3] ? arg[3][0] : 0;
+    w[1] = (w[1] + w[9]);
+    if (res[0] != 0)
+        res[0][1] = w[1];
+    w[1] = casadi_sq(w[10]);
+    w[1] = (w[7] / w[1]);
+    w[3] = (w[3] * w[1]);
+    w[11] = casadi_sq(w[4]);
+    w[4] = (w[4] * w[11]);
+    w[3] = (w[3] * w[4]);
+    w[4] = casadi_sq(w[6]);
+    w[6] = (w[6] * w[4]);
+    w[3] = (w[3] * w[6]);
+    w[3] = (w[3] * w[2]);
+    w[1] = (w[8] * w[1]);
+    w[7] = (w[7] + w[5]);
+    w[1] = (w[1] * w[7]);
+    w[1] = (w[1] * w[0]);
+    w[3] = (w[3] + w[1]);
+    w[8] = (w[8] / w[10]);
+    w[8] = (w[8] * w[9]);
+    w[3] = (w[3] + w[8]);
+    if (res[1] != 0)
+        res[1][0] = w[3];
+    return 0;
+}
+
+int butterworth_2_filter(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
+{
+    return casadi_f0(arg, res, iw, w, mem);
+}
+
+int butterworth_2_filter_alloc_mem(void)
+{
+    return 0;
+}
+
+int butterworth_2_filter_init_mem(int mem)
+{
+    return 0;
+}
+
+void butterworth_2_filter_free_mem(int mem)
+{
+}
+
+int butterworth_2_filter_checkout(void)
+{
+    return 0;
+}
+
+void butterworth_2_filter_release(int mem)
+{
+}
+
+void butterworth_2_filter_incref(void)
+{
+}
+
+void butterworth_2_filter_decref(void)
+{
+}
+
+casadi_int butterworth_2_filter_n_in(void) { return 4; }
+
+casadi_int butterworth_2_filter_n_out(void) { return 2; }
+
+casadi_real butterworth_2_filter_default_in(casadi_int i)
+{
+    switch (i) {
+    default:
+        return 0;
+    }
+}
+
+const char* butterworth_2_filter_name_in(casadi_int i)
+{
+    switch (i) {
+    case 0:
+        return "T";
+    case 1:
+        return "w_n";
+    case 2:
+        return "x";
+    case 3:
+        return "u";
+    default:
+        return 0;
+    }
+}
+
+const char* butterworth_2_filter_name_out(casadi_int i)
+{
+    switch (i) {
+    case 0:
+        return "x_1";
+    case 1:
+        return "y";
+    default:
+        return 0;
+    }
+}
+
+const casadi_int* butterworth_2_filter_sparsity_in(casadi_int i)
+{
+    switch (i) {
+    case 0:
+        return casadi_s0;
+    case 1:
+        return casadi_s0;
+    case 2:
+        return casadi_s1;
+    case 3:
+        return casadi_s0;
+    default:
+        return 0;
+    }
+}
+
+const casadi_int* butterworth_2_filter_sparsity_out(casadi_int i)
+{
+    switch (i) {
+    case 0:
+        return casadi_s1;
+    case 1:
+        return casadi_s0;
+    default:
+        return 0;
+    }
+}
+
+int butterworth_2_filter_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w)
+{
+    if (sz_arg)
+        *sz_arg = 4;
+    if (sz_res)
+        *sz_res = 2;
+    if (sz_iw)
+        *sz_iw = 0;
+    if (sz_w)
+        *sz_w = 12;
+    return 0;
+}
+
+int butterworth_2_filter_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w)
+{
+    if (sz_arg)
+        *sz_arg = 4 * sizeof(const casadi_real*);
+    if (sz_res)
+        *sz_res = 2 * sizeof(casadi_real*);
+    if (sz_iw)
+        *sz_iw = 0 * sizeof(casadi_int);
+    if (sz_w)
+        *sz_w = 12 * sizeof(casadi_real);
+    return 0;
+}
 
 /* eulerB321_to_quat:(yaw,pitch,roll)->(q[4]) */
-static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
+static int casadi_f1(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
     w[0] = 0.;
     w[1] = arg[0] ? arg[0][0] : 0;
@@ -206,7 +399,7 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
 
 int eulerB321_to_quat(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
-    return casadi_f0(arg, res, iw, w, mem);
+    return casadi_f1(arg, res, iw, w, mem);
 }
 
 int eulerB321_to_quat_alloc_mem(void)
@@ -294,7 +487,7 @@ const casadi_int* eulerB321_to_quat_sparsity_out(casadi_int i)
 {
     switch (i) {
     case 0:
-        return casadi_s1;
+        return casadi_s2;
     default:
         return 0;
     }
@@ -327,7 +520,7 @@ int eulerB321_to_quat_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_
 }
 
 /* quat_to_eulerB321:(q_wb[4])->(yaw,pitch,roll) */
-static int casadi_f1(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
+static int casadi_f2(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
     w[0] = 2.;
     w[1] = arg[0] ? arg[0][1] : 0;
@@ -403,7 +596,7 @@ static int casadi_f1(const casadi_real** arg, casadi_real** res, casadi_int* iw,
 
 int quat_to_eulerB321(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem)
 {
-    return casadi_f1(arg, res, iw, w, mem);
+    return casadi_f2(arg, res, iw, w, mem);
 }
 
 int quat_to_eulerB321_alloc_mem(void)
@@ -477,7 +670,7 @@ const casadi_int* quat_to_eulerB321_sparsity_in(casadi_int i)
 {
     switch (i) {
     case 0:
-        return casadi_s1;
+        return casadi_s2;
     default:
         return 0;
     }

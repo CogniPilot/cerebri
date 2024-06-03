@@ -2,12 +2,89 @@
 import os
 import sys
 import math
+import sympy
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 import casadi as ca
+import scipy.signal
 import cyecca.lie as lie
+from cyecca.symbolic import sympy_to_casadi
 from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321
+
+
+def continuous_to_discrete_controllable_realization(G, name):
+    s = sympy.symbols('s')
+    z = sympy.symbols('z')
+    T = sympy.symbols('T')
+    BLT = 2/T *(z-1)/(z+1)
+
+    Gz = G.subs(s, BLT)
+    Gz = Gz.simplify()
+
+    num = sympy.poly(sympy.numer(Gz).expand().collect(z), z)
+    den = sympy.poly(sympy.denom(Gz).expand().collect(z), z)
+    q, r = sympy.div(num, den, z)
+
+    n = len(den.coeffs()) - 1
+    A = sympy.zeros(n, n)
+    B = sympy.zeros(n, 1)
+    C = sympy.zeros(1, n)
+    D = sympy.zeros(1, 1)
+
+    a = den.coeffs()[0]
+    for i in range(n):
+        for j in range(n):
+            if i + 1 == j:
+                A[i, j] = 1
+            elif i == n - 1:
+                A[i, j] = -sympy.simplify(den.coeffs()[n - j]/a)
+
+    D[0, 0] = q/1
+    B[n-1, 0] = 1
+
+    for j in range(n):
+        C[0, j] = sympy.simplify(r.coeffs()[j - 1]/a)
+
+    ss = sympy.Matrix.vstack(sympy.Matrix.hstack(A, B), sympy.Matrix.hstack(C, D))
+
+    ca_ss, ca_ss_syms = sympy_to_casadi(ss, cse=True)
+    f_ss = ca.Function('f_ss', list(ca_ss_syms.values()), [ca_ss], list(ca_ss_syms.keys()), ['ss'])
+
+    x = ca.SX.sym('x', 2)
+    u = ca.SX.sym('u', 1)
+
+    ss_eval = f_ss(*ca_ss_syms.values())
+    A = ss_eval[:n, :n]
+    B = ss_eval[:n, n:]
+    C = ss_eval[n:, :n]
+    D = ss_eval[n:, n:]
+
+
+    x1 = A@x + B@u
+    y = C@x + D@u
+
+    f = ca.Function(name, list(ca_ss_syms.values()) + [x, u], [x1, y], list(ca_ss_syms.keys()) + ['x', 'u'], ['x_1', 'y'])
+
+    return f
+
+
+def derive_butterworth_2_filter():
+    """
+    Derive 2nd order butterworth filter.
+    """
+
+    s = sympy.symbols('s')
+    T = sympy.symbols('T', real=True)
+    wn = sympy.symbols('w_n', real=True)
+    tau = sympy.symbols('tau', real=True)
+    zeta = sympy.sqrt(2)/2
+    G = wn**2/(s**2 + 2*zeta*wn*s + wn**2)
+    f = continuous_to_discrete_controllable_realization(G, 'butterworth_2_filter')
+    return {
+        'butterworth_2_filter': f
+    }
+
 
 def derive_quat_to_eulerB321():
     """
@@ -86,6 +163,7 @@ def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
 if __name__ == "__main__":
     print("generating casadi equations")
     eqs = {}
+    eqs.update(derive_butterworth_2_filter())
     eqs.update(derive_eulerB321_to_quat())
     eqs.update(derive_quat_to_eulerB321())
 

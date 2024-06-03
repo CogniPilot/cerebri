@@ -186,7 +186,7 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
         int64_t ticks_now = k_uptime_ticks();
         dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         ticks_last = ticks_now;
-        if (dt < 0 || dt > 0.5) {
+        if (dt <= 0 || dt > 0.5) {
             LOG_WRN("imu update rate too low");
             continue;
         }
@@ -226,7 +226,7 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
             stamp_header(&ctx->odometry.header, k_uptime_ticks());
             ctx->odometry.header.seq = seq++;
 
-            bool use_external = false;
+            const bool use_external = CONFIG_CEREBRI_RDD2_ESTIMATE_EXTERNAL_ODOM;
 
             if (use_external) {
                 ctx->odometry.pose.pose.position.x = ctx->external_odometry.pose.pose.position.x;

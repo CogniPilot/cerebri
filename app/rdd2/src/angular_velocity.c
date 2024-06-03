@@ -126,6 +126,10 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             continue;
         }
 
+        // filtered k
+        {
+        }
+
         double M[3];
         {
             /* attitude_rate_control:(

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <assert.h>
 #include <stdio.h>
 
 #include <zephyr/kernel.h>
@@ -127,7 +126,7 @@ static struct context g_ctx = {
         .fuel = synapse_msgs_Status_Fuel_FUEL_UNKNOWN,
         .fuel_percentage = 0,
         .joy = synapse_msgs_Status_Joy_JOY_UNKNOWN,
-        .mode = synapse_msgs_Status_Mode_MODE_UNKNOWN,
+        .mode = synapse_msgs_Status_Mode_MODE_MANUAL,
         .power = 0.0,
         .safety = synapse_msgs_Status_Safety_SAFETY_UNKNOWN,
         .status_message = "",
@@ -146,10 +145,10 @@ static void rdd2_fsm_init(struct context* ctx)
 {
     LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_fsm");
-    zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 10);
+    zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 5);
     zros_sub_init(&ctx->sub_battery_state, &ctx->node,
-        &topic_battery_state, &ctx->battery_state, 10);
-    zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 10);
+        &topic_battery_state, &ctx->battery_state, 1);
+    zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 5);
     zros_pub_init(&ctx->pub_status, &ctx->node, &topic_status, &ctx->status);
     atomic_set(&ctx->running, 1);
 }
@@ -167,12 +166,12 @@ static void rdd2_fsm_fini(struct context* ctx)
 
 static void fsm_compute_input(status_input_t* input, const struct context* ctx)
 {
-    input->request_arm = ctx->joy.buttons[JOY_BUTTON_ARM] == 1;
-    input->request_disarm = ctx->joy.buttons[JOY_BUTTON_DISARM] == 1;
-    input->request_manual = ctx->joy.buttons[JOY_BUTTON_MANUAL] == 1;
-    input->request_auto = ctx->joy.buttons[JOY_BUTTON_AUTO] == 1;
-    input->request_cmd_vel = ctx->joy.buttons[JOY_BUTTON_CMD_VEL] == 1;
-    input->request_calibration = ctx->joy.buttons[JOY_BUTTON_CALIBRATION] == 1;
+    input->request_arm = ctx->joy.buttons[JOY_BUTTON_START] == 1;
+    input->request_disarm = ctx->joy.buttons[JOY_BUTTON_STOP] == 1;
+    input->request_manual = ctx->joy.buttons[JOY_BUTTON_A] == 1;
+    input->request_auto = ctx->joy.buttons[JOY_BUTTON_B] == 1;
+    input->request_cmd_vel = ctx->joy.buttons[JOY_BUTTON_X] == 1;
+    input->request_calibration = ctx->joy.buttons[JOY_BUTTON_Y] == 1;
     input->mode_set = ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
     input->safe = ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE || ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNKNOWN;
@@ -181,8 +180,8 @@ static void fsm_compute_input(status_input_t* input, const struct context* ctx)
 #endif
 
 #ifdef CONFIG_CEREBRI_SENSE_POWER
-    input->fuel_low = ctx->battery_state.voltage < CONFIG_CEREBRI_RDD2_BATTERY_LOW_MILLIVOLT / 1000.0;
-    input->fuel_critical = ctx->battery_state.voltage < CONFIG_CEREBRI_RDD2_BATTERY_MIN_MILLIVOLT / 1000.0;
+    input->fuel_low = ctx->battery_state.voltage < CONFIG_CEREBRI_RDD2_BATTERY_NCELLS * CONFIG_CEREBRI_RDD2_BATTERY_CELL_LOW_MILLIVOLT / 1000.0;
+    input->fuel_critical = ctx->battery_state.voltage < CONFIG_CEREBRI_RDD2_BATTERY_NCELLS * CONFIG_CEREBRI_RDD2_BATTERY_CELL_MIN_MILLIVOLT / 1000.0;
 #else
     input->fuel_low = false;
     input->fuel_critical = false;
@@ -299,8 +298,8 @@ static void status_add_extra_info(synapse_msgs_Status* status,
     } else {
         status->fuel = synapse_msgs_Status_Fuel_FUEL_NOMINAL;
     }
-    double bat_max = CONFIG_CEREBRI_RDD2_BATTERY_MAX_MILLIVOLT / 1000.0;
-    double bat_min = CONFIG_CEREBRI_RDD2_BATTERY_MIN_MILLIVOLT / 1000.0;
+    double bat_max = CONFIG_CEREBRI_RDD2_BATTERY_NCELLS * CONFIG_CEREBRI_RDD2_BATTERY_CELL_MAX_MILLIVOLT / 1000.0;
+    double bat_min = CONFIG_CEREBRI_RDD2_BATTERY_NCELLS * CONFIG_CEREBRI_RDD2_BATTERY_CELL_MIN_MILLIVOLT / 1000.0;
     status->fuel_percentage = 100 * (ctx->battery_state.voltage - bat_min) / (bat_max - bat_min);
     status->power = ctx->battery_state.voltage * ctx->battery_state.current;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
@@ -394,7 +393,10 @@ static int rdd2_fsm_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    if (argc == 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

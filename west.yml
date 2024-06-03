@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: b77e04ed899cdf1c89959defaeb16df29217aa8e # pr-pwm-threadsafe
+      revision: 2234940bcbcd24acb99e8cb6ae30becbe2bec099 # pr-dummy-cycle 6/02/24
       import:
         - name-allowlist:
           - nanopb
@@ -32,7 +32,7 @@ manifest:
           - segger
     - name: zros
       remote: cognipilot
-      revision: 467bd1042bef93ded9ba76287609ab47e76f9fa7 # main 2/12/24
+      revision: d8d10aa092bf69af6e8b8d1bda9d8097a2c600ec # main 5/26/24
       path: modules/lib/zros
     - name: synapse_tinyframe
       remote: cognipilot
@@ -40,7 +40,7 @@ manifest:
       path: modules/lib/synapse_tinyframe
     - name: synapse_protobuf
       remote: cognipilot
-      revision: a32619cd57bf692893088189e8f5d0c8cec44ecb # main 04/12/24
+      revision: 71e4dfa5b94c3d2f24b17b5011bd15596c92cb84 # pr-pwm 06/02/24
       path: modules/lib/synapse_protobuf
     - name: ubxlib
       remote: cognipilot
@@ -48,5 +48,5 @@ manifest:
       revision: 9c485ed5ab663b96cae6199498356fd13ee35904 # b_mythical 04/12/24
     - name: hal_nxp
       remote: cognipilot
-      revision: a5c11af43a3222ef24b688c4f0b04815b1a410f9 # main 2/12/24
+      revision: a092d490a5bd7ed2db6fceb8c0b720cb4ead099a # pr-qtmr-pwm
       path: modules/hal/nxp

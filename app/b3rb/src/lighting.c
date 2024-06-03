@@ -168,8 +168,8 @@ static void lighting_work_handler(struct k_work* work)
     }
 
     // headlight leds
-    bool lights_on_requested = ctx->joy.buttons[JOY_BUTTON_LIGHTS_ON] == 1;
-    bool lights_off_requested = ctx->joy.buttons[JOY_BUTTON_LIGHTS_OFF] == 1;
+    bool lights_on_requested = ctx->joy.buttons[JOY_BUTTON_RB] == 1;
+    bool lights_off_requested = ctx->joy.buttons[JOY_BUTTON_LB] == 1;
 
     if (lights_on_requested) {
         ctx->lights_on = true;

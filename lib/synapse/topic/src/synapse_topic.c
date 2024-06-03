@@ -53,7 +53,6 @@ static context_t g_ctx = {
 
 #define TOPIC_DICTIONARY()                                                        \
     (actuators, &topic_actuators, "actuators"),                                   \
-        (actuators_manual, &topic_actuators_manual, "actuators_manual"),          \
         (altimeter, &topic_altimeter, "altimeter"),                               \
         (attitude_sp, &topic_attitude_sp, "attitude_sp"),                         \
         (battery_state, &topic_battery_state, "battery_state"),                   \
@@ -68,6 +67,7 @@ static context_t g_ctx = {
         (magnetic_field, &topic_magnetic_field, "magnetic_field"),                \
         (nav_sat_fix, &topic_nav_sat_fix, "nav_sat_fix"),                         \
         (angular_velocity_sp, &topic_angular_velocity_sp, "angular_velocity_sp"), \
+        (pwm, &topic_pwm, "pwm"),                                                 \
         (position_sp, &topic_position_sp, "position_sp"),                         \
         (force_sp, &topic_force_sp, "force_sp"),                                  \
         (moment_sp, &topic_moment_sp, "moment_sp"),                               \
@@ -225,7 +225,7 @@ void topic_work_handler(struct k_work* work)
     struct zros_topic* topic = ctx->topic;
     msg_handler_t* handler = ctx->handler;
 
-    if (topic == &topic_actuators || topic == &topic_actuators_manual) {
+    if (topic == &topic_actuators) {
         synapse_msgs_Actuators msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_actuators);
     } else if (topic == &topic_altimeter) {
@@ -266,6 +266,9 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_led_array) {
         synapse_msgs_LEDArray msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_ledarray);
+    } else if (topic == &topic_pwm) {
+        synapse_msgs_Pwm msg = {};
+        handler(sh, topic, &msg, (snprint_t*)&snprint_pwm);
     } else if (topic == &topic_magnetic_field) {
         synapse_msgs_MagneticField msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_magnetic_field);

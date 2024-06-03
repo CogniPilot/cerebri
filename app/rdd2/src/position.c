@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <assert.h>
+#include <math.h>
+
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
 #include <zros/private/zros_sub_struct.h>
@@ -113,6 +114,10 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
         *zros_sub_get_event(&ctx->sub_estimator_odometry),
     };
 
+    double dt = 0;
+    int64_t ticks_last = k_uptime_ticks();
+    double z_i = 0; // altitude error integral
+
     while (atomic_get(&ctx->running)) {
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
@@ -149,8 +154,16 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_estimator_odometry);
         }
 
-        if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL
-            || ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
+        // calculate dt
+        int64_t ticks_now = k_uptime_ticks();
+        dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        ticks_last = ticks_now;
+        if (dt < 0 || dt > 0.5) {
+            LOG_WRN("position update rate too low");
+            continue;
+        }
+
+        if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
             double nT; // normalized magnitude of thrust (ratio of twice weight)
             double qr_wb[4];
             {
@@ -192,7 +205,8 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 v_b[1] = ctx->estimator_odometry.twist.twist.linear.y;
                 v_b[2] = ctx->estimator_odometry.twist.twist.linear.z;
 
-                /* position_control:(pt_w[3],vt_w[3],at_w[3],qc_wb[4],p_w[3],v_b[3],q_wb[4])->(nT,qr_wb[4]) */
+                /* position_control:(pt_w[3],vt_w[3],at_w[3],qc_wb[4],
+                 * p_w[3],v_b[3],q_wb[4],z_i,dt)->(nT,qr_wb[4],z_i_2) */
                 args[0] = pt_w;
                 args[1] = vt_w;
                 args[2] = at_w;
@@ -200,17 +214,26 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 args[4] = p_w;
                 args[5] = v_b;
                 args[6] = q_wb;
+                args[7] = &z_i;
+                args[8] = &dt;
                 res[0] = &nT;
                 res[1] = qr_wb;
+                res[2] = &z_i;
 
                 CASADI_FUNC_CALL(position_control)
+                LOG_DBG("z_i: %10.4f", z_i);
             }
 
-            ctx->attitude_sp.w = qr_wb[0];
-            ctx->attitude_sp.x = qr_wb[1];
-            ctx->attitude_sp.y = qr_wb[2];
-            ctx->attitude_sp.z = qr_wb[3];
+            for (int i = 0; i < 4; i++) {
+                if (!isfinite(qr_wb[i])) {
+                    LOG_ERR("qr_wb[%d] not finite: %10.4f", i, qr_wb[i]);
+                }
+            }
             zros_pub_update(&ctx->pub_attitude_sp);
+
+            if (!isfinite(nT)) {
+                LOG_ERR("nT not finite: %10.4f", nT);
+            }
 
             ctx->force_sp.z = nT;
             zros_pub_update(&ctx->pub_force_sp);
@@ -235,7 +258,10 @@ static int rdd2_position_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

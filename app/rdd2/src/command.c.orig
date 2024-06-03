@@ -33,9 +33,13 @@
 LOG_MODULE_REGISTER(rdd2_command, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
+<<<<<<< HEAD
 // static const double deg2rad = M_PI / 180.0;
+=======
+static const double deg2rad = M_PI / 180.0;
 static const double thrust_trim = CONFIG_CEREBRI_RDD2_THRUST_TRIM * 1e-3;
 static const double thrust_delta = CONFIG_CEREBRI_RDD2_THRUST_DELTA * 1e-3;
+>>>>>>> pr-estimator-qtmr
 
 struct context {
     struct zros_node node;
@@ -146,7 +150,6 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
     ARG_UNUSED(p2);
 
     rdd2_command_init(ctx);
-
     struct k_poll_event events[] = {
         *zros_sub_get_event(&ctx->sub_joy),
         *zros_sub_get_event(&ctx->sub_cmd_vel),
@@ -162,10 +165,11 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
         if (rc != 0) {
             // LOG_DBG("not receiving joy");
             ctx->status.mode = synapse_msgs_Status_Mode_MODE_MANUAL;
-            ctx->joy.axes[JOY_AXES_LEFT_STICK_LEFT] = 0;
-            ctx->joy.axes[JOY_AXES_LEFT_STICK_UP] = 0;
-            ctx->joy.axes[JOY_AXES_RIGHT_STICK_LEFT] = 0;
-            ctx->joy.axes[JOY_AXES_RIGHT_STICK_UP] = 0;
+<<<<<<< HEAD
+            ctx->joy.axes[JOY_AXES_ROLL] = 0;
+            ctx->joy.axes[JOY_AXES_PITCH] = 0;
+            ctx->joy.axes[JOY_AXES_YAW] = 0;
+            ctx->joy.axes[JOY_AXES_THRUST] = 0;
             ctx->cmd_vel.linear.x = 0;
             ctx->cmd_vel.linear.y = 0;
             ctx->cmd_vel.linear.z = 0;
@@ -174,6 +178,12 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             ctx->cmd_vel.angular.z = 0;
             ctx->cmd_vel.has_linear = true;
             ctx->cmd_vel.has_angular = true;
+=======
+            ctx->joy.axes[JOY_AXES_LEFT_STICK_LEFT] = 0;
+            ctx->joy.axes[JOY_AXES_LEFT_STICK_UP] = 0;
+            ctx->joy.axes[JOY_AXES_RIGHT_STICK_LEFT] = 0;
+            ctx->joy.axes[JOY_AXES_RIGHT_STICK_UP] = 0;
+>>>>>>> pr-estimator-qtmr
         }
 
         if (zros_sub_update_available(&ctx->sub_joy)) {
@@ -315,7 +325,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             // double yaw_rate = 60 * deg2rad * joy_yaw;
             // double vbx = 2.0 * joy_pitch;
             // double vby = 2.0 * joy_roll;
-            // double vbz=joy_thrust
+            // vbz=joy_thrust
             double yaw_rate = ctx->cmd_vel.angular.z;
             double vbx = ctx->cmd_vel.linear.x;
             double vby = ctx->cmd_vel.linear.y;
@@ -383,38 +393,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             ctx->accel_sp.z = 0;
             zros_pub_update(&ctx->pub_accel_sp);
 
-        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
-            // TODO bezier curve here
-
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_UNKNOWN) {
-            // TODO: make acro mode
-
-            double omega[3];
-            double thrust;
-            {
-                // joy_acro:(joy_roll,joy_pitch,joy_yaw,joy_thrust)->(omega[3],thrust)
-                CASADI_FUNC_ARGS(joy_acro);
-
-                args[0] = &joy_roll;
-                args[1] = &joy_pitch;
-                args[2] = &joy_yaw;
-                args[3] = &joy_thrust;
-
-                res[0] = omega;
-                res[1] = &thrust;
-
-                CASADI_FUNC_CALL(joy_acro);
-            }
-
-            // angular velocity set point
-            ctx->angular_velocity_sp.x = omega[0];
-            ctx->angular_velocity_sp.y = omega[1];
-            ctx->angular_velocity_sp.z = omega[2];
-            zros_pub_update(&ctx->pub_angular_velocity_sp);
-
-            // thrust pass through
-            ctx->force_sp.z = thrust;
-            zros_pub_update(&ctx->pub_force_sp);
         }
     }
 

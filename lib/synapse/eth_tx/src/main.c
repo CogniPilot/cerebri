@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <assert.h>
-
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
@@ -262,7 +260,10 @@ static int eth_tx_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

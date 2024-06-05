@@ -50,7 +50,7 @@ struct context {
     synapse_msgs_Odometry estimator_odometry;
     synapse_msgs_Twist cmd_vel;
     struct zros_sub sub_offboard_bezier_trajectory, sub_status, sub_joy, sub_offboard_joy,
-        sub_estimator_odometry, sub_offboard_cmd_vel;
+        sub_estimator_odometry, sub_offboard_cmd_vel, sub_offboard_clock_offset;
     struct zros_pub pub_attitude_sp, pub_angular_velocity_ff, pub_force_sp, pub_accel_ff, pub_moment_ff,
         pub_velocity_sp, pub_orientation_sp, pub_position_sp;
     atomic_t running;
@@ -106,20 +106,22 @@ static void rdd2_command_init(struct context* ctx)
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_offboard_bezier_trajectory,
         &ctx->node, &topic_offboard_bezier_trajectory, &ctx->bezier_trajectory, 10);
-     zros_sub_init(&ctx->sub_offboard_clock_offset,
-        &ctx->node, &topic_sub_offboard_clock_offset, &ctx->clock_offset, 10);
+    zros_sub_init(&ctx->sub_offboard_clock_offset,
+        &ctx->node, &topic_offboard_clock_offset, &ctx->clock_offset, 10);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
     zros_sub_init(&ctx->sub_offboard_cmd_vel, &ctx->node, &topic_offboard_cmd_vel, &ctx->cmd_vel, 10);
     zros_pub_init(&ctx->pub_attitude_sp, &ctx->node,
         &topic_attitude_sp, &ctx->attitude_sp);
-    zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node,
-        &topic_angular_velocity_sp, &ctx->angular_velocity_sp);
+    zros_pub_init(&ctx->pub_angular_velocity_ff, &ctx->node,
+        &topic_angular_velocity_sp, &ctx->angular_velocity_ff);
     zros_pub_init(&ctx->pub_force_sp, &ctx->node,
         &topic_force_sp, &ctx->force_sp);
     zros_pub_init(&ctx->pub_velocity_sp, &ctx->node,
         &topic_velocity_sp, &ctx->velocity_sp);
-    zros_pub_init(&ctx->pub_accel_sp, &ctx->node,
-        &topic_accel_sp, &ctx->accel_sp);
+    zros_pub_init(&ctx->pub_accel_ff, &ctx->node,
+        &topic_accel_sp, &ctx->accel_ff);
+    zros_pub_init(&ctx->pub_moment_ff, &ctx->node,
+        &topic_moment_ff, &ctx->moment_ff);
     zros_pub_init(&ctx->pub_orientation_sp, &ctx->node,
         &topic_orientation_sp, &ctx->orientation_sp);
     zros_pub_init(&ctx->pub_position_sp, &ctx->node,
@@ -138,9 +140,9 @@ static void rdd2_command_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_estimator_odometry);
     zros_sub_fini(&ctx->sub_offboard_cmd_vel);
     zros_pub_fini(&ctx->pub_attitude_sp);
-    zros_pub_fini(&ctx->pub_angular_velocity_sp);
+    zros_pub_fini(&ctx->pub_angular_velocity_ff);
     zros_pub_fini(&ctx->pub_velocity_sp);
-    zros_pub_fini(&ctx->pub_accel_sp);
+    zros_pub_fini(&ctx->pub_accel_ff);
     zros_pub_fini(&ctx->pub_force_sp);
     zros_pub_fini(&ctx->pub_orientation_sp);
     zros_pub_fini(&ctx->pub_position_sp);
@@ -255,15 +257,30 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                 CASADI_FUNC_CALL(joy_acro);
             }
 
-            // angular velocity set point
-            ctx->angular_velocity_sp.x = omega[0];
-            ctx->angular_velocity_sp.y = omega[1];
-            ctx->angular_velocity_sp.z = omega[2];
-            zros_pub_update(&ctx->pub_angular_velocity_sp);
+            bool data_ok = true;
+            for (int i = 0; i < 3; i++) {
+                if (!isfinite(omega[i])) {
+                    LOG_ERR("omega[%d] not finite: %10.4f", i, omega[i]);
+                    data_ok = false;
+                    break;
+                }
+            }
+            if (!isfinite(thrust)) {
+                LOG_ERR("thrust not finite: %10.4f", thrust);
+                data_ok = false;
+            }
 
-            // thrust pass through
-            ctx->force_sp.z = thrust;
-            zros_pub_update(&ctx->pub_force_sp);
+            if (data_ok) {
+                // angular velocity set point
+                ctx->angular_velocity_ff.x = omega[0];
+                ctx->angular_velocity_ff.y = omega[1];
+                ctx->angular_velocity_ff.z = omega[2];
+                zros_pub_update(&ctx->pub_angular_velocity_ff);
+
+                // thrust pass through
+                ctx->force_sp.z = thrust;
+                zros_pub_update(&ctx->pub_force_sp);
+            }
 
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_ATTITUDE) {
             double qr[4];
@@ -286,16 +303,32 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                 CASADI_FUNC_CALL(joy_auto_level);
             }
 
-            // attitude set point
-            ctx->attitude_sp.w = qr[0];
-            ctx->attitude_sp.x = qr[1];
-            ctx->attitude_sp.y = qr[2];
-            ctx->attitude_sp.z = qr[3];
-            zros_pub_update(&ctx->pub_attitude_sp);
+            bool data_ok = true;
+            for (int i = 0; i < 3; i++) {
+                if (!isfinite(qr[i])) {
+                    LOG_ERR("qr[%d] not finite: %10.4f", i, qr[i]);
+                    data_ok = false;
+                    break;
+                }
+            }
 
-            // thrust pass through
-            ctx->force_sp.z = thrust;
-            zros_pub_update(&ctx->pub_force_sp);
+            if (!isfinite(thrust)) {
+                LOG_ERR("thrust not finite: %10.4f", thrust);
+                data_ok = false;
+            }
+
+            // attitude set point
+            if (data_ok) {
+                ctx->attitude_sp.w = qr[0];
+                ctx->attitude_sp.x = qr[1];
+                ctx->attitude_sp.y = qr[2];
+                ctx->attitude_sp.z = qr[3];
+                zros_pub_update(&ctx->pub_attitude_sp);
+
+                // thrust pass through
+                ctx->force_sp.z = thrust;
+                zros_pub_update(&ctx->pub_force_sp);
+            }
 
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY) {
 
@@ -326,56 +359,49 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             }
 
             double yaw_rate = 0;
-            double vbx = 0;
-            double vby = 0;
-            double vbz = 0;
+            double vb[3] = { 0, 0, 0 };
 
             if (ctx->status.command_source == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_ONBOARD) {
                 yaw_rate = 60 * deg2rad * joy_yaw;
-                vbx = 2.0 * joy_pitch;
-                vby = -2.0 * joy_roll; // positive roll is negative y
-                vbz = joy_thrust;
+                vb[0] = 2.0 * joy_pitch;
+                vb[1] = -2.0 * joy_roll; // positive roll is negative y
+                vb[2] = joy_thrust;
                 // LOG_INF("onboard yawrate: %10.4f vbx: %10.4f %10.4f %10.4f", yaw_rate, vbx, vby, vbz);
             } else if (ctx->status.command_source == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_OFFBOARD) {
                 yaw_rate = ctx->cmd_vel.angular.z;
-                vbx = ctx->cmd_vel.linear.x;
-                vby = ctx->cmd_vel.linear.y;
-                vbz = joy_thrust;
+                vb[0] = ctx->cmd_vel.linear.x;
+                vb[1] = ctx->cmd_vel.linear.y;
+                vb[2] = joy_thrust;
                 // LOG_INF("offboard yawrate: %10.4f vbx: %10.4f %10.4f %10.4f", yaw_rate, vbx, vby, vbz);
             }
 
-            double vwx = vbx * cos(yaw) - vby * sin(yaw);
-            double vwy = vbx * sin(yaw) + vby * cos(yaw);
-            double vwz = vbz;
+            double vw[3] = {
+                vb[0] * cos(yaw) - vb[1] * sin(yaw),
+                vb[0] * sin(yaw) + vb[1] * cos(yaw),
+                vb[2]
+            };
 
             // position
-            ctx->position_sp.x += dt * vwx;
-            ctx->position_sp.y += dt * vwy;
-            ctx->position_sp.z += dt * vwz;
+            ctx->position_sp.x += dt * vw[0];
+            ctx->position_sp.y += dt * vw[1];
+            ctx->position_sp.z += dt * vw[2];
 
-            double e_x = ctx->position_sp.x - ctx->estimator_odometry.pose.pose.position.x;
-            double e_y = ctx->position_sp.y - ctx->estimator_odometry.pose.pose.position.y;
-            double e_z = ctx->position_sp.z - ctx->estimator_odometry.pose.pose.position.z;
+            double e[3] = {
+                ctx->position_sp.x - ctx->estimator_odometry.pose.pose.position.x,
+                ctx->position_sp.y - ctx->estimator_odometry.pose.pose.position.y,
+                ctx->position_sp.z - ctx->estimator_odometry.pose.pose.position.z
+            };
 
-            double norm_e = sqrt(e_x * e_x + e_y * e_y + e_z * e_z);
+            double norm_e = sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]);
 
             const double pos_error_max = 2.0;
 
             // saturate position setpoint distance from vehicle
             if (norm_e > pos_error_max) {
-                ctx->position_sp.x = ctx->estimator_odometry.pose.pose.position.x + e_x * pos_error_max / norm_e;
-                ctx->position_sp.y = ctx->estimator_odometry.pose.pose.position.y + e_y * pos_error_max / norm_e;
-                ctx->position_sp.z = ctx->estimator_odometry.pose.pose.position.z + e_z * pos_error_max / norm_e;
+                ctx->position_sp.x = ctx->estimator_odometry.pose.pose.position.x + e[0] * pos_error_max / norm_e;
+                ctx->position_sp.y = ctx->estimator_odometry.pose.pose.position.y + e[1] * pos_error_max / norm_e;
+                ctx->position_sp.z = ctx->estimator_odometry.pose.pose.position.z + e[2] * pos_error_max / norm_e;
             }
-
-            // position setpoint
-            zros_pub_update(&ctx->pub_position_sp);
-
-            // velocity setpoint
-            ctx->velocity_sp.x = vwx;
-            ctx->velocity_sp.y = vwy;
-            ctx->velocity_sp.z = vwz;
-            zros_pub_update(&ctx->pub_velocity_sp);
 
             // desired camera direction
             ctx->camera_yaw += dt * yaw_rate;
@@ -394,6 +420,15 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                 res[0] = qc;
                 CASADI_FUNC_CALL(eulerB321_to_quat);
             }
+
+            // position setpoint
+            zros_pub_update(&ctx->pub_position_sp);
+
+            // velocity setpoint
+            ctx->velocity_sp.x = vw[0];
+            ctx->velocity_sp.y = vw[1];
+            ctx->velocity_sp.z = vw[2];
+            zros_pub_update(&ctx->pub_velocity_sp);
 
             // orientation setpoint
             ctx->orientation_sp.w = qc[0];
@@ -421,7 +456,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                         " ns < time start: %" PRIu64
                         "  ns, time out of range of trajectory\n",
                     time_nsec, time_start_nsec);
-                stop(ctx);
+                // stop(ctx);
                 return;
             }
 
@@ -445,7 +480,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                 // check if index exceeds bounds
                 if (curve_index >= ctx->bezier_trajectory.curves_count) {
                     LOG_ERR("curve index exceeds bounds");
-                    stop(ctx);
+                    // stop(ctx);
                     return;
                 }
             }
@@ -465,7 +500,8 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                 Ppsi[i] = ctx->bezier_trajectory.curves[curve_index].yaw[i];
             }
 
-            /* bezier_multirotor:(t,T,PX[1x8],PY[1x8],PX[1x8],Ppsi[1x4])->(x,y,z,psi,dpsi,ddpsi,V,a,j,s) */
+            // bezier_multirotor:(t,T,PX[1x8],PY[1x8],PX[1x8],Ppsi[1x4])
+            // ->(x,y,z,psi,dpsi,ddpsi,V,a,j,s)
             {
                 CASADI_FUNC_ARGS(bezier_multirotor);
                 args[0] = &t;
@@ -488,7 +524,9 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             }
 
             double q_att[4], omega[3], M[3];
-            /* world to body:(psi,dpsi,ddpsi,ve,ae,je,se)->(vb,Cbe,omegab,domegab,Mb,T)*/
+            // world to body
+            // f_ref:(psi,psi_dot,psi_ddot,v_e[3],a_e[3],j_e[3],s_e[3])
+            // ->(v_b[3],quat[4],omega_eb_b[3],omega_dot_eb_b[3],M_b[3],T)
             {
                 CASADI_FUNC_ARGS(f_ref);
                 args[0] = &psi;

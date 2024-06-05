@@ -51,29 +51,26 @@ static context_t g_ctx = {
     .lock = Z_MUTEX_INITIALIZER(g_ctx.lock)
 };
 
-#define TOPIC_DICTIONARY()                                                        \
-        (accel_ff, &topic_accel_ff, "accel_ff"),                                  \
-        (accel_sp, &topic_accel_sp, "accel_sp"),                                  \
-        (actuators, &topic_actuators, "actuators"),                               \
-        (actuators_manual, &topic_actuators_manual, "actuators_manual"),          \
-        (altimeter, &topic_altimeter, "altimeter"),                               \
-        (angular_velocity_ff, &topic_angular_velocity_ff, "angular_velocity_ff"), \
-        (angular_velocity_sp, &topic_angular_velocity_sp, "angular_velocity_sp"), \
-        (attitude_sp, &topic_attitude_sp, "attitude_sp"),                         \
-        (battery_state, &topic_battery_state, "battery_state"),                   \
-        (bezier_trajectory, &topic_bezier_trajectory, "bezier_trajectory"),       \
-        (clock_offset, &topic_clock_offset, "clock_offset"),                      \
-        (cmd_vel, &topic_cmd_vel, "cmd_vel"),                                     \
-        (estimator_odometry, &topic_estimator_odometry, "estimator_odometry"),    \
-        (external_odometry, &topic_external_odometry, "external_odometry"),       \
-        (force_sp, &topic_force_sp, "force_sp"),                                  \
-        (imu, &topic_imu, "imu"),                                                 \
-        (joy, &topic_joy, "joy"),                                                 \
-        (led_array, &topic_led_array, "led_array"),                               \
-        (magnetic_field, &topic_magnetic_field, "magnetic_field"),                \
-        (moment_ff, &topic_moment_ff, "moment_ff"),                               \
-        (moment_sp, &topic_moment_sp, "moment_sp"),                               \
-        (nav_sat_fix, &topic_nav_sat_fix, "nav_sat_fix"),                         \
+#define TOPIC_DICTIONARY()                                                                             \
+    (accel_ff, &topic_accel_ff, "accel_ff"),                                                           \
+        (accel_sp, &topic_accel_sp, "accel_sp"),                                                       \
+        (actuators, &topic_actuators, "actuators"),                                                    \
+        (altimeter, &topic_altimeter, "altimeter"),                                                    \
+        (angular_velocity_ff, &topic_angular_velocity_ff, "angular_velocity_ff"),                      \
+        (angular_velocity_sp, &topic_angular_velocity_sp, "angular_velocity_sp"),                      \
+        (attitude_sp, &topic_attitude_sp, "attitude_sp"),                                              \
+        (battery_state, &topic_battery_state, "battery_state"),                                        \
+        (bezier_trajectory, &topic_bezier_trajectory, "bezier_trajectory"),                            \
+        (cmd_vel, &topic_cmd_vel, "cmd_vel"),                                                          \
+        (estimator_odometry, &topic_estimator_odometry, "estimator_odometry"),                         \
+        (force_sp, &topic_force_sp, "force_sp"),                                                       \
+        (imu, &topic_imu, "imu"),                                                                      \
+        (joy, &topic_joy, "joy"),                                                                      \
+        (led_array, &topic_led_array, "led_array"),                                                    \
+        (magnetic_field, &topic_magnetic_field, "magnetic_field"),                                     \
+        (moment_ff, &topic_moment_ff, "moment_ff"),                                                    \
+        (moment_sp, &topic_moment_sp, "moment_sp"),                                                    \
+        (nav_sat_fix, &topic_nav_sat_fix, "nav_sat_fix"),                                              \
         (offboard_bezier_trajectory, &topic_offboard_bezier_trajectory, "offboard_bezier_trajectory"), \
         (offboard_clock_offset, &topic_offboard_clock_offset, "offboard_clock_offset"),                \
         (offboard_cmd_vel, &topic_offboard_cmd_vel, "offboard_cmd_vel"),                               \

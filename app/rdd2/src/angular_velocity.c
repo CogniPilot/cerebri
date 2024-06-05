@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <assert.h>
+#include <math.h>
 
 #include <synapse_topic_list.h>
 #include <zephyr/logging/log.h>

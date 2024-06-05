@@ -74,11 +74,11 @@ static void rdd2_position_init(struct context* ctx)
     LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_position");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
-    zros_sub_init(&ctx->sub_position_sp, &ctx->node, &topic_position_sp, &ctx->position_sp, 100);
-    zros_sub_init(&ctx->sub_velocity_sp, &ctx->node, &topic_velocity_sp, &ctx->velocity_sp, 100);
-    zros_sub_init(&ctx->sub_accel_ff, &ctx->node, &topic_accel_ff, &ctx->accel_ff, 100);
+    zros_sub_init(&ctx->sub_position_sp, &ctx->node, &topic_position_sp, &ctx->position_sp, 10);
+    zros_sub_init(&ctx->sub_velocity_sp, &ctx->node, &topic_velocity_sp, &ctx->velocity_sp, 10);
+    zros_sub_init(&ctx->sub_accel_ff, &ctx->node, &topic_accel_ff, &ctx->accel_ff, 10);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
-    zros_sub_init(&ctx->sub_orientation_sp, &ctx->node, &topic_orientation_sp, &ctx->orientation_sp, 100);
+    zros_sub_init(&ctx->sub_orientation_sp, &ctx->node, &topic_orientation_sp, &ctx->orientation_sp, 10);
     zros_pub_init(&ctx->pub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp);
     zros_pub_init(&ctx->pub_attitude_sp, &ctx->node, &topic_attitude_sp, &ctx->attitude_sp);
     atomic_set(&ctx->running, 1);
@@ -173,9 +173,9 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 };
                 // LOG_INF("vt_w: %10.4f %10.4f %10.4f", ctx->velocity_sp.x, ctx->velocity_sp.y, ctx->velocity_sp.z);
                 double at_w[3] = {
-                    ctx->accel_sp.x,
-                    ctx->accel_sp.y,
-                    ctx->accel_sp.z
+                    ctx->accel_ff.x,
+                    ctx->accel_ff.y,
+                    ctx->accel_ff.z
                 };
                 double qc_wb[4] = {
                     ctx->orientation_sp.w,

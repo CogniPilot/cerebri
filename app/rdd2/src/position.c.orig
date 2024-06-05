@@ -36,8 +36,13 @@ struct context {
     synapse_msgs_Odometry estimator_odometry;
     synapse_msgs_Vector3 force_sp, position_sp, velocity_sp, accel_ff;
     synapse_msgs_Quaternion attitude_sp, orientation_sp;
+<<<<<<< HEAD
     struct zros_sub sub_status,
+        sub_position_sp, sub_velocity_sp, sub_accel_sp, sub_estimator_odometry,
+=======
+    struct zros_sub sub_status, sub_clock_offset,
         sub_position_sp, sub_velocity_sp, sub_accel_ff, sub_estimator_odometry,
+>>>>>>> pr-bezier-mellinger
         sub_orientation_sp;
     struct zros_pub pub_force_sp, pub_attitude_sp;
     atomic_t running;
@@ -200,6 +205,7 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                     ctx->estimator_odometry.pose.pose.orientation.z
                 };
 
+<<<<<<< HEAD
                 /* position_control:(thrust_trim,pt_w[3],vt_w[3],at_w[3],qc_wb[4],
                  * p_w[3],v_b[3],q_wb[4],z_i,dt)->(nT,qr_wb[4],z_i_2) */
                 args[0] = &thrust_trim;
@@ -212,6 +218,45 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 args[7] = q_wb;
                 args[8] = &z_i;
                 args[9] = &dt;
+=======
+                // set position as current position for now, kills pos feedback
+
+                // set points
+                pt_w[0] = ctx->position_sp.x;
+                pt_w[1] = ctx->position_sp.y;
+                pt_w[2] = ctx->position_sp.z;
+                vt_w[0] = ctx->velocity_sp.x;
+                vt_w[1] = ctx->velocity_sp.y;
+                vt_w[2] = ctx->velocity_sp.z;
+                at_w[0] = ctx->accel_ff.x;
+                at_w[1] = ctx->accel_ff.y;
+                at_w[2] = ctx->accel_ff.z;
+                qc_wb[0] = ctx->orientation_sp.w;
+                qc_wb[1] = ctx->orientation_sp.x;
+                qc_wb[2] = ctx->orientation_sp.y;
+                qc_wb[3] = ctx->orientation_sp.z;
+
+                // estimates
+                q_wb[0] = ctx->estimator_odometry.pose.pose.orientation.w;
+                q_wb[1] = ctx->estimator_odometry.pose.pose.orientation.x;
+                q_wb[2] = ctx->estimator_odometry.pose.pose.orientation.y;
+                q_wb[3] = ctx->estimator_odometry.pose.pose.orientation.z;
+                p_w[0] = ctx->estimator_odometry.pose.pose.position.x;
+                p_w[1] = ctx->estimator_odometry.pose.pose.position.y;
+                p_w[2] = ctx->estimator_odometry.pose.pose.position.z;
+                v_b[0] = ctx->estimator_odometry.twist.twist.linear.x;
+                v_b[1] = ctx->estimator_odometry.twist.twist.linear.y;
+                v_b[2] = ctx->estimator_odometry.twist.twist.linear.z;
+
+                /* position_control:(pt_w[3],vt_w[3],at_w[3],qc_wb[4],p_w[3],v_b[3],q_wb[4])->(nT,qr_wb[4]) */
+                args[0] = pt_w;
+                args[1] = vt_w;
+                args[2] = at_w;
+                args[3] = qc_wb;
+                args[4] = p_w;
+                args[5] = v_b;
+                args[6] = q_wb;
+>>>>>>> pr-bezier-mellinger
                 res[0] = &nT;
                 res[1] = qr_wb;
                 res[2] = &z_i;

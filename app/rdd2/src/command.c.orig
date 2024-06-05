@@ -20,8 +20,11 @@
 
 #include <cerebri/core/casadi.h>
 
-#include "casadi/gen/bezier.h"
+<<<<<<< HEAD
 #include "casadi/gen/common.h"
+=======
+#include "casadi/gen/bezier.h"
+>>>>>>> pr-bezier-mellinger
 #include "casadi/gen/rdd2.h"
 
 #define MY_STACK_SIZE 4096
@@ -48,10 +51,20 @@ struct context {
     synapse_msgs_Status status;
     synapse_msgs_Status last_status;
     synapse_msgs_Odometry estimator_odometry;
+<<<<<<< HEAD
     synapse_msgs_Twist cmd_vel;
     struct zros_sub sub_offboard_bezier_trajectory, sub_status, sub_joy, sub_offboard_joy,
         sub_estimator_odometry, sub_offboard_cmd_vel;
+    struct zros_pub pub_attitude_sp, pub_angular_velocity_sp, pub_force_sp, pub_accel_sp,
+=======
+    struct zros_sub sub_bezier_trajectory;
+    struct zros_sub sub_clock_offset;
+    struct zros_sub sub_status;
+    struct zros_sub sub_joy;
+    struct zros_sub sub_estimator_odometry;
+    // attitude_sp -> Ceb in q
     struct zros_pub pub_attitude_sp, pub_angular_velocity_ff, pub_force_sp, pub_accel_ff, pub_moment_ff,
+>>>>>>> pr-bezier-mellinger
         pub_velocity_sp, pub_orientation_sp, pub_position_sp;
     atomic_t running;
     size_t stack_size;
@@ -67,6 +80,7 @@ static struct context g_ctx = {
     .angular_velocity_ff = synapse_msgs_Vector3_init_default,
     .force_sp = synapse_msgs_Vector3_init_default,
     .bezier_trajectory = synapse_msgs_BezierTrajectory_init_default,
+    .clock_offset = synapse_msgs_Time_init_default,
     .status = synapse_msgs_Status_init_default,
     .last_status = synapse_msgs_Status_init_default,
     .velocity_sp = synapse_msgs_Vector3_init_default,
@@ -78,8 +92,12 @@ static struct context g_ctx = {
     .sub_offboard_joy = {},
     .sub_joy = {},
     .sub_status = {},
+<<<<<<< HEAD
     .sub_offboard_bezier_trajectory = {},
-    .sub_offboard_clock_offset = {},
+=======
+    .sub_bezier_trajectory = {},
+    .sub_clock_offset = {},
+>>>>>>> pr-bezier-mellinger
     .sub_estimator_odometry = {},
     .sub_offboard_cmd_vel = {},
     .pub_attitude_sp = {},
@@ -104,22 +122,27 @@ static void rdd2_command_init(struct context* ctx)
     zros_sub_init(&ctx->sub_offboard_joy, &ctx->node, &topic_offboard_joy, &ctx->joy, 10);
     zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 10);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
+<<<<<<< HEAD
     zros_sub_init(&ctx->sub_offboard_bezier_trajectory,
         &ctx->node, &topic_offboard_bezier_trajectory, &ctx->bezier_trajectory, 10);
-     zros_sub_init(&ctx->sub_offboard_clock_offset,
-        &ctx->node, &topic_sub_offboard_clock_offset, &ctx->clock_offset, 10);
+=======
+    zros_sub_init(&ctx->sub_bezier_trajectory, &ctx->node, &topic_bezier_trajectory, &ctx->bezier_trajectory, 10);
+    zros_sub_init(&ctx->sub_clock_offset, &ctx->node, &topic_clock_offset, &ctx->clock_offset, 10);
+>>>>>>> pr-bezier-mellinger
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
     zros_sub_init(&ctx->sub_offboard_cmd_vel, &ctx->node, &topic_offboard_cmd_vel, &ctx->cmd_vel, 10);
     zros_pub_init(&ctx->pub_attitude_sp, &ctx->node,
         &topic_attitude_sp, &ctx->attitude_sp);
-    zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node,
-        &topic_angular_velocity_sp, &ctx->angular_velocity_sp);
+    zros_pub_init(&ctx->pub_angular_velocity_ff, &ctx->node,
+        &topic_angular_velocity_ff, &ctx->angular_velocity_ff);
     zros_pub_init(&ctx->pub_force_sp, &ctx->node,
         &topic_force_sp, &ctx->force_sp);
     zros_pub_init(&ctx->pub_velocity_sp, &ctx->node,
         &topic_velocity_sp, &ctx->velocity_sp);
-    zros_pub_init(&ctx->pub_accel_sp, &ctx->node,
-        &topic_accel_sp, &ctx->accel_sp);
+    zros_pub_init(&ctx->pub_accel_ff, &ctx->node,
+        &topic_accel_ff, &ctx->accel_ff);
+    zros_pub_init(&ctx->pub_moment_ff, &ctx->node,
+        &topic_moment_ff, &ctx->moment_ff);
     zros_pub_init(&ctx->pub_orientation_sp, &ctx->node,
         &topic_orientation_sp, &ctx->orientation_sp);
     zros_pub_init(&ctx->pub_position_sp, &ctx->node,
@@ -138,13 +161,45 @@ static void rdd2_command_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_estimator_odometry);
     zros_sub_fini(&ctx->sub_offboard_cmd_vel);
     zros_pub_fini(&ctx->pub_attitude_sp);
-    zros_pub_fini(&ctx->pub_angular_velocity_sp);
+    zros_pub_fini(&ctx->pub_angular_velocity_ff);
     zros_pub_fini(&ctx->pub_velocity_sp);
-    zros_pub_fini(&ctx->pub_accel_sp);
+    zros_pub_fini(&ctx->pub_accel_ff);
+    zros_pub_fini(&ctx->pub_moment_ff);
     zros_pub_fini(&ctx->pub_force_sp);
     zros_pub_fini(&ctx->pub_orientation_sp);
     zros_pub_fini(&ctx->pub_position_sp);
     atomic_set(&ctx->running, 0);
+}
+
+static void stop(struct context* ctx)
+{
+
+    ctx->velocity_sp.x = 0;
+    ctx->velocity_sp.y = 0;
+    ctx->velocity_sp.z = 0;
+
+    ctx->attitude_sp.w = 1;
+    ctx->attitude_sp.x = 0;
+    ctx->attitude_sp.y = 0;
+    ctx->attitude_sp.z = 0;
+
+    ctx->accel_ff.x = 0;
+    ctx->accel_ff.y = 0;
+    ctx->accel_ff.z = 0;
+
+    ctx->moment_ff.x = 0;
+    ctx->moment_ff.y = 0;
+    ctx->moment_ff.z = 0;
+
+    ctx->angular_velocity_ff.x = 0;
+    ctx->angular_velocity_ff.y = 0;
+    ctx->angular_velocity_ff.z = 0;
+
+    zros_pub_update(&ctx->pub_velocity_sp);
+    zros_pub_update(&ctx->pub_attitude_sp);
+    zros_pub_update(&ctx->pub_accel_ff);
+    zros_pub_update(&ctx->pub_moment_ff);
+    zros_pub_update(&ctx->pub_angular_velocity_ff);
 }
 
 static void rdd2_command_run(void* p0, void* p1, void* p2)
@@ -408,7 +463,14 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             ctx->accel_ff.z = 0;
             zros_pub_update(&ctx->pub_accel_ff);
 
+<<<<<<< HEAD
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
+            LOG_ERR("bezier not yet supported");
+        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_UNKNOWN) {
+            // LOG_ERR("unknown mode");
+=======
+        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
+            // TODO bezier curve here
             // goal -> given position goal, find cmd_vel
             uint64_t time_start_nsec = ctx->bezier_trajectory.time_start;
             uint64_t time_stop_nsec = time_start_nsec;
@@ -562,7 +624,35 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             zros_pub_update(&ctx->pub_orientation_sp);
 
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_UNKNOWN) {
-            // LOG_ERR("unknown mode");
+            // TODO: make acro mode
+
+            double omega[3];
+            double thrust;
+            {
+                // joy_acro:(joy_roll,joy_pitch,joy_yaw,joy_thrust)->(omega[3],thrust)
+                CASADI_FUNC_ARGS(joy_acro);
+
+                args[0] = &joy_roll;
+                args[1] = &joy_pitch;
+                args[2] = &joy_yaw;
+                args[3] = &joy_thrust;
+
+                res[0] = omega;
+                res[1] = &thrust;
+
+                CASADI_FUNC_CALL(joy_acro);
+            }
+
+            // angular velocity set point
+            ctx->angular_velocity_ff.x = omega[0];
+            ctx->angular_velocity_ff.y = omega[1];
+            ctx->angular_velocity_ff.z = omega[2];
+            zros_pub_update(&ctx->pub_angular_velocity_ff);
+
+            // thrust pass through
+            ctx->force_sp.z = thrust;
+            zros_pub_update(&ctx->pub_force_sp);
+>>>>>>> pr-bezier-mellinger
         }
     }
 

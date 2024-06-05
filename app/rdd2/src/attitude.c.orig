@@ -67,9 +67,13 @@ static void rdd2_attitude_init(struct context* ctx)
     zros_sub_init(&ctx->sub_attitude_sp, &ctx->node,
         &topic_attitude_sp, &ctx->attitude_sp, 50);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
+<<<<<<< HEAD
         &topic_estimator_odometry, &ctx->estimator_odometry, 50);
+=======
+        &topic_estimator_odometry, &ctx->estimator_odometry, 300);
     zros_sub_init(&ctx->sub_angular_velocity_ff, &ctx->node,
-        &topic_angular_velocity_ff, &ctx->angular_velocity_ff, 50);
+        &topic_angular_velocity_ff, &ctx->angular_velocity_ff, 300);
+>>>>>>> pr-bezier-mellinger
     zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node, &topic_angular_velocity_sp, &ctx->angular_velocity_sp);
     atomic_set(&ctx->running, 1);
 }
@@ -117,12 +121,17 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_attitude_sp);
         }
 
+<<<<<<< HEAD
+        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE) {
+
+=======
         if (zros_sub_update_available(&ctx->sub_angular_velocity_ff)) {
             zros_sub_update(&ctx->sub_angular_velocity_ff);
         }
 
-        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE) {
-
+        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN) {
+            // TODO add acro mode
+>>>>>>> pr-bezier-mellinger
             double omega[3];
             {
                 /* attitude_control:(kp[3],q[4],q_r[4])->(omega[3]) */
@@ -154,6 +163,7 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             }
 
             // publish
+<<<<<<< HEAD
             bool data_ok = true;
             for (int i = 0; i < 3; i++) {
                 if (!isfinite(omega[i])) {
@@ -163,11 +173,17 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             }
 
             if (data_ok) {
-                ctx->angular_velocity_sp.x = omega[0] + ctx->angular_velocity_ff.x;
-                ctx->angular_velocity_sp.y = omega[1] + ctx->angular_velocity_ff.y;
-                ctx->angular_velocity_sp.z = omega[2] + ctx->angular_velocity_ff.z;
+                ctx->angular_velocity_sp.x = omega[0];
+                ctx->angular_velocity_sp.y = omega[1];
+                ctx->angular_velocity_sp.z = omega[2];
                 zros_pub_update(&ctx->pub_angular_velocity_sp);
             }
+=======
+            ctx->angular_velocity_sp.x = omega[0] + (double)ctx->angular_velocity_ff.x;
+            ctx->angular_velocity_sp.y = omega[1] + (double)ctx->angular_velocity_ff.y;
+            ctx->angular_velocity_sp.z = omega[2] + (double)ctx->angular_velocity_ff.z;
+            zros_pub_update(&ctx->pub_angular_velocity_sp);
+>>>>>>> pr-bezier-mellinger
         }
     }
 

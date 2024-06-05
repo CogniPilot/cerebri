@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <assert.h>
+#include <math.h>
 
 #include <synapse_topic_list.h>
 #include <zephyr/logging/log.h>
@@ -65,8 +65,12 @@ static void rdd2_angular_velocity_init(struct context* ctx)
     zros_sub_init(&ctx->sub_angular_velocity_sp, &ctx->node,
         &topic_angular_velocity_sp, &ctx->angular_velocity_sp, 50);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
+<<<<<<< HEAD
         &topic_estimator_odometry, &ctx->estimator_odometry, 50);
-    zros_sub_init(&ctx->sub_moment_ff, &ctx->node, &topic_moment_ff, &ctx->moment_ff, 50);
+=======
+        &topic_estimator_odometry, &ctx->estimator_odometry, 300);
+    zros_sub_init(&ctx->sub_moment_ff, &ctx->node, &topic_moment_ff, &ctx->moment_ff, 300);
+>>>>>>> pr-bezier-mellinger
     zros_pub_init(&ctx->pub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp);
     atomic_set(&ctx->running, 1);
 }
@@ -180,6 +184,7 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
         // LOG_INF("omega_i: %10.4f %10.4f %10.4f",
         //     omega_i[0], omega_i[1], omega_i[2]);
 
+<<<<<<< HEAD
         bool data_ok = true;
         for (int i = 0; i < 3; i++) {
             if (!isfinite(omega_i[i])) {
@@ -196,10 +201,16 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
 
         // publish moment setpoint
         if (data_ok) {
-            ctx->moment_sp.x = M[0] + ctx->moment_ff.x;
-            ctx->moment_sp.y = M[1] + ctx->moment_ff.y;
-            ctx->moment_sp.z = M[2] + ctx->moment_ff.z;
+            ctx->moment_sp.x = M[0];
+            ctx->moment_sp.y = M[1];
+            ctx->moment_sp.z = M[2];
             zros_pub_update(&ctx->pub_moment_sp);
+=======
+            // compute control
+            ctx->moment_sp.x = M[0] + (double)ctx->moment_ff.x;
+            ctx->moment_sp.y = M[1] + (double)ctx->moment_ff.y;
+            ctx->moment_sp.z = M[2] + (double)ctx->moment_ff.z;
+>>>>>>> pr-bezier-mellinger
         }
     }
 
@@ -254,6 +265,7 @@ SHELL_CMD_REGISTER(rdd2_angular_velocity, &sub_rdd2_angular_velocity, "rdd2 angu
 
 static int rdd2_angular_velocity_sys_init(void)
 {
+    k_msleep(1000);
     return start(&g_ctx);
 };
 

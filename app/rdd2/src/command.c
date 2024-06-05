@@ -361,13 +361,13 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             double yaw_rate = 0;
             double vb[3] = { 0, 0, 0 };
 
-            if (ctx->status.command_source == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_ONBOARD) {
+            if (ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY) {
                 yaw_rate = 60 * deg2rad * joy_yaw;
                 vb[0] = 2.0 * joy_pitch;
                 vb[1] = -2.0 * joy_roll; // positive roll is negative y
                 vb[2] = joy_thrust;
                 // LOG_INF("onboard yawrate: %10.4f vbx: %10.4f %10.4f %10.4f", yaw_rate, vbx, vby, vbz);
-            } else if (ctx->status.command_source == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_OFFBOARD) {
+            } else if (ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
                 yaw_rate = ctx->cmd_vel.angular.z;
                 vb[0] = ctx->cmd_vel.linear.x;
                 vb[1] = ctx->cmd_vel.linear.y;

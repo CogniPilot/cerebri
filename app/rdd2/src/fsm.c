@@ -84,8 +84,8 @@ static void transition(
 typedef struct status_input_s {
     bool request_arm;
     bool request_disarm;
-    bool request_command_source_onboard;
-    bool request_command_source_offboard;
+    bool request_topic_source_joy;
+    bool request_topic_source_ethernet;
     bool request_mode_angular_velocity;
     bool request_mode_attitude;
     bool request_mode_attitude_rate;
@@ -131,7 +131,8 @@ static struct context g_ctx = {
         .fuel_percentage = 0,
         .joy = synapse_msgs_Status_Joy_JOY_UNKNOWN,
         .mode = synapse_msgs_Status_Mode_MODE_ATTITUDE,
-        .command_source = synapse_msgs_Status_CommandSource_COMMAND_SOURCE_ONBOARD,
+        .joy_source = synapse_msgs_Status_JoySource_JOY_SOURCE_ETHERNET,
+        .topic_source = synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY,
         .power = 0.0,
         .safety = synapse_msgs_Status_Safety_SAFETY_UNKNOWN,
         .status_message = "",
@@ -181,8 +182,8 @@ static void fsm_compute_input(status_input_t* input, const struct context* ctx)
     input->request_mode_bezier = ctx->joy.buttons[JOY_BUTTON_B] == 1;
     input->request_mode_velocity = ctx->joy.buttons[JOY_BUTTON_X] == 1;
     input->request_mode_calibration = ctx->joy.buttons[JOY_BUTTON_Y] == 1;
-    input->request_command_source_onboard = ctx->joy.buttons[JOY_BUTTON_LB] == 1;
-    input->request_command_source_offboard = ctx->joy.buttons[JOY_BUTTON_RB] == 1;
+    input->request_topic_source_joy = ctx->joy.buttons[JOY_BUTTON_LB] == 1;
+    input->request_topic_source_ethernet = ctx->joy.buttons[JOY_BUTTON_RB] == 1;
     input->mode_set = ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
     input->safe = ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE || ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNKNOWN;
@@ -305,22 +306,22 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
 
     // command source transitions
     transition(
-        &status->command_source, // state
-        input->request_command_source_onboard, // request
-        "request command source onboard", // label
+        &status->topic_source, // state
+        input->request_topic_source_joy, // request
+        "request topic source joy", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_CommandSource_COMMAND_SOURCE_ONBOARD, // post
+        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
         0);
 
     transition(
-        &status->command_source, // state
-        input->request_command_source_offboard, // request
+        &status->topic_source, // state
+        input->request_topic_source_ethernet, // request
         "request command source offboard", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_CommandSource_COMMAND_SOURCE_OFFBOARD, // post
+        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards

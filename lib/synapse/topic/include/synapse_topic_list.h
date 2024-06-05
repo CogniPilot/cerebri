@@ -57,9 +57,13 @@ enum {
 /********************************************************************
  * topics
  ********************************************************************/
+ZROS_TOPIC_DECLARE(topic_accel_ff, synapse_msgs_Vector3);
+ZROS_TOPIC_DECLARE(topic_accel_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DECLARE(topic_actuators, synapse_msgs_Actuators);
 ZROS_TOPIC_DECLARE(topic_actuators_manual, synapse_msgs_Actuators);
 ZROS_TOPIC_DECLARE(topic_altimeter, synapse_msgs_Altimeter);
+ZROS_TOPIC_DECLARE(topic_angular_velocity_ff, synapse_msgs_Vector3);
+ZROS_TOPIC_DECLARE(topic_angular_velocity_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DECLARE(topic_attitude_sp, synapse_msgs_Quaternion);
 ZROS_TOPIC_DECLARE(topic_battery_state, synapse_msgs_BatteryState);
 ZROS_TOPIC_DECLARE(topic_bezier_trajectory, synapse_msgs_BezierTrajectory);
@@ -67,21 +71,20 @@ ZROS_TOPIC_DECLARE(topic_clock_offset, synapse_msgs_Time);
 ZROS_TOPIC_DECLARE(topic_cmd_vel, synapse_msgs_Twist);
 ZROS_TOPIC_DECLARE(topic_estimator_odometry, synapse_msgs_Odometry);
 ZROS_TOPIC_DECLARE(topic_external_odometry, synapse_msgs_Odometry);
+ZROS_TOPIC_DECLARE(topic_force_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DECLARE(topic_imu, synapse_msgs_Imu);
 ZROS_TOPIC_DECLARE(topic_joy, synapse_msgs_Joy);
 ZROS_TOPIC_DECLARE(topic_led_array, synapse_msgs_LEDArray);
 ZROS_TOPIC_DECLARE(topic_magnetic_field, synapse_msgs_MagneticField);
+ZROS_TOPIC_DECLARE(topic_moment_ff, synapse_msgs_Vector3);
+ZROS_TOPIC_DECLARE(topic_moment_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DECLARE(topic_nav_sat_fix, synapse_msgs_NavSatFix);
-ZROS_TOPIC_DECLARE(topic_angular_velocity_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DECLARE(topic_orientation_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DECLARE(topic_position_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DECLARE(topic_safety, synapse_msgs_Safety);
 ZROS_TOPIC_DECLARE(topic_status, synapse_msgs_Status);
-ZROS_TOPIC_DECLARE(topic_wheel_odometry, synapse_msgs_WheelOdometry);
-ZROS_TOPIC_DECLARE(topic_force_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DECLARE(topic_moment_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DECLARE(topic_position_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DECLARE(topic_velocity_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DECLARE(topic_accel_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DECLARE(topic_orientation_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DECLARE(topic_wheel_odometry, synapse_msgs_WheelOdometry);
 
 #endif // SYNAPSE_TOPIC_LIST_H_
 // vi: ts=4 sw=4 et

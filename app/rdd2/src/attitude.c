@@ -33,8 +33,8 @@ struct context {
     synapse_msgs_Status status;
     synapse_msgs_Odometry estimator_odometry;
     synapse_msgs_Quaternion attitude_sp;
-    synapse_msgs_Vector3 angular_velocity_sp;
-    struct zros_sub sub_status, sub_attitude_sp, sub_estimator_odometry;
+    synapse_msgs_Vector3 angular_velocity_sp, angular_velocity_ff;
+    struct zros_sub sub_status, sub_attitude_sp, sub_estimator_odometry, sub_angular_velocity_ff;
     struct zros_pub pub_angular_velocity_sp;
     atomic_t running;
     size_t stack_size;
@@ -47,6 +47,7 @@ static struct context g_ctx = {
     .status = synapse_msgs_Status_init_default,
     .attitude_sp = synapse_msgs_Quaternion_init_default,
     .angular_velocity_sp = synapse_msgs_Vector3_init_default,
+    .angular_velocity_ff = synapse_msgs_Vector3_init_default,
     .estimator_odometry = synapse_msgs_Odometry_init_default,
     .sub_status = {},
     .sub_attitude_sp = {},
@@ -67,6 +68,8 @@ static void rdd2_attitude_init(struct context* ctx)
         &topic_attitude_sp, &ctx->attitude_sp, 300);
     zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
         &topic_estimator_odometry, &ctx->estimator_odometry, 300);
+    zros_sub_init(&ctx->sub_angular_velocity_ff, &ctx->node,
+        &topic_angular_velocity_ff, &ctx->angular_velocity_ff, 300);
     zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node, &topic_angular_velocity_sp, &ctx->angular_velocity_sp);
     atomic_set(&ctx->running, 1);
 }
@@ -79,6 +82,7 @@ static void rdd2_attitude_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_status);
     zros_sub_fini(&ctx->sub_attitude_sp);
     zros_sub_fini(&ctx->sub_estimator_odometry);
+    zros_sub_fini(&ctx->sub_angular_velocity_ff);
     zros_pub_fini(&ctx->pub_angular_velocity_sp);
 }
 
@@ -113,6 +117,10 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_attitude_sp);
         }
 
+        if (zros_sub_update_available(&ctx->sub_angular_velocity_ff)) {
+            zros_sub_update(&ctx->sub_angular_velocity_ff);
+        }
+
         if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN) {
             // TODO add acro mode
             double omega[3];
@@ -139,9 +147,9 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             }
 
             // publish
-            ctx->angular_velocity_sp.x = omega[0];
-            ctx->angular_velocity_sp.y = omega[1];
-            ctx->angular_velocity_sp.z = omega[2];
+            ctx->angular_velocity_sp.x = omega[0] + (double)ctx->angular_velocity_ff.x;
+            ctx->angular_velocity_sp.y = omega[1] + (double)ctx->angular_velocity_ff.y;
+            ctx->angular_velocity_sp.z = omega[2] + (double)ctx->angular_velocity_ff.z;
             zros_pub_update(&ctx->pub_angular_velocity_sp);
         }
     }

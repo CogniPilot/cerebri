@@ -52,9 +52,13 @@ static context_t g_ctx = {
 };
 
 #define TOPIC_DICTIONARY()                                                        \
-    (actuators, &topic_actuators, "actuators"),                                   \
+        (accel_ff, &topic_accel_ff, "accel_ff"),                                  \
+        (accel_sp, &topic_accel_sp, "accel_sp"),                                  \
+        (actuators, &topic_actuators, "actuators"),                               \
         (actuators_manual, &topic_actuators_manual, "actuators_manual"),          \
         (altimeter, &topic_altimeter, "altimeter"),                               \
+        (angular_velocity_ff, &topic_angular_velocity_ff, "angular_velocity_ff"), \
+        (angular_velocity_sp, &topic_angular_velocity_sp, "angular_velocity_sp"), \
         (attitude_sp, &topic_attitude_sp, "attitude_sp"),                         \
         (battery_state, &topic_battery_state, "battery_state"),                   \
         (bezier_trajectory, &topic_bezier_trajectory, "bezier_trajectory"),       \
@@ -62,20 +66,19 @@ static context_t g_ctx = {
         (cmd_vel, &topic_cmd_vel, "cmd_vel"),                                     \
         (estimator_odometry, &topic_estimator_odometry, "estimator_odometry"),    \
         (external_odometry, &topic_external_odometry, "external_odometry"),       \
+        (force_sp, &topic_force_sp, "force_sp"),                                  \
         (imu, &topic_imu, "imu"),                                                 \
         (joy, &topic_joy, "joy"),                                                 \
         (led_array, &topic_led_array, "led_array"),                               \
         (magnetic_field, &topic_magnetic_field, "magnetic_field"),                \
-        (nav_sat_fix, &topic_nav_sat_fix, "nav_sat_fix"),                         \
-        (angular_velocity_sp, &topic_angular_velocity_sp, "angular_velocity_sp"), \
-        (position_sp, &topic_position_sp, "position_sp"),                         \
-        (force_sp, &topic_force_sp, "force_sp"),                                  \
+        (moment_ff, &topic_moment_ff, "moment_ff"),                               \
         (moment_sp, &topic_moment_sp, "moment_sp"),                               \
+        (nav_sat_fix, &topic_nav_sat_fix, "nav_sat_fix"),                         \
+        (orientation_sp, &topic_orientation_sp, "orientation_sp"),                \
+        (position_sp, &topic_position_sp, "position_sp"),                         \
         (safety, &topic_safety, "safety"),                                        \
         (status, &topic_status, "status"),                                        \
         (velocity_sp, &topic_velocity_sp, "velocity_sp"),                         \
-        (accel_sp, &topic_accel_sp, "accel_sp"),                                  \
-        (orientation_sp, &topic_orientation_sp, "orientation_sp"),                \
         (wheel_odometry, &topic_wheel_odometry, "wheel_odometry")
 
 static volatile bool keep_running = true;
@@ -135,7 +138,7 @@ static int topic_count_hz(const struct shell* sh, struct zros_topic* topic, void
     double max = 0;
     shell_print(sh, "sample   delta");
     for (int i = 0; i < msg_count - 1; i++) {
-        sample_sec[i] = (float)(msg_tick[i + 1] - msg_tick[i]) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        sample_sec[i] = (double)(msg_tick[i + 1] - msg_tick[i]) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         if (i == 0) {
             min = sample_sec[i];
             max = sample_sec[i];
@@ -236,7 +239,10 @@ void topic_work_handler(struct k_work* work)
         || topic == &topic_moment_sp
         || topic == &topic_force_sp
         || topic == &topic_velocity_sp
-        || topic == &topic_position_sp) {
+        || topic == &topic_position_sp
+        || topic == &topic_accel_ff
+        || topic == &topic_moment_ff
+        || topic == &topic_angular_velocity_ff) {
         synapse_msgs_Vector3 msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_vector3);
     } else if (topic == &topic_attitude_sp || topic == &topic_orientation_sp) {

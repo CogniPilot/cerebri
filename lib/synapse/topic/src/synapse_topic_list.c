@@ -107,37 +107,42 @@ const char* fuel_str(synapse_msgs_Status_Fuel fuel)
 /********************************************************************
  * topics
  ********************************************************************/
+ZROS_TOPIC_DEFINE(accel_ff, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(accel_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(actuators, synapse_msgs_Actuators);
 ZROS_TOPIC_DEFINE(actuators_manual, synapse_msgs_Actuators);
 ZROS_TOPIC_DEFINE(altimeter, synapse_msgs_Altimeter);
+ZROS_TOPIC_DEFINE(angular_velocity_ff, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(angular_velocity_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(attitude_sp, synapse_msgs_Quaternion);
 ZROS_TOPIC_DEFINE(battery_state, synapse_msgs_BatteryState);
 ZROS_TOPIC_DEFINE(bezier_trajectory, synapse_msgs_BezierTrajectory);
 ZROS_TOPIC_DEFINE(clock_offset, synapse_msgs_Time);
 ZROS_TOPIC_DEFINE(cmd_vel, synapse_msgs_Twist);
-ZROS_TOPIC_DEFINE(status, synapse_msgs_Status);
+ZROS_TOPIC_DEFINE(estimator_odometry, synapse_msgs_Odometry);
+ZROS_TOPIC_DEFINE(external_odometry, synapse_msgs_Odometry);
+ZROS_TOPIC_DEFINE(force_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(imu, synapse_msgs_Imu);
 ZROS_TOPIC_DEFINE(joy, synapse_msgs_Joy);
 ZROS_TOPIC_DEFINE(led_array, synapse_msgs_LEDArray);
 ZROS_TOPIC_DEFINE(magnetic_field, synapse_msgs_MagneticField);
-ZROS_TOPIC_DEFINE(nav_sat_fix, synapse_msgs_NavSatFix);
-ZROS_TOPIC_DEFINE(estimator_odometry, synapse_msgs_Odometry);
-ZROS_TOPIC_DEFINE(external_odometry, synapse_msgs_Odometry);
-ZROS_TOPIC_DEFINE(safety, synapse_msgs_Safety);
-ZROS_TOPIC_DEFINE(wheel_odometry, synapse_msgs_WheelOdometry);
-ZROS_TOPIC_DEFINE(angular_velocity_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(attitude_sp, synapse_msgs_Quaternion);
-ZROS_TOPIC_DEFINE(force_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(moment_ff, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(moment_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(velocity_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(accel_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(nav_sat_fix, synapse_msgs_NavSatFix);
 ZROS_TOPIC_DEFINE(orientation_sp, synapse_msgs_Quaternion);
 ZROS_TOPIC_DEFINE(position_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(safety, synapse_msgs_Safety);
+ZROS_TOPIC_DEFINE(status, synapse_msgs_Status);
+ZROS_TOPIC_DEFINE(velocity_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(wheel_odometry, synapse_msgs_WheelOdometry);
 
 static struct zros_topic* topic_list[] = {
+    &topic_accel_ff,
     &topic_accel_sp,
     &topic_actuators,
     &topic_actuators_manual,
     &topic_altimeter,
+    &topic_angular_velocity_ff,
     &topic_angular_velocity_sp,
     &topic_attitude_sp,
     &topic_battery_state,
@@ -150,6 +155,7 @@ static struct zros_topic* topic_list[] = {
     &topic_joy,
     &topic_led_array,
     &topic_magnetic_field,
+    &topic_moment_ff,
     &topic_nav_sat_fix,
     &topic_orientation_sp,
     &topic_position_sp,

@@ -31,7 +31,8 @@
  ********************************************************************/
 void stamp_header(synapse_msgs_Header* hdr, int64_t ticks);
 const char* mode_str(synapse_msgs_Status_Mode mode);
-const char* command_source_str(synapse_msgs_Status_CommandSource src);
+const char* joy_source_str(synapse_msgs_Status_JoySource src);
+const char* topic_source_str(synapse_msgs_Status_TopicSource src);
 const char* armed_str(synapse_msgs_Status_Arming arming);
 const char* safety_str(synapse_msgs_Safety_Status safety);
 const char* fuel_str(synapse_msgs_Status_Fuel fuel);

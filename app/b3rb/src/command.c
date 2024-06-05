@@ -119,7 +119,7 @@ static void b3rb_command_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_status);
         }
 
-        if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
+        if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_ACTUATORS) {
             double turn_angle = ctx->max_turn_angle * (double)ctx->joy.axes[JOY_AXES_RIGHT_STICK_LEFT];
             double omega_fwd = ctx->max_velocity * (double)ctx->joy.axes[JOY_AXES_LEFT_STICK_UP] / ctx->wheel_radius;
 
@@ -129,7 +129,7 @@ static void b3rb_command_run(void* p0, void* p1, void* p2)
             zros_pub_update(&ctx->pub_actuators);
 
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY) {
-            if (ctx->status.command_source == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_ONBOARD) {
+            if (ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY) {
                 ctx->cmd_vel.linear.x = 0;
                 ctx->cmd_vel.linear.y = 0;
                 ctx->cmd_vel.linear.z = 0;
@@ -138,7 +138,7 @@ static void b3rb_command_run(void* p0, void* p1, void* p2)
                 ctx->cmd_vel.angular.z = 0;
                 ctx->cmd_vel.has_angular = true;
                 ctx->cmd_vel.has_linear = true;
-            } else if (ctx->status.command_source == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_OFFBOARD) {
+            } else if (ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
                 ctx->cmd_vel = ctx->offboard_cmd_vel;
                 ctx->cmd_vel.has_angular = true;
                 ctx->cmd_vel.has_linear = true;

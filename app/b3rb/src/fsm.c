@@ -84,8 +84,8 @@ static void transition(
 struct status_input {
     bool request_arm;
     bool request_disarm;
-    bool request_command_source_onboard;
-    bool request_command_source_offboard;
+    bool request_topic_source_joy;
+    bool request_topic_source_ethernet;
     bool request_mode_manual;
     bool request_mode_velocity;
     bool request_mode_bezier;
@@ -127,8 +127,8 @@ static struct context g_ctx = {
         .fuel = synapse_msgs_Status_Fuel_FUEL_UNKNOWN,
         .fuel_percentage = 0,
         .joy = synapse_msgs_Status_Joy_JOY_UNKNOWN,
-        .command_source = synapse_msgs_Status_CommandSource_COMMAND_SOURCE_ONBOARD,
-        .mode = synapse_msgs_Status_Mode_MODE_UNKNOWN,
+        .joy_source = synapse_msgs_Status_JoySource_JOY_SOURCE_ETHERNET,
+        .mode = synapse_msgs_Status_Mode_MODE_ACTUATORS,
         .power = 0.0,
         .safety = synapse_msgs_Status_Safety_SAFETY_UNKNOWN,
         .status_message = "",
@@ -175,8 +175,8 @@ static void fsm_compute_input(struct status_input* input, const struct context* 
     input->request_mode_manual = ctx->joy.buttons[JOY_BUTTON_A] == 1;
     input->request_mode_calibration = ctx->joy.buttons[JOY_BUTTON_Y] == 1;
     input->mode_set = ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN;
-    input->request_command_source_onboard = ctx->joy.buttons[JOY_BUTTON_LB] == 1;
-    input->request_command_source_offboard = ctx->joy.buttons[JOY_BUTTON_RB] == 1;
+    input->request_topic_source_joy = ctx->joy.buttons[JOY_BUTTON_LB] == 1;
+    input->request_topic_source_ethernet = ctx->joy.buttons[JOY_BUTTON_RB] == 1;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
     input->safe = ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE || ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNKNOWN;
 #else
@@ -249,12 +249,12 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         input->request_mode_manual, // request
         "request mode manual", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_Mode_MODE_MANUAL, // post
+        synapse_msgs_Status_Mode_MODE_ACTUATORS, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
         1,
-        status->command_source != synapse_msgs_Status_CommandSource_COMMAND_SOURCE_ONBOARD, "must be in onboard mode");
+        status->topic_source != synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY, "must enable joy control");
 
     transition(
         &status->mode, // state
@@ -276,7 +276,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->request_seq, &status->request_rejected, // request
         // guards
         1,
-        status->command_source != synapse_msgs_Status_CommandSource_COMMAND_SOURCE_OFFBOARD, "must be in offboard mode");
+        status->topic_source != synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY, "must enable joy control");
 
     transition(
         &status->mode, // state
@@ -290,23 +290,23 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         1,
         status->arming == synapse_msgs_Status_Arming_ARMING_ARMED, "disarm required");
 
-    // command source transitions
+    // topic source transitions
     transition(
-        &status->command_source, // state
-        input->request_command_source_onboard, // request
+        &status->topic_source, // state
+        input->request_topic_source_joy, // request
         "request command source onboard", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_CommandSource_COMMAND_SOURCE_ONBOARD, // post
+        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
 
     transition(
-        &status->command_source, // state
-        input->request_command_source_offboard, // request
+        &status->topic_source, // state
+        input->request_topic_source_ethernet, // request
         "request command source offboard", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_CommandSource_COMMAND_SOURCE_OFFBOARD, // post
+        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards

@@ -161,11 +161,11 @@ static void b3rb_lighting_run(void* p0, void* p1, void* p2)
         // mode leds
         for (size_t i = 0; i < ARRAY_SIZE(mode_leds); i++) {
             const double* color = NULL;
-            if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY && ctx->status.command_source == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_ONBOARD) {
+            if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_ACTUATORS) {
                 color = color_manual;
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY && ctx->status.command_source == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_OFFBOARD) {
+            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY) {
                 color = color_cmd_vel;
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER && ctx->status.command_source == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_OFFBOARD) {
+            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
                 color = color_auto;
             } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CALIBRATION) {
                 color = color_calibration;

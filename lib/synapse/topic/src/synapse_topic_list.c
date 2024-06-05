@@ -26,24 +26,46 @@ void stamp_header(synapse_msgs_Header* hdr, int64_t ticks)
     hdr->stamp.nanosec = nanosec;
 }
 
-const char* command_source_str(synapse_msgs_Status_CommandSource src)
+const char* joy_source_str(synapse_msgs_Status_JoySource src)
 {
-    if (src == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_UNKNOWN) {
+    if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_UNKNOWN) {
         return "unknown";
-    } else if (src == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_ONBOARD) {
-        return "onboard";
-    } else if (src == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_OFFBOARD) {
-        return "offboard";
-    } else if (src == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_RESERVED_0) {
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RADIO_CONTROL) {
+        return "radio_control";
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_ETHERNET) {
+        return "ethernet";
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_CAN) {
+        return "can";
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_0) {
         return "reserved 0";
-    } else if (src == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_RESERVED_1) {
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_1) {
         return "reserved 1";
-    } else if (src == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_RESERVED_2) {
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_2) {
         return "reserved 2";
-    } else if (src == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_RESERVED_3) {
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_3) {
         return "reserved 3";
-    } else if (src == synapse_msgs_Status_CommandSource_COMMAND_SOURCE_RESERVED_4) {
-        return "reserved 4";
+    }
+    return unhandled;
+}
+
+const char* topic_source_str(synapse_msgs_Status_TopicSource src)
+{
+    if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_UNKNOWN) {
+        return "unknown";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY) {
+        return "joy";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_LOCAL) {
+        return "local";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
+        return "ethernet";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_CAN) {
+        return "can";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_RESERVED_0) {
+        return "reserved 0";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_RESERVED_1) {
+        return "reserved 1";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_RESERVED_2) {
+        return "reserved 2";
     }
     return unhandled;
 }
@@ -54,7 +76,7 @@ const char* mode_str(synapse_msgs_Status_Mode mode)
         return "unknown";
     } else if (mode == synapse_msgs_Status_Mode_MODE_CALIBRATION) {
         return "calibration";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
+    } else if (mode == synapse_msgs_Status_Mode_MODE_ACTUATORS) {
         return "manual";
     } else if (mode == synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE) {
         return "attitude rate";

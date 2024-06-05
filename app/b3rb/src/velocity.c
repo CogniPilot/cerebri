@@ -136,7 +136,7 @@ static void b3rb_velocity_run(void* p0, void* p1, void* p2)
         }
 
         // handle modes
-        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_MANUAL) {
+        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_ACTUATORS) {
             b3rb_velocity_update(ctx);
         }
     }

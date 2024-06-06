@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "casadi/gen/rdd2.h"
 #include "casadi/gen/rdd2_loglinear.h"
 
 #include <math.h>

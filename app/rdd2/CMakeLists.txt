@@ -54,6 +54,11 @@ endif()
 
 if (CONFIG_CEREBRI_RDD2_CASADI)
   list(APPEND SOURCE_FILES
+    src/casadi/gen/rdd2_loglinear.c)
+endif()
+
+if (CONFIG_CEREBRI_RDD2_CASADI)
+  list(APPEND SOURCE_FILES
     src/casadi/gen/bezier.c)
 endif()
 
@@ -96,6 +101,7 @@ set_source_files_properties(
 
 set_source_files_properties(
   src/casadi/gen/rdd2.c
+  src/casadi/gen/rdd2_loglinear.c
   src/casadi/gen/bezier.c
   PROPERTIES COMPILE_FLAGS
   "${flags}\

@@ -195,7 +195,7 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 args[5] = q_r;
                 res[0] = zeta;
                 CASADI_FUNC_CALL(se23_error);
-            }     
+            }
             double nT; // normalized magnitude of thrust (ratio of twice weight)
             double qr_wb[4];
             {

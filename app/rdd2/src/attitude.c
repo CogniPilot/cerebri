@@ -177,7 +177,7 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
                 args[5] = q_r;
                 res[0] = zeta;
                 CASADI_FUNC_CALL(se23_error);
-            }    
+            }
             double omega[3];
             {
                 /* attitude_control:(kp[3],q[4],q_r[4])->(omega[3]) */

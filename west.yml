@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 2234940bcbcd24acb99e8cb6ae30becbe2bec099 # pr-dummy-cycle 6/02/24
+      revision: e9d514a954f2d0d936f685580aad9fca95e7d5fd # zephyr_cogni-3.6-v0
       import:
         - name-allowlist:
           - nanopb

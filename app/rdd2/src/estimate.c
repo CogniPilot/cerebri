@@ -170,11 +170,19 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
             // LOG_INF("correct offboard odometry");
             zros_sub_update(&ctx->sub_offboard_odometry);
 
-            /*
+#if defined(CONFIG_CEREBRI_RDD2_ESTIMATE_OFFBOARD_ODOMETRY)
+            __ASSERT(fabs((ctx->offboard_odometry.pose.pose.orientation.w * ctx->offboard_odometry.pose.pose.orientation.w
+                              + ctx->offboard_odometry.pose.pose.orientation.x * ctx->offboard_odometry.pose.pose.orientation.x
+                              + ctx->offboard_odometry.pose.pose.orientation.y * ctx->offboard_odometry.pose.pose.orientation.y
+                              + ctx->offboard_odometry.pose.pose.orientation.z * ctx->offboard_odometry.pose.pose.orientation.z)
+                         - 1)
+                    < 1e-2,
+                "quaternion normal error");
+
             // use offboard odometry to reset position
             x[0] = ctx->offboard_odometry.pose.pose.position.x;
             x[1] = ctx->offboard_odometry.pose.pose.position.y;
-            x[2] = ctx->offbaord_odometry.pose.pose.position.z;
+            x[2] = ctx->offboard_odometry.pose.pose.position.z;
 
             // use offboard odometry to reset velocity
             x[3] = ctx->offboard_odometry.twist.twist.linear.x;
@@ -186,7 +194,7 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
             x[7] = ctx->offboard_odometry.pose.pose.orientation.x;
             x[8] = ctx->offboard_odometry.pose.pose.orientation.y;
             x[9] = ctx->offboard_odometry.pose.pose.orientation.z;
-            */
+#endif
         }
 
         // calculate dt
@@ -236,51 +244,28 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
         if (data_ok) {
             stamp_header(&ctx->odometry.header, k_uptime_ticks());
             ctx->odometry.header.seq = seq++;
+            ctx->odometry.pose.pose.position.x = x[0];
+            ctx->odometry.pose.pose.position.y = x[1];
+            ctx->odometry.pose.pose.position.z = x[2];
+            ctx->odometry.twist.twist.linear.x = x[3];
+            ctx->odometry.twist.twist.linear.y = x[4];
+            ctx->odometry.twist.twist.linear.z = x[5];
+            ctx->odometry.pose.pose.orientation.w = x[6];
+            ctx->odometry.pose.pose.orientation.x = x[7];
+            ctx->odometry.pose.pose.orientation.y = x[8];
+            ctx->odometry.pose.pose.orientation.z = x[9];
+            ctx->odometry.twist.twist.angular.x = ctx->imu.angular_velocity.x;
+            ctx->odometry.twist.twist.angular.y = ctx->imu.angular_velocity.y;
+            ctx->odometry.twist.twist.angular.z = ctx->imu.angular_velocity.z;
 
-#if defined(CONFIG_CEREBRI_RDD2_ESTIMATE_OFFBOARD_ODOMETRY)
-            const bool use_offboard = true;
-#else
-            const bool use_offboard = false;
-#endif
-
-            if (use_offboard) {
-                ctx->odometry.pose.pose.position.x = ctx->offboard_odometry.pose.pose.position.x;
-                ctx->odometry.pose.pose.position.y = ctx->offboard_odometry.pose.pose.position.y;
-                ctx->odometry.pose.pose.position.z = ctx->offboard_odometry.pose.pose.position.z;
-
-                ctx->odometry.pose.pose.orientation.x = ctx->offboard_odometry.pose.pose.orientation.x;
-                ctx->odometry.pose.pose.orientation.y = ctx->offboard_odometry.pose.pose.orientation.y;
-                ctx->odometry.pose.pose.orientation.z = ctx->offboard_odometry.pose.pose.orientation.z;
-                ctx->odometry.pose.pose.orientation.w = ctx->offboard_odometry.pose.pose.orientation.w;
-
-                // use gyro
-                ctx->odometry.twist.twist.angular.x = ctx->imu.angular_velocity.x;
-                ctx->odometry.twist.twist.angular.y = ctx->imu.angular_velocity.y;
-                ctx->odometry.twist.twist.angular.z = ctx->imu.angular_velocity.z;
-
-                // ctx->odometry.twist.twist.angular.x = ctx->offboard_odometry.twist.twist.angular.x;
-                // ctx->odometry.twist.twist.angular.y = ctx->offboard_odometry.twist.twist.angular.y;
-                // ctx->odometry.twist.twist.angular.z = ctx->offboard_odometry.twist.twist.angular.z;
-
-                ctx->odometry.twist.twist.linear.x = ctx->offboard_odometry.twist.twist.linear.x;
-                ctx->odometry.twist.twist.linear.y = ctx->offboard_odometry.twist.twist.linear.y;
-                ctx->odometry.twist.twist.linear.z = ctx->offboard_odometry.twist.twist.linear.z;
-            } else {
-                ctx->odometry.pose.pose.position.x = x[0];
-                ctx->odometry.pose.pose.position.y = x[1];
-                ctx->odometry.pose.pose.position.z = x[2];
-                ctx->odometry.twist.twist.linear.x = x[3];
-                ctx->odometry.twist.twist.linear.y = x[4];
-                ctx->odometry.twist.twist.linear.z = x[5];
-                ctx->odometry.pose.pose.orientation.w = x[6];
-                ctx->odometry.pose.pose.orientation.x = x[7];
-                ctx->odometry.pose.pose.orientation.y = x[8];
-                ctx->odometry.pose.pose.orientation.z = x[9];
-                ctx->odometry.twist.twist.angular.x = ctx->imu.angular_velocity.x;
-                ctx->odometry.twist.twist.angular.y = ctx->imu.angular_velocity.y;
-                ctx->odometry.twist.twist.angular.z = ctx->imu.angular_velocity.z;
-            }
-
+            // check quaternion normal
+            __ASSERT(fabs((ctx->odometry.pose.pose.orientation.w * ctx->odometry.pose.pose.orientation.w
+                              + ctx->odometry.pose.pose.orientation.x * ctx->odometry.pose.pose.orientation.x
+                              + ctx->odometry.pose.pose.orientation.y * ctx->odometry.pose.pose.orientation.y
+                              + ctx->odometry.pose.pose.orientation.z * ctx->odometry.pose.pose.orientation.z)
+                         - 1)
+                    < 1e-2,
+                "quaternion normal error");
             zros_pub_update(&ctx->pub_odometry);
         }
     }

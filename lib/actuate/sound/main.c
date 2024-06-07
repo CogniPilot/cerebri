@@ -108,11 +108,11 @@ static void actuate_sound_entry_point(void* p0, void* p1, void* p2)
 
         if (ctx->status.mode != ctx->status_last_mode) {
             ctx->status_last_mode = ctx->status.mode;
-            if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
+            if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_ACTUATORS) {
                 play_sound(ctx, manual_mode_tone, ARRAY_SIZE(manual_mode_tone));
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
+            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
                 play_sound(ctx, auto_mode_tone, ARRAY_SIZE(auto_mode_tone));
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL) {
+            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY) {
                 play_sound(ctx, cmd_vel_mode_tone, ARRAY_SIZE(cmd_vel_mode_tone));
             } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CALIBRATION) {
                 play_sound(ctx, cal_mode_tone, ARRAY_SIZE(cal_mode_tone));

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2023 CogniPilot Foundation */
 #include <zephyr/dt-bindings/sensor/ina230.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
 
 / {
 	pwm_shell: pwm_shell {
@@ -77,47 +78,49 @@
 
 &flexcan0 {
 	status = "okay";
-	bus-speed = <1000000>;
-	bus-speed-data = <4000000>;
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &flexcan1 {
 	status = "okay";
-	bus-speed = <1000000>;
-	bus-speed-data = <4000000>;
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &flexcan2 {
 	status = "okay";
-	bus-speed = <1000000>;
-	bus-speed-data = <4000000>;
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &flexcan3 {
 	status = "okay";
-	bus-speed = <1000000>;
-	bus-speed-data = <4000000>;
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &flexcan4 {
 	status = "okay";
-	bus-speed = <1000000>;
-	bus-speed-data = <4000000>;
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &flexcan5 {
 	status = "okay";
-	bus-speed = <1000000>;
-	bus-speed-data = <4000000>;
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &lpspi2 {
 	status = "okay";
 	apa102: apa102@0 {
-	compatible = "apa,apa102";
-		status = "okay";
+		compatible = "apa,apa102";
 		reg = <0>;
 		spi-max-frequency = <30000>;
+		status = "okay";
+		chain-length = <12>;
+		color-mapping = <>;
 	};
 };
 

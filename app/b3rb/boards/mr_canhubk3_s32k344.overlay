@@ -78,38 +78,38 @@
 
 &flexcan0 {
 	status = "okay";
-	bitrate = <1000000>;
-	bitrate-data = <4000000>;
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
 };
 
 &flexcan1 {
 	status = "okay";
-	bitrate = <1000000>;
-	bitrate-data = <4000000>;
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
 };
 
 &flexcan2 {
 	status = "okay";
-	bitrate = <1000000>;
-	bitrate-data = <4000000>;
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
 };
 
 &flexcan3 {
 	status = "okay";
-	bitrate = <1000000>;
-	bitrate-data = <4000000>;
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
 };
 
 &flexcan4 {
 	status = "okay";
-	bitrate = <1000000>;
-	bitrate-data = <4000000>;
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
 };
 
 &flexcan5 {
 	status = "okay";
-	bitrate = <1000000>;
-	bitrate-data = <4000000>;
+	bus-speed = <1000000>;
+	bus-speed-data = <4000000>;
 };
 
 &lpspi2 {

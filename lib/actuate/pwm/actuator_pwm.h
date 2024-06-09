@@ -13,6 +13,7 @@ typedef enum pwm_type_t {
 } pwm_type_t;
 
 typedef struct actuator_pwm_t {
+    uint32_t disarmed;
     uint32_t min;
     uint32_t max;
     uint32_t center;

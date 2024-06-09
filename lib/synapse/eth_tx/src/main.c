@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <assert.h>
-
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
@@ -212,7 +210,7 @@ static void eth_tx_run(void* p0, void* p1, void* p2)
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
-            LOG_WRN("poll timeout");
+            LOG_DBG("poll timeout");
         }
 
         if (zros_sub_update_available(&ctx->sub_nav_sat_fix)) {
@@ -262,7 +260,10 @@ static int eth_tx_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

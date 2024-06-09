@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <assert.h>
 #include <math.h>
 
 #include <zephyr/kernel.h>
@@ -34,12 +33,10 @@ struct context {
     synapse_msgs_Safety safety;
     synapse_msgs_Status status;
     synapse_msgs_LEDArray led_array;
-    synapse_msgs_Joy joy;
     // subscriptions
-    struct zros_sub sub_battery_state, sub_safety, sub_status, sub_joy;
+    struct zros_sub sub_battery_state, sub_safety, sub_status;
     // publications
     struct zros_pub pub_led_array;
-    bool lights_on;
     atomic_t running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
@@ -54,9 +51,7 @@ static struct context g_ctx = {
     .led_array = synapse_msgs_LEDArray_init_default,
     .sub_safety = {},
     .sub_status = {},
-    .sub_joy = {},
     .pub_led_array = {},
-    .lights_on = false,
     .running = ATOMIC_INIT(0),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
@@ -70,7 +65,6 @@ static void rdd2_lighting_init(struct context* ctx)
     zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state, &ctx->battery_state, 10);
     zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 10);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
-    zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 10);
     zros_pub_init(&ctx->pub_led_array, &ctx->node, &topic_led_array, &ctx->led_array);
     atomic_set(&ctx->running, 1);
 }
@@ -78,12 +72,11 @@ static void rdd2_lighting_init(struct context* ctx)
 static void rdd2_lighting_fini(struct context* ctx)
 {
     LOG_INF("fini");
-    zros_node_fini(&ctx->node);
     zros_sub_fini(&ctx->sub_battery_state);
     zros_sub_fini(&ctx->sub_safety);
     zros_sub_fini(&ctx->sub_status);
-    zros_sub_fini(&ctx->sub_joy);
     zros_pub_fini(&ctx->pub_led_array);
+    zros_node_fini(&ctx->node);
     atomic_set(&ctx->running, 0);
 }
 
@@ -111,10 +104,6 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
         // update subscriptions
         if (zros_sub_update_available(&ctx->sub_status)) {
             zros_sub_update(&ctx->sub_status);
-        }
-
-        if (zros_sub_update_available(&ctx->sub_joy)) {
-            zros_sub_update(&ctx->sub_joy);
         }
 
         if (zros_sub_update_available(&ctx->sub_safety)) {
@@ -152,16 +141,16 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
         const double color_battery_critical[] = { 1, 0.65, 0 };
         const double color_calibration[] = { 1, 1, 0 };
 
-        bool battery_critical = ctx->battery_state.voltage < CONFIG_CEREBRI_RDD2_BATTERY_MIN_MILLIVOLT / 1000.0;
+        bool battery_critical = ctx->battery_state.voltage < CONFIG_CEREBRI_RDD2_BATTERY_NCELLS * CONFIG_CEREBRI_RDD2_BATTERY_CELL_MIN_MILLIVOLT / 1000.0;
 
         // mode leds
         for (size_t i = 0; i < ARRAY_SIZE(mode_leds); i++) {
             const double* color = NULL;
-            if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
+            if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_ATTITUDE) {
                 color = color_manual;
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CMD_VEL) {
+            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY) {
                 color = color_cmd_vel;
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_AUTO) {
+            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
                 color = color_auto;
             } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CALIBRATION) {
                 color = color_calibration;
@@ -204,16 +193,6 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
             led_msg_index++;
         }
 
-        // headlight leds
-        bool lights_on_requested = ctx->joy.buttons[JOY_BUTTON_LIGHTS_ON] == 1;
-        bool lights_off_requested = ctx->joy.buttons[JOY_BUTTON_LIGHTS_OFF] == 1;
-
-        if (lights_on_requested) {
-            ctx->lights_on = true;
-        } else if (lights_off_requested) {
-            ctx->lights_on = false;
-        }
-
         // set timestamp
         stamp_header(&ctx->led_array.header, k_uptime_ticks());
         ctx->led_array.header.seq++;
@@ -241,7 +220,10 @@ static int rdd2_lighting_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

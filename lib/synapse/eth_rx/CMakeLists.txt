@@ -10,3 +10,5 @@ zephyr_library_sources(
   src/main.c
   src/proto/udp_rx.c
   )
+
+add_dependencies(cerebri_synapse_eth_rx synapse_protobuf)

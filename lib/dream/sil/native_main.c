@@ -44,13 +44,7 @@ static struct context g_ctx = {
     .thread = 0,
 };
 
-static void term(int signum)
-{
-    g_shutdown = 1;
-    printf("%s handling term\n", g_ctx.module_name);
-}
-
-void udp_init(struct context* ctx)
+static void udp_init(struct context* ctx)
 {
     printf("%s: sim core running\n", ctx->module_name);
 
@@ -83,14 +77,9 @@ void udp_init(struct context* ctx)
     ctx->client_addr.sin_family = AF_INET;
     ctx->client_addr.sin_port = htons(GZ_PORT);
     ctx->client_addr_len = sizeof(ctx->client_addr);
-
-    struct sigaction action;
-    memset(&action, 0, sizeof(action));
-    action.sa_handler = term;
-    sigaction(SIGINT, &action, NULL);
 }
 
-void udp_tx(struct context* ctx)
+static void udp_tx(struct context* ctx)
 {
     static uint8_t buf[TX_BUF_SIZE];
     memset(buf, 0, sizeof(buf));
@@ -105,7 +94,7 @@ void udp_tx(struct context* ctx)
     }
 }
 
-void udp_rx(struct context* ctx)
+static void udp_rx(struct context* ctx)
 {
     struct pollfd pollfds[] = {
         { ctx->sock, POLLIN | POLLHUP, 0 },
@@ -114,7 +103,7 @@ void udp_rx(struct context* ctx)
     int ret = poll(pollfds, ARRAY_SIZE(pollfds), 1000);
 
     if (ret == 0) {
-        printf("%s no data\n", ctx->module_name);
+        printf("%s no sim data\n", ctx->module_name);
         return;
     } else if (ret < 0) {
         printf("%s poll error: %d\n", ctx->module_name, ret);
@@ -159,7 +148,7 @@ void udp_rx(struct context* ctx)
     pthread_mutex_unlock(&g_lock_rx);
 }
 
-void* native_sim_entry_point(void* p0)
+static void* native_sim_entry_point(void* p0)
 {
     struct context* ctx = p0;
     printf("%s: sim core running\n", ctx->module_name);
@@ -177,12 +166,12 @@ void* native_sim_entry_point(void* p0)
     return 0;
 }
 
-void native_sim_start_task(void)
+static void native_sim_start_task(void)
 {
     pthread_create(&g_ctx.thread, NULL, native_sim_entry_point, &g_ctx);
 }
 
-void native_sim_stop_task(void)
+static void native_sim_stop_task(void)
 {
     g_shutdown = 1;
     pthread_join(g_ctx.thread, NULL);

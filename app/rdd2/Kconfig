@@ -56,23 +56,41 @@ config CEREBRI_RDD2_CASADI
   help
     Enable Casadi generated code
 
-config CEREBRI_RDD2_BATTERY_MIN_MILLIVOLT
-  int "min battery voltage in milli volts before shut off"
-  default 10000
+config CEREBRI_RDD2_ESTIMATE_OFFBOARD_ODOMETRY
+  bool "fuse offboard odometry"
+  depends on CEREBRI_RDD2_ESTIMATE
   help
-    Minimum battery voltage in mV before auto-disarm
+    Enable offboard odometry
 
-config CEREBRI_RDD2_BATTERY_LOW_MILLIVOLT
-  int "low battery voltage in milli volts before warning"
-  default 10500
+config CEREBRI_RDD2_BATTERY_NCELLS
+  int "number of cells in battery"
+  default 4
   help
-    Low battery voltage in mV before warning
+    Number of cells in battery
 
-config CEREBRI_RDD2_BATTERY_MAX_MILLIVOLT
-  int "max battery voltage in milli volts"
-  default 12600
+config CEREBRI_RDD2_BATTERY_CELL_MIN_MILLIVOLT
+  int "millivolts per cell before shutdown"
+  default 3300
   help
-    Maximum battery voltage
+    millivolts per cell before shutdown
+
+config CEREBRI_RDD2_BATTERY_CELL_LOW_MILLIVOLT
+  int "millivolts per cell before warning"
+  default 3500
+  help
+    millivolts per cell before warning
+
+config CEREBRI_RDD2_BATTERY_CELL_NOM_MILLIVOLT
+  int "nominal millivolts per cell"
+  default 3700
+  help
+    nominal millivolts per cell
+
+config CEREBRI_RDD2_BATTERY_CELL_MAX_MILLIVOLT
+  int "max millivolts per cell before warning"
+  default 4300
+  help
+    max millivolts per cell before warning
 
 config CEREBRI_RDD2_GAIN_HEADING
   int "heading gain"
@@ -97,6 +115,110 @@ config CEREBRI_RDD2_MAX_VELOCITY_MM_S
   default 1000
   help
     Max velocity in mm/s
+
+config CEREBRI_RDD2_MOTOR_L_MM
+  int "moment arm for props"
+  default 174
+  help
+    moment arm for props
+
+config CEREBRI_RDD2_MOTOR_CM
+  int "motor moment coefficient * 1e6"
+  default 16000
+  help
+    moment arm for props
+
+config CEREBRI_RDD2_MOTOR_CT
+  int "motor thrust coefficient * 1e9"
+  default 8549
+  help
+    moment thrust coefficient * 1e9
+
+config CEREBRI_RDD2_ROLL_KP
+  int "roll kp * 1e3"
+  default 2000
+  help
+    roll kp * 1e3
+
+config CEREBRI_RDD2_PITCH_KP
+  int "pitch kp * 1e3"
+  default 2000
+  help
+    pitch kp * 1e3
+
+config CEREBRI_RDD2_YAW_KP
+  int "yaw kp * 1e3"
+  default 1000
+  help
+    yaw kp * 1e3
+
+config CEREBRI_RDD2_ROLLRATE_KP
+  int "rollrate kp * 1e3"
+  default 300
+  help
+    rollrate kp * 1e3
+
+config CEREBRI_RDD2_PITCHRATE_KP
+  int "pitchrate kp * 1e3"
+  default 300
+  help
+    pitchrate kp * 1e3
+
+config CEREBRI_RDD2_YAWRATE_KP
+  int "yawrate kp * 1e3"
+  default 300
+  help
+    yawrate kp * 1e3
+
+config CEREBRI_RDD2_ROLLRATE_KI
+  int "rollrate ki * 1e3"
+  default 50
+  help
+    rollrate ki * 1e3
+
+config CEREBRI_RDD2_PITCHRATE_KI
+  int "pitchrate ki * 1e3"
+  default 50
+  help
+    pitchrate ki * 1e3
+
+config CEREBRI_RDD2_YAWRATE_KI
+  int "yawrate ki * 1e3"
+  default 50
+  help
+    yawrate ki * 1e3
+
+config CEREBRI_RDD2_ROLLRATE_IMAX
+  int "rollrate imax * 1e3"
+  default 20
+  help
+    rollrate imax * 1e3
+
+config CEREBRI_RDD2_PITCHRATE_IMAX
+  int "pitchate imax * 1e3"
+  default 20
+  help
+    pitchrate imax * 1e3
+
+config CEREBRI_RDD2_YAWRATE_IMAX
+  int "yawrate imax * 1e3"
+  default 20
+  help
+    yawrate imax * 1e3
+
+config CEREBRI_RDD2_THRUST_TRIM
+  int "thrust_trim * 1e3 [N}"
+  default 21952
+  help
+    thrust trim * 1e3 [N]
+
+config CEREBRI_RDD2_THRUST_DELTA
+  int "thrust delta* 1e3 [N}"
+  default 19756
+  help
+    thrust delta imax * 1e3 [N}
+
+
 
 module = CEREBRI_RDD2
 module-str = cerebri_rdd2

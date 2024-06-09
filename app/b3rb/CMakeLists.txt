@@ -16,7 +16,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(b3rb LANGUAGES C)
 
-set(SOURCE_FILES src/main.c)
+set(SOURCE_FILES src/boot_banner.c)
 
 if (CONFIG_CEREBRI_B3RB_FSM)
   list(APPEND SOURCE_FILES src/fsm.c)

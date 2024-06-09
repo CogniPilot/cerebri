@@ -104,6 +104,8 @@ static context_t g_ctx = {
 
 static void imu_init(context_t* ctx)
 {
+    LOG_INF("init");
+
     // initialize node
     zros_node_init(&ctx->node, "sense_imu");
     zros_pub_init(&ctx->pub_imu, &ctx->node, &topic_imu, &ctx->imu);
@@ -419,7 +421,6 @@ void imu_timer_handler(struct k_timer* timer)
 
 int sense_imu_entry_point(context_t* ctx)
 {
-    LOG_INF("init");
     imu_init(ctx);
     // delay initiali calibration 1 s
     k_msleep(1000);

@@ -210,7 +210,7 @@ static void eth_tx_run(void* p0, void* p1, void* p2)
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
-            LOG_WRN("poll timeout");
+            LOG_DBG("poll timeout");
         }
 
         if (zros_sub_update_available(&ctx->sub_nav_sat_fix)) {

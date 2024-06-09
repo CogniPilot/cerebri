@@ -86,6 +86,7 @@ static int actuate_pwm_init(struct context* ctx)
 
 static void actuate_pwm_fini(struct context* ctx)
 {
+    LOG_INF("fini");
     atomic_set(&ctx->running, 0);
     zros_sub_fini(&ctx->sub_actuators);
     zros_sub_fini(&ctx->sub_status);
@@ -163,7 +164,6 @@ static void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Act
 
 static void actuate_pwm_run(void* p0, void* p1, void* p2)
 {
-    LOG_INF("init");
     struct context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);

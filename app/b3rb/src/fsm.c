@@ -385,7 +385,7 @@ static void b3rb_fsm_run(void* p0, void* p1, void* p2)
         if (zros_sub_update_available(&ctx->sub_offboard_joy)) {
             zros_sub_update(&ctx->sub_offboard_joy);
             if (ctx->status.joy == synapse_msgs_Status_Joy_JOY_LOSS) {
-                LOG_WRN("joy regained");
+                LOG_DBG("joy regained");
             }
             joy_last_ticks = now_ticks;
             ctx->status.joy = synapse_msgs_Status_Joy_JOY_NOMINAL;
@@ -394,7 +394,7 @@ static void b3rb_fsm_run(void* p0, void* p1, void* p2)
         // check for joy loss
         if (ctx->status.joy != synapse_msgs_Status_Joy_JOY_LOSS
             && now_ticks - joy_last_ticks > joy_loss_ticks) {
-            LOG_WRN("joy loss");
+            LOG_DBG("joy loss");
             ctx->status.joy = synapse_msgs_Status_Joy_JOY_LOSS;
         }
 

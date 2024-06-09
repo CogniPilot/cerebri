@@ -111,8 +111,6 @@ static void bezier_position_mode(struct context* ctx)
     // get current time
     uint64_t time_nsec = k_uptime_get() * 1e6 + ctx->offboard_clock_offset.sec * 1e9 + ctx->offboard_clock_offset.nanosec;
 
-    LOG_INF("bezier position 1");
-
     if (time_nsec < time_start_nsec) {
         LOG_WRN("time current: %" PRIu64
                 " ns < time start: %" PRIu64
@@ -140,13 +138,11 @@ static void bezier_position_mode(struct context* ctx)
 
         // check if index exceeds bounds
         if (curve_index >= ctx->offboard_bezier_trajectory.curves_count) {
-            LOG_WRN("curve index exceeds bounds");
+            LOG_DBG("curve index exceeds bounds");
             b3rb_position_stop(ctx);
             return;
         }
     }
-
-    LOG_INF("bezier position 2");
 
     double T = (time_stop_nsec - time_start_nsec) * 1e-9;
     double t = (time_nsec - time_start_nsec) * 1e-9;

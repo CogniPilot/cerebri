@@ -218,7 +218,15 @@ config CEREBRI_RDD2_THRUST_DELTA
   help
     thrust delta imax * 1e3 [N}
 
+config CEREBRI_RDD2_LOG_LINEAR_ATTITUDE
+  bool "enable loglinear attitude control"
+  help
+    Enable loglinear atitude control
 
+config CEREBRI_RDD2_LOG_LINEAR_POSITION
+  bool "enable loglinear position control"
+  help
+    Enable loglinear atitude position
 
 module = CEREBRI_RDD2
 module-str = cerebri_rdd2

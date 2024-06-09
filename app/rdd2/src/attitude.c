@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "casadi/gen/rdd2_loglinear.h"
+//#include "casadi/gen/rdd2_loglinear.h"
+#include "casadi/gen/rdd2.h"
 
 #include <math.h>
 
@@ -140,35 +141,58 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
         }
 
         if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE) {
-            double zeta[9];
+            double q_wb[4] = {
+                ctx->estimator_odometry.pose.pose.orientation.w,
+                ctx->estimator_odometry.pose.pose.orientation.x,
+                ctx->estimator_odometry.pose.pose.orientation.y,
+                ctx->estimator_odometry.pose.pose.orientation.z
+            };
+
+            double q_r[4] = {
+                ctx->attitude_sp.w,
+                ctx->attitude_sp.x,
+                ctx->attitude_sp.y,
+                ctx->attitude_sp.z
+            };
+
+            const double kp[3] = {
+                CONFIG_CEREBRI_RDD2_ROLL_KP * 1e-3,
+                CONFIG_CEREBRI_RDD2_PITCH_KP * 1e-3,
+                CONFIG_CEREBRI_RDD2_YAW_KP * 1e-3,
+            };
+
+            double omega[3];
+
+#if defined(CONFIG_CEREBRI_RDD2_LOG_LINEAR_ATTITUDE)
             {
-                /* se23_error:(p_w[3],v_b[3],q_wb[4],p_rw[3],v_rw[3],q_r[4])->(zeta[9])*/
+                double zeta[9];
+                double p_w[3] = {
+                    ctx->estimator_odometry.pose.pose.position.x,
+                    ctx->estimator_odometry.pose.pose.position.y,
+                    ctx->estimator_odometry.pose.pose.position.z
+                };
+
+                double v_b[3] = {
+                    ctx->estimator_odometry.twist.twist.linear.x,
+                    ctx->estimator_odometry.twist.twist.linear.y,
+                    ctx->estimator_odometry.twist.twist.linear.z
+                };
+
+                double p_rw[3] = {
+                    ctx->position_sp.x,
+                    ctx->position_sp.y,
+                    ctx->position_sp.z
+                };
+
+                double v_rw[3] = {
+                    ctx->velocity_sp.x,
+                    ctx->velocity_sp.y,
+                    ctx->velocity_sp.z
+                };
+
+                // se23_error:(p_w[3],v_b[3],q_wb[4],p_rw[3],v_rw[3],q_r[4])->(zeta[9])
+
                 CASADI_FUNC_ARGS(se23_error);
-                double p_w[3], v_b[3], q_wb[4];
-                double p_rw[3], v_rw[3], q_r[4];
-
-                p_w[0] = ctx->estimator_odometry.pose.pose.position.x;
-                p_w[1] = ctx->estimator_odometry.pose.pose.position.y;
-                p_w[2] = ctx->estimator_odometry.pose.pose.position.z;
-                v_b[0] = ctx->estimator_odometry.twist.twist.linear.x;
-                v_b[1] = ctx->estimator_odometry.twist.twist.linear.y;
-                v_b[2] = ctx->estimator_odometry.twist.twist.linear.z;
-                q_wb[0] = ctx->estimator_odometry.pose.pose.orientation.w;
-                q_wb[1] = ctx->estimator_odometry.pose.pose.orientation.x;
-                q_wb[2] = ctx->estimator_odometry.pose.pose.orientation.y;
-                q_wb[3] = ctx->estimator_odometry.pose.pose.orientation.z;
-
-                p_rw[0] = ctx->position_sp.x;
-                p_rw[1] = ctx->position_sp.y;
-                p_rw[2] = ctx->position_sp.z;
-                v_rw[0] = ctx->velocity_sp.x;
-                v_rw[1] = ctx->velocity_sp.y;
-                v_rw[2] = ctx->velocity_sp.z;
-                q_r[0] = ctx->attitude_sp.w;
-                q_r[1] = ctx->attitude_sp.x;
-                q_r[2] = ctx->attitude_sp.y;
-                q_r[3] = ctx->attitude_sp.z;
-
                 args[0] = p_w;
                 args[1] = v_b;
                 args[2] = q_wb;
@@ -177,22 +201,25 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
                 args[5] = q_r;
                 res[0] = zeta;
                 CASADI_FUNC_CALL(se23_error);
-            }
-            double omega[3];
-            {
-                /* attitude_control:(kp[3],q[4],q_r[4])->(omega[3]) */
-                const double kp[3] = {
-                    CONFIG_CEREBRI_RDD2_ROLL_KP * 1e-3,
-                    CONFIG_CEREBRI_RDD2_PITCH_KP * 1e-3,
-                    CONFIG_CEREBRI_RDD2_YAW_KP * 1e-3,
-                };
 
+                // se23_attitude_control:(kp[3],zeta[9])->(omega[3])
                 CASADI_FUNC_ARGS(se23_attitude_control);
                 args[0] = kp;
                 args[1] = zeta;
                 res[0] = omega;
                 CASADI_FUNC_CALL(se23_attitude_control);
             }
+#else
+            {
+                // attitude_control:(kp[3],q[4],q_r[4])->(omega[3])
+                CASADI_FUNC_ARGS(attitude_control);
+                args[0] = kp;
+                args[1] = q_wb;
+                args[2] = q_r;
+                res[0] = omega;
+                CASADI_FUNC_CALL(attitude_control);
+            }
+#endif
 
             // publish
             bool data_ok = true;

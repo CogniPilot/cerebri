@@ -158,35 +158,65 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
         }
 
         if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_POSITION || ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY || ctx->status.mode == synapse_msgs_Status_Mode_MODE_ACCELERATION || ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
+
+            double p_w[3] = {
+                ctx->estimator_odometry.pose.pose.position.x,
+                ctx->estimator_odometry.pose.pose.position.y,
+                ctx->estimator_odometry.pose.pose.position.z
+            };
+
+            double v_b[3] = {
+                ctx->estimator_odometry.twist.twist.linear.x,
+                ctx->estimator_odometry.twist.twist.linear.y,
+                ctx->estimator_odometry.twist.twist.linear.z
+            };
+
+            double p_rw[3] = {
+                ctx->position_sp.x,
+                ctx->position_sp.y,
+                ctx->position_sp.z
+            };
+
+            double v_rw[3] = {
+                ctx->velocity_sp.x,
+                ctx->velocity_sp.y,
+                ctx->velocity_sp.z
+            };
+
+            double q_wb[4] = {
+                ctx->estimator_odometry.pose.pose.orientation.w,
+                ctx->estimator_odometry.pose.pose.orientation.x,
+                ctx->estimator_odometry.pose.pose.orientation.y,
+                ctx->estimator_odometry.pose.pose.orientation.z
+            };
+
+            double qc_wb[4] = {
+                ctx->orientation_sp.w,
+                ctx->orientation_sp.x,
+                ctx->orientation_sp.y,
+                ctx->orientation_sp.z
+            };
+
+            double at_w[3] = {
+                ctx->accel_ff.x,
+                ctx->accel_ff.y,
+                ctx->accel_ff.z
+            };
+
+            double nT; // thrust
+            double qr_wb[4];
+
+#if defined(CONFIG_CEREBRI_RDD2_LOG_LINEAR_POSITION)
+            const double kp[3] = {
+                CONFIG_CEREBRI_RDD2_ROLL_KP * 1e-3,
+                CONFIG_CEREBRI_RDD2_PITCH_KP * 1e-3,
+                CONFIG_CEREBRI_RDD2_YAW_KP * 1e-3,
+            };
+
             double zeta[9];
             {
                 /* se23_error:(p_w[3],v_b[3],q_wb[4],p_rw[3],v_rw[3],q_r[4])->(zeta[9])*/
                 CASADI_FUNC_ARGS(se23_error);
-                double p_w[3], v_b[3], q_wb[4];
-                double p_rw[3], v_rw[3], q_r[4];
-
-                p_w[0] = ctx->estimator_odometry.pose.pose.position.x;
-                p_w[1] = ctx->estimator_odometry.pose.pose.position.y;
-                p_w[2] = ctx->estimator_odometry.pose.pose.position.z;
-                v_b[0] = ctx->estimator_odometry.twist.twist.linear.x;
-                v_b[1] = ctx->estimator_odometry.twist.twist.linear.y;
-                v_b[2] = ctx->estimator_odometry.twist.twist.linear.z;
-                q_wb[0] = ctx->estimator_odometry.pose.pose.orientation.w;
-                q_wb[1] = ctx->estimator_odometry.pose.pose.orientation.x;
-                q_wb[2] = ctx->estimator_odometry.pose.pose.orientation.y;
-                q_wb[3] = ctx->estimator_odometry.pose.pose.orientation.z;
-
-                p_rw[0] = ctx->position_sp.x;
-                p_rw[1] = ctx->position_sp.y;
-                p_rw[2] = ctx->position_sp.z;
-                v_rw[0] = ctx->velocity_sp.x;
-                v_rw[1] = ctx->velocity_sp.y;
-                v_rw[2] = ctx->velocity_sp.z;
-                q_r[0] = ctx->attitude_sp.w;
-                q_r[1] = ctx->attitude_sp.x;
-                q_r[2] = ctx->attitude_sp.y;
-                q_r[3] = ctx->attitude_sp.z;
-
                 args[0] = p_w;
                 args[1] = v_b;
                 args[2] = q_wb;
@@ -196,36 +226,11 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 res[0] = zeta;
                 CASADI_FUNC_CALL(se23_error);
             }
-            double nT; // normalized magnitude of thrust (ratio of twice weight)
-            double qr_wb[4];
-            {
-                const double kp[3] = {
-                    CONFIG_CEREBRI_RDD2_ROLL_KP * 1e-3,
-                    CONFIG_CEREBRI_RDD2_PITCH_KP * 1e-3,
-                    CONFIG_CEREBRI_RDD2_YAW_KP * 1e-3,
-                };
-                CASADI_FUNC_ARGS(se23_position_control)
-                // LOG_INF("vt_w: %10.4f %10.4f %10.4f", ctx->velocity_sp.x, ctx->velocity_sp.y, ctx->velocity_sp.z);
-                double at_w[3] = {
-                    ctx->accel_ff.x,
-                    ctx->accel_ff.y,
-                    ctx->accel_ff.z
-                };
-                double qc_wb[4] = {
-                    ctx->orientation_sp.w,
-                    ctx->orientation_sp.x,
-                    ctx->orientation_sp.y,
-                    ctx->orientation_sp.z
-                };
-                double q_wb[4] = {
-                    ctx->estimator_odometry.pose.pose.orientation.w,
-                    ctx->estimator_odometry.pose.pose.orientation.x,
-                    ctx->estimator_odometry.pose.pose.orientation.y,
-                    ctx->estimator_odometry.pose.pose.orientation.z
-                };
 
-                /* position_control:(thrust_trim,pt_w[3],vt_w[3],at_w[3],qc_wb[4],
-                 * p_w[3],v_b[3],q_wb[4],z_i,dt)->(nT,qr_wb[4],z_i_2) */
+            // se23_position_control:(thrust_trim,kp[3],zeta[9],at_w[3],qc_wb[4],q_wb[4],z_i,dt)
+            // ->(nT,qr_wb[4],z_i_2)
+            {
+                CASADI_FUNC_ARGS(se23_position_control)
                 args[0] = &thrust_trim;
                 args[1] = kp;
                 args[2] = zeta;
@@ -237,10 +242,30 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 res[0] = &nT;
                 res[1] = qr_wb;
                 res[2] = &z_i;
-
                 CASADI_FUNC_CALL(se23_position_control)
+            }
+#else
+            {
+                // position_control:(thrust_trim,pt_w[3],vt_w[3],at_w[3],qc_wb[4],
+                // p_w[3],v_b[3],q_wb[4],z_i,dt)->(nT,qr_wb[4],z_i_2)
+                CASADI_FUNC_ARGS(position_control)
+                args[0] = &thrust_trim;
+                args[1] = p_rw;
+                args[2] = v_rw;
+                args[3] = at_w;
+                args[4] = qc_wb;
+                args[5] = p_w;
+                args[6] = v_b;
+                args[7] = q_wb;
+                args[8] = &z_i;
+                args[9] = &dt;
+                res[0] = &nT;
+                res[1] = qr_wb;
+                res[2] = &z_i;
+                CASADI_FUNC_CALL(position_control)
                 // LOG_INF("z_i: %10.4f", z_i);
             }
+#endif
 
             bool data_ok = true;
             for (int i = 0; i < 4; i++) {

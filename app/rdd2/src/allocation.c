@@ -5,7 +5,6 @@
 
 #include "casadi/gen/rdd2.h"
 #include "math.h"
-#include <assert.h>
 
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
@@ -80,11 +79,11 @@ static void rdd2_allocation_init(struct context* ctx)
 static void rdd2_allocation_fini(struct context* ctx)
 {
     LOG_INF("fini");
-    zros_node_fini(&ctx->node);
     zros_sub_fini(&ctx->sub_status);
     zros_sub_fini(&ctx->sub_force_sp);
     zros_sub_fini(&ctx->sub_moment_sp);
     zros_pub_fini(&ctx->pub_actuators);
+    zros_node_fini(&ctx->node);
     atomic_set(&ctx->running, 0);
 }
 
@@ -133,24 +132,37 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
             stop(ctx);
             LOG_DBG("not armed, stopped");
         } else {
-            double thrust = ctx->force_sp.z;
-            double roll = ctx->moment_sp.x;
-            double pitch = -ctx->moment_sp.y;
-            double yaw = -ctx->moment_sp.z;
+            static double const l = CONFIG_CEREBRI_RDD2_MOTOR_L_MM * 1e-3;
+            static double const Cm = CONFIG_CEREBRI_RDD2_MOTOR_CM * 1e-6;
+            static double const Ct = CONFIG_CEREBRI_RDD2_MOTOR_CT * 1e-9;
+            double omega[4];
 
-            if (thrust + fabs(pitch) + fabs(roll) + fabs(yaw) > 1) {
-                thrust = 1 - fabs(pitch) - fabs(roll) - fabs(yaw);
-                LOG_WRN("motor saturaction: roll: %10.4f, "
-                        "pitch: %10.4f, yaw: %10.4f, thrust: %10.4f",
-                    roll, pitch, yaw, thrust);
+            // LOG_INF("thrust: %10.4f", ctx->force_sp.z);
+
+            /* control_allocation:(l,Cm,Ct,T,Mx,My,Mz)->(omega[4]) */
+            CASADI_FUNC_ARGS(control_allocation)
+            args[0] = &l;
+            args[1] = &Cm;
+            args[2] = &Ct;
+            args[3] = &ctx->force_sp.z;
+            args[4] = &ctx->moment_sp.x;
+            args[5] = &ctx->moment_sp.y;
+            args[6] = &ctx->moment_sp.z;
+            res[0] = omega;
+            CASADI_FUNC_CALL(control_allocation)
+            for (int i = 0; i < 4; i++) {
+                if (!isfinite(omega[i])) {
+                    LOG_WRN("omega is not finite: %10.4f", omega[i]);
+                    omega[i] = 0;
+                } else if (omega[i] > 1400) {
+                    LOG_WRN("omega too large: %10.4f", omega[i]);
+                    omega[i] = 1400;
+                } else if (omega[i] < 0) {
+                    LOG_WRN("omega negative: %10.4f", omega[i]);
+                    omega[i] = 0;
+                }
+                ctx->actuators.velocity[i] = omega[i];
             }
-
-            const double k = 1600;
-            synapse_msgs_Actuators* msg = &ctx->actuators;
-            msg->velocity[0] = k * (thrust + pitch - roll + yaw);
-            msg->velocity[1] = k * (thrust - pitch + roll + yaw);
-            msg->velocity[2] = k * (thrust + pitch + roll - yaw);
-            msg->velocity[3] = k * (thrust - pitch - roll - yaw);
         }
 
         stamp_header(&ctx->actuators.header, k_uptime_ticks());
@@ -179,7 +191,10 @@ static int rdd2_allocation_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {
@@ -211,6 +226,6 @@ static int rdd2_allocation_sys_init(void)
     return start(&g_ctx);
 };
 
-SYS_INIT(rdd2_allocation_sys_init, APPLICATION, 1);
+SYS_INIT(rdd2_allocation_sys_init, APPLICATION, 4);
 
 // vi: ts=4 sw=4 et

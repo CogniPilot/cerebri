@@ -44,7 +44,7 @@ struct context {
     bool clock_initialized;
     TinyFrame tf;
     synapse_msgs_SimClock sim_clock;
-    synapse_msgs_Time clock_offset;
+    synapse_msgs_Time offboard_clock_offset;
     synapse_msgs_Actuators actuators;
     synapse_msgs_LEDArray led_array;
     uint64_t uptime_last;
@@ -72,7 +72,7 @@ struct context g_ctx = {
         .userdata = &g_ctx,
     },
     .sim_clock = synapse_msgs_SimClock_init_default,
-    .clock_offset = synapse_msgs_Time_init_default,
+    .offboard_clock_offset = synapse_msgs_Time_init_default,
     .actuators = synapse_msgs_Actuators_init_default,
     .led_array = synapse_msgs_LEDArray_init_default,
     .uptime_last = 0
@@ -93,8 +93,8 @@ static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
             ctx->clock_initialized = true;
             LOG_INF("sim clock received sec: %lld nsec: %d",
                 msg.sim.sec, msg.sim.nanosec);
-            ctx->clock_offset.sec = msg.sim.sec;
-            ctx->clock_offset.nanosec = msg.sim.nanosec;
+            ctx->offboard_clock_offset.sec = msg.sim.sec;
+            ctx->offboard_clock_offset.nanosec = msg.sim.nanosec;
         }
 
         // compute board time
@@ -107,8 +107,8 @@ static TF_Result sim_clock_listener(TinyFrame* tf, TF_Msg* frame)
         struct timespec ts_board;
         ts_board.tv_sec = uptime / 1.0e3;
         ts_board.tv_nsec = (uptime - ts_board.tv_sec * 1e3) * 1e6;
-        ts_board.tv_sec += ctx->clock_offset.sec;
-        ts_board.tv_nsec += ctx->clock_offset.nanosec;
+        ts_board.tv_sec += ctx->offboard_clock_offset.sec;
+        ts_board.tv_nsec += ctx->offboard_clock_offset.nanosec;
 
         // compute time delta from sim
         int64_t delta_sec = ctx->sim_clock.sim.sec - ts_board.tv_sec;
@@ -205,7 +205,7 @@ static TF_Result odometry_listener(TinyFrame* tf, TF_Msg* frame)
     pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
     int rc = pb_decode(&stream, synapse_msgs_Odometry_fields, &msg);
     if (rc) {
-        zros_topic_publish(&topic_external_odometry, &msg);
+        zros_topic_publish(&topic_offboard_odometry, &msg);
     } else {
         LOG_ERR("external odometry decoding failed: %s",
             PB_GET_ERROR(&stream));
@@ -254,7 +254,8 @@ TF_Result generic_listener(TinyFrame* tf, TF_Msg* frame)
 
 static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
 {
-    LOG_INF("zephry sim entry point\n");
+    LOG_INF("init");
+
     struct context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
@@ -262,13 +263,9 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
     struct zros_node node;
     struct zros_sub sub_actuators, sub_led_array;
 
-    LOG_INF("zros node init");
-
     zros_node_init(&node, "dream_sil");
     zros_sub_init(&sub_actuators, &node, &topic_actuators, &ctx->actuators, 10);
     zros_sub_init(&sub_led_array, &node, &topic_led_array, &ctx->led_array, 10);
-
-    LOG_INF("setup tinyframe");
 
     // setup tinyframe
     int ret = TF_InitStatic(&ctx->tf, TF_MASTER, write_sim);
@@ -290,6 +287,11 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
     while (!g_shutdown) {
         LOG_INF("waiting for sim clock");
 
+        struct timespec request, remaining;
+        request.tv_sec = 1;
+        request.tv_nsec = 0;
+        nanosleep(&request, &remaining);
+
         //  publish new messages
         memset(buf, 0, RX_BUF_SIZE);
         pthread_mutex_lock(&g_lock_rx);
@@ -302,7 +304,7 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
 
         if (ctx->clock_initialized) {
             LOG_DBG("sim clock initialized");
-            zros_topic_publish(&topic_clock_offset, &ctx->clock_offset);
+            zros_topic_publish(&topic_offboard_clock_offset, &ctx->offboard_clock_offset);
             break;
         } else {
             struct timespec request, remaining;
@@ -312,7 +314,7 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
         }
     }
 
-    LOG_DBG("running main loop");
+    LOG_INF("running main loop");
 
     while (!g_shutdown) {
 
@@ -341,7 +343,7 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
             nanosleep(&request, &remaining);
         }
     }
-    LOG_INF("zephyr main loop finished\n");
+    LOG_INF("finished\n");
 
     zros_node_fini(&node);
     zros_sub_fini(&sub_actuators);
@@ -360,6 +362,6 @@ static int start()
     return 0;
 }
 
-SYS_INIT(start, POST_KERNEL, 0);
+SYS_INIT(start, APPLICATION, 0);
 
 // vi: ts=4 sw=4 et

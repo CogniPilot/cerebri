@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <assert.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
@@ -32,8 +31,6 @@ struct context {
     struct zros_node node;
     struct udp_rx udp;
     TinyFrame tf;
-    struct zros_sub sub_status;
-    synapse_msgs_Status status;
     atomic_t running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
@@ -43,9 +40,7 @@ struct context {
 static struct context g_ctx = {
     .node = {},
     .udp = {},
-    .sub_status = {},
     .tf = {},
-    .status = {},
     .running = ATOMIC_INIT(0),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
@@ -68,9 +63,10 @@ static struct context g_ctx = {
     }
 
 // topic listeners
-TOPIC_LISTENER(bezier_trajectory, synapse_msgs_BezierTrajectory)
-TOPIC_LISTENER(joy, synapse_msgs_Joy)
-TOPIC_LISTENER(clock_offset, synapse_msgs_Time)
+TOPIC_LISTENER(offboard_bezier_trajectory, synapse_msgs_BezierTrajectory)
+TOPIC_LISTENER(offboard_clock_offset, synapse_msgs_Time)
+TOPIC_LISTENER(offboard_cmd_vel, synapse_msgs_Twist)
+TOPIC_LISTENER(offboard_joy, synapse_msgs_Joy)
 #ifdef CONFIG_CEREBRI_DREAM_HIL
 TOPIC_LISTENER(battery_state, synapse_msgs_BatteryState)
 TOPIC_LISTENER(imu, synapse_msgs_Imu)
@@ -83,25 +79,6 @@ static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
 {
     LOG_WRN("unhandled tinyframe type: %4d", msg->type);
     // dumpFrameInfo(msg);
-    return TF_STAY;
-}
-
-static TF_Result cmd_vel_listener(TinyFrame* tf, TF_Msg* frame)
-{
-    struct context* ctx = tf->userdata;
-    // don't publish cmd_vel if not in command vel mode
-    if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_CMD_VEL) {
-        return TF_STAY;
-    }
-    synapse_msgs_Twist msg = synapse_msgs_Twist_init_default;
-    pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);
-    int rc = pb_decode(&stream, synapse_msgs_Twist_fields, &msg);
-    if (rc) {
-        zros_topic_publish(&topic_cmd_vel, &msg);
-        LOG_DBG("cmd_vel decoding\n");
-    } else {
-        LOG_WRN("cmd_vel decoding failed: %s\n", PB_GET_ERROR(&stream));
-    }
     return TF_STAY;
 }
 
@@ -126,27 +103,20 @@ static int eth_rx_init(struct context* ctx)
     }
     ctx->tf.userdata = ctx;
 
-    // add zros subscribers
-    ret = zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 1);
-    if (ret < 0) {
-        LOG_ERR("sub status init failed: %d", ret);
-        return ret;
-    }
-
     // add tinyframe listeners
     ret = TF_AddGenericListener(&ctx->tf, genericListener);
     if (ret < 0)
         return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, bezier_trajectory_listener);
+    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, offboard_bezier_trajectory_listener);
     if (ret < 0)
         return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CMD_VEL_TOPIC, cmd_vel_listener);
+    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CMD_VEL_TOPIC, offboard_cmd_vel_listener);
     if (ret < 0)
         return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_JOY_TOPIC, joy_listener);
+    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_JOY_TOPIC, offboard_joy_listener);
     if (ret < 0)
         return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CLOCK_OFFSET_TOPIC, clock_offset_listener);
+    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CLOCK_OFFSET_TOPIC, offboard_clock_offset_listener);
     if (ret < 0)
         return ret;
 #ifdef CONFIG_CEREBRI_DREAM_HIL
@@ -178,7 +148,6 @@ static int eth_rx_fini(struct context* ctx)
     ret = udp_rx_fini(&ctx->udp);
 
     // close subscriptions
-    zros_sub_fini(&ctx->sub_status);
     atomic_set(&ctx->running, 0);
     return ret;
 };
@@ -209,11 +178,6 @@ static void eth_rx_run(void* p0, void* p1, void* p2)
             TF_Accept(&ctx->tf, ctx->udp.rx_buf, received);
         }
 
-        // update status
-        if (zros_sub_update_available(&ctx->sub_status)) {
-            zros_sub_update(&ctx->sub_status);
-        }
-
         // tell tinyframe time has passed
         TF_Tick(&ctx->tf);
     }
@@ -241,7 +205,10 @@ static int eth_rx_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    assert(argc == 1);
+    if (argc != 1) {
+        LOG_ERR("must have one argument");
+        return -1;
+    }
 
     if (strcmp(argv[0], "start") == 0) {
         if (atomic_get(&ctx->running)) {

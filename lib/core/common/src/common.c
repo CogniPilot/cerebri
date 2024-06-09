@@ -5,8 +5,22 @@
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/shell/shell.h>
+#include <zephyr/sys/reboot.h>
+
+#include <stdio.h>
+#include <stdlib.h>
 
 LOG_MODULE_REGISTER(core_common, CONFIG_CEREBRI_CORE_COMMON_LOG_LEVEL);
+
+#if defined(CONFIG_REBOOT)
+void do_reboot()
+{
+    sys_reboot(SYS_REBOOT_WARM);
+};
+
+SHELL_CMD_REGISTER(reboot, &do_reboot, "reboot autopilot", NULL);
+#endif
 
 const struct device* get_device(const struct device* const dev)
 {

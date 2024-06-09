@@ -26,16 +26,84 @@ void stamp_header(synapse_msgs_Header* hdr, int64_t ticks)
     hdr->stamp.nanosec = nanosec;
 }
 
+const char* joy_source_str(synapse_msgs_Status_JoySource src)
+{
+    if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_UNKNOWN) {
+        return "unknown";
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RADIO_CONTROL) {
+        return "radio_control";
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_ETHERNET) {
+        return "ethernet";
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_CAN) {
+        return "can";
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_0) {
+        return "reserved 0";
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_1) {
+        return "reserved 1";
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_2) {
+        return "reserved 2";
+    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_3) {
+        return "reserved 3";
+    }
+    return unhandled;
+}
+
+const char* topic_source_str(synapse_msgs_Status_TopicSource src)
+{
+    if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_UNKNOWN) {
+        return "unknown";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY) {
+        return "joy";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_LOCAL) {
+        return "local";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
+        return "ethernet";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_CAN) {
+        return "can";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_RESERVED_0) {
+        return "reserved 0";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_RESERVED_1) {
+        return "reserved 1";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_RESERVED_2) {
+        return "reserved 2";
+    }
+    return unhandled;
+}
+
 const char* mode_str(synapse_msgs_Status_Mode mode)
 {
     if (mode == synapse_msgs_Status_Mode_MODE_UNKNOWN) {
         return "unknown";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_MANUAL) {
+    } else if (mode == synapse_msgs_Status_Mode_MODE_CALIBRATION) {
+        return "calibration";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_ACTUATORS) {
         return "manual";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_AUTO) {
-        return "auto";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_CMD_VEL) {
-        return "cmd_vel";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE) {
+        return "attitude rate";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_ATTITUDE) {
+        return "attitude";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_ALTITUDE) {
+        return "altitude";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_POSITION) {
+        return "position";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_VELOCITY) {
+        return "velocity";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_ACCELERATION) {
+        return "acceleration";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
+        return "bezier";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_0) {
+        return "reserved 0";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_1) {
+        return "reserved 1";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_2) {
+        return "reserved 2";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_3) {
+        return "reserved 3";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_4) {
+        return "reserved 4";
+    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_5) {
+        return "reserved 5";
     }
     return unhandled;
 }
@@ -107,52 +175,64 @@ const char* fuel_str(synapse_msgs_Status_Fuel fuel)
 /********************************************************************
  * topics
  ********************************************************************/
+ZROS_TOPIC_DEFINE(accel_ff, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(accel_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(actuators, synapse_msgs_Actuators);
-ZROS_TOPIC_DEFINE(actuators_manual, synapse_msgs_Actuators);
 ZROS_TOPIC_DEFINE(altimeter, synapse_msgs_Altimeter);
+ZROS_TOPIC_DEFINE(angular_velocity_ff, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(angular_velocity_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(attitude_sp, synapse_msgs_Quaternion);
 ZROS_TOPIC_DEFINE(battery_state, synapse_msgs_BatteryState);
 ZROS_TOPIC_DEFINE(bezier_trajectory, synapse_msgs_BezierTrajectory);
-ZROS_TOPIC_DEFINE(clock_offset, synapse_msgs_Time);
 ZROS_TOPIC_DEFINE(cmd_vel, synapse_msgs_Twist);
-ZROS_TOPIC_DEFINE(status, synapse_msgs_Status);
+ZROS_TOPIC_DEFINE(estimator_odometry, synapse_msgs_Odometry);
+ZROS_TOPIC_DEFINE(force_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(imu, synapse_msgs_Imu);
 ZROS_TOPIC_DEFINE(joy, synapse_msgs_Joy);
 ZROS_TOPIC_DEFINE(led_array, synapse_msgs_LEDArray);
 ZROS_TOPIC_DEFINE(magnetic_field, synapse_msgs_MagneticField);
-ZROS_TOPIC_DEFINE(nav_sat_fix, synapse_msgs_NavSatFix);
-ZROS_TOPIC_DEFINE(estimator_odometry, synapse_msgs_Odometry);
-ZROS_TOPIC_DEFINE(external_odometry, synapse_msgs_Odometry);
-ZROS_TOPIC_DEFINE(safety, synapse_msgs_Safety);
-ZROS_TOPIC_DEFINE(wheel_odometry, synapse_msgs_WheelOdometry);
-ZROS_TOPIC_DEFINE(angular_velocity_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(attitude_sp, synapse_msgs_Quaternion);
-ZROS_TOPIC_DEFINE(force_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(moment_ff, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(moment_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(velocity_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(accel_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(nav_sat_fix, synapse_msgs_NavSatFix);
+ZROS_TOPIC_DEFINE(offboard_bezier_trajectory, synapse_msgs_BezierTrajectory);
+ZROS_TOPIC_DEFINE(offboard_clock_offset, synapse_msgs_Time);
+ZROS_TOPIC_DEFINE(offboard_cmd_vel, synapse_msgs_Twist);
+ZROS_TOPIC_DEFINE(offboard_joy, synapse_msgs_Joy);
+ZROS_TOPIC_DEFINE(offboard_odometry, synapse_msgs_Odometry);
 ZROS_TOPIC_DEFINE(orientation_sp, synapse_msgs_Quaternion);
 ZROS_TOPIC_DEFINE(position_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(pwm, synapse_msgs_Pwm);
+ZROS_TOPIC_DEFINE(safety, synapse_msgs_Safety);
+ZROS_TOPIC_DEFINE(status, synapse_msgs_Status);
+ZROS_TOPIC_DEFINE(velocity_sp, synapse_msgs_Vector3);
+ZROS_TOPIC_DEFINE(wheel_odometry, synapse_msgs_WheelOdometry);
 
 static struct zros_topic* topic_list[] = {
+    &topic_accel_ff,
     &topic_accel_sp,
     &topic_actuators,
-    &topic_actuators_manual,
     &topic_altimeter,
+    &topic_angular_velocity_ff,
     &topic_angular_velocity_sp,
     &topic_attitude_sp,
     &topic_battery_state,
     &topic_bezier_trajectory,
-    &topic_clock_offset,
     &topic_cmd_vel,
     &topic_estimator_odometry,
-    &topic_external_odometry,
     &topic_imu,
     &topic_joy,
     &topic_led_array,
     &topic_magnetic_field,
+    &topic_moment_ff,
     &topic_nav_sat_fix,
+    &topic_offboard_bezier_trajectory,
+    &topic_offboard_clock_offset,
+    &topic_offboard_cmd_vel,
+    &topic_offboard_joy,
+    &topic_offboard_odometry,
     &topic_orientation_sp,
     &topic_position_sp,
+    &topic_pwm,
     &topic_safety,
     &topic_status,
     &topic_velocity_sp,

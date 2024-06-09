@@ -59,7 +59,7 @@ int udp_tx_send(struct udp_tx* ctx, const uint8_t* buf, size_t len)
             LOG_INF("would block");
             ret = 0;
         } else {
-            LOG_ERR("send error: %d", -errno);
+            LOG_DBG("send error: %d", -errno);
             ret = -errno;
         }
     }

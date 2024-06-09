@@ -20,11 +20,11 @@ config CEREBRI_B3RB_LIGHTING
   help
     Enable lighting
 
-config CEREBRI_B3RB_MANUAL
-  bool "enable manual"
+config CEREBRI_B3RB_COMMAND
+  bool "enable command"
   depends on CEREBRI_B3RB_MIXING
   help
-    Enable manual
+    Enable command
 
 config CEREBRI_B3RB_MIXING
   bool "enable mixing"

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2023 CogniPilot Foundation */
 #include <zephyr/dt-bindings/sensor/ina230.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
 
 / {
 	pwm_shell: pwm_shell {
@@ -114,10 +115,12 @@
 &lpspi2 {
 	status = "okay";
 	apa102: apa102@0 {
-	compatible = "apa,apa102";
-		status = "okay";
+		compatible = "apa,apa102";
 		reg = <0>;
 		spi-max-frequency = <30000>;
+		status = "okay";
+		chain-length = <12>;
+		color-mapping = <>;
 	};
 };
 

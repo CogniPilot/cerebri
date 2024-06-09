@@ -89,24 +89,40 @@ int snprint_bezier_curve(char* buf, size_t n, synapse_msgs_BezierCurve* m)
         }
         offset += snprintf_cat(buf + offset, n - offset, "%10.4f", m->x[i]);
     }
+    if (m->x_count > 0) {
+        offset += snprintf_cat(buf + offset, n - offset, "\n");
+    }
+
     for (int i = 0; i < m->y_count; i++) {
         if (i == 0) {
             offset += snprintf_cat(buf + offset, n - offset, "y");
         }
         offset += snprintf_cat(buf + offset, n - offset, "%10.4f", m->y[i]);
     }
+    if (m->y_count > 0) {
+        offset += snprintf_cat(buf + offset, n - offset, "\n");
+    }
+
     for (int i = 0; i < m->z_count; i++) {
         if (i == 0) {
             offset += snprintf_cat(buf + offset, n - offset, "z");
         }
         offset += snprintf_cat(buf + offset, n - offset, "%10.4f", m->z[i]);
     }
+    if (m->z_count > 0) {
+        offset += snprintf_cat(buf + offset, n - offset, "\n");
+    }
+
     for (int i = 0; i < m->yaw_count; i++) {
         if (i == 0) {
             offset += snprintf_cat(buf + offset, n - offset, "yaw");
         }
         offset += snprintf_cat(buf + offset, n - offset, "%10.4f", m->yaw[i]);
     }
+    if (m->yaw_count > 0) {
+        offset += snprintf_cat(buf + offset, n - offset, "\n");
+    }
+
     offset += snprintf_cat(buf + offset, n - offset, "time stop: %lld\n", m->time_stop);
     return offset;
 }
@@ -118,7 +134,7 @@ int snprint_bezier_trajectory(char* buf, size_t n, synapse_msgs_BezierTrajectory
         offset += snprint_header(buf + offset, n - offset, &m->header);
     }
 
-    offset += snprintf_cat(buf + offset, n - offset, "time start: %lld", m->time_start);
+    offset += snprintf_cat(buf + offset, n - offset, "time start: %lld\n", m->time_start);
 
     for (int i = 0; i < m->curves_count; i++) {
         offset += snprintf_cat(buf + offset, n - offset, "curve: %d\n", i);

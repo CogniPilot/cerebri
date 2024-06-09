@@ -259,7 +259,7 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_battery_state) {
         synapse_msgs_BatteryState msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_battery_state);
-    } else if (topic == &topic_offboard_bezier_trajectory) {
+    } else if (topic == &topic_offboard_bezier_trajectory || topic == &topic_bezier_trajectory) {
         synapse_msgs_BezierTrajectory msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_bezier_trajectory);
     } else if (topic == &topic_offboard_clock_offset) {

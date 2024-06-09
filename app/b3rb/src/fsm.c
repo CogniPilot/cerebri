@@ -255,7 +255,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->request_seq, &status->request_rejected, // request
         // guards
         1,
-        status->topic_source != synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY, "must enable joy control");
+        status->topic_source != synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY, "must enable topice source joy");
 
     transition(
         &status->mode, // state
@@ -265,7 +265,9 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         synapse_msgs_Status_Mode_MODE_VELOCITY, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
-        0); // guards
+        // guards
+        1,
+        status->topic_source != synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, "must enable topic source ethernet");
 
     transition(
         &status->mode, // state
@@ -277,7 +279,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->request_seq, &status->request_rejected, // request
         // guards
         1,
-        status->topic_source != synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY, "must enable joy control");
+        status->topic_source != synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, "must enable topic source ethernet");
 
     transition(
         &status->mode, // state
@@ -311,10 +313,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
-        1,
-        status->mode != synapse_msgs_Status_Mode_MODE_VELOCITY
-            && status->mode != synapse_msgs_Status_Mode_MODE_BEZIER,
-        "must be in velocity/bezier mode");
+        0);
 
     // set timestamp
     stamp_header(&status->header, k_uptime_ticks());

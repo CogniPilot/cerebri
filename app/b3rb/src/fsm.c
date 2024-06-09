@@ -294,7 +294,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
     transition(
         &status->topic_source, // state
         input->request_topic_source_joy, // request
-        "request command source onboard", // label
+        "request topic source joy", // label
         STATE_ANY, // pre
         synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY, // post
         status->status_message, sizeof(status->status_message), // status
@@ -304,7 +304,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
     transition(
         &status->topic_source, // state
         input->request_topic_source_ethernet, // request
-        "request command source offboard", // label
+        "request topic source ethernet", // label
         STATE_ANY, // pre
         synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // post
         status->status_message, sizeof(status->status_message), // status

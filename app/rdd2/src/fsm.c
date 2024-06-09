@@ -304,7 +304,7 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
         1,
         status->arming == synapse_msgs_Status_Arming_ARMING_ARMED, "disarm required");
 
-    // command source transitions
+    // topic source transitions
     transition(
         &status->topic_source, // state
         input->request_topic_source_joy, // request
@@ -319,7 +319,7 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
     transition(
         &status->topic_source, // state
         input->request_topic_source_ethernet, // request
-        "request command source offboard", // label
+        "request topic source ethernet", // label
         STATE_ANY, // pre
         synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // post
         status->status_message, sizeof(status->status_message), // status

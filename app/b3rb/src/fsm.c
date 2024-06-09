@@ -128,6 +128,7 @@ static struct context g_ctx = {
         .fuel_percentage = 0,
         .joy = synapse_msgs_Status_Joy_JOY_UNKNOWN,
         .joy_source = synapse_msgs_Status_JoySource_JOY_SOURCE_ETHERNET,
+        .topic_source = synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY,
         .mode = synapse_msgs_Status_Mode_MODE_ACTUATORS,
         .power = 0.0,
         .safety = synapse_msgs_Status_Safety_SAFETY_UNKNOWN,

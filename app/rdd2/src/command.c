@@ -286,7 +286,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             double qr[4];
             double thrust;
             {
-                /* joy_auto_level:(thrust_trim,thrust_delta,joy_roll,joy_pitch,joy_yaw,joy_thrust,q[4])->(q_r[4],thrust) */
+                // joy_auto_level:(thrust_trim,thrust_delta,joy_roll,joy_pitch,joy_yaw,joy_thrust,q[4])->(q_r[4],thrust)
                 CASADI_FUNC_ARGS(joy_auto_level);
 
                 args[0] = &thrust_trim;

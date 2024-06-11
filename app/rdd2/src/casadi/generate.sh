@@ -1,4 +1,11 @@
 #!/bin/bash
-poetry run -C ~/cognipilot/tools/src/cyecca python3 rdd2.py
-poetry run -C ~/cognipilot/tools/src/cyecca python3 rdd2_loglinear.py
-poetry run -C ~/cognipilot/tools/src/cyecca python3 bezier.py
+echo "generating rdd2.py"
+./rdd2.py
+echo "generating rdd2_loglinear.py"
+./rdd2_loglinear.py
+echo "generating bezier.py"
+./bezier.py
+
+pushd ../../../../
+west format
+popd

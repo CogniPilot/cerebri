@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env cyecca_python
 import os
 import sys
 import math

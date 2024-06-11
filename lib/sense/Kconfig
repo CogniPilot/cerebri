@@ -5,7 +5,7 @@ menu "Sense"
 
 rsource "baro/Kconfig"
 rsource "imu/Kconfig"
-rsource "joy/Kconfig"
+rsource "input/Kconfig"
 rsource "mag/Kconfig"
 rsource "power/Kconfig"
 rsource "safety/Kconfig"

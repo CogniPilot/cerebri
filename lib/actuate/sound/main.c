@@ -88,9 +88,9 @@ static void actuate_sound_entry_point(void* p0, void* p1, void* p2)
         *zros_sub_get_event(&ctx->sub_status),
     };
 
-    int64_t joy_loss_last_alarm_ticks = 0;
+    int64_t input_loss_last_alarm_ticks = 0;
     int64_t fuel_low_last_alarm_ticks = 0;
-    float joy_loss_period_sec = 3.0;
+    float input_loss_period_sec = 3.0;
     float fuel_low_period_sec = 10.0;
 
     while (true) {
@@ -161,12 +161,12 @@ static void actuate_sound_entry_point(void* p0, void* p1, void* p2)
             play_sound(ctx, fuel_tone, ARRAY_SIZE(fuel_tone));
         }
 
-        if (ctx->status.joy == synapse_msgs_Status_Joy_JOY_LOSS
+        if (ctx->status.input_status == synapse_msgs_Status_LinkStatus_STATUS_LOSS
             && ctx->status.safety == synapse_msgs_Status_Safety_SAFETY_UNSAFE) {
             int64_t now_ticks = k_uptime_ticks();
-            if ((now_ticks - joy_loss_last_alarm_ticks) > joy_loss_period_sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
-                joy_loss_last_alarm_ticks = now_ticks;
-                play_sound(ctx, joy_loss_tone, ARRAY_SIZE(joy_loss_tone));
+            if ((now_ticks - input_loss_last_alarm_ticks) > input_loss_period_sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
+                input_loss_last_alarm_ticks = now_ticks;
+                play_sound(ctx, input_loss_tone, ARRAY_SIZE(input_loss_tone));
             }
         }
 

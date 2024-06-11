@@ -65,7 +65,7 @@ static context_t g_ctx = {
         (estimator_odometry, &topic_estimator_odometry, "estimator_odometry"),                         \
         (force_sp, &topic_force_sp, "force_sp"),                                                       \
         (imu, &topic_imu, "imu"),                                                                      \
-        (joy, &topic_joy, "joy"),                                                                      \
+        (input, &topic_input, "input"),                                                                \
         (led_array, &topic_led_array, "led_array"),                                                    \
         (magnetic_field, &topic_magnetic_field, "magnetic_field"),                                     \
         (moment_ff, &topic_moment_ff, "moment_ff"),                                                    \
@@ -74,7 +74,7 @@ static context_t g_ctx = {
         (offboard_bezier_trajectory, &topic_offboard_bezier_trajectory, "offboard_bezier_trajectory"), \
         (offboard_clock_offset, &topic_offboard_clock_offset, "offboard_clock_offset"),                \
         (offboard_cmd_vel, &topic_offboard_cmd_vel, "offboard_cmd_vel"),                               \
-        (offboard_joy, &topic_offboard_joy, "offboard_joy"),                                           \
+        (offboard_input, &topic_offboard_input, "offboard_input"),                                     \
         (offboard_odometry, &topic_offboard_odometry, "offboard_odometry"),                            \
         (orientation_sp, &topic_orientation_sp, "orientation_sp"),                                     \
         (position_sp, &topic_position_sp, "position_sp"),                                              \
@@ -274,9 +274,9 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_imu) {
         synapse_msgs_Imu msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_imu);
-    } else if (topic == &topic_joy || topic == &topic_offboard_joy) {
-        synapse_msgs_Joy msg = {};
-        handler(sh, topic, &msg, (snprint_t*)&snprint_joy);
+    } else if (topic == &topic_input || topic == &topic_offboard_input) {
+        synapse_msgs_Input msg = {};
+        handler(sh, topic, &msg, (snprint_t*)&snprint_input);
     } else if (topic == &topic_led_array) {
         synapse_msgs_LEDArray msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_ledarray);

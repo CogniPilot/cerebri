@@ -66,7 +66,7 @@ static struct context g_ctx = {
 TOPIC_LISTENER(offboard_bezier_trajectory, synapse_msgs_BezierTrajectory)
 TOPIC_LISTENER(offboard_clock_offset, synapse_msgs_Time)
 TOPIC_LISTENER(offboard_cmd_vel, synapse_msgs_Twist)
-TOPIC_LISTENER(offboard_joy, synapse_msgs_Joy)
+TOPIC_LISTENER(offboard_input, synapse_msgs_Input)
 #ifdef CONFIG_CEREBRI_DREAM_HIL
 TOPIC_LISTENER(battery_state, synapse_msgs_BatteryState)
 TOPIC_LISTENER(imu, synapse_msgs_Imu)
@@ -113,7 +113,7 @@ static int eth_rx_init(struct context* ctx)
     ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CMD_VEL_TOPIC, offboard_cmd_vel_listener);
     if (ret < 0)
         return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_JOY_TOPIC, offboard_joy_listener);
+    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_INPUT_TOPIC, offboard_input_listener);
     if (ret < 0)
         return ret;
     ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CLOCK_OFFSET_TOPIC, offboard_clock_offset_listener);

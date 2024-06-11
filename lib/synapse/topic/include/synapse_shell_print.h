@@ -18,7 +18,7 @@ int snprint_bezier_curve(char* buf, size_t n, synapse_msgs_BezierCurve* m);
 int snprint_bezier_trajectory(char* buf, size_t n, synapse_msgs_BezierTrajectory* m);
 int snprint_header(char* buf, size_t n, synapse_msgs_Header* m);
 int snprint_imu(char* buf, size_t n, synapse_msgs_Imu* m);
-int snprint_joy(char* buf, size_t n, synapse_msgs_Joy* m);
+int snprint_input(char* buf, size_t n, synapse_msgs_Input* m);
 int snprint_ledarray(char* buf, size_t n, synapse_msgs_LEDArray* m);
 int snprint_magnetic_field(char* buf, size_t n, synapse_msgs_MagneticField* m);
 int snprint_navsatfix(char* buf, size_t n, synapse_msgs_NavSatFix* m);

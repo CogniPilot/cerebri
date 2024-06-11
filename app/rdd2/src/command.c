@@ -24,7 +24,9 @@
 #include "casadi/gen/common.h"
 #include "casadi/gen/rdd2.h"
 
-#define MY_STACK_SIZE 4096
+#include "input_mapping.h"
+
+#define MY_STACK_SIZE 16384
 #define MY_PRIORITY 4
 
 #ifndef M_PI
@@ -40,7 +42,7 @@ static const double thrust_delta = CONFIG_CEREBRI_RDD2_THRUST_DELTA * 1e-3;
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Joy joy;
+    synapse_msgs_Input input;
     synapse_msgs_Vector3 angular_velocity_ff, force_sp, accel_ff, moment_ff, velocity_sp, position_sp;
     synapse_msgs_Quaternion attitude_sp, orientation_sp;
     synapse_msgs_BezierTrajectory bezier_trajectory;
@@ -49,7 +51,7 @@ struct context {
     synapse_msgs_Status last_status;
     synapse_msgs_Odometry estimator_odometry;
     synapse_msgs_Twist cmd_vel;
-    struct zros_sub sub_offboard_bezier_trajectory, sub_status, sub_joy, sub_offboard_joy,
+    struct zros_sub sub_offboard_bezier_trajectory, sub_status, sub_input, sub_offboard_input,
         sub_estimator_odometry, sub_offboard_cmd_vel, sub_offboard_clock_offset;
     struct zros_pub pub_attitude_sp, pub_angular_velocity_ff, pub_force_sp, pub_accel_ff, pub_moment_ff,
         pub_velocity_sp, pub_orientation_sp, pub_position_sp;
@@ -62,7 +64,7 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
-    .joy = synapse_msgs_Joy_init_default,
+    .input = synapse_msgs_Input_init_default,
     .attitude_sp = synapse_msgs_Quaternion_init_default,
     .angular_velocity_ff = synapse_msgs_Vector3_init_default,
     .force_sp = synapse_msgs_Vector3_init_default,
@@ -75,8 +77,8 @@ static struct context g_ctx = {
     .orientation_sp = synapse_msgs_Quaternion_init_default,
     .position_sp = synapse_msgs_Vector3_init_default,
     .cmd_vel = synapse_msgs_Twist_init_default,
-    .sub_offboard_joy = {},
-    .sub_joy = {},
+    .sub_offboard_input = {},
+    .sub_input = {},
     .sub_status = {},
     .sub_offboard_bezier_trajectory = {},
     .sub_offboard_clock_offset = {},
@@ -101,8 +103,8 @@ static void rdd2_command_init(struct context* ctx)
 {
     LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_command");
-    zros_sub_init(&ctx->sub_offboard_joy, &ctx->node, &topic_offboard_joy, &ctx->joy, 10);
-    zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 10);
+    zros_sub_init(&ctx->sub_offboard_input, &ctx->node, &topic_offboard_input, &ctx->input, 10);
+    zros_sub_init(&ctx->sub_input, &ctx->node, &topic_input, &ctx->input, 10);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_offboard_bezier_trajectory,
         &ctx->node, &topic_offboard_bezier_trajectory, &ctx->bezier_trajectory, 10);
@@ -132,9 +134,9 @@ static void rdd2_command_init(struct context* ctx)
 static void rdd2_command_fini(struct context* ctx)
 {
     LOG_INF("fini");
-    zros_node_fini(&ctx->node);
-    zros_sub_fini(&ctx->sub_offboard_joy);
-    zros_sub_fini(&ctx->sub_joy);
+    atomic_set(&ctx->running, 0);
+    zros_sub_fini(&ctx->sub_offboard_input);
+    zros_sub_fini(&ctx->sub_input);
     zros_sub_fini(&ctx->sub_status);
     zros_sub_fini(&ctx->sub_offboard_bezier_trajectory);
     zros_sub_fini(&ctx->sub_estimator_odometry);
@@ -146,7 +148,7 @@ static void rdd2_command_fini(struct context* ctx)
     zros_pub_fini(&ctx->pub_force_sp);
     zros_pub_fini(&ctx->pub_orientation_sp);
     zros_pub_fini(&ctx->pub_position_sp);
-    atomic_set(&ctx->running, 0);
+    zros_node_fini(&ctx->node);
 }
 
 static void rdd2_command_run(void* p0, void* p1, void* p2)
@@ -158,8 +160,8 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
     rdd2_command_init(ctx);
 
     struct k_poll_event events[] = {
-        *zros_sub_get_event(&ctx->sub_offboard_joy),
-        *zros_sub_get_event(&ctx->sub_joy),
+        *zros_sub_get_event(&ctx->sub_offboard_input),
+        *zros_sub_get_event(&ctx->sub_input),
         *zros_sub_get_event(&ctx->sub_offboard_cmd_vel),
         *zros_sub_get_event(&ctx->sub_offboard_bezier_trajectory),
     };
@@ -168,16 +170,15 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
     int64_t ticks_last = k_uptime_ticks();
 
     while (atomic_get(&ctx->running)) {
-        // wait for joystick input event, publish at 1 Hz regardless
+        // wait for input event, publish at 1 Hz regardless
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
-            // LOG_DBG("not receiving joy");
+            // LOG_DBG("not receiving input");
             ctx->status.mode = synapse_msgs_Status_Mode_MODE_ATTITUDE;
-            ctx->joy.axes[JOY_AXES_LEFT_STICK_LEFT] = 0;
-            ctx->joy.axes[JOY_AXES_LEFT_STICK_UP] = 0;
-            ctx->joy.axes[JOY_AXES_RIGHT_STICK_LEFT] = 0;
-            ctx->joy.axes[JOY_AXES_RIGHT_STICK_UP] = 0;
+            for (int i = 0; i < ctx->input.channel_count; i++) {
+                ctx->input.channel[i] = 0;
+            }
             ctx->cmd_vel.linear.x = 0;
             ctx->cmd_vel.linear.y = 0;
             ctx->cmd_vel.linear.z = 0;
@@ -188,11 +189,11 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             ctx->cmd_vel.has_angular = true;
         }
 
-        // prioritize onboard joy
-        if (zros_sub_update_available(&ctx->sub_joy)) {
-            zros_sub_update(&ctx->sub_joy);
-        } else if (zros_sub_update_available(&ctx->sub_offboard_joy)) {
-            zros_sub_update(&ctx->sub_offboard_joy);
+        // prioritize onboard input
+        if (zros_sub_update_available(&ctx->sub_input)) {
+            zros_sub_update(&ctx->sub_input);
+        } else if (zros_sub_update_available(&ctx->sub_offboard_input)) {
+            zros_sub_update(&ctx->sub_offboard_input);
         }
 
         if (zros_sub_update_available(&ctx->sub_status)) {
@@ -218,15 +219,15 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
         dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         ticks_last = ticks_now;
         if (dt < 0 || dt > 0.5) {
-            LOG_DBG("joy update rate too low");
+            LOG_DBG("input update rate too low");
             continue;
         }
 
-        // joy data
-        double joy_roll = -(double)ctx->joy.axes[JOY_AXES_RIGHT_STICK_LEFT];
-        double joy_pitch = (double)ctx->joy.axes[JOY_AXES_RIGHT_STICK_UP];
-        double joy_yaw = (double)ctx->joy.axes[JOY_AXES_LEFT_STICK_LEFT];
-        double joy_thrust = (double)ctx->joy.axes[JOY_AXES_LEFT_STICK_UP];
+        // input data
+        double input_roll = (double)ctx->input.channel[CH_RIGHT_STICK_RIGHT];
+        double input_pitch = (double)ctx->input.channel[CH_RIGHT_STICK_UP];
+        double input_yaw = -(double)ctx->input.channel[CH_LEFT_STICK_RIGHT];
+        double input_thrust = (double)ctx->input.channel[CH_LEFT_STICK_UP];
 
         // estimated attitude quaternion
         double q[4] = {
@@ -246,10 +247,10 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
                 args[0] = &thrust_trim;
                 args[1] = &thrust_delta;
-                args[2] = &joy_roll;
-                args[3] = &joy_pitch;
-                args[4] = &joy_yaw;
-                args[5] = &joy_thrust;
+                args[2] = &input_roll;
+                args[3] = &input_pitch;
+                args[4] = &input_yaw;
+                args[5] = &input_thrust;
 
                 res[0] = omega;
                 res[1] = &thrust;
@@ -291,10 +292,10 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
                 args[0] = &thrust_trim;
                 args[1] = &thrust_delta;
-                args[2] = &joy_roll;
-                args[3] = &joy_pitch;
-                args[4] = &joy_yaw;
-                args[5] = &joy_thrust;
+                args[2] = &input_roll;
+                args[3] = &input_pitch;
+                args[4] = &input_yaw;
+                args[5] = &input_thrust;
                 args[6] = q;
 
                 res[0] = qr;
@@ -361,17 +362,17 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             double yaw_rate = 0;
             double vb[3] = { 0, 0, 0 };
 
-            if (ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY) {
-                yaw_rate = 60 * deg2rad * joy_yaw;
-                vb[0] = 2.0 * joy_pitch;
-                vb[1] = -2.0 * joy_roll; // positive roll is negative y
-                vb[2] = joy_thrust;
+            if (ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT) {
+                yaw_rate = 60 * deg2rad * input_yaw;
+                vb[0] = 2.0 * input_pitch;
+                vb[1] = -2.0 * input_roll; // positive roll is negative y
+                vb[2] = input_thrust;
                 // LOG_INF("onboard yawrate: %10.4f vbx: %10.4f %10.4f %10.4f", yaw_rate, vbx, vby, vbz);
             } else if (ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
                 yaw_rate = ctx->cmd_vel.angular.z;
                 vb[0] = ctx->cmd_vel.linear.x;
                 vb[1] = ctx->cmd_vel.linear.y;
-                vb[2] = joy_thrust;
+                vb[2] = input_thrust;
                 // LOG_INF("offboard yawrate: %10.4f vbx: %10.4f %10.4f %10.4f", yaw_rate, vbx, vby, vbz);
             }
 
@@ -481,123 +482,125 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                 if (curve_index >= ctx->bezier_trajectory.curves_count) {
                     // LOG_DBG("curve index exceeds bounds");
                     // stop(ctx);
-                    continue;
+                    break;
                 }
             }
 
-            double T = (time_stop_nsec - time_start_nsec) * 1e-9;
-            double t = (time_nsec - time_start_nsec) * 1e-9;
-            double x, y, z, psi, dpsi, ddpsi = 0;
-            double v[3], a[3], j[3], s[3];
-            double PX[8], PY[8], PZ[8], Ppsi[4];
-            for (int i = 0; i < 8; i++) {
-                PX[i] = ctx->bezier_trajectory.curves[curve_index].x[i];
-                PY[i] = ctx->bezier_trajectory.curves[curve_index].y[i];
-                PZ[i] = ctx->bezier_trajectory.curves[curve_index].z[i];
+            if (curve_index < ctx->bezier_trajectory.curves_count) {
+                double T = (time_stop_nsec - time_start_nsec) * 1e-9;
+                double t = (time_nsec - time_start_nsec) * 1e-9;
+                double x, y, z, psi, dpsi, ddpsi = 0;
+                double v[3], a[3], j[3], s[3];
+                double PX[8], PY[8], PZ[8], Ppsi[4];
+                for (int i = 0; i < 8; i++) {
+                    PX[i] = ctx->bezier_trajectory.curves[curve_index].x[i];
+                    PY[i] = ctx->bezier_trajectory.curves[curve_index].y[i];
+                    PZ[i] = ctx->bezier_trajectory.curves[curve_index].z[i];
+                }
+
+                for (int i = 0; i < 4; i++) {
+                    Ppsi[i] = ctx->bezier_trajectory.curves[curve_index].yaw[i];
+                }
+
+                // bezier_multirotor:(t,T,PX[1x8],PY[1x8],PX[1x8],Ppsi[1x4])
+                // ->(x,y,z,psi,dpsi,ddpsi,V,a,j,s)
+                {
+                    CASADI_FUNC_ARGS(bezier_multirotor);
+                    args[0] = &t;
+                    args[1] = &T;
+                    args[2] = PX;
+                    args[3] = PY;
+                    args[4] = PZ;
+                    args[5] = Ppsi;
+                    res[0] = &x;
+                    res[1] = &y;
+                    res[2] = &z;
+                    res[3] = &psi;
+                    res[4] = &dpsi;
+                    res[5] = &ddpsi;
+                    res[6] = v;
+                    res[7] = a;
+                    res[8] = j;
+                    res[9] = s;
+                    CASADI_FUNC_CALL(bezier_multirotor);
+                }
+
+                double q_att[4], omega[3], M[3];
+                // world to body
+                // f_ref:(psi,psi_dot,psi_ddot,v_e[3],a_e[3],j_e[3],s_e[3])
+                // ->(v_b[3],quat[4],omega_eb_b[3],omega_dot_eb_b[3],M_b[3],T)
+                {
+                    CASADI_FUNC_ARGS(f_ref);
+                    args[0] = &psi;
+                    args[1] = &dpsi;
+                    args[2] = &ddpsi;
+                    args[3] = v;
+                    args[4] = a;
+                    args[5] = j;
+                    args[6] = s;
+                    res[1] = q_att;
+                    res[2] = omega;
+                    res[4] = M;
+                    CASADI_FUNC_CALL(f_ref);
+                }
+
+                /* euler to quat */
+                double q_orientation[4];
+                {
+                    CASADI_FUNC_ARGS(eulerB321_to_quat);
+                    double phi = 0;
+                    double theta = 0;
+                    args[0] = &psi;
+                    args[1] = &theta;
+                    args[2] = &phi;
+
+                    res[0] = q_orientation;
+                    CASADI_FUNC_CALL(eulerB321_to_quat);
+                }
+
+                // position sp
+                ctx->position_sp.x = x;
+                ctx->position_sp.y = y;
+                ctx->position_sp.z = z;
+                zros_pub_update(&ctx->pub_position_sp);
+
+                // velocity sp
+                ctx->velocity_sp.x = v[0];
+                ctx->velocity_sp.y = v[1];
+                ctx->velocity_sp.z = v[2];
+                zros_pub_update(&ctx->pub_velocity_sp);
+
+                // acceleration ff
+                ctx->accel_ff.x = a[0];
+                ctx->accel_ff.y = a[1];
+                ctx->accel_ff.z = a[2];
+                zros_pub_update(&ctx->pub_accel_ff);
+
+                // attitude sp
+                // ctx->attitude_sp.w = q_att[0];
+                // ctx->attitude_sp.x = q_att[1];
+                // ctx->attitude_sp.y = q_att[2];
+                // ctx->attitude_sp.z = q_att[3];
+
+                // angular velocity ff
+                ctx->angular_velocity_ff.x = omega[0];
+                ctx->angular_velocity_ff.y = omega[1];
+                ctx->angular_velocity_ff.z = omega[2];
+                zros_pub_update(&ctx->pub_angular_velocity_ff);
+
+                // moment ff
+                ctx->moment_ff.x = 0; // M[0];
+                ctx->moment_ff.y = 0; // M[1];
+                ctx->moment_ff.z = 0; // M[2];
+                zros_pub_update(&ctx->pub_moment_ff);
+
+                // orientation sp
+                ctx->orientation_sp.w = q_orientation[0];
+                ctx->orientation_sp.x = q_orientation[1];
+                ctx->orientation_sp.y = q_orientation[2];
+                ctx->orientation_sp.z = q_orientation[3];
+                zros_pub_update(&ctx->pub_orientation_sp);
             }
-
-            for (int i = 0; i < 4; i++) {
-                Ppsi[i] = ctx->bezier_trajectory.curves[curve_index].yaw[i];
-            }
-
-            // bezier_multirotor:(t,T,PX[1x8],PY[1x8],PX[1x8],Ppsi[1x4])
-            // ->(x,y,z,psi,dpsi,ddpsi,V,a,j,s)
-            {
-                CASADI_FUNC_ARGS(bezier_multirotor);
-                args[0] = &t;
-                args[1] = &T;
-                args[2] = PX;
-                args[3] = PY;
-                args[4] = PZ;
-                args[5] = Ppsi;
-                res[0] = &x;
-                res[1] = &y;
-                res[2] = &z;
-                res[3] = &psi;
-                res[4] = &dpsi;
-                res[5] = &ddpsi;
-                res[6] = v;
-                res[7] = a;
-                res[8] = j;
-                res[9] = s;
-                CASADI_FUNC_CALL(bezier_multirotor);
-            }
-
-            double q_att[4], omega[3], M[3];
-            // world to body
-            // f_ref:(psi,psi_dot,psi_ddot,v_e[3],a_e[3],j_e[3],s_e[3])
-            // ->(v_b[3],quat[4],omega_eb_b[3],omega_dot_eb_b[3],M_b[3],T)
-            {
-                CASADI_FUNC_ARGS(f_ref);
-                args[0] = &psi;
-                args[1] = &dpsi;
-                args[2] = &ddpsi;
-                args[3] = v;
-                args[4] = a;
-                args[5] = j;
-                args[6] = s;
-                res[1] = q_att;
-                res[2] = omega;
-                res[4] = M;
-                CASADI_FUNC_CALL(f_ref);
-            }
-
-            /* euler to quat */
-            double q_orientation[4];
-            {
-                CASADI_FUNC_ARGS(eulerB321_to_quat);
-                double phi = 0;
-                double theta = 0;
-                args[0] = &psi;
-                args[1] = &theta;
-                args[2] = &phi;
-
-                res[0] = q_orientation;
-                CASADI_FUNC_CALL(eulerB321_to_quat);
-            }
-
-            // position sp
-            ctx->position_sp.x = x;
-            ctx->position_sp.y = y;
-            ctx->position_sp.z = z;
-            zros_pub_update(&ctx->pub_position_sp);
-
-            // velocity sp
-            ctx->velocity_sp.x = v[0];
-            ctx->velocity_sp.y = v[1];
-            ctx->velocity_sp.z = v[2];
-            zros_pub_update(&ctx->pub_velocity_sp);
-
-            // acceleration ff
-            ctx->accel_ff.x = a[0];
-            ctx->accel_ff.y = a[1];
-            ctx->accel_ff.z = a[2];
-            zros_pub_update(&ctx->pub_accel_ff);
-
-            // attitude sp
-            // ctx->attitude_sp.w = q_att[0];
-            // ctx->attitude_sp.x = q_att[1];
-            // ctx->attitude_sp.y = q_att[2];
-            // ctx->attitude_sp.z = q_att[3];
-
-            // angular velocity ff
-            ctx->angular_velocity_ff.x = omega[0];
-            ctx->angular_velocity_ff.y = omega[1];
-            ctx->angular_velocity_ff.z = omega[2];
-            zros_pub_update(&ctx->pub_angular_velocity_ff);
-
-            // moment ff
-            ctx->moment_ff.x = 0; // M[0];
-            ctx->moment_ff.y = 0; // M[1];
-            ctx->moment_ff.z = 0; // M[2];
-            zros_pub_update(&ctx->pub_moment_ff);
-
-            // orientation sp
-            ctx->orientation_sp.w = q_orientation[0];
-            ctx->orientation_sp.x = q_orientation[1];
-            ctx->orientation_sp.y = q_orientation[2];
-            ctx->orientation_sp.z = q_orientation[3];
-            zros_pub_update(&ctx->pub_orientation_sp);
 
         } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_UNKNOWN) {
             // LOG_ERR("unknown mode");

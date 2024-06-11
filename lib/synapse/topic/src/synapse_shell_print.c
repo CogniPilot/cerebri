@@ -150,14 +150,14 @@ int snprint_status(char* buf, size_t n, synapse_msgs_Status* m)
         offset += snprint_header(buf + offset, n - offset, &m->header);
     }
     offset += snprintf_cat(buf + offset, n - offset,
-        "armed: %s\njoy source: %s\ntopic source: %s\nmode: %s\nsafety: %s\nfuel: %s\n"
-        "fuel level: %0.2d\%\npower: %10.2fW\nmessage: %s\njoy: %s\n"
+        "armed: %s\ninput source: %s\ntopic source: %s\nmode: %s\nsafety: %s\nfuel: %s\n"
+        "fuel level: %0.2d\%\npower: %10.2fW\nmessage: %s\ninput status: %s\n"
         "request_seq: %10d\nrequest_rejected:%2d\n",
-        armed_str(m->arming), joy_source_str(m->joy_source),
+        armed_str(m->arming), input_source_str(m->input_source),
         topic_source_str(m->topic_source),
         mode_str(m->mode), status_safety_str(m->safety),
         fuel_str(m->fuel), m->fuel_percentage, (double)m->power, m->status_message,
-        status_joy_str(m->joy), m->request_seq, m->request_rejected);
+        link_status_str(m->input_status), m->request_seq, m->request_rejected);
     return offset;
 }
 
@@ -210,18 +210,14 @@ int snprint_imu(char* buf, size_t n, synapse_msgs_Imu* m)
     return offset;
 }
 
-int snprint_joy(char* buf, size_t n, synapse_msgs_Joy* m)
+int snprint_input(char* buf, size_t n, synapse_msgs_Input* m)
 {
     size_t offset = 0;
-    offset += snprintf_cat(buf + offset, n - offset, "\naxes:\t");
-    for (int i = 0; i < m->axes_count; i++) {
-        offset += snprintf_cat(buf + offset, n - offset, "%10.4f\t", (double)m->axes[i]);
+    offset += snprintf_cat(buf + offset, n - offset, "\nchannels:\t");
+    for (int i = 0; i < m->channel_count; i++) {
+        offset += snprintf_cat(buf + offset, n - offset, "%10.4f\t", (double)m->channel[i]);
     }
 
-    offset += snprintf_cat(buf + offset, n - offset, "\nbuttons:\t");
-    for (int i = 0; i < m->buttons_count; i++) {
-        offset += snprintf_cat(buf + offset, n - offset, "%10d\t", m->buttons[i]);
-    }
     offset += snprintf_cat(buf + offset, n - offset, "\n");
     return offset;
 }

@@ -26,23 +26,23 @@ void stamp_header(synapse_msgs_Header* hdr, int64_t ticks)
     hdr->stamp.nanosec = nanosec;
 }
 
-const char* joy_source_str(synapse_msgs_Status_JoySource src)
+const char* input_source_str(synapse_msgs_Status_InputSource src)
 {
-    if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_UNKNOWN) {
+    if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_UNKNOWN) {
         return "unknown";
-    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RADIO_CONTROL) {
+    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL) {
         return "radio_control";
-    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_ETHERNET) {
+    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_ETHERNET) {
         return "ethernet";
-    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_CAN) {
+    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_CAN) {
         return "can";
-    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_0) {
+    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_RESERVED_0) {
         return "reserved 0";
-    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_1) {
+    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_RESERVED_1) {
         return "reserved 1";
-    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_2) {
+    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_RESERVED_2) {
         return "reserved 2";
-    } else if (src == synapse_msgs_Status_JoySource_JOY_SOURCE_RESERVED_3) {
+    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_RESERVED_3) {
         return "reserved 3";
     }
     return unhandled;
@@ -52,8 +52,8 @@ const char* topic_source_str(synapse_msgs_Status_TopicSource src)
 {
     if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_UNKNOWN) {
         return "unknown";
-    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY) {
-        return "joy";
+    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT) {
+        return "input";
     } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_LOCAL) {
         return "local";
     } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
@@ -144,13 +144,15 @@ const char* status_safety_str(synapse_msgs_Status_Safety safety)
     return unhandled;
 }
 
-const char* status_joy_str(synapse_msgs_Status_Joy joy)
+const char* link_status_str(synapse_msgs_Status_LinkStatus status)
 {
-    if (joy == synapse_msgs_Status_Joy_JOY_UNKNOWN) {
+    if (status == synapse_msgs_Status_LinkStatus_STATUS_UNKNOWN) {
         return "unknown";
-    } else if (joy == synapse_msgs_Status_Joy_JOY_NOMINAL) {
+    } else if (status == synapse_msgs_Status_LinkStatus_STATUS_NOMINAL) {
         return "nominal";
-    } else if (joy == synapse_msgs_Status_Joy_JOY_LOSS) {
+    } else if (status == synapse_msgs_Status_LinkStatus_STATUS_DISABLED) {
+        return "disabled";
+    } else if (status == synapse_msgs_Status_LinkStatus_STATUS_LOSS) {
         return "loss";
     }
     return unhandled;
@@ -188,7 +190,7 @@ ZROS_TOPIC_DEFINE(cmd_vel, synapse_msgs_Twist);
 ZROS_TOPIC_DEFINE(estimator_odometry, synapse_msgs_Odometry);
 ZROS_TOPIC_DEFINE(force_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(imu, synapse_msgs_Imu);
-ZROS_TOPIC_DEFINE(joy, synapse_msgs_Joy);
+ZROS_TOPIC_DEFINE(input, synapse_msgs_Input);
 ZROS_TOPIC_DEFINE(led_array, synapse_msgs_LEDArray);
 ZROS_TOPIC_DEFINE(magnetic_field, synapse_msgs_MagneticField);
 ZROS_TOPIC_DEFINE(moment_ff, synapse_msgs_Vector3);
@@ -197,7 +199,7 @@ ZROS_TOPIC_DEFINE(nav_sat_fix, synapse_msgs_NavSatFix);
 ZROS_TOPIC_DEFINE(offboard_bezier_trajectory, synapse_msgs_BezierTrajectory);
 ZROS_TOPIC_DEFINE(offboard_clock_offset, synapse_msgs_Time);
 ZROS_TOPIC_DEFINE(offboard_cmd_vel, synapse_msgs_Twist);
-ZROS_TOPIC_DEFINE(offboard_joy, synapse_msgs_Joy);
+ZROS_TOPIC_DEFINE(offboard_input, synapse_msgs_Input);
 ZROS_TOPIC_DEFINE(offboard_odometry, synapse_msgs_Odometry);
 ZROS_TOPIC_DEFINE(orientation_sp, synapse_msgs_Quaternion);
 ZROS_TOPIC_DEFINE(position_sp, synapse_msgs_Vector3);
@@ -220,7 +222,7 @@ static struct zros_topic* topic_list[] = {
     &topic_cmd_vel,
     &topic_estimator_odometry,
     &topic_imu,
-    &topic_joy,
+    &topic_input,
     &topic_led_array,
     &topic_magnetic_field,
     &topic_moment_ff,
@@ -228,7 +230,7 @@ static struct zros_topic* topic_list[] = {
     &topic_offboard_bezier_trajectory,
     &topic_offboard_clock_offset,
     &topic_offboard_cmd_vel,
-    &topic_offboard_joy,
+    &topic_offboard_input,
     &topic_offboard_odometry,
     &topic_orientation_sp,
     &topic_position_sp,

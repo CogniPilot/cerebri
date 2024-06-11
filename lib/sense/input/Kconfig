@@ -1,17 +1,17 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
-menuconfig CEREBRI_SENSE_JOY
-  bool "Joy"
+menuconfig CEREBRI_SENSE_INPUT
+  bool "Input"
   default y
   depends on ZROS
   depends on CEREBRI_CORE_WORKQUEUES
   help
     This option enables the safety interface
 
-if CEREBRI_SENSE_JOY
+if CEREBRI_SENSE_INPUT
 
-module = CEREBRI_SENSE_JOY
-module-str = sense_safety
+module = CEREBRI_SENSE_INPUT
+module-str = sense_input
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # CEREBRI_SENSE_JOY
+endif # CEREBRI_SENSE_INPUT

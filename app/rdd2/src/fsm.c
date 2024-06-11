@@ -18,6 +18,8 @@
 
 #include <synapse_topic_list.h>
 
+#include "input_mapping.h"
+
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY 4
 #define STATE_ANY -1
@@ -82,16 +84,7 @@ static void transition(
 }
 
 typedef struct status_input_s {
-    bool request_arm;
-    bool request_disarm;
-    bool request_topic_source_joy;
-    bool request_topic_source_ethernet;
-    bool request_mode_angular_velocity;
-    bool request_mode_attitude;
-    bool request_mode_attitude_rate;
-    bool request_mode_velocity;
-    bool request_mode_bezier;
-    bool request_mode_calibration;
+    struct input_request req;
     bool safe;
     bool mode_set;
     bool fuel_low;
@@ -100,12 +93,12 @@ typedef struct status_input_s {
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Joy joy;
+    synapse_msgs_Input input;
     synapse_msgs_BatteryState battery_state;
     synapse_msgs_Safety safety;
     synapse_msgs_Status status;
     status_input_t status_input;
-    struct zros_sub sub_joy, sub_offboard_joy, sub_battery_state, sub_safety;
+    struct zros_sub sub_input, sub_offboard_input, sub_battery_state, sub_safety;
     struct zros_pub pub_status;
     atomic_t running;
     size_t stack_size;
@@ -115,7 +108,7 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
-    .joy = synapse_msgs_Joy_init_default,
+    .input = synapse_msgs_Input_init_default,
     .battery_state = synapse_msgs_BatteryState_init_default,
     .safety = synapse_msgs_Safety_init_default,
     .status = {
@@ -129,16 +122,16 @@ static struct context g_ctx = {
         .arming = synapse_msgs_Status_Arming_ARMING_DISARMED,
         .fuel = synapse_msgs_Status_Fuel_FUEL_UNKNOWN,
         .fuel_percentage = 0,
-        .joy = synapse_msgs_Status_Joy_JOY_UNKNOWN,
-        .joy_source = synapse_msgs_Status_JoySource_JOY_SOURCE_ETHERNET,
-        .topic_source = synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY,
+        .input_status = synapse_msgs_Status_LinkStatus_STATUS_UNKNOWN,
+        .input_source = synapse_msgs_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL,
+        .topic_source = synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT,
         .mode = synapse_msgs_Status_Mode_MODE_ATTITUDE,
         .power = 0.0,
         .safety = synapse_msgs_Status_Safety_SAFETY_UNKNOWN,
         .status_message = "",
     },
-    .sub_joy = {},
-    .sub_offboard_joy = {},
+    .sub_input = {},
+    .sub_offboard_input = {},
     .sub_battery_state = {},
     .sub_safety = {},
     .pub_status = {},
@@ -152,8 +145,8 @@ static void rdd2_fsm_init(struct context* ctx)
 {
     LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_fsm");
-    zros_sub_init(&ctx->sub_joy, &ctx->node, &topic_joy, &ctx->joy, 5);
-    zros_sub_init(&ctx->sub_offboard_joy, &ctx->node, &topic_offboard_joy, &ctx->joy, 5);
+    zros_sub_init(&ctx->sub_input, &ctx->node, &topic_input, &ctx->input, 5);
+    zros_sub_init(&ctx->sub_offboard_input, &ctx->node, &topic_offboard_input, &ctx->input, 5);
     zros_sub_init(&ctx->sub_battery_state, &ctx->node,
         &topic_battery_state, &ctx->battery_state, 1);
     zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 5);
@@ -164,8 +157,8 @@ static void rdd2_fsm_init(struct context* ctx)
 static void rdd2_fsm_fini(struct context* ctx)
 {
     LOG_INF("fini");
-    zros_sub_fini(&ctx->sub_joy);
-    zros_sub_fini(&ctx->sub_offboard_joy);
+    zros_sub_fini(&ctx->sub_input);
+    zros_sub_fini(&ctx->sub_offboard_input);
     zros_sub_fini(&ctx->sub_battery_state);
     zros_sub_fini(&ctx->sub_safety);
     zros_pub_fini(&ctx->pub_status);
@@ -175,15 +168,9 @@ static void rdd2_fsm_fini(struct context* ctx)
 
 static void fsm_compute_input(status_input_t* input, const struct context* ctx)
 {
-    input->request_arm = ctx->joy.buttons[JOY_BUTTON_START] == 1;
-    input->request_disarm = ctx->joy.buttons[JOY_BUTTON_STOP] == 1;
-    input->request_mode_attitude_rate = ctx->joy.axes[JOY_AXES_DPAD_LEFT] > 0.5f;
-    input->request_mode_attitude = ctx->joy.buttons[JOY_BUTTON_A] == 1;
-    input->request_mode_bezier = ctx->joy.buttons[JOY_BUTTON_B] == 1;
-    input->request_mode_velocity = ctx->joy.buttons[JOY_BUTTON_X] == 1;
-    input->request_mode_calibration = ctx->joy.buttons[JOY_BUTTON_Y] == 1;
-    input->request_topic_source_joy = ctx->joy.buttons[JOY_BUTTON_LB] == 1;
-    input->request_topic_source_ethernet = ctx->joy.buttons[JOY_BUTTON_RB] == 1;
+    input_request_compute(&input->req, &ctx->input);
+
+    // precompute logical states
     input->mode_set = ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
     input->safe = ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE || ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNKNOWN;
@@ -205,7 +192,7 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
     // arm transition
     transition(
         &status->arming, // state
-        input->request_arm, // request
+        input->req.arm, // request
         "request arm", // label
         synapse_msgs_Status_Arming_ARMING_DISARMED, // pre
         synapse_msgs_Status_Arming_ARMING_ARMED, // post
@@ -222,7 +209,7 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
     // disarm transitions
     transition(
         &status->arming, // state
-        input->request_disarm, // request
+        input->req.disarm, // request
         "request disarm", // label
         synapse_msgs_Status_Arming_ARMING_ARMED, // pre
         synapse_msgs_Status_Arming_ARMING_DISARMED, // post
@@ -254,7 +241,7 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
     // mode transitions
     transition(
         &status->mode, // state
-        input->request_mode_attitude_rate, // request
+        input->req.mode_attitude_rate, // request
         "request mode attitude rate", // label
         STATE_ANY, // pre
         synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE, // post
@@ -264,7 +251,7 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
 
     transition(
         &status->mode, // state
-        input->request_mode_attitude, // request
+        input->req.mode_attitude, // request
         "request mode attitude", // label
         STATE_ANY, // pre
         synapse_msgs_Status_Mode_MODE_ATTITUDE, // post
@@ -274,7 +261,7 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
 
     transition(
         &status->mode, // state
-        input->request_mode_velocity, // request
+        input->req.mode_velocity, // request
         "request mode velocity", // label
         STATE_ANY, // pre
         synapse_msgs_Status_Mode_MODE_VELOCITY, // post
@@ -284,7 +271,7 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
 
     transition(
         &status->mode, // state
-        input->request_mode_bezier, // request
+        input->req.mode_bezier, // request
         "request mode bezier", // label
         STATE_ANY, // pre
         synapse_msgs_Status_Mode_MODE_BEZIER, // post
@@ -294,7 +281,7 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
 
     transition(
         &status->mode, // state
-        input->request_mode_calibration, // request
+        input->req.mode_calibration, // request
         "request mode calibration", // label
         STATE_ANY, // pre
         synapse_msgs_Status_Mode_MODE_CALIBRATION, // post
@@ -307,10 +294,10 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
     // topic source transitions
     transition(
         &status->topic_source, // state
-        input->request_topic_source_joy, // request
-        "request topic source joy", // label
-        STATE_ANY, // pre
-        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_JOY, // post
+        input->req.topic_source_input, // request
+        "request topic source input", // label
+        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // pre
+        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
@@ -318,9 +305,9 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
 
     transition(
         &status->topic_source, // state
-        input->request_topic_source_ethernet, // request
+        input->req.topic_source_ethernet, // request
         "request topic source ethernet", // label
-        STATE_ANY, // pre
+        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT, // pre
         synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
@@ -369,13 +356,13 @@ static void rdd2_fsm_run(void* p0, void* p1, void* p2)
     rdd2_fsm_init(ctx);
 
     struct k_poll_event events[] = {
-        *zros_sub_get_event(&ctx->sub_joy),
-        *zros_sub_get_event(&ctx->sub_offboard_joy),
+        *zros_sub_get_event(&ctx->sub_input),
+        *zros_sub_get_event(&ctx->sub_offboard_input),
         *zros_sub_get_event(&ctx->sub_battery_state),
     };
 
-    int64_t joy_last_ticks = k_uptime_ticks();
-    int64_t joy_loss_ticks = 1.0 * CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+    int64_t input_last_ticks = k_uptime_ticks();
+    int64_t input_loss_ticks = 1.0 * CONFIG_SYS_CLOCK_TICKS_PER_SEC;
 
     while (atomic_get(&ctx->running)) {
 
@@ -386,7 +373,7 @@ static void rdd2_fsm_run(void* p0, void* p1, void* p2)
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
-            LOG_DBG("fsm joy/battery polling timeout");
+            LOG_DBG("fsm input/battery polling timeout");
         }
 
         if (zros_sub_update_available(&ctx->sub_battery_state)) {
@@ -397,29 +384,29 @@ static void rdd2_fsm_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_safety);
         }
 
-        // prioritize onboard joystick
-        if (zros_sub_update_available(&ctx->sub_joy)) {
-            zros_sub_update(&ctx->sub_joy);
-            if (ctx->status.joy == synapse_msgs_Status_Joy_JOY_LOSS) {
-                LOG_DBG("joy regained");
+        // prioritize onboard input
+        if (zros_sub_update_available(&ctx->sub_input)) {
+            zros_sub_update(&ctx->sub_input);
+            if (ctx->status.input_status == synapse_msgs_Status_LinkStatus_STATUS_LOSS) {
+                LOG_DBG("input regained");
             }
-            joy_last_ticks = now_ticks;
-            ctx->status.joy = synapse_msgs_Status_Joy_JOY_NOMINAL;
+            input_last_ticks = now_ticks;
+            ctx->status.input_status = synapse_msgs_Status_LinkStatus_STATUS_NOMINAL;
 
-        } else if (zros_sub_update_available(&ctx->sub_offboard_joy)) {
-            zros_sub_update(&ctx->sub_offboard_joy);
-            if (ctx->status.joy == synapse_msgs_Status_Joy_JOY_LOSS) {
-                LOG_WRN("joy regained");
+        } else if (zros_sub_update_available(&ctx->sub_offboard_input)) {
+            zros_sub_update(&ctx->sub_offboard_input);
+            if (ctx->status.input_status == synapse_msgs_Status_LinkStatus_STATUS_LOSS) {
+                LOG_WRN("input regained");
             }
-            joy_last_ticks = now_ticks;
-            ctx->status.joy = synapse_msgs_Status_Joy_JOY_NOMINAL;
+            input_last_ticks = now_ticks;
+            ctx->status.input_status = synapse_msgs_Status_LinkStatus_STATUS_NOMINAL;
         }
 
-        // check for joy loss
-        if (ctx->status.joy != synapse_msgs_Status_Joy_JOY_LOSS
-            && now_ticks - joy_last_ticks > joy_loss_ticks) {
-            LOG_DBG("joy loss");
-            ctx->status.joy = synapse_msgs_Status_Joy_JOY_LOSS;
+        // check for input loss
+        if (ctx->status.input_status != synapse_msgs_Status_LinkStatus_STATUS_LOSS
+            && (now_ticks - input_last_ticks) > input_loss_ticks) {
+            LOG_DBG("input loss");
+            ctx->status.input_status = synapse_msgs_Status_LinkStatus_STATUS_LOSS;
         }
 
         // perform processing
@@ -448,7 +435,7 @@ static int rdd2_fsm_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     struct context* ctx = data;
-    if (argc == 1) {
+    if (argc != 1) {
         LOG_ERR("must have one argument");
         return -1;
     }

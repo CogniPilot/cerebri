@@ -205,8 +205,8 @@ struct tones_t fuel_tone[] = {
     { .note = REST, .duration = thrirtysecond },
 };
 
-/* No Joystick Received*/
-struct tones_t joy_loss_tone[] = {
+/* No Input Received*/
+struct tones_t input_loss_tone[] = {
     { .note = REST, .duration = thrirtysecond },
     { .note = C6, .duration = eigth },
     { .note = REST, .duration = thrirtysecond },

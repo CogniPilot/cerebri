@@ -10,7 +10,10 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(rdd2 LANGUAGES C)
 
-set(SOURCE_FILES src/boot_banner.c)
+set(SOURCE_FILES
+  src/boot_banner.c
+  src/input_mapping.c
+  )
 
 if (CONFIG_CEREBRI_RDD2_FSM)
   list(APPEND SOURCE_FILES src/fsm.c)

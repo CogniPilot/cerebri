@@ -139,7 +139,7 @@ const casadi_int* f_ref_sparsity_in(casadi_int i);
 const casadi_int* f_ref_sparsity_out(casadi_int i);
 int f_ref_work(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
 int f_ref_work_bytes(casadi_int* sz_arg, casadi_int* sz_res, casadi_int* sz_iw, casadi_int* sz_w);
-#define f_ref_SZ_ARG 7
+#define f_ref_SZ_ARG 13
 #define f_ref_SZ_RES 6
 #define f_ref_SZ_IW 0
 #define f_ref_SZ_W 33

@@ -37,7 +37,7 @@ struct context {
     struct zros_sub sub_battery_state, sub_safety, sub_status;
     // publications
     struct zros_pub pub_led_array;
-    atomic_t running;
+    struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
@@ -52,7 +52,7 @@ static struct context g_ctx = {
     .sub_safety = {},
     .sub_status = {},
     .pub_led_array = {},
-    .running = ATOMIC_INIT(0),
+    .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
     .thread_data = {},
@@ -66,7 +66,7 @@ static void rdd2_lighting_init(struct context* ctx)
     zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 10);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_pub_init(&ctx->pub_led_array, &ctx->node, &topic_led_array, &ctx->led_array);
-    atomic_set(&ctx->running, 1);
+    k_sem_take(&ctx->running, K_FOREVER);
 }
 
 static void rdd2_lighting_fini(struct context* ctx)
@@ -77,7 +77,7 @@ static void rdd2_lighting_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_status);
     zros_pub_fini(&ctx->pub_led_array);
     zros_node_fini(&ctx->node);
-    atomic_set(&ctx->running, 0);
+    k_sem_give(&ctx->running);
 }
 
 static void set_led(const int index, const double* color, const double brightness, synapse_msgs_LED* led)
@@ -96,7 +96,7 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
 
     rdd2_lighting_init(ctx);
 
-    while (atomic_get(&ctx->running)) {
+    while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 
         // wait 33 ms
         k_msleep(33);
@@ -219,26 +219,23 @@ static int start(struct context* ctx)
 static int rdd2_lighting_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
+    ARG_UNUSED(argc);
     struct context* ctx = data;
-    if (argc != 1) {
-        LOG_ERR("must have one argument");
-        return -1;
-    }
 
     if (strcmp(argv[0], "start") == 0) {
-        if (atomic_get(&ctx->running)) {
+        if(k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if (atomic_get(&ctx->running)) {
-            atomic_set(&ctx->running, 0);
+        if(k_sem_count_get(&g_ctx.running) == 0) {
+            k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");
         }
     } else if (strcmp(argv[0], "status") == 0) {
-        shell_print(sh, "running: %d", (int)atomic_get(&ctx->running));
+        shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
     }
     return 0;
 }

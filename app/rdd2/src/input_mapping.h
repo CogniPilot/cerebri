@@ -5,16 +5,16 @@
 #include <synapse_protobuf/input.pb.h>
 
 enum {
-    CH_RIGHT_STICK_RIGHT = 1,
-    CH_RIGHT_STICK_UP = 2,
-    CH_LEFT_STICK_UP = 3,
-    CH_LEFT_STICK_RIGHT = 4,
-    CH_SWA_DOWN = 5,
-    CH_SWB_DOWN = 6,
-    CH_SWC_DOWN = 7,
-    CH_SWD_DOWN = 8,
-    CH_VRA_CW = 9,
-    CH_VRB_CCW = 10,
+    CH_RIGHT_STICK_RIGHT = 0,
+    CH_RIGHT_STICK_UP = 1,
+    CH_LEFT_STICK_UP = 2,
+    CH_LEFT_STICK_RIGHT = 3,
+    CH_SWA_DOWN = 4,
+    CH_SWB_DOWN = 5,
+    CH_SWC_DOWN = 6,
+    CH_SWD_DOWN = 7,
+    CH_VRA_CW = 8,
+    CH_VRB_CCW = 9,
 };
 
 enum {

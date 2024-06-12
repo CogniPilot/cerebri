@@ -100,7 +100,7 @@ struct context {
     status_input_t status_input;
     struct zros_sub sub_input, sub_offboard_input, sub_battery_state, sub_safety;
     struct zros_pub pub_status;
-    atomic_t running;
+    struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
@@ -135,7 +135,7 @@ static struct context g_ctx = {
     .sub_battery_state = {},
     .sub_safety = {},
     .pub_status = {},
-    .running = ATOMIC_INIT(0),
+    .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
     .thread_data = {},
@@ -151,7 +151,7 @@ static void rdd2_fsm_init(struct context* ctx)
         &topic_battery_state, &ctx->battery_state, 1);
     zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 5);
     zros_pub_init(&ctx->pub_status, &ctx->node, &topic_status, &ctx->status);
-    atomic_set(&ctx->running, 1);
+    k_sem_take(&ctx->running, K_FOREVER);
 }
 
 static void rdd2_fsm_fini(struct context* ctx)
@@ -163,7 +163,7 @@ static void rdd2_fsm_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_safety);
     zros_pub_fini(&ctx->pub_status);
     zros_node_fini(&ctx->node);
-    atomic_set(&ctx->running, 0);
+    k_sem_give(&ctx->running);
 }
 
 static void fsm_compute_input(status_input_t* input, const struct context* ctx)
@@ -364,7 +364,7 @@ static void rdd2_fsm_run(void* p0, void* p1, void* p2)
     int64_t input_last_ticks = k_uptime_ticks();
     int64_t input_loss_ticks = 1.0 * CONFIG_SYS_CLOCK_TICKS_PER_SEC;
 
-    while (atomic_get(&ctx->running)) {
+    while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 
         // current ticks
         int64_t now_ticks = k_uptime_ticks();
@@ -434,26 +434,23 @@ static int start(struct context* ctx)
 static int rdd2_fsm_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
+    ARG_UNUSED(argc);
     struct context* ctx = data;
-    if (argc != 1) {
-        LOG_ERR("must have one argument");
-        return -1;
-    }
 
     if (strcmp(argv[0], "start") == 0) {
-        if (atomic_get(&ctx->running)) {
+        if(k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if (atomic_get(&ctx->running)) {
-            atomic_set(&ctx->running, 0);
+        if(k_sem_count_get(&g_ctx.running) == 0) {
+            k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");
         }
     } else if (strcmp(argv[0], "status") == 0) {
-        shell_print(sh, "running: %d", (int)atomic_get(&ctx->running));
+        shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
     }
     return 0;
 }

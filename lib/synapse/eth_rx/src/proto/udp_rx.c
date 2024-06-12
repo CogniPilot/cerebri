@@ -70,8 +70,7 @@ int udp_rx_receive(struct udp_rx* ctx)
             data_ready = true;
         }
         if (fds[i].revents & ZSOCK_POLLHUP) {
-            // disconnect, socket closed
-            // atomic_set(&ctx->running, 0);
+            // socket closed
         }
     }
 

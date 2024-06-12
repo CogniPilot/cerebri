@@ -16,74 +16,54 @@
 
 #include <synapse_topic_list.h>
 
-#define MY_STACK_SIZE 8192
-#define MY_PRIORITY 4
+#define MY_STACK_SIZE 2048
+#define MY_PRIORITY 2
 
 LOG_MODULE_REGISTER(sense_input, CONFIG_CEREBRI_SENSE_INPUT_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
-atomic_t running = 0;
-
-// jextern struct k_work_q g_high_priority_work_q;
-// static void sense_input_work_handler(struct k_work* work);
-// static void sense_input_timer_handler(struct k_timer* dummy);
 
 struct context {
-    // struct k_work work_item;
-    // struct k_timer timer;
     struct zros_node node;
     struct zros_pub pub_input;
     synapse_msgs_Input input;
+    struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
-    struct k_sem sem;
+    int last_event;
     int counter;
 };
 
 static struct context g_ctx = {
-    //.work_item = Z_WORK_INITIALIZER(sense_input_work_handler),
-    //.timer = Z_TIMER_INITIALIZER(g_ctx.timer, sense_input_timer_handler, NULL),
     .node = {},
     .pub_input = {},
     .input = {
         .channel_count = 16,
         .channel = {} },
+    .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
     .thread_data = {},
-    .sem = {},
-    .counter = 0,
+    .last_event = 0,
+    .counter = 0
 };
-
-/*
-void sense_input_work_handler(struct k_work* work)
-{
-    // struct context* ctx = CONTAINER_OF(work, struct context, work_item);
-}
-
-void sense_input_timer_handler(struct k_timer* timer)
-{
-    // struct context* ctx = CONTAINER_OF(timer, struct context, timer);
-    // k_work_submit_to_queue(&g_high_priority_work_q, &ctx->work_item);
-}
-*/
 
 static void sense_input_init(struct context* ctx)
 {
     LOG_INF("init");
     zros_node_init(&ctx->node, "sense_input");
     zros_pub_init(&ctx->pub_input, &ctx->node, &topic_input, &ctx->input);
-    k_sem_init(&ctx->sem, 1, 1);
-    atomic_set(&running, 1);
+    ctx->last_event = 0;
+    ctx->counter = 0;
+    k_sem_take(&ctx->running, K_FOREVER);
 }
 
-static void sense_input_fini(struct context* ctx)
-{
+static void sense_input_fini(struct context* ctx) {
     LOG_INF("fini");
-    atomic_set(&running, 0);
     zros_pub_fini(&ctx->pub_input);
     zros_node_fini(&ctx->node);
+    k_sem_give(&ctx->running);
 }
 
 static void sense_input_run(void* p0, void* p1, void* p2)
@@ -94,9 +74,8 @@ static void sense_input_run(void* p0, void* p1, void* p2)
 
     sense_input_init(ctx);
 
-    while (atomic_get(&running)) {
-        k_msleep(1000);
-    }
+    // wait for stop request
+    while (k_sem_take(&ctx->running, K_MSEC(1000)) < 0);
 
     sense_input_fini(ctx);
 }
@@ -115,27 +94,27 @@ static int start(struct context* ctx)
 
 static void input_cb(struct input_event* evt)
 {
-    if (!atomic_get(&running)) {
+    // check if still running
+    if (k_sem_count_get(&g_ctx.running) != 0) {
         return;
     }
 
     double x0 = 1024;
     double scale = 784;
 
-    k_sem_take(&g_ctx.sem, K_FOREVER);
     if (evt->code > 0 && evt->code <= g_ctx.input.channel_count) {
-        g_ctx.input.channel[evt->code] = (evt->value - x0) / scale;
+        g_ctx.input.channel[evt->code - 1] = (evt->value - x0) / scale;
     } else {
         LOG_INF("unhandled event: %d %d %d %d", evt->code, evt->sync, evt->type, evt->value);
     }
 
-    if (g_ctx.counter < 50) {
-        g_ctx.counter += 1;
-    } else {
-        g_ctx.counter = 0;
-        zros_pub_update(&g_ctx.pub_input);
+    if (evt->code < g_ctx.last_event) {
+        if (g_ctx.counter++ > 10) {
+            zros_pub_update(&g_ctx.pub_input);
+            g_ctx.counter = 0;
+        }
     }
-    k_sem_give(&g_ctx.sem);
+    g_ctx.last_event = evt->code;
 }
 
 INPUT_CALLBACK_DEFINE(NULL, input_cb);
@@ -143,27 +122,23 @@ INPUT_CALLBACK_DEFINE(NULL, input_cb);
 static int sense_input_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
+    ARG_UNUSED(argc);
     struct context* ctx = data;
 
-    if (argc != 1) {
-        LOG_ERR("must have one argument");
-        return -1;
-    }
-
     if (strcmp(argv[0], "start") == 0) {
-        if (atomic_get(&running)) {
+        if(k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if (atomic_get(&running)) {
-            atomic_set(&running, 0);
+        if(k_sem_count_get(&g_ctx.running) == 0) {
+            k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");
         }
     } else if (strcmp(argv[0], "status") == 0) {
-        shell_print(sh, "running: %d", (int)atomic_get(&running));
+        shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
     }
     return 0;
 }

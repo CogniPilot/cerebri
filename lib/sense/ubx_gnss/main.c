@@ -27,7 +27,7 @@ uNetworkCfgGnss_t gNetworkCfg = {
 
 LOG_MODULE_REGISTER(ubx_gnss, CONFIG_CEREBRI_SENSE_UBX_GNSS_LOG_LEVEL);
 
-#define MY_STACK_SIZE 8192
+#define MY_STACK_SIZE 4096
 #define MY_PRIORITY 6
 
 typedef struct context {

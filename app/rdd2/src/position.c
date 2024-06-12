@@ -41,7 +41,7 @@ struct context {
         sub_position_sp, sub_velocity_sp, sub_accel_ff, sub_estimator_odometry,
         sub_orientation_sp;
     struct zros_pub pub_force_sp, pub_attitude_sp;
-    atomic_t running;
+    struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
@@ -64,10 +64,10 @@ static struct context g_ctx = {
     .sub_orientation_sp = {},
     .pub_force_sp = {},
     .pub_attitude_sp = {},
+    .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
     .thread_data = {},
-    .running = ATOMIC_INIT(0),
 };
 
 static void rdd2_position_init(struct context* ctx)
@@ -82,13 +82,12 @@ static void rdd2_position_init(struct context* ctx)
     zros_sub_init(&ctx->sub_orientation_sp, &ctx->node, &topic_orientation_sp, &ctx->orientation_sp, 10);
     zros_pub_init(&ctx->pub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp);
     zros_pub_init(&ctx->pub_attitude_sp, &ctx->node, &topic_attitude_sp, &ctx->attitude_sp);
-    atomic_set(&ctx->running, 1);
+    k_sem_take(&ctx->running, K_FOREVER);
 }
 
 static void rdd2_position_fini(struct context* ctx)
 {
     LOG_INF("fini");
-    atomic_set(&ctx->running, 0);
     zros_sub_fini(&ctx->sub_status);
     zros_sub_fini(&ctx->sub_position_sp);
     zros_sub_fini(&ctx->sub_velocity_sp);
@@ -98,6 +97,7 @@ static void rdd2_position_fini(struct context* ctx)
     zros_pub_fini(&ctx->pub_force_sp);
     zros_pub_fini(&ctx->pub_attitude_sp);
     zros_node_fini(&ctx->node);
+    k_sem_give(&ctx->running);
 }
 
 static void rdd2_position_run(void* p0, void* p1, void* p2)
@@ -116,7 +116,7 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
     int64_t ticks_last = k_uptime_ticks();
     double z_i = 0; // altitude error integral
 
-    while (atomic_get(&ctx->running)) {
+    while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
@@ -311,26 +311,23 @@ static int start(struct context* ctx)
 static int rdd2_position_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
+    ARG_UNUSED(argc);
     struct context* ctx = data;
-    if (argc != 1) {
-        LOG_ERR("must have one argument");
-        return -1;
-    }
 
     if (strcmp(argv[0], "start") == 0) {
-        if (atomic_get(&ctx->running)) {
+        if(k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if (atomic_get(&ctx->running)) {
-            atomic_set(&ctx->running, 0);
+        if(k_sem_count_get(&g_ctx.running) == 0) {
+            k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");
         }
     } else if (strcmp(argv[0], "status") == 0) {
-        shell_print(sh, "running: %d", (int)atomic_get(&ctx->running));
+        shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
     }
     return 0;
 }

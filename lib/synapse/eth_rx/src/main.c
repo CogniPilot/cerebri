@@ -31,7 +31,7 @@ struct context {
     struct zros_node node;
     struct udp_rx udp;
     TinyFrame tf;
-    atomic_t running;
+    struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
@@ -41,7 +41,7 @@ static struct context g_ctx = {
     .node = {},
     .udp = {},
     .tf = {},
-    .running = ATOMIC_INIT(0),
+    .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
     .thread_data = {},
@@ -137,7 +137,7 @@ static int eth_rx_init(struct context* ctx)
         return ret;
 #endif
 
-    atomic_set(&ctx->running, 1);
+    k_sem_take(&ctx->running, K_FOREVER);
     return ret;
 };
 
@@ -148,7 +148,9 @@ static int eth_rx_fini(struct context* ctx)
     ret = udp_rx_fini(&ctx->udp);
 
     // close subscriptions
-    atomic_set(&ctx->running, 0);
+    zros_node_fini(&ctx->node);
+
+    k_sem_give(&ctx->running);
     return ret;
 };
 
@@ -169,7 +171,7 @@ static void eth_rx_run(void* p0, void* p1, void* p2)
     LOG_INF("running");
 
     // while running
-    while (atomic_get(&ctx->running)) {
+    while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
         // poll sockets and receive data
         int received = udp_rx_receive(&ctx->udp);
         if (received < 0) {
@@ -189,7 +191,7 @@ static void eth_rx_run(void* p0, void* p1, void* p2)
     }
 };
 
-static int eth_rx_start(struct context* ctx)
+static int start(struct context* ctx)
 {
     k_tid_t tid = k_thread_create(&ctx->thread_data, ctx->stack_area,
         ctx->stack_size,
@@ -204,26 +206,23 @@ static int eth_rx_start(struct context* ctx)
 static int eth_rx_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
+    ARG_UNUSED(argc);
     struct context* ctx = data;
-    if (argc != 1) {
-        LOG_ERR("must have one argument");
-        return -1;
-    }
 
     if (strcmp(argv[0], "start") == 0) {
-        if (atomic_get(&ctx->running)) {
+        if(k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
-            eth_rx_start(ctx);
+            start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if (atomic_get(&ctx->running)) {
-            atomic_set(&ctx->running, 0);
+        if(k_sem_count_get(&g_ctx.running) == 0) {
+            k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");
         }
     } else if (strcmp(argv[0], "status") == 0) {
-        shell_print(sh, "running: %d", (int)atomic_get(&ctx->running));
+        shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
     }
     return 0;
 }
@@ -237,7 +236,7 @@ SHELL_CMD_REGISTER(eth_rx, &sub_eth_rx, "eth_rx commands", NULL);
 
 static int eth_rx_sys_init(void)
 {
-    return eth_rx_start(&g_ctx);
+    return start(&g_ctx);
 };
 
 SYS_INIT(eth_rx_sys_init, APPLICATION, 0);

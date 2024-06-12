@@ -34,7 +34,7 @@ struct context {
     synapse_msgs_Odometry estimator_odometry;
     struct zros_sub sub_status, sub_angular_velocity_sp, sub_estimator_odometry, sub_moment_ff;
     struct zros_pub pub_moment_sp;
-    atomic_t running;
+    struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
@@ -51,7 +51,7 @@ static struct context g_ctx = {
     .sub_estimator_odometry = {},
     .sub_moment_ff = {},
     .pub_moment_sp = {},
-    .running = ATOMIC_INIT(0),
+    .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
     .thread_data = {},
@@ -68,7 +68,7 @@ static void rdd2_angular_velocity_init(struct context* ctx)
         &topic_estimator_odometry, &ctx->estimator_odometry, 50);
     zros_sub_init(&ctx->sub_moment_ff, &ctx->node, &topic_moment_ff, &ctx->moment_ff, 50);
     zros_pub_init(&ctx->pub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp);
-    atomic_set(&ctx->running, 1);
+    k_sem_take(&ctx->running, K_FOREVER);
 }
 
 static void rdd2_angular_velocity_fini(struct context* ctx)
@@ -80,7 +80,7 @@ static void rdd2_angular_velocity_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_moment_ff);
     zros_pub_fini(&ctx->pub_moment_sp);
     zros_node_fini(&ctx->node);
-    atomic_set(&ctx->running, 0);
+    k_sem_give(&ctx->running);
 }
 
 static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
@@ -101,7 +101,7 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
     // angular velocity integrator states
     double omega_i[3] = { 0, 0, 0 };
 
-    while (atomic_get(&ctx->running)) {
+    while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
         // wait for estimator odometry, publish at 10 Hz regardless
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(100));
@@ -221,26 +221,23 @@ static int start(struct context* ctx)
 static int rdd2_angular_velocity_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
+    ARG_UNUSED(argc);
     struct context* ctx = data;
-    if (argc != 1) {
-        LOG_ERR("must have one argument");
-        return -1;
-    }
 
     if (strcmp(argv[0], "start") == 0) {
-        if (atomic_get(&ctx->running)) {
+        if(k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if (atomic_get(&ctx->running)) {
-            atomic_set(&ctx->running, 0);
+        if(k_sem_count_get(&g_ctx.running) == 0) {
+            k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");
         }
     } else if (strcmp(argv[0], "status") == 0) {
-        shell_print(sh, "running: %d", (int)atomic_get(&ctx->running));
+        shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
     }
     return 0;
 }

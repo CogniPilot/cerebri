@@ -38,10 +38,10 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 // private context
 struct context {
     struct zros_node node;
-    synapse_msgs_Odometry offboard_odometry;
+    synapse_msgs_Odometry odometry_ethernet;
     synapse_msgs_Imu imu;
     synapse_msgs_Odometry odometry;
-    struct zros_sub sub_offboard_odometry, sub_imu;
+    struct zros_sub sub_odometry_ethernet, sub_imu;
     struct zros_pub pub_odometry;
     double x[3];
     struct k_sem running;
@@ -53,7 +53,7 @@ struct context {
 // private initialization
 static struct context g_ctx = {
     .node = {},
-    .offboard_odometry = synapse_msgs_Odometry_init_default,
+    .odometry_ethernet = synapse_msgs_Odometry_init_default,
     .imu = synapse_msgs_Imu_init_default,
     .odometry = {
         .child_frame_id = "base_link",
@@ -68,7 +68,7 @@ static struct context g_ctx = {
         .twist.twist.has_angular = true,
         .twist.twist.has_linear = true,
     },
-    .sub_offboard_odometry = {},
+    .sub_odometry_ethernet = {},
     .sub_imu = {},
     .pub_odometry = {},
     .x = {},
@@ -83,9 +83,9 @@ static void rdd2_estimate_init(struct context* ctx)
     LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_estimate");
     zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->imu, 300);
-    zros_sub_init(&ctx->sub_offboard_odometry, &ctx->node, &topic_offboard_odometry,
-        &ctx->offboard_odometry, 10);
-    zros_pub_init(&ctx->pub_odometry, &ctx->node, &topic_estimator_odometry, &ctx->odometry);
+    zros_sub_init(&ctx->sub_odometry_ethernet, &ctx->node, &topic_odometry_ethernet,
+        &ctx->odometry_ethernet, 10);
+    zros_pub_init(&ctx->pub_odometry, &ctx->node, &topic_odometry_estimator, &ctx->odometry);
     k_sem_take(&ctx->running, K_FOREVER);
 }
 
@@ -93,7 +93,7 @@ static void rdd2_estimate_fini(struct context* ctx)
 {
     LOG_INF("fini");
     zros_sub_fini(&ctx->sub_imu);
-    zros_sub_fini(&ctx->sub_offboard_odometry);
+    zros_sub_fini(&ctx->sub_odometry_ethernet);
     zros_pub_fini(&ctx->pub_odometry);
     zros_node_fini(&ctx->node);
     k_sem_give(&ctx->running);
@@ -166,34 +166,34 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
         }
         */
 
-        if (zros_sub_update_available(&ctx->sub_offboard_odometry)) {
+        if (zros_sub_update_available(&ctx->sub_odometry_ethernet)) {
             // LOG_INF("correct offboard odometry");
-            zros_sub_update(&ctx->sub_offboard_odometry);
+            zros_sub_update(&ctx->sub_odometry_ethernet);
 
-#if defined(CONFIG_CEREBRI_RDD2_ESTIMATE_OFFBOARD_ODOMETRY)
-            __ASSERT(fabs((ctx->offboard_odometry.pose.pose.orientation.w * ctx->offboard_odometry.pose.pose.orientation.w
-                              + ctx->offboard_odometry.pose.pose.orientation.x * ctx->offboard_odometry.pose.pose.orientation.x
-                              + ctx->offboard_odometry.pose.pose.orientation.y * ctx->offboard_odometry.pose.pose.orientation.y
-                              + ctx->offboard_odometry.pose.pose.orientation.z * ctx->offboard_odometry.pose.pose.orientation.z)
+#if defined(CONFIG_CEREBRI_RDD2_ESTIMATE_odometry_ethernet)
+            __ASSERT(fabs((ctx->odometry_ethernet.pose.pose.orientation.w * ctx->odometry_ethernet.pose.pose.orientation.w
+                              + ctx->odometry_ethernet.pose.pose.orientation.x * ctx->odometry_ethernet.pose.pose.orientation.x
+                              + ctx->odometry_ethernet.pose.pose.orientation.y * ctx->odometry_ethernet.pose.pose.orientation.y
+                              + ctx->odometry_ethernet.pose.pose.orientation.z * ctx->odometry_ethernet.pose.pose.orientation.z)
                          - 1)
                     < 1e-2,
                 "quaternion normal error");
 
             // use offboard odometry to reset position
-            x[0] = ctx->offboard_odometry.pose.pose.position.x;
-            x[1] = ctx->offboard_odometry.pose.pose.position.y;
-            x[2] = ctx->offboard_odometry.pose.pose.position.z;
+            x[0] = ctx->odometry_ethernet.pose.pose.position.x;
+            x[1] = ctx->odometry_ethernet.pose.pose.position.y;
+            x[2] = ctx->odometry_ethernet.pose.pose.position.z;
 
             // use offboard odometry to reset velocity
-            x[3] = ctx->offboard_odometry.twist.twist.linear.x;
-            x[4] = ctx->offboard_odometry.twist.twist.linear.y;
-            x[5] = ctx->offboard_odometry.twist.twist.linear.z;
+            x[3] = ctx->odometry_ethernet.twist.twist.linear.x;
+            x[4] = ctx->odometry_ethernet.twist.twist.linear.y;
+            x[5] = ctx->odometry_ethernet.twist.twist.linear.z;
 
             // use offboard odometry to reset orientation
-            x[6] = ctx->offboard_odometry.pose.pose.orientation.w;
-            x[7] = ctx->offboard_odometry.pose.pose.orientation.x;
-            x[8] = ctx->offboard_odometry.pose.pose.orientation.y;
-            x[9] = ctx->offboard_odometry.pose.pose.orientation.z;
+            x[6] = ctx->odometry_ethernet.pose.pose.orientation.w;
+            x[7] = ctx->odometry_ethernet.pose.pose.orientation.x;
+            x[8] = ctx->odometry_ethernet.pose.pose.orientation.y;
+            x[9] = ctx->odometry_ethernet.pose.pose.orientation.z;
 #endif
         }
 

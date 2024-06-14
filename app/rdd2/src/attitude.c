@@ -32,10 +32,10 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 struct context {
     struct zros_node node;
     synapse_msgs_Status status;
-    synapse_msgs_Odometry estimator_odometry;
+    synapse_msgs_Odometry odometry_estimator;
     synapse_msgs_Quaternion attitude_sp;
     synapse_msgs_Vector3 position_sp, velocity_sp, angular_velocity_sp, angular_velocity_ff;
-    struct zros_sub sub_status, sub_position_sp, sub_velocity_sp, sub_attitude_sp, sub_estimator_odometry, sub_angular_velocity_ff;
+    struct zros_sub sub_status, sub_position_sp, sub_velocity_sp, sub_attitude_sp, sub_odometry_estimator, sub_angular_velocity_ff;
     struct zros_pub pub_angular_velocity_sp;
     struct k_sem running;
     size_t stack_size;
@@ -51,12 +51,12 @@ static struct context g_ctx = {
     .velocity_sp = synapse_msgs_Vector3_init_default,
     .angular_velocity_sp = synapse_msgs_Vector3_init_default,
     .angular_velocity_ff = synapse_msgs_Vector3_init_default,
-    .estimator_odometry = synapse_msgs_Odometry_init_default,
+    .odometry_estimator = synapse_msgs_Odometry_init_default,
     .sub_status = {},
     .sub_position_sp = {},
     .sub_velocity_sp = {},
     .sub_attitude_sp = {},
-    .sub_estimator_odometry = {},
+    .sub_odometry_estimator = {},
     .pub_angular_velocity_sp = {},
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
@@ -75,8 +75,8 @@ static void rdd2_attitude_init(struct context* ctx)
         &topic_velocity_sp, &ctx->velocity_sp, 50);
     zros_sub_init(&ctx->sub_attitude_sp, &ctx->node,
         &topic_attitude_sp, &ctx->attitude_sp, 50);
-    zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
-        &topic_estimator_odometry, &ctx->estimator_odometry, 50);
+    zros_sub_init(&ctx->sub_odometry_estimator, &ctx->node,
+        &topic_odometry_estimator, &ctx->odometry_estimator, 50);
     zros_sub_init(&ctx->sub_angular_velocity_ff, &ctx->node,
         &topic_angular_velocity_ff, &ctx->angular_velocity_ff, 50);
     zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node, &topic_angular_velocity_sp, &ctx->angular_velocity_sp);
@@ -90,7 +90,7 @@ static void rdd2_attitude_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_position_sp);
     zros_sub_fini(&ctx->sub_velocity_sp);
     zros_sub_fini(&ctx->sub_attitude_sp);
-    zros_sub_fini(&ctx->sub_estimator_odometry);
+    zros_sub_fini(&ctx->sub_odometry_estimator);
     zros_sub_fini(&ctx->sub_angular_velocity_ff);
     zros_pub_fini(&ctx->pub_angular_velocity_sp);
     zros_node_fini(&ctx->node);
@@ -106,22 +106,22 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
     rdd2_attitude_init(ctx);
 
     struct k_poll_event events[] = {
-        *zros_sub_get_event(&ctx->sub_estimator_odometry),
+        *zros_sub_get_event(&ctx->sub_odometry_estimator),
     };
 
     while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
         int rc = 0;
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
-            LOG_DBG("not receiving estimator_odometry");
+            LOG_DBG("not receiving odometry_estimator");
         }
 
         if (zros_sub_update_available(&ctx->sub_status)) {
             zros_sub_update(&ctx->sub_status);
         }
 
-        if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {
-            zros_sub_update(&ctx->sub_estimator_odometry);
+        if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
+            zros_sub_update(&ctx->sub_odometry_estimator);
         }
 
         if (zros_sub_update_available(&ctx->sub_position_sp)) {
@@ -142,10 +142,10 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
 
         if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE) {
             double q_wb[4] = {
-                ctx->estimator_odometry.pose.pose.orientation.w,
-                ctx->estimator_odometry.pose.pose.orientation.x,
-                ctx->estimator_odometry.pose.pose.orientation.y,
-                ctx->estimator_odometry.pose.pose.orientation.z
+                ctx->odometry_estimator.pose.pose.orientation.w,
+                ctx->odometry_estimator.pose.pose.orientation.x,
+                ctx->odometry_estimator.pose.pose.orientation.y,
+                ctx->odometry_estimator.pose.pose.orientation.z
             };
 
             double q_r[4] = {
@@ -167,15 +167,15 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             {
                 double zeta[9];
                 double p_w[3] = {
-                    ctx->estimator_odometry.pose.pose.position.x,
-                    ctx->estimator_odometry.pose.pose.position.y,
-                    ctx->estimator_odometry.pose.pose.position.z
+                    ctx->odometry_estimator.pose.pose.position.x,
+                    ctx->odometry_estimator.pose.pose.position.y,
+                    ctx->odometry_estimator.pose.pose.position.z
                 };
 
                 double v_b[3] = {
-                    ctx->estimator_odometry.twist.twist.linear.x,
-                    ctx->estimator_odometry.twist.twist.linear.y,
-                    ctx->estimator_odometry.twist.twist.linear.z
+                    ctx->odometry_estimator.twist.twist.linear.x,
+                    ctx->odometry_estimator.twist.twist.linear.y,
+                    ctx->odometry_estimator.twist.twist.linear.z
                 };
 
                 double p_rw[3] = {

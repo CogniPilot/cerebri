@@ -19,7 +19,7 @@
 #include "input_mapping.h"
 #include "mixing.h"
 
-#define MY_STACK_SIZE 1024
+#define MY_STACK_SIZE 8192
 #define MY_PRIORITY 4
 
 LOG_MODULE_REGISTER(b3rb_command, CONFIG_CEREBRI_B3RB_LOG_LEVEL);

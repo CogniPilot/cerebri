@@ -170,7 +170,7 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
             // LOG_INF("correct offboard odometry");
             zros_sub_update(&ctx->sub_odometry_ethernet);
 
-#if defined(CONFIG_CEREBRI_RDD2_ESTIMATE_odometry_ethernet)
+#if defined(CONFIG_CEREBRI_RDD2_ESTIMATE_ODOMETRY_ETHERNET)
             __ASSERT(fabs((ctx->odometry_ethernet.pose.pose.orientation.w * ctx->odometry_ethernet.pose.pose.orientation.w
                               + ctx->odometry_ethernet.pose.pose.orientation.x * ctx->odometry_ethernet.pose.pose.orientation.x
                               + ctx->odometry_ethernet.pose.pose.orientation.y * ctx->odometry_ethernet.pose.pose.orientation.y

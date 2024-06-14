@@ -56,11 +56,11 @@ config CEREBRI_RDD2_CASADI
   help
     Enable Casadi generated code
 
-config CEREBRI_RDD2_ESTIMATE_OFFBOARD_ODOMETRY
-  bool "fuse offboard odometry"
+config CEREBRI_RDD2_ESTIMATE_ODOMETRY_ETHERNET
+  bool "fuse odometry from ethernet"
   depends on CEREBRI_RDD2_ESTIMATE
   help
-    Enable offboard odometry
+    Enable odometry from ethernet
 
 config CEREBRI_RDD2_BATTERY_NCELLS
   int "number of cells in battery"

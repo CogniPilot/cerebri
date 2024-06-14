@@ -223,7 +223,7 @@ static int pwm_test_set_handler(const struct shell* sh,
 {
     uint32_t pulse = atoi(argv[1]);
     LOG_INF("sending pwm %d", pulse);
-    if(k_sem_count_get(&g_ctx.running) == 0) {
+    if (k_sem_count_get(&g_ctx.running) == 0) {
         shell_print(sh, "actuate_pwm running, stop it first");
         return -1;
     }
@@ -249,13 +249,13 @@ static int actuate_pwm_cmd_handler(const struct shell* sh,
     struct context* ctx = data;
 
     if (strcmp(argv[0], "start") == 0) {
-        if(k_sem_count_get(&g_ctx.running) == 0) {
+        if (k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if(k_sem_count_get(&g_ctx.running) == 0) {
+        if (k_sem_count_get(&g_ctx.running) == 0) {
             k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");
@@ -264,7 +264,6 @@ static int actuate_pwm_cmd_handler(const struct shell* sh,
         shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
     }
     return 0;
-
 }
 
 SHELL_SUBCMD_DICT_SET_CREATE(sub_actuate_pwm, actuate_pwm_cmd_handler,

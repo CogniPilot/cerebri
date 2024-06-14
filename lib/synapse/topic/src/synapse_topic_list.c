@@ -186,21 +186,22 @@ ZROS_TOPIC_DEFINE(angular_velocity_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(attitude_sp, synapse_msgs_Quaternion);
 ZROS_TOPIC_DEFINE(battery_state, synapse_msgs_BatteryState);
 ZROS_TOPIC_DEFINE(bezier_trajectory, synapse_msgs_BezierTrajectory);
+ZROS_TOPIC_DEFINE(bezier_trajectory_ethernet, synapse_msgs_BezierTrajectory);
+ZROS_TOPIC_DEFINE(clock_offset_ethernet, synapse_msgs_Time);
 ZROS_TOPIC_DEFINE(cmd_vel, synapse_msgs_Twist);
-ZROS_TOPIC_DEFINE(estimator_odometry, synapse_msgs_Odometry);
+ZROS_TOPIC_DEFINE(cmd_vel_ethernet, synapse_msgs_Twist);
 ZROS_TOPIC_DEFINE(force_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(imu, synapse_msgs_Imu);
 ZROS_TOPIC_DEFINE(input, synapse_msgs_Input);
+ZROS_TOPIC_DEFINE(input_ethernet, synapse_msgs_Input);
+ZROS_TOPIC_DEFINE(input_sbus, synapse_msgs_Input);
 ZROS_TOPIC_DEFINE(led_array, synapse_msgs_LEDArray);
 ZROS_TOPIC_DEFINE(magnetic_field, synapse_msgs_MagneticField);
 ZROS_TOPIC_DEFINE(moment_ff, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(moment_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(nav_sat_fix, synapse_msgs_NavSatFix);
-ZROS_TOPIC_DEFINE(offboard_bezier_trajectory, synapse_msgs_BezierTrajectory);
-ZROS_TOPIC_DEFINE(offboard_clock_offset, synapse_msgs_Time);
-ZROS_TOPIC_DEFINE(offboard_cmd_vel, synapse_msgs_Twist);
-ZROS_TOPIC_DEFINE(offboard_input, synapse_msgs_Input);
-ZROS_TOPIC_DEFINE(offboard_odometry, synapse_msgs_Odometry);
+ZROS_TOPIC_DEFINE(odometry_estimator, synapse_msgs_Odometry);
+ZROS_TOPIC_DEFINE(odometry_ethernet, synapse_msgs_Odometry);
 ZROS_TOPIC_DEFINE(orientation_sp, synapse_msgs_Quaternion);
 ZROS_TOPIC_DEFINE(position_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DEFINE(pwm, synapse_msgs_Pwm);
@@ -219,19 +220,20 @@ static struct zros_topic* topic_list[] = {
     &topic_attitude_sp,
     &topic_battery_state,
     &topic_bezier_trajectory,
+    &topic_bezier_trajectory_ethernet,
+    &topic_clock_offset_ethernet,
     &topic_cmd_vel,
-    &topic_estimator_odometry,
+    &topic_cmd_vel_ethernet,
     &topic_imu,
     &topic_input,
+    &topic_input_ethernet,
+    &topic_input_sbus,
     &topic_led_array,
     &topic_magnetic_field,
     &topic_moment_ff,
     &topic_nav_sat_fix,
-    &topic_offboard_bezier_trajectory,
-    &topic_offboard_clock_offset,
-    &topic_offboard_cmd_vel,
-    &topic_offboard_input,
-    &topic_offboard_odometry,
+    &topic_odometry_estimator,
+    &topic_odometry_ethernet,
     &topic_orientation_sp,
     &topic_position_sp,
     &topic_pwm,

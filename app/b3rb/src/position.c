@@ -31,11 +31,11 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 struct context {
     struct zros_node node;
     synapse_msgs_Status status;
-    synapse_msgs_BezierTrajectory offboard_bezier_trajectory;
-    synapse_msgs_Time offboard_clock_offset;
-    synapse_msgs_Odometry estimator_odometry;
+    synapse_msgs_BezierTrajectory bezier_trajectory_ethernet;
+    synapse_msgs_Time clock_offset_ethernet;
+    synapse_msgs_Odometry odometry_estimator;
     synapse_msgs_Twist cmd_vel;
-    struct zros_sub sub_status, sub_offboard_clock_offset, sub_estimator_odometry, sub_offboard_bezier_trajectory;
+    struct zros_sub sub_status, sub_clock_offset_ethernet, sub_odometry_estimator, sub_bezier_trajectory_ethernet;
     struct zros_pub pub_cmd_vel;
     const double wheel_base;
     const double gain_along_track;
@@ -49,9 +49,9 @@ struct context {
 
 static struct context g_ctx = {
     .status = synapse_msgs_Status_init_default,
-    .offboard_bezier_trajectory = synapse_msgs_BezierTrajectory_init_default,
-    .offboard_clock_offset = synapse_msgs_Time_init_default,
-    .estimator_odometry = synapse_msgs_Odometry_init_default,
+    .bezier_trajectory_ethernet = synapse_msgs_BezierTrajectory_init_default,
+    .clock_offset_ethernet = synapse_msgs_Time_init_default,
+    .odometry_estimator = synapse_msgs_Odometry_init_default,
     .cmd_vel = {
         .has_angular = true,
         .has_linear = true,
@@ -59,9 +59,9 @@ static struct context g_ctx = {
         .angular = synapse_msgs_Vector3_init_default,
     },
     .sub_status = {},
-    .sub_offboard_clock_offset = {},
-    .sub_estimator_odometry = {},
-    .sub_offboard_bezier_trajectory = {},
+    .sub_clock_offset_ethernet = {},
+    .sub_odometry_estimator = {},
+    .sub_bezier_trajectory_ethernet = {},
     .pub_cmd_vel = {},
     .wheel_base = CONFIG_CEREBRI_B3RB_WHEEL_BASE_MM / 1000.0,
     .gain_along_track = CONFIG_CEREBRI_B3RB_GAIN_ALONG_TRACK / 1000.0,
@@ -77,9 +77,9 @@ static void b3rb_position_init(struct context* ctx)
 {
     zros_node_init(&ctx->node, "b3rb_position");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
-    zros_sub_init(&ctx->sub_offboard_clock_offset, &ctx->node, &topic_offboard_clock_offset, &ctx->offboard_clock_offset, 10);
-    zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
-    zros_sub_init(&ctx->sub_offboard_bezier_trajectory, &ctx->node, &topic_offboard_bezier_trajectory, &ctx->offboard_bezier_trajectory, 10);
+    zros_sub_init(&ctx->sub_clock_offset_ethernet, &ctx->node, &topic_clock_offset_ethernet, &ctx->clock_offset_ethernet, 10);
+    zros_sub_init(&ctx->sub_odometry_estimator, &ctx->node, &topic_odometry_estimator, &ctx->odometry_estimator, 10);
+    zros_sub_init(&ctx->sub_bezier_trajectory_ethernet, &ctx->node, &topic_bezier_trajectory_ethernet, &ctx->bezier_trajectory_ethernet, 10);
     zros_pub_init(&ctx->pub_cmd_vel, &ctx->node, &topic_cmd_vel, &ctx->cmd_vel);
     atomic_set(&ctx->running, 1);
 }
@@ -88,9 +88,9 @@ static void b3rb_position_fini(struct context* ctx)
 {
     atomic_set(&ctx->running, 0);
     zros_sub_fini(&ctx->sub_status);
-    zros_sub_fini(&ctx->sub_offboard_clock_offset);
-    zros_sub_fini(&ctx->sub_estimator_odometry);
-    zros_sub_fini(&ctx->sub_offboard_bezier_trajectory);
+    zros_sub_fini(&ctx->sub_clock_offset_ethernet);
+    zros_sub_fini(&ctx->sub_odometry_estimator);
+    zros_sub_fini(&ctx->sub_bezier_trajectory_ethernet);
     zros_pub_fini(&ctx->pub_cmd_vel);
     zros_node_fini(&ctx->node);
 }
@@ -105,11 +105,11 @@ static void b3rb_position_stop(struct context* ctx)
 static void bezier_position_mode(struct context* ctx)
 {
     // goal -> given position goal, find cmd_vel
-    uint64_t time_start_nsec = ctx->offboard_bezier_trajectory.time_start;
+    uint64_t time_start_nsec = ctx->bezier_trajectory_ethernet.time_start;
     uint64_t time_stop_nsec = time_start_nsec;
 
     // get current time
-    uint64_t time_nsec = k_uptime_get() * 1e6 + ctx->offboard_clock_offset.sec * 1e9 + ctx->offboard_clock_offset.nanosec;
+    uint64_t time_nsec = k_uptime_get() * 1e6 + ctx->clock_offset_ethernet.sec * 1e9 + ctx->clock_offset_ethernet.nanosec;
 
     if (time_nsec < time_start_nsec) {
         LOG_WRN("time current: %" PRIu64
@@ -125,10 +125,10 @@ static void bezier_position_mode(struct context* ctx)
     while (atomic_get(&ctx->running)) {
 
         // check if time handled by current trajectory
-        if (time_nsec < ctx->offboard_bezier_trajectory.curves[curve_index].time_stop) {
-            time_stop_nsec = ctx->offboard_bezier_trajectory.curves[curve_index].time_stop;
+        if (time_nsec < ctx->bezier_trajectory_ethernet.curves[curve_index].time_stop) {
+            time_stop_nsec = ctx->bezier_trajectory_ethernet.curves[curve_index].time_stop;
             if (curve_index > 0) {
-                time_start_nsec = ctx->offboard_bezier_trajectory.curves[curve_index - 1].time_stop;
+                time_start_nsec = ctx->bezier_trajectory_ethernet.curves[curve_index - 1].time_stop;
             }
             break;
         }
@@ -137,7 +137,7 @@ static void bezier_position_mode(struct context* ctx)
         curve_index++;
 
         // check if index exceeds bounds
-        if (curve_index >= ctx->offboard_bezier_trajectory.curves_count) {
+        if (curve_index >= ctx->bezier_trajectory_ethernet.curves_count) {
             LOG_DBG("curve index exceeds bounds");
             b3rb_position_stop(ctx);
             return;
@@ -151,8 +151,8 @@ static void bezier_position_mode(struct context* ctx)
 
     double PX[6], PY[6];
     for (int i = 0; i < 6; i++) {
-        PX[i] = ctx->offboard_bezier_trajectory.curves[curve_index].x[i];
-        PY[i] = ctx->offboard_bezier_trajectory.curves[curve_index].y[i];
+        PX[i] = ctx->bezier_trajectory_ethernet.curves[curve_index].x[i];
+        PY[i] = ctx->bezier_trajectory_ethernet.curves[curve_index].y[i];
     }
 
     /* bezier6_rover:(t,T,PX[1x6],PY[1x6],L)->(x,y,psi,V,omega) */
@@ -175,9 +175,9 @@ static void bezier_position_mode(struct context* ctx)
         double p[3], r[3];
 
         // vehicle position
-        p[0] = ctx->estimator_odometry.pose.pose.position.x;
-        p[1] = ctx->estimator_odometry.pose.pose.position.y;
-        p[2] = 2 * atan2(ctx->estimator_odometry.pose.pose.orientation.z, ctx->estimator_odometry.pose.pose.orientation.w);
+        p[0] = ctx->odometry_estimator.pose.pose.position.x;
+        p[1] = ctx->odometry_estimator.pose.pose.position.y;
+        p[2] = 2 * atan2(ctx->odometry_estimator.pose.pose.orientation.z, ctx->odometry_estimator.pose.pose.orientation.w);
 
         // reference position
         r[0] = x;
@@ -207,7 +207,7 @@ static void b3rb_position_run(void* p0, void* p1, void* p2)
     b3rb_position_init(ctx);
 
     struct k_poll_event events[] = {
-        *zros_sub_get_event(&ctx->sub_estimator_odometry),
+        *zros_sub_get_event(&ctx->sub_odometry_estimator),
     };
 
     while (true) {
@@ -219,20 +219,20 @@ static void b3rb_position_run(void* p0, void* p1, void* p2)
             continue;
         }
 
-        if (zros_sub_update_available(&ctx->sub_offboard_bezier_trajectory)) {
-            zros_sub_update(&ctx->sub_offboard_bezier_trajectory);
+        if (zros_sub_update_available(&ctx->sub_bezier_trajectory_ethernet)) {
+            zros_sub_update(&ctx->sub_bezier_trajectory_ethernet);
         }
 
         if (zros_sub_update_available(&ctx->sub_status)) {
             zros_sub_update(&ctx->sub_status);
         }
 
-        if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {
-            zros_sub_update(&ctx->sub_estimator_odometry);
+        if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
+            zros_sub_update(&ctx->sub_odometry_estimator);
         }
 
-        if (zros_sub_update_available(&ctx->sub_offboard_clock_offset)) {
-            zros_sub_update(&ctx->sub_offboard_clock_offset);
+        if (zros_sub_update_available(&ctx->sub_clock_offset_ethernet)) {
+            zros_sub_update(&ctx->sub_clock_offset_ethernet);
         }
 
         if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {

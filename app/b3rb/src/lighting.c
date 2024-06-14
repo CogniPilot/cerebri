@@ -26,8 +26,6 @@ LOG_MODULE_REGISTER(b3rb_lighting, CONFIG_CEREBRI_B3RB_LOG_LEVEL);
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
 struct context {
-    // work
-    struct k_work work_item;
     // node
     struct zros_node node;
     // data
@@ -35,30 +33,26 @@ struct context {
     synapse_msgs_Safety safety;
     synapse_msgs_Status status;
     synapse_msgs_LEDArray led_array;
-    synapse_msgs_Joy offboard_joy;
     // subscriptions
-    struct zros_sub sub_battery_state, sub_safety, sub_status, sub_offboard_joy;
+    struct zros_sub sub_battery_state, sub_safety, sub_status;
     // publications
     struct zros_pub pub_led_array;
-    bool lights_on;
-    atomic_t running;
+    struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
 };
 
 static struct context g_ctx = {
+    .node = {},
     .battery_state = synapse_msgs_BatteryState_init_default,
     .safety = synapse_msgs_Safety_init_default,
     .status = synapse_msgs_Status_init_default,
     .led_array = synapse_msgs_LEDArray_init_default,
     .sub_safety = {},
     .sub_status = {},
-    .sub_offboard_joy = {},
     .pub_led_array = {},
-    .node = {},
-    .lights_on = false,
-    .running = ATOMIC_INIT(0),
+    .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
     .thread_data = {},
@@ -71,21 +65,19 @@ static void b3rb_lighting_init(struct context* ctx)
     zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state, &ctx->battery_state, 10);
     zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 10);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
-    zros_sub_init(&ctx->sub_offboard_joy, &ctx->node, &topic_offboard_joy, &ctx->offboard_joy, 10);
     zros_pub_init(&ctx->pub_led_array, &ctx->node, &topic_led_array, &ctx->led_array);
-    atomic_set(&ctx->running, 1);
+    k_sem_take(&ctx->running, K_FOREVER);
 }
 
 static void b3rb_lighting_fini(struct context* ctx)
 {
     LOG_INF("fini");
-    atomic_set(&ctx->running, 0);
-    zros_pub_fini(&ctx->pub_led_array);
-    zros_sub_fini(&ctx->sub_offboard_joy);
-    zros_sub_fini(&ctx->sub_status);
-    zros_sub_fini(&ctx->sub_safety);
     zros_sub_fini(&ctx->sub_battery_state);
+    zros_sub_fini(&ctx->sub_safety);
+    zros_sub_fini(&ctx->sub_status);
+    zros_pub_fini(&ctx->pub_led_array);
     zros_node_fini(&ctx->node);
+    k_sem_give(&ctx->running);
 }
 
 static void set_led(const int index, const double* color, const double brightness, synapse_msgs_LED* led)
@@ -104,7 +96,7 @@ static void b3rb_lighting_run(void* p0, void* p1, void* p2)
 
     b3rb_lighting_init(ctx);
 
-    while (atomic_get(&ctx->running)) {
+    while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 
         // wait 33 ms
         k_msleep(33);
@@ -120,10 +112,6 @@ static void b3rb_lighting_run(void* p0, void* p1, void* p2)
 
         if (zros_sub_update_available(&ctx->sub_battery_state)) {
             zros_sub_update(&ctx->sub_battery_state);
-        }
-
-        if (zros_sub_update_available(&ctx->sub_offboard_joy)) {
-            zros_sub_update(&ctx->sub_offboard_joy);
         }
 
         // timing
@@ -199,29 +187,24 @@ static void b3rb_lighting_run(void* p0, void* p1, void* p2)
             const double* color = NULL;
             if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE) {
                 color = color_safe;
-            } else {
+            } else if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNSAFE) {
                 color = color_unsafe;
+            } else {
+                color = color_unknown;
             }
             set_led(safety_leds[i], color, brightness, &ctx->led_array.led[led_msg_index]);
             led_msg_index++;
         }
 
         // headlight leds
-        bool lights_on_requested = ctx->offboard_joy.axes[JOY_AXES_RIGHT_TRIGGER_UP] < 0.1f;
-        bool lights_off_requested = ctx->offboard_joy.axes[JOY_AXES_LEFT_TRIGGER_UP] < 0.1f;
+        bool lights_on = ctx->status.flag & synapse_msgs_Status_Flag_FLAG_LIGHTING;
 
-        if (lights_on_requested) {
-            ctx->lights_on = true;
-        } else if (lights_off_requested) {
-            ctx->lights_on = false;
-        }
-
-        if (ctx->lights_on) {
+        if (lights_on) {
             for (size_t i = 0; i < ARRAY_SIZE(headlight_leds); i++) {
                 set_led(headlight_leds[i], color_white, 255, &ctx->led_array.led[led_msg_index]);
                 led_msg_index++;
             }
-        } else if (!ctx->lights_on) {
+        } else if (!lights_on) {
             for (size_t i = 0; i < ARRAY_SIZE(headlight_leds); i++) {
                 set_led(headlight_leds[i], color_white, 0, &ctx->led_array.led[led_msg_index]);
                 led_msg_index++;
@@ -254,6 +237,7 @@ static int start(struct context* ctx)
 static int b3rb_lighting_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
+    ARG_UNUSED(argc);
     struct context* ctx = data;
     if (argc != 1) {
         LOG_ERR("must have one argument");
@@ -261,19 +245,19 @@ static int b3rb_lighting_cmd_handler(const struct shell* sh,
     }
 
     if (strcmp(argv[0], "start") == 0) {
-        if (atomic_get(&ctx->running)) {
+        if (k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if (atomic_get(&ctx->running)) {
-            atomic_set(&ctx->running, 0);
+        if (k_sem_count_get(&g_ctx.running) == 0) {
+            k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");
         }
     } else if (strcmp(argv[0], "status") == 0) {
-        shell_print(sh, "running: %d", (int)atomic_get(&ctx->running));
+        shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
     }
     return 0;
 }

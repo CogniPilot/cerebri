@@ -63,10 +63,10 @@ static struct context g_ctx = {
     }
 
 // topic listeners
-TOPIC_LISTENER(offboard_bezier_trajectory, synapse_msgs_BezierTrajectory)
-TOPIC_LISTENER(offboard_clock_offset, synapse_msgs_Time)
-TOPIC_LISTENER(offboard_cmd_vel, synapse_msgs_Twist)
-TOPIC_LISTENER(offboard_input, synapse_msgs_Input)
+TOPIC_LISTENER(bezier_trajectory_ethernet, synapse_msgs_BezierTrajectory)
+TOPIC_LISTENER(clock_offset_ethernet, synapse_msgs_Time)
+TOPIC_LISTENER(cmd_vel_ethernet, synapse_msgs_Twist)
+TOPIC_LISTENER(input_ethernet, synapse_msgs_Input)
 #ifdef CONFIG_CEREBRI_DREAM_HIL
 TOPIC_LISTENER(battery_state, synapse_msgs_BatteryState)
 TOPIC_LISTENER(imu, synapse_msgs_Imu)
@@ -107,16 +107,16 @@ static int eth_rx_init(struct context* ctx)
     ret = TF_AddGenericListener(&ctx->tf, genericListener);
     if (ret < 0)
         return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, offboard_bezier_trajectory_listener);
+    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, bezier_trajectory_ethernet_listener);
     if (ret < 0)
         return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CMD_VEL_TOPIC, offboard_cmd_vel_listener);
+    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CMD_VEL_TOPIC, cmd_vel_ethernet_listener);
     if (ret < 0)
         return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_INPUT_TOPIC, offboard_input_listener);
+    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_INPUT_TOPIC, input_ethernet_listener);
     if (ret < 0)
         return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CLOCK_OFFSET_TOPIC, offboard_clock_offset_listener);
+    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CLOCK_OFFSET_TOPIC, clock_offset_ethernet_listener);
     if (ret < 0)
         return ret;
 #ifdef CONFIG_CEREBRI_DREAM_HIL
@@ -210,13 +210,13 @@ static int eth_rx_cmd_handler(const struct shell* sh,
     struct context* ctx = data;
 
     if (strcmp(argv[0], "start") == 0) {
-        if(k_sem_count_get(&g_ctx.running) == 0) {
+        if (k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if(k_sem_count_get(&g_ctx.running) == 0) {
+        if (k_sem_count_get(&g_ctx.running) == 0) {
             k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");

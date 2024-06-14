@@ -1,7 +1,10 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2023 CogniPilot Foundation */
-#include <zephyr/dt-bindings/sensor/ina230.h>
+#include <freq.h>
+#include <zephyr/dt-bindings/gpio/nxp-s32-gpio.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/sensor/ina230.h>
 
 / {
 	pwm_shell: pwm_shell {
@@ -37,10 +40,16 @@
 		can3 = &flexcan3;
 		can4 = &flexcan4;
 		can5 = &flexcan5;
+		accel0 = &icm42688_mr_canhubk3_adap;
+		gyro0 = &icm42688_mr_canhubk3_adap;
+		mag0 = &bmm150_mr_canhubk3_adap;
+		mag1 = &ist8310_mr_canhubk3_adap;
+		led0 = &gps_led_mr_canhubk3_adap;
+		buzzer = &gps_buzzer_mr_canhubk3_adap;
 		/* power sensors */
 		power0 = &ina230;
 		/* safety button */
-		safety-button = &arming_button_mr_canhubk3_adap;
+		safety-button = &safety_button_mr_canhubk3_adap;
 		/* wheel odometry */
 		wheel-odometry0 = &qdec0;
 	};
@@ -50,6 +59,29 @@
 		transport-type = "uart0";
 		uart-baud-rate = <115200>;
 		module-type = "U_GNSS_MODULE_TYPE_M10";
+	};
+	leds {
+		gps_led_mr_canhubk3_adap: gps_led {
+			label = "GPS_LED";
+			gpios = <&gpioe_h 10 GPIO_ACTIVE_LOW>;
+		};
+	};
+	pwmbuzzers {
+		compatible = "pwm-leds";
+
+		gps_buzzer_mr_canhubk3_adap: gps_buzzer {
+			label = "GPS_BUZZER";
+			pwms = <&emios2_pwm 6 PWM_KHZ(1) PWM_POLARITY_NORMAL>;
+		};
+	};
+	gpio_keys {
+		compatible = "gpio-keys";
+		safety_button_mr_canhubk3_adap: button_0 {
+			label = "Safety Switch";
+			gpios = <&gpioa_l 11 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			zephyr,code = <INPUT_KEY_0>;
+		};
+
 	};
 };
 
@@ -73,8 +105,6 @@
 		prescaler = <16>;
 	};
 };
-
-
 
 &flexcan0 {
 	status = "okay";
@@ -138,9 +168,208 @@
 	};
 };
 
+&lpuart4 {
+	status = "okay";
+	pinctrl-0 = <&lpuart4_mr_canhubk3_adap>;
+	pinctrl-names = "default";
+	current-speed = <100000>;
+	single-wire;
+	rx-invert;
+
+	sbus {
+        chan_1 {
+            channel = <1>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <1>;
+        };
+        chan_2 {
+            channel = <2>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <2>;
+        };
+        chan_3 {
+            channel = <3>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <3>;
+        };
+        chan_4 {
+            channel = <4>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <4>;
+        };
+        chan_5 {
+            channel = <5>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <5>;
+        };
+        chan_6 {
+            channel = <6>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <6>;
+        };
+        chan_7 {
+            channel = <7>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <7>;
+        };
+        chan_8 {
+            channel = <8>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <8>;
+        };
+        chan_9 {
+            channel = <9>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <9>;
+        };
+        chan_10 {
+            channel = <10>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <10>;
+        };
+        chan_11 {
+            channel = <11>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <11>;
+        };
+        chan_12 {
+            channel = <12>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <12>;
+        };
+        chan_13 {
+            channel = <13>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <13>;
+        };
+        chan_14 {
+            channel = <14>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <14>;
+        };
+        chan_15 {
+            channel = <15>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <15>;
+        };
+        chan_16 {
+            channel = <16>;
+            type = <INPUT_EV_ABS>;
+            zephyr,code = <16>;
+        };
+    };
+};
+
+&emios2 {
+	clock-divider = <160>;
+	status = "okay";
+
+	master_bus {
+		/* Internal counter's clock = 160 MHz (eMIOS1 clk) / 160 / 1 = 1 MHz */
+		emios2_bus_b {
+			mode = "MCB_UP_COUNTER";
+			prescaler = <1>;
+			period = <DT_FREQ_K(2)>;
+			status = "okay";
+		};
+	};
+
+	emios2_pwm: pwm {
+		pinctrl-0 = <&emios2_mr_canhubk3_adap>;
+		pinctrl-names = "default";
+		status = "okay";
+
+		pwm_gps_buzzer {
+			channel = <6>;
+			duty-cycle = <0>;
+			master-bus = <&emios2_bus_b>;
+			pwm-mode = "OPWMB";
+			polarity = "ACTIVE_HIGH";
+		};
+	};
+};
+
+&lpi2c0 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST>;
+
+	bmm150_mr_canhubk3_adap: bmm150@12  {
+		compatible = "bosch,bmm150";
+		status = "okay";
+		reg = <0x12>;
+	};
+
+	ist8310_mr_canhubk3_adap: ist8310@e {
+		compatible = "isentek,ist8310";
+		status = "okay";
+		reg = <0xe>;
+	};
+};
+
+&wkpu {
+	status = "okay";
+};
+
+&pinctrl {
+	lpspi4_mr_canhubk3_adap: lpspi4_mr_canhubk3_adap {
+		group1 {
+			pinmux = <PTB10_LPSPI4_SCK_O>, <PTB11_LPSPI4_SIN_O>;
+			output-enable;
+		};
+		group2 {
+			pinmux = <PTB9_LPSPI4_SOUT_I>;
+			input-enable;
+		};
+	};
+
+	emios2_mr_canhubk3_adap: emios2_mr_canhubk3_adap {
+		group1 {
+			pinmux = <PTE26_EMIOS_2_CH6_H_O>;
+			output-enable;
+		};
+	};
+
+	lpuart4_mr_canhubk3_adap: lpuart4_mr_canhubk3_adap {
+		group1 {
+			pinmux = <PTE11_LPUART4_TX_I>;
+			input-enable;
+		};
+	};
+
+	lpuart7_mr_canhubk3_adap: lpuart7_mr_canhubk3_adap {
+		group1 {
+			pinmux = <PTE1_LPUART7_TX_O>;
+			output-enable;
+		};
+		group2 {
+			pinmux = <PTE0_LPUART7_RX>;
+			input-enable;
+		};
+	};
+};
+
 /* GNSS 1 */
 uart0: &lpuart7 {
 	status = "okay";
+	pinctrl-0 = <&lpuart7_mr_canhubk3_adap>;
+	pinctrl-names = "default";
 	current-speed = <115200>;
 };
 
+&lpspi4 {
+	status = "okay";
+	pinctrl-0 = <&lpspi4_mr_canhubk3_adap>;
+	pinctrl-names = "default";
+	cs-gpios = <&gpiob_l 8 GPIO_ACTIVE_LOW>;
+
+	icm42688_mr_canhubk3_adap: icm42688p0@0 {
+		compatible = "invensense,icm42688";
+		reg = <0>;
+		int-gpios = <&gpioe_h 5 NXP_S32_GPIO_INT_WKPU>;
+		spi-max-frequency = <DT_FREQ_M(15)>;
+		accel-hz = <DT_FREQ_K(1)>;
+		accel-fs = <16>;
+		gyro-hz = <DT_FREQ_K(1)>;
+		gyro-fs = <2000>;
+	};
+};

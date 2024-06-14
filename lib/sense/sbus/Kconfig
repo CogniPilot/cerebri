@@ -1,6 +1,6 @@
 # Copyright (c) 2023, CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
-menuconfig CEREBRI_SENSE_INPUT
+menuconfig CEREBRI_SENSE_SBUS
   bool "Input"
   default y
   depends on ZROS
@@ -8,10 +8,10 @@ menuconfig CEREBRI_SENSE_INPUT
   help
     This option enables the safety interface
 
-if CEREBRI_SENSE_INPUT
+if CEREBRI_SENSE_SBUS
 
-module = CEREBRI_SENSE_INPUT
-module-str = sense_input
+module = CEREBRI_SENSE_SBUS
+module-str = sense_sbus
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # CEREBRI_SENSE_INPUT
+endif # CEREBRI_SENSE_SBUS

@@ -177,6 +177,7 @@
 	rx-invert;
 
 	sbus {
+		compatible = "futaba,sbus";
         chan_1 {
             channel = <1>;
             type = <INPUT_EV_ABS>;

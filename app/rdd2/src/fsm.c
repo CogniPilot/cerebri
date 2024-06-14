@@ -98,7 +98,7 @@ struct context {
     synapse_msgs_Safety safety;
     synapse_msgs_Status status;
     struct status_input status_input;
-    struct zros_sub sub_input, sub_offboard_input, sub_battery_state, sub_safety;
+    struct zros_sub sub_input, sub_battery_state, sub_safety;
     struct zros_pub pub_status;
     struct k_sem running;
     size_t stack_size;
@@ -131,7 +131,6 @@ static struct context g_ctx = {
         .status_message = "",
     },
     .sub_input = {},
-    .sub_offboard_input = {},
     .sub_battery_state = {},
     .sub_safety = {},
     .pub_status = {},
@@ -146,7 +145,6 @@ static void rdd2_fsm_init(struct context* ctx)
     LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_fsm");
     zros_sub_init(&ctx->sub_input, &ctx->node, &topic_input, &ctx->input, 5);
-    zros_sub_init(&ctx->sub_offboard_input, &ctx->node, &topic_offboard_input, &ctx->input, 5);
     zros_sub_init(&ctx->sub_battery_state, &ctx->node,
         &topic_battery_state, &ctx->battery_state, 1);
     zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 5);
@@ -158,7 +156,6 @@ static void rdd2_fsm_fini(struct context* ctx)
 {
     LOG_INF("fini");
     zros_sub_fini(&ctx->sub_input);
-    zros_sub_fini(&ctx->sub_offboard_input);
     zros_sub_fini(&ctx->sub_battery_state);
     zros_sub_fini(&ctx->sub_safety);
     zros_pub_fini(&ctx->pub_status);
@@ -357,7 +354,6 @@ static void rdd2_fsm_run(void* p0, void* p1, void* p2)
 
     struct k_poll_event events[] = {
         *zros_sub_get_event(&ctx->sub_input),
-        *zros_sub_get_event(&ctx->sub_offboard_input),
         *zros_sub_get_event(&ctx->sub_battery_state),
     };
 
@@ -389,14 +385,6 @@ static void rdd2_fsm_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_input);
             if (ctx->status.input_status == synapse_msgs_Status_LinkStatus_STATUS_LOSS) {
                 LOG_DBG("input regained");
-            }
-            input_last_ticks = now_ticks;
-            ctx->status.input_status = synapse_msgs_Status_LinkStatus_STATUS_NOMINAL;
-
-        } else if (zros_sub_update_available(&ctx->sub_offboard_input)) {
-            zros_sub_update(&ctx->sub_offboard_input);
-            if (ctx->status.input_status == synapse_msgs_Status_LinkStatus_STATUS_LOSS) {
-                LOG_WRN("input regained");
             }
             input_last_ticks = now_ticks;
             ctx->status.input_status = synapse_msgs_Status_LinkStatus_STATUS_NOMINAL;

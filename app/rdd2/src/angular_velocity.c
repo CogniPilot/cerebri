@@ -31,8 +31,8 @@ struct context {
     struct zros_node node;
     synapse_msgs_Status status;
     synapse_msgs_Vector3 angular_velocity_sp, moment_sp, moment_ff;
-    synapse_msgs_Odometry estimator_odometry;
-    struct zros_sub sub_status, sub_angular_velocity_sp, sub_estimator_odometry, sub_moment_ff;
+    synapse_msgs_Odometry odometry_estimator;
+    struct zros_sub sub_status, sub_angular_velocity_sp, sub_odometry_estimator, sub_moment_ff;
     struct zros_pub pub_moment_sp;
     struct k_sem running;
     size_t stack_size;
@@ -48,7 +48,7 @@ static struct context g_ctx = {
     .moment_ff = synapse_msgs_Vector3_init_default,
     .sub_status = {},
     .sub_angular_velocity_sp = {},
-    .sub_estimator_odometry = {},
+    .sub_odometry_estimator = {},
     .sub_moment_ff = {},
     .pub_moment_sp = {},
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
@@ -64,8 +64,8 @@ static void rdd2_angular_velocity_init(struct context* ctx)
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_angular_velocity_sp, &ctx->node,
         &topic_angular_velocity_sp, &ctx->angular_velocity_sp, 50);
-    zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node,
-        &topic_estimator_odometry, &ctx->estimator_odometry, 50);
+    zros_sub_init(&ctx->sub_odometry_estimator, &ctx->node,
+        &topic_odometry_estimator, &ctx->odometry_estimator, 50);
     zros_sub_init(&ctx->sub_moment_ff, &ctx->node, &topic_moment_ff, &ctx->moment_ff, 50);
     zros_pub_init(&ctx->pub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp);
     k_sem_take(&ctx->running, K_FOREVER);
@@ -76,7 +76,7 @@ static void rdd2_angular_velocity_fini(struct context* ctx)
     LOG_INF("fini");
     zros_sub_fini(&ctx->sub_status);
     zros_sub_fini(&ctx->sub_angular_velocity_sp);
-    zros_sub_fini(&ctx->sub_estimator_odometry);
+    zros_sub_fini(&ctx->sub_odometry_estimator);
     zros_sub_fini(&ctx->sub_moment_ff);
     zros_pub_fini(&ctx->pub_moment_sp);
     zros_node_fini(&ctx->node);
@@ -92,7 +92,7 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
     rdd2_angular_velocity_init(ctx);
 
     struct k_poll_event events[] = {
-        *zros_sub_get_event(&ctx->sub_estimator_odometry),
+        *zros_sub_get_event(&ctx->sub_odometry_estimator),
     };
 
     double dt = 0;
@@ -113,8 +113,8 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_status);
         }
 
-        if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {
-            zros_sub_update(&ctx->sub_estimator_odometry);
+        if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
+            zros_sub_update(&ctx->sub_odometry_estimator);
         }
 
         if (zros_sub_update_available(&ctx->sub_angular_velocity_sp)) {
@@ -141,9 +141,9 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
              * omega[3],omega_r[3],i0[3],dt)->(M[3],i1[3]) */
             CASADI_FUNC_ARGS(attitude_rate_control);
             double omega[3] = {
-                ctx->estimator_odometry.twist.twist.angular.x,
-                ctx->estimator_odometry.twist.twist.angular.y,
-                ctx->estimator_odometry.twist.twist.angular.z,
+                ctx->odometry_estimator.twist.twist.angular.x,
+                ctx->odometry_estimator.twist.twist.angular.y,
+                ctx->odometry_estimator.twist.twist.angular.z,
             };
             double omega_r[3] = {
                 ctx->angular_velocity_sp.x,

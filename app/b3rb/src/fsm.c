@@ -374,7 +374,6 @@ static void b3rb_fsm_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_safety);
         }
 
-        // prioritize onboard input
         if (zros_sub_update_available(&ctx->sub_input)) {
             zros_sub_update(&ctx->sub_input);
             if (ctx->status.input_status == synapse_msgs_Status_LinkStatus_STATUS_LOSS) {

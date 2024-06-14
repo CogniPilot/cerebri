@@ -6,12 +6,6 @@
 
 cmake_minimum_required(VERSION 3.13.1)
 
-if (${BOARD} STREQUAL "mr_canhubk3"
-    OR ${BOARD} STREQUAL "mr_canhubk3/s32k344")
-  message(STATUS "enabling mr_canhubk3_adap shield")
-  set(SHIELD mr_canhubk3_adap)
-endif()
-
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(b3rb LANGUAGES C)

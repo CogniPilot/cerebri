@@ -34,11 +34,11 @@ static const double thrust_trim = CONFIG_CEREBRI_RDD2_THRUST_TRIM * 1e-3;
 struct context {
     struct zros_node node;
     synapse_msgs_Status status;
-    synapse_msgs_Odometry estimator_odometry;
+    synapse_msgs_Odometry odometry_estimator;
     synapse_msgs_Vector3 force_sp, position_sp, velocity_sp, accel_ff;
     synapse_msgs_Quaternion attitude_sp, orientation_sp;
     struct zros_sub sub_status,
-        sub_position_sp, sub_velocity_sp, sub_accel_ff, sub_estimator_odometry,
+        sub_position_sp, sub_velocity_sp, sub_accel_ff, sub_odometry_estimator,
         sub_orientation_sp;
     struct zros_pub pub_force_sp, pub_attitude_sp;
     struct k_sem running;
@@ -50,7 +50,7 @@ struct context {
 static struct context g_ctx = {
     .status = synapse_msgs_Status_init_default,
     .force_sp = synapse_msgs_Vector3_init_default,
-    .estimator_odometry = synapse_msgs_Odometry_init_default,
+    .odometry_estimator = synapse_msgs_Odometry_init_default,
     .attitude_sp = synapse_msgs_Quaternion_init_default,
     .orientation_sp = synapse_msgs_Quaternion_init_default,
     .position_sp = synapse_msgs_Vector3_init_default,
@@ -60,7 +60,7 @@ static struct context g_ctx = {
     .sub_position_sp = {},
     .sub_velocity_sp = {},
     .sub_accel_ff = {},
-    .sub_estimator_odometry = {},
+    .sub_odometry_estimator = {},
     .sub_orientation_sp = {},
     .pub_force_sp = {},
     .pub_attitude_sp = {},
@@ -78,7 +78,7 @@ static void rdd2_position_init(struct context* ctx)
     zros_sub_init(&ctx->sub_position_sp, &ctx->node, &topic_position_sp, &ctx->position_sp, 10);
     zros_sub_init(&ctx->sub_velocity_sp, &ctx->node, &topic_velocity_sp, &ctx->velocity_sp, 10);
     zros_sub_init(&ctx->sub_accel_ff, &ctx->node, &topic_accel_ff, &ctx->accel_ff, 10);
-    zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
+    zros_sub_init(&ctx->sub_odometry_estimator, &ctx->node, &topic_odometry_estimator, &ctx->odometry_estimator, 10);
     zros_sub_init(&ctx->sub_orientation_sp, &ctx->node, &topic_orientation_sp, &ctx->orientation_sp, 10);
     zros_pub_init(&ctx->pub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp);
     zros_pub_init(&ctx->pub_attitude_sp, &ctx->node, &topic_attitude_sp, &ctx->attitude_sp);
@@ -92,7 +92,7 @@ static void rdd2_position_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_position_sp);
     zros_sub_fini(&ctx->sub_velocity_sp);
     zros_sub_fini(&ctx->sub_accel_ff);
-    zros_sub_fini(&ctx->sub_estimator_odometry);
+    zros_sub_fini(&ctx->sub_odometry_estimator);
     zros_sub_fini(&ctx->sub_orientation_sp);
     zros_pub_fini(&ctx->pub_force_sp);
     zros_pub_fini(&ctx->pub_attitude_sp);
@@ -109,7 +109,7 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
     rdd2_position_init(ctx);
 
     struct k_poll_event events[] = {
-        *zros_sub_get_event(&ctx->sub_estimator_odometry),
+        *zros_sub_get_event(&ctx->sub_odometry_estimator),
     };
 
     double dt = 0;
@@ -144,8 +144,8 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_orientation_sp);
         }
 
-        if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {
-            zros_sub_update(&ctx->sub_estimator_odometry);
+        if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
+            zros_sub_update(&ctx->sub_odometry_estimator);
         }
 
         // calculate dt
@@ -160,15 +160,15 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
         if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_POSITION || ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY || ctx->status.mode == synapse_msgs_Status_Mode_MODE_ACCELERATION || ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
 
             double p_w[3] = {
-                ctx->estimator_odometry.pose.pose.position.x,
-                ctx->estimator_odometry.pose.pose.position.y,
-                ctx->estimator_odometry.pose.pose.position.z
+                ctx->odometry_estimator.pose.pose.position.x,
+                ctx->odometry_estimator.pose.pose.position.y,
+                ctx->odometry_estimator.pose.pose.position.z
             };
 
             double v_b[3] = {
-                ctx->estimator_odometry.twist.twist.linear.x,
-                ctx->estimator_odometry.twist.twist.linear.y,
-                ctx->estimator_odometry.twist.twist.linear.z
+                ctx->odometry_estimator.twist.twist.linear.x,
+                ctx->odometry_estimator.twist.twist.linear.y,
+                ctx->odometry_estimator.twist.twist.linear.z
             };
 
             double p_rw[3] = {
@@ -184,10 +184,10 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
             };
 
             double q_wb[4] = {
-                ctx->estimator_odometry.pose.pose.orientation.w,
-                ctx->estimator_odometry.pose.pose.orientation.x,
-                ctx->estimator_odometry.pose.pose.orientation.y,
-                ctx->estimator_odometry.pose.pose.orientation.z
+                ctx->odometry_estimator.pose.pose.orientation.w,
+                ctx->odometry_estimator.pose.pose.orientation.x,
+                ctx->odometry_estimator.pose.pose.orientation.y,
+                ctx->odometry_estimator.pose.pose.orientation.z
             };
 
             double qc_wb[4] = {

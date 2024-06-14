@@ -49,12 +49,12 @@ struct context {
     synapse_msgs_Time clock_offset;
     synapse_msgs_Status status;
     synapse_msgs_Status last_status;
-    synapse_msgs_Odometry estimator_odometry;
+    synapse_msgs_Odometry odometry_estimator;
     synapse_msgs_Twist cmd_vel;
-    struct zros_sub sub_offboard_bezier_trajectory, sub_status, sub_input, sub_offboard_input,
-        sub_estimator_odometry, sub_offboard_cmd_vel, sub_offboard_clock_offset;
+    struct zros_sub sub_bezier_trajectory_ethernet, sub_status, sub_input_ethernet, sub_input_sbus,
+        sub_odometry_estimator, sub_cmd_vel_ethernet, sub_clock_offset_ethernet;
     struct zros_pub pub_attitude_sp, pub_angular_velocity_ff, pub_force_sp, pub_accel_ff, pub_moment_ff,
-        pub_velocity_sp, pub_orientation_sp, pub_position_sp;
+        pub_velocity_sp, pub_orientation_sp, pub_position_sp, pub_input;
     struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
@@ -77,13 +77,13 @@ static struct context g_ctx = {
     .orientation_sp = synapse_msgs_Quaternion_init_default,
     .position_sp = synapse_msgs_Vector3_init_default,
     .cmd_vel = synapse_msgs_Twist_init_default,
-    .sub_offboard_input = {},
-    .sub_input = {},
+    .sub_input_ethernet = {},
+    .sub_input_sbus = {},
     .sub_status = {},
-    .sub_offboard_bezier_trajectory = {},
-    .sub_offboard_clock_offset = {},
-    .sub_estimator_odometry = {},
-    .sub_offboard_cmd_vel = {},
+    .sub_bezier_trajectory_ethernet = {},
+    .sub_clock_offset_ethernet = {},
+    .sub_odometry_estimator = {},
+    .sub_cmd_vel_ethernet = {},
     .pub_attitude_sp = {},
     .pub_angular_velocity_ff = {},
     .pub_force_sp = {},
@@ -92,6 +92,7 @@ static struct context g_ctx = {
     .pub_moment_ff = {},
     .pub_orientation_sp = {},
     .pub_position_sp = {},
+    .pub_input = {},
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
@@ -103,15 +104,15 @@ static void rdd2_command_init(struct context* ctx)
 {
     LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_command");
-    zros_sub_init(&ctx->sub_offboard_input, &ctx->node, &topic_offboard_input, &ctx->input, 10);
-    zros_sub_init(&ctx->sub_input, &ctx->node, &topic_input, &ctx->input, 10);
+    zros_sub_init(&ctx->sub_input_ethernet, &ctx->node, &topic_input_ethernet, &ctx->input, 10);
+    zros_sub_init(&ctx->sub_input_sbus, &ctx->node, &topic_input_sbus, &ctx->input, 10);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
-    zros_sub_init(&ctx->sub_offboard_bezier_trajectory,
-        &ctx->node, &topic_offboard_bezier_trajectory, &ctx->bezier_trajectory, 10);
-    zros_sub_init(&ctx->sub_offboard_clock_offset,
-        &ctx->node, &topic_offboard_clock_offset, &ctx->clock_offset, 10);
-    zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 10);
-    zros_sub_init(&ctx->sub_offboard_cmd_vel, &ctx->node, &topic_offboard_cmd_vel, &ctx->cmd_vel, 10);
+    zros_sub_init(&ctx->sub_bezier_trajectory_ethernet,
+        &ctx->node, &topic_bezier_trajectory_ethernet, &ctx->bezier_trajectory, 10);
+    zros_sub_init(&ctx->sub_clock_offset_ethernet,
+        &ctx->node, &topic_clock_offset_ethernet, &ctx->clock_offset, 10);
+    zros_sub_init(&ctx->sub_odometry_estimator, &ctx->node, &topic_odometry_estimator, &ctx->odometry_estimator, 10);
+    zros_sub_init(&ctx->sub_cmd_vel_ethernet, &ctx->node, &topic_cmd_vel_ethernet, &ctx->cmd_vel, 10);
     zros_pub_init(&ctx->pub_attitude_sp, &ctx->node,
         &topic_attitude_sp, &ctx->attitude_sp);
     zros_pub_init(&ctx->pub_angular_velocity_ff, &ctx->node,
@@ -128,18 +129,20 @@ static void rdd2_command_init(struct context* ctx)
         &topic_orientation_sp, &ctx->orientation_sp);
     zros_pub_init(&ctx->pub_position_sp, &ctx->node,
         &topic_position_sp, &ctx->position_sp);
+    zros_pub_init(&ctx->pub_input, &ctx->node,
+        &topic_input, &ctx->input);
     k_sem_take(&ctx->running, K_FOREVER);
 }
 
 static void rdd2_command_fini(struct context* ctx)
 {
     LOG_INF("fini");
-    zros_sub_fini(&ctx->sub_offboard_input);
-    zros_sub_fini(&ctx->sub_input);
+    zros_sub_fini(&ctx->sub_input_ethernet);
+    zros_sub_fini(&ctx->sub_input_sbus);
     zros_sub_fini(&ctx->sub_status);
-    zros_sub_fini(&ctx->sub_offboard_bezier_trajectory);
-    zros_sub_fini(&ctx->sub_estimator_odometry);
-    zros_sub_fini(&ctx->sub_offboard_cmd_vel);
+    zros_sub_fini(&ctx->sub_bezier_trajectory_ethernet);
+    zros_sub_fini(&ctx->sub_odometry_estimator);
+    zros_sub_fini(&ctx->sub_cmd_vel_ethernet);
     zros_pub_fini(&ctx->pub_attitude_sp);
     zros_pub_fini(&ctx->pub_angular_velocity_ff);
     zros_pub_fini(&ctx->pub_velocity_sp);
@@ -160,10 +163,10 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
     rdd2_command_init(ctx);
 
     struct k_poll_event events[] = {
-        *zros_sub_get_event(&ctx->sub_offboard_input),
-        *zros_sub_get_event(&ctx->sub_input),
-        *zros_sub_get_event(&ctx->sub_offboard_cmd_vel),
-        *zros_sub_get_event(&ctx->sub_offboard_bezier_trajectory),
+        *zros_sub_get_event(&ctx->sub_input_ethernet),
+        *zros_sub_get_event(&ctx->sub_input_sbus),
+        *zros_sub_get_event(&ctx->sub_cmd_vel_ethernet),
+        *zros_sub_get_event(&ctx->sub_bezier_trajectory_ethernet),
     };
 
     double dt = 0;
@@ -189,29 +192,33 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             ctx->cmd_vel.has_angular = true;
         }
 
-        // prioritize onboard input
-        if (zros_sub_update_available(&ctx->sub_input)) {
-            zros_sub_update(&ctx->sub_input);
-        } else if (zros_sub_update_available(&ctx->sub_offboard_input)) {
-            zros_sub_update(&ctx->sub_offboard_input);
-        }
-
         if (zros_sub_update_available(&ctx->sub_status)) {
             // record last status
             ctx->last_status = ctx->status;
             zros_sub_update(&ctx->sub_status);
         }
 
-        if (zros_sub_update_available(&ctx->sub_offboard_bezier_trajectory)) {
-            zros_sub_update(&ctx->sub_offboard_bezier_trajectory);
+        // prioritize onboard sbus input
+        if (zros_sub_update_available(&ctx->sub_input_sbus)) {
+            zros_sub_update(&ctx->sub_input_sbus);
+            zros_pub_update(&ctx->pub_input);
+            ctx->status.input_source = synapse_msgs_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL;
+        } else if (zros_sub_update_available(&ctx->sub_input_ethernet)) {
+            zros_sub_update(&ctx->sub_input_ethernet);
+            zros_pub_update(&ctx->pub_input);
+            ctx->status.input_source = synapse_msgs_Status_InputSource_INPUT_SOURCE_ETHERNET;
         }
 
-        if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {
-            zros_sub_update(&ctx->sub_estimator_odometry);
+        if (zros_sub_update_available(&ctx->sub_bezier_trajectory_ethernet)) {
+            zros_sub_update(&ctx->sub_bezier_trajectory_ethernet);
         }
 
-        if (zros_sub_update_available(&ctx->sub_offboard_cmd_vel)) {
-            zros_sub_update(&ctx->sub_offboard_cmd_vel);
+        if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
+            zros_sub_update(&ctx->sub_odometry_estimator);
+        }
+
+        if (zros_sub_update_available(&ctx->sub_cmd_vel_ethernet)) {
+            zros_sub_update(&ctx->sub_cmd_vel_ethernet);
         }
 
         // calculate dt
@@ -231,10 +238,10 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
         // estimated attitude quaternion
         double q[4] = {
-            ctx->estimator_odometry.pose.pose.orientation.w,
-            ctx->estimator_odometry.pose.pose.orientation.x,
-            ctx->estimator_odometry.pose.pose.orientation.y,
-            ctx->estimator_odometry.pose.pose.orientation.z
+            ctx->odometry_estimator.pose.pose.orientation.w,
+            ctx->odometry_estimator.pose.pose.orientation.x,
+            ctx->odometry_estimator.pose.pose.orientation.y,
+            ctx->odometry_estimator.pose.pose.orientation.z
         };
 
         // handle joy based on mode
@@ -353,9 +360,9 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             // reset position setpoint if now auto or now armed
             if (now_vel || now_armed) {
                 LOG_INF("position_sp, camera_yaw reset");
-                ctx->position_sp.x = ctx->estimator_odometry.pose.pose.position.x;
-                ctx->position_sp.y = ctx->estimator_odometry.pose.pose.position.y;
-                ctx->position_sp.z = ctx->estimator_odometry.pose.pose.position.z;
+                ctx->position_sp.x = ctx->odometry_estimator.pose.pose.position.x;
+                ctx->position_sp.y = ctx->odometry_estimator.pose.pose.position.y;
+                ctx->position_sp.z = ctx->odometry_estimator.pose.pose.position.z;
                 ctx->camera_yaw = yaw;
             }
 
@@ -388,9 +395,9 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             ctx->position_sp.z += dt * vw[2];
 
             double e[3] = {
-                ctx->position_sp.x - ctx->estimator_odometry.pose.pose.position.x,
-                ctx->position_sp.y - ctx->estimator_odometry.pose.pose.position.y,
-                ctx->position_sp.z - ctx->estimator_odometry.pose.pose.position.z
+                ctx->position_sp.x - ctx->odometry_estimator.pose.pose.position.x,
+                ctx->position_sp.y - ctx->odometry_estimator.pose.pose.position.y,
+                ctx->position_sp.z - ctx->odometry_estimator.pose.pose.position.z
             };
 
             double norm_e = sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]);
@@ -399,9 +406,9 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
             // saturate position setpoint distance from vehicle
             if (norm_e > pos_error_max) {
-                ctx->position_sp.x = ctx->estimator_odometry.pose.pose.position.x + e[0] * pos_error_max / norm_e;
-                ctx->position_sp.y = ctx->estimator_odometry.pose.pose.position.y + e[1] * pos_error_max / norm_e;
-                ctx->position_sp.z = ctx->estimator_odometry.pose.pose.position.z + e[2] * pos_error_max / norm_e;
+                ctx->position_sp.x = ctx->odometry_estimator.pose.pose.position.x + e[0] * pos_error_max / norm_e;
+                ctx->position_sp.y = ctx->odometry_estimator.pose.pose.position.y + e[1] * pos_error_max / norm_e;
+                ctx->position_sp.z = ctx->odometry_estimator.pose.pose.position.z + e[2] * pos_error_max / norm_e;
             }
 
             // desired camera direction

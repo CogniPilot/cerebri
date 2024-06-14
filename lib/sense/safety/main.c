@@ -81,7 +81,10 @@ K_WORK_DEFINE(safety_timer_work, safety_timer_work_handler);
 static void button_pressed(const struct device* dev, struct gpio_callback* cb,
     uint32_t pins)
 {
-    k_work_submit_to_queue(&g_low_priority_work_q, &g_ctx.toggle_work_item);
+    int val = gpio_pin_get_dt(&button);
+    if (val > 0) {
+        k_work_submit_to_queue(&g_low_priority_work_q, &g_ctx.toggle_work_item);
+    }
 }
 
 static int sense_safety_init(context_t* ctx)

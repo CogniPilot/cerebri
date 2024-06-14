@@ -315,13 +315,13 @@ static int rdd2_position_cmd_handler(const struct shell* sh,
     struct context* ctx = data;
 
     if (strcmp(argv[0], "start") == 0) {
-        if(k_sem_count_get(&g_ctx.running) == 0) {
+        if (k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if(k_sem_count_get(&g_ctx.running) == 0) {
+        if (k_sem_count_get(&g_ctx.running) == 0) {
             k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");

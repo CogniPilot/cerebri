@@ -53,13 +53,13 @@ struct context {
     // subscriptions
     struct zros_sub
         sub_actuators,
-        sub_estimator_odometry,
+        sub_odometry_estimator,
         sub_nav_sat_fix,
         sub_status;
     // topic data
     synapse_msgs_Actuators actuators;
     synapse_msgs_NavSatFix nav_sat_fix;
-    synapse_msgs_Odometry estimator_odometry;
+    synapse_msgs_Odometry odometry_estimator;
     synapse_msgs_Status status;
     // connections
     struct udp_tx udp;
@@ -75,11 +75,11 @@ struct context {
 static struct context g_ctx = {
     .node = {},
     .sub_actuators = {},
-    .sub_estimator_odometry = {},
+    .sub_odometry_estimator = {},
     .sub_nav_sat_fix = {},
     .sub_status = {},
     .actuators = {},
-    .estimator_odometry = {},
+    .odometry_estimator = {},
     .status = {},
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
@@ -128,7 +128,7 @@ static int eth_tx_init(struct context* ctx)
         LOG_ERR("init actuators failed: %d", ret);
         return ret;
     }
-    ret = zros_sub_init(&ctx->sub_estimator_odometry, &ctx->node, &topic_estimator_odometry, &ctx->estimator_odometry, 15);
+    ret = zros_sub_init(&ctx->sub_odometry_estimator, &ctx->node, &topic_odometry_estimator, &ctx->odometry_estimator, 15);
     if (ret < 0) {
         LOG_ERR("sub init estimator odometry failed: %d", ret);
         return ret;
@@ -170,7 +170,7 @@ static int eth_tx_fini(struct context* ctx)
 
     // close subscriptions
     zros_sub_fini(&ctx->sub_actuators);
-    zros_sub_fini(&ctx->sub_estimator_odometry);
+    zros_sub_fini(&ctx->sub_odometry_estimator);
     zros_sub_fini(&ctx->sub_nav_sat_fix);
     zros_sub_fini(&ctx->sub_status);
     zros_node_fini(&ctx->node);
@@ -204,7 +204,7 @@ static void eth_tx_run(void* p0, void* p1, void* p2)
 
         struct k_poll_event events[] = {
             *zros_sub_get_event(&ctx->sub_status),
-            *zros_sub_get_event(&ctx->sub_estimator_odometry),
+            *zros_sub_get_event(&ctx->sub_odometry_estimator),
             *zros_sub_get_event(&ctx->sub_nav_sat_fix),
         };
 
@@ -224,9 +224,9 @@ static void eth_tx_run(void* p0, void* p1, void* p2)
             TOPIC_PUBLISHER(&ctx->status, synapse_msgs_Status, SYNAPSE_STATUS_TOPIC);
         }
 
-        if (zros_sub_update_available(&ctx->sub_estimator_odometry)) {
-            zros_sub_update(&ctx->sub_estimator_odometry);
-            TOPIC_PUBLISHER(&ctx->estimator_odometry, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC);
+        if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
+            zros_sub_update(&ctx->sub_odometry_estimator);
+            TOPIC_PUBLISHER(&ctx->odometry_estimator, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC);
         }
 
         if (now - ticks_last_uptime > CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
@@ -264,13 +264,13 @@ static int eth_tx_cmd_handler(const struct shell* sh,
     struct context* ctx = data;
 
     if (strcmp(argv[0], "start") == 0) {
-        if(k_sem_count_get(&g_ctx.running) == 0) {
+        if (k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if(k_sem_count_get(&g_ctx.running) == 0) {
+        if (k_sem_count_get(&g_ctx.running) == 0) {
             k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");

@@ -52,8 +52,8 @@ static context_t g_ctx = {
 };
 
 #define TOPIC_DICTIONARY()                                                                             \
-    (accel_ff, &topic_accel_ff, "accel_ff"),                                                           \
-        (accel_sp, &topic_accel_sp, "accel_sp"),                                                       \
+    (accel_sp, &topic_accel_sp, "accel_sp"),                                                           \
+        (accel_ff, &topic_accel_ff, "accel_ff"),                                                       \
         (actuators, &topic_actuators, "actuators"),                                                    \
         (altimeter, &topic_altimeter, "altimeter"),                                                    \
         (angular_velocity_ff, &topic_angular_velocity_ff, "angular_velocity_ff"),                      \
@@ -61,21 +61,22 @@ static context_t g_ctx = {
         (attitude_sp, &topic_attitude_sp, "attitude_sp"),                                              \
         (battery_state, &topic_battery_state, "battery_state"),                                        \
         (bezier_trajectory, &topic_bezier_trajectory, "bezier_trajectory"),                            \
+        (bezier_trajectory_ethernet, &topic_bezier_trajectory_ethernet, "bezier_trajectory_ethernet"), \
+        (clock_offset_ethernet, &topic_clock_offset_ethernet, "clock_offset_ethernet"),                \
         (cmd_vel, &topic_cmd_vel, "cmd_vel"),                                                          \
-        (estimator_odometry, &topic_estimator_odometry, "estimator_odometry"),                         \
+        (cmd_vel_ethernet, &topic_cmd_vel_ethernet, "cmd_vel_ethernet"),                               \
         (force_sp, &topic_force_sp, "force_sp"),                                                       \
         (imu, &topic_imu, "imu"),                                                                      \
         (input, &topic_input, "input"),                                                                \
+        (input_ethernet, &topic_input_ethernet, "input_ethernet"),                                     \
+        (input_sbus, &topic_input_sbus, "input_sbus"),                                                 \
         (led_array, &topic_led_array, "led_array"),                                                    \
         (magnetic_field, &topic_magnetic_field, "magnetic_field"),                                     \
         (moment_ff, &topic_moment_ff, "moment_ff"),                                                    \
         (moment_sp, &topic_moment_sp, "moment_sp"),                                                    \
         (nav_sat_fix, &topic_nav_sat_fix, "nav_sat_fix"),                                              \
-        (offboard_bezier_trajectory, &topic_offboard_bezier_trajectory, "offboard_bezier_trajectory"), \
-        (offboard_clock_offset, &topic_offboard_clock_offset, "offboard_clock_offset"),                \
-        (offboard_cmd_vel, &topic_offboard_cmd_vel, "offboard_cmd_vel"),                               \
-        (offboard_input, &topic_offboard_input, "offboard_input"),                                     \
-        (offboard_odometry, &topic_offboard_odometry, "offboard_odometry"),                            \
+        (odometry_estimator, &topic_odometry_estimator, "odometry_estimator"),                         \
+        (odometry_ethernet, &topic_odometry_ethernet, "odometry_ethernet"),                            \
         (orientation_sp, &topic_orientation_sp, "orientation_sp"),                                     \
         (position_sp, &topic_position_sp, "position_sp"),                                              \
         (pwm, &topic_pwm, "pwm"),                                                                      \
@@ -259,13 +260,13 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_battery_state) {
         synapse_msgs_BatteryState msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_battery_state);
-    } else if (topic == &topic_offboard_bezier_trajectory || topic == &topic_bezier_trajectory) {
+    } else if (topic == &topic_bezier_trajectory_ethernet || topic == &topic_bezier_trajectory) {
         synapse_msgs_BezierTrajectory msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_bezier_trajectory);
-    } else if (topic == &topic_offboard_clock_offset) {
+    } else if (topic == &topic_clock_offset_ethernet) {
         synapse_msgs_Time msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_time);
-    } else if (topic == &topic_cmd_vel || topic == &topic_offboard_cmd_vel) {
+    } else if (topic == &topic_cmd_vel || topic == &topic_cmd_vel_ethernet) {
         synapse_msgs_Twist msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_twist);
     } else if (topic == &topic_status) {
@@ -274,7 +275,9 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_imu) {
         synapse_msgs_Imu msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_imu);
-    } else if (topic == &topic_input || topic == &topic_offboard_input) {
+    } else if (topic == &topic_input_ethernet
+        || topic == &topic_input_sbus
+        || topic == &topic_input) {
         synapse_msgs_Input msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_input);
     } else if (topic == &topic_led_array) {
@@ -289,7 +292,7 @@ void topic_work_handler(struct k_work* work)
     } else if (topic == &topic_nav_sat_fix) {
         synapse_msgs_NavSatFix msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_navsatfix);
-    } else if (topic == &topic_estimator_odometry || topic == &topic_offboard_odometry) {
+    } else if (topic == &topic_odometry_estimator || topic == &topic_odometry_ethernet) {
         synapse_msgs_Odometry msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_odometry);
     } else if (topic == &topic_safety) {

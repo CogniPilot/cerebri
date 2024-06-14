@@ -46,9 +46,9 @@ void input_request_compute(struct input_request* req, const synapse_msgs_Input* 
 
     if (input->channel[CH_VRA_CW] > 0.5f && !req->lights_on) {
         req->lights_on = true;
-        LOG_INF("requeest lights on");
+        LOG_INF("request lights on");
     } else if (input->channel[CH_VRA_CW] < -0.5f && req->lights_on) {
-        LOG_INF("requeest lights off");
+        LOG_INF("request lights off");
         req->lights_on = false;
     }
 }

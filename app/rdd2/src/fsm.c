@@ -83,13 +83,13 @@ static void transition(
     return;
 }
 
-typedef struct status_input_s {
+struct status_input {
     struct input_request req;
     bool safe;
     bool mode_set;
     bool fuel_low;
     bool fuel_critical;
-} status_input_t;
+};
 
 struct context {
     struct zros_node node;
@@ -97,7 +97,7 @@ struct context {
     synapse_msgs_BatteryState battery_state;
     synapse_msgs_Safety safety;
     synapse_msgs_Status status;
-    status_input_t status_input;
+    struct status_input status_input;
     struct zros_sub sub_input, sub_offboard_input, sub_battery_state, sub_safety;
     struct zros_pub pub_status;
     struct k_sem running;
@@ -166,7 +166,7 @@ static void rdd2_fsm_fini(struct context* ctx)
     k_sem_give(&ctx->running);
 }
 
-static void fsm_compute_input(status_input_t* input, const struct context* ctx)
+static void fsm_compute_input(struct status_input* input, const struct context* ctx)
 {
     input_request_compute(&input->req, &ctx->input);
 
@@ -187,7 +187,7 @@ static void fsm_compute_input(status_input_t* input, const struct context* ctx)
 #endif
 }
 
-static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
+static void fsm_update(synapse_msgs_Status* status, const struct status_input* input)
 {
     // arm transition
     transition(
@@ -320,7 +320,7 @@ static void fsm_update(synapse_msgs_Status* status, const status_input_t* input)
 }
 
 static void status_add_extra_info(synapse_msgs_Status* status,
-    status_input_t* input,
+    struct status_input* input,
     const struct context* ctx)
 {
     if (input->fuel_critical) {
@@ -438,13 +438,13 @@ static int rdd2_fsm_cmd_handler(const struct shell* sh,
     struct context* ctx = data;
 
     if (strcmp(argv[0], "start") == 0) {
-        if(k_sem_count_get(&g_ctx.running) == 0) {
+        if (k_sem_count_get(&g_ctx.running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if(k_sem_count_get(&g_ctx.running) == 0) {
+        if (k_sem_count_get(&g_ctx.running) == 0) {
             k_sem_give(&g_ctx.running);
         } else {
             shell_print(sh, "not running");

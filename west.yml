@@ -36,11 +36,11 @@ manifest:
       path: modules/lib/zros
     - name: synapse_tinyframe
       remote: cognipilot
-      revision: 8519bc691293b85ad7073aae50eb3f17b5eacffc # pr-input 6/11/24
+      revision: bed205a3d5a96c17201a8193a8c836938b6270ae # main 6/14/24
       path: modules/lib/synapse_tinyframe
     - name: synapse_protobuf
       remote: cognipilot
-      revision: e04d8c0402aec26bfc484069dafc9343d77dc4d9 # pr-input 6/13/24
+      revision: dc69184ab1d5f4f023561f7af8693e99955884de # main 6/14/24
       path: modules/lib/synapse_protobuf
     - name: ubxlib
       remote: cognipilot

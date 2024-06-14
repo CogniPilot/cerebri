@@ -87,6 +87,12 @@
 
 &emios0_pwm {
 	pwm_0 {
+		/delete-property/ master-bus;
+		/delete-property/ phase-shift;
+		pwm-mode = "OPWFMB";
+		period = <65535>;
+		duty-cycle = <0>;
+		prescaler = <1>;
 	};
 	pwm_1 {
 		prescaler = <1>;

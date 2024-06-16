@@ -1,4 +1,4 @@
-#!/usr/bin/env cyecca_python
+import argparse
 import os
 import sys
 import math
@@ -10,6 +10,8 @@ import cyecca.lie as lie
 from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321
 from cyecca.lie.group_se23 import SE23Quat, se23, SE23LieGroupElement, SE23LieAlgebraElement
 from cyecca.symbolic import SERIES
+
+print('python: ', sys.executable)
 
 # parameters
 g = 9.8 # grav accel m/s^2
@@ -265,7 +267,11 @@ def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
     gen.generate(str(dest_dir) + os.sep)
 
 if __name__ == "__main__":
-    print("generating casadi equations")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('dest_dir')
+    args = parser.parse_args()
+
+    print("generating casadi equations in {:s}".format(args.dest_dir))
     eqs = {}
     eqs.update(derive_so3_attitude_control())
     eqs.update(derive_outerloop_control())
@@ -274,5 +280,5 @@ if __name__ == "__main__":
     for name, eq in eqs.items():
         print('eq: ', name)
 
-    generate_code(eqs, filename="rdd2_loglinear.c", dest_dir="gen")
+    generate_code(eqs, filename="rdd2_loglinear.c", dest_dir=args.dest_dir)
     print("complete")

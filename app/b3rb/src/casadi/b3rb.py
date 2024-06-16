@@ -1,13 +1,14 @@
-#!/usr/bin/env python3
+import argparse
 import os
 import sys
 import math
 import numpy as np
-from scipy.special import binom
 import matplotlib.pyplot as plt
 from pathlib import Path
 import casadi as ca
 import cyecca.lie as lie
+
+print('python: ', sys.executable)
 
 class Bezier:
     """
@@ -351,6 +352,12 @@ def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
     gen.generate(str(dest_dir) + os.sep)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('dest_dir')
+    args = parser.parse_args()
+
+    print("generating casadi equations in {:s}".format(args.dest_dir))
+
     #rover_plan()
     #plt.show()
     #test_bezier()
@@ -366,5 +373,5 @@ if __name__ == "__main__":
     for name, eq in eqs.items():
         print('eq: ', name)
 
-    generate_code(eqs, filename="b3rb.c", dest_dir="gen")
+    generate_code(eqs, filename="b3rb.c", dest_dir=args.dest_dir)
     print("complete")

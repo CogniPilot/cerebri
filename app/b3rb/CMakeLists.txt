@@ -10,6 +10,39 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(b3rb LANGUAGES C)
 
+set(CYECCA_PYTHON  ${CMAKE_CURRENT_SOURCE_DIR}/../../scripts/cyecca_python)
+
+set(flags
+  -std=c11
+  -Wall
+  -Wextra
+  -Werror
+  -Wstrict-prototypes
+  -Waggregate-return
+  -Wbad-function-cast
+  -Wcast-align
+  -Wcast-qual
+  -Wfloat-equal
+  -Wformat-security
+  -Wlogical-op
+  -Wmissing-declarations
+  # ubxlib includes geographiclib which dir doesn't exist
+  #-Wmissing-include-dirs
+  -Wmissing-prototypes
+  -Wnested-externs
+  -Wpointer-arith
+  -Wredundant-decls
+  -Wsequence-point
+  -Wshadow
+  -Wstrict-prototypes
+  -Wswitch
+  -Wundef
+  -Wunreachable-code
+  -Wunused-but-set-parameter
+  -Wwrite-strings
+  )
+string(JOIN " " flags ${flags})
+
 set(SOURCE_FILES
   src/boot_banner.c
   src/input_mapping.c
@@ -45,41 +78,20 @@ if (CONFIG_CEREBRI_B3RB_VELOCITY)
     src/velocity.c)
 endif()
 
+set(CASADI_DEST_DIR ${CMAKE_BINARY_DIR}/app/b3rb/casadi)
+
+set(CASADI_FILES
+  ${CASADI_DEST_DIR}/b3rb.c
+  )
+
 if (CONFIG_CEREBRI_B3RB_CASADI)
   list(APPEND SOURCE_FILES
-    src/casadi/gen/b3rb.c)
+    ${CASADI_DEST_DIR}/b3rb.c
+    )
 endif()
 
-set(flags
-  -std=c11
-  -Wall
-  -Wextra
-  -Werror
-  -Wstrict-prototypes
-  -Waggregate-return
-  -Wbad-function-cast
-  -Wcast-align
-  -Wcast-qual
-  -Wfloat-equal
-  -Wformat-security
-  -Wlogical-op
-  -Wmissing-declarations
-  # ubxlib includes geographiclib which dir doesn't exist
-  #-Wmissing-include-dirs
-  -Wmissing-prototypes
-  -Wnested-externs
-  -Wpointer-arith
-  -Wredundant-decls
-  -Wsequence-point
-  -Wshadow
-  -Wstrict-prototypes
-  -Wswitch
-  -Wundef
-  -Wunreachable-code
-  -Wunused-but-set-parameter
-  -Wwrite-strings
-  )
-string(JOIN " " flags ${flags})
+add_custom_command(OUTPUT ${CASADI_DEST_DIR}/b3rb.c
+  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/b3rb.py ${CASADI_DEST_DIR})
 
 set_source_files_properties(
   ${SOURCE_FILES}
@@ -88,7 +100,7 @@ set_source_files_properties(
   )
 
 set_source_files_properties(
-  src/casadi/gen/b3rb.c
+  ${CASADI_FILES}
   PROPERTIES COMPILE_FLAGS
   "${flags}\
   -Wno-unused-parameter\
@@ -98,6 +110,6 @@ set_source_files_properties(
 
 target_sources(app PRIVATE ${SOURCE_FILES})
 
-target_include_directories(app SYSTEM BEFORE PRIVATE ${ZEPHYR_BASE}/include)
+target_include_directories(app SYSTEM BEFORE PRIVATE ${ZEPHYR_BASE}/include ${CMAKE_BINARY_DIR})
 
 # vi: ts=2 sw=2 et

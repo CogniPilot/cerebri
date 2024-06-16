@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "casadi/gen/b3rb.h"
+#include "app/b3rb/casadi/b3rb.h"
 #include "math.h"
 
 #include <zephyr/kernel.h>

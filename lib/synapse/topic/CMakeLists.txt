@@ -13,4 +13,4 @@ zephyr_library_sources(
   )
 
 
-add_dependencies(cerebri_synapse_topic synapse_protobuf)
+add_dependencies(cerebri_synapse_topic synapse_protobuf cerebri_core_common)

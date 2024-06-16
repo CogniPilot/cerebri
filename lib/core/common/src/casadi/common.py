@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+import argparse 
 import os
 import sys
 import math
@@ -12,6 +12,7 @@ import cyecca.lie as lie
 from cyecca.symbolic import sympy_to_casadi
 from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321
 
+print('python: ', sys.executable)
 
 def continuous_to_discrete_controllable_realization(G, name):
     s = sympy.symbols('s')
@@ -161,7 +162,12 @@ def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
     gen.generate(str(dest_dir) + os.sep)
 
 if __name__ == "__main__":
-    print("generating casadi equations")
+    import argparse 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('dest_dir')
+    args = parser.parse_args()
+
+    print("generating casadi equations in {:s}".format(args.dest_dir))
     eqs = {}
     eqs.update(derive_butterworth_2_filter())
     eqs.update(derive_eulerB321_to_quat())
@@ -170,5 +176,5 @@ if __name__ == "__main__":
     for name, eq in eqs.items():
         print('eq: ', name)
 
-    generate_code(eqs, filename="common.c", dest_dir="gen")
+    generate_code(eqs, filename="common.c", dest_dir=args.dest_dir)
     print("complete")

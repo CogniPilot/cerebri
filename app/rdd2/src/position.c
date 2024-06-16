@@ -17,8 +17,11 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
-#include "casadi/gen/rdd2.h"
-#include "casadi/gen/rdd2_loglinear.h"
+#if defined(CONFIG_CEREBRI_RDD2_LOG_LINEAR_POSITION)
+#include "app/rdd2/casadi/rdd2_loglinear.h"
+#else
+#include "app/rdd2/casadi/rdd2.h"
+#endif
 
 #include <cerebri/core/casadi.h>
 

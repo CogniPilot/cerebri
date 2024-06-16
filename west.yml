@@ -34,6 +34,10 @@ manifest:
       remote: cognipilot
       revision: 739d990b9f613468c11941cecf6ef45b4485336b # main 6/05/24
       path: modules/lib/zros
+    - name: cyecca
+      remote: cognipilot
+      revision: 9c0f4e73ae1a64a7a9a676975e8895d4775e1186 # main 6/17/24
+      path: modules/lib/cyecca
     - name: synapse_tinyframe
       remote: cognipilot
       revision: bed205a3d5a96c17201a8193a8c836938b6270ae # main 6/14/24

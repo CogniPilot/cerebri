@@ -17,7 +17,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
-#include "casadi/gen/b3rb.h"
+#include "app/b3rb/casadi/b3rb.h"
 
 #include <cerebri/core/casadi.h>
 

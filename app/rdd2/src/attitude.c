@@ -3,8 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//#include "casadi/gen/rdd2_loglinear.h"
-#include "casadi/gen/rdd2.h"
+#if defined(CONFIG_CEREBRI_RDD2_LOG_LINEAR_ATTITUDE)
+#include "app/rdd2/casadi/rdd2_loglinear.h"
+#else
+#include "app/rdd2/casadi/rdd2.h"
+#endif
 
 #include <math.h>
 

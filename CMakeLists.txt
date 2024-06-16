@@ -8,6 +8,19 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 zephyr_include_directories(include)
 
+find_program(PIPX pipx)
+if (NOT PIPX)
+	message(FATAL_ERROR "install pipx via: sudo apt install pipx")
+endif()
+
+find_program(POETRY poetry)
+if (NOT POETRY)
+	message(FATAL_ERROR "install poetry via: pipx install poetry")
+endif()
+set(CEREBRI_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(CYECCA_PYTHON  ${CEREBRI_ROOT_DIR}/scripts/cyecca_python)
+execute_process(COMMAND ${POETRY} install -C ${CEREBRI_ROOT_DIR}/../modules/lib/cyecca)
+
 add_subdirectory(lib)
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/../install)

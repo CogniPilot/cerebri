@@ -22,7 +22,7 @@
 
 #include <cerebri/core/casadi.h>
 
-#include "casadi/gen/rdd2.h"
+#include "app/rdd2/casadi/rdd2.h"
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4

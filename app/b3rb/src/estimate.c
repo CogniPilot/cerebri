@@ -22,7 +22,7 @@
 
 #include <cerebri/core/casadi.h>
 
-#include "casadi/gen/b3rb.h"
+#include "app/b3rb/casadi/b3rb.h"
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4

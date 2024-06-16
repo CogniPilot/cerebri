@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+import argparse 
 import os
 import sys
 import math
@@ -8,6 +8,8 @@ from pathlib import Path
 import casadi as ca
 import cyecca.lie as lie
 from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321, SO3Dcm
+
+print('python: ', sys.executable)
 
 g = 9.8 # grav accel m/s^2
 m = 2.0 # mass of vehicle
@@ -377,7 +379,11 @@ def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
     gen.generate(str(dest_dir) + os.sep)
 
 if __name__ == "__main__":
-    print("generating casadi equations")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('dest_dir')
+    args = parser.parse_args()
+
+    print("generating casadi equations in {:s}".format(args.dest_dir))
     eqs = {}
     eqs.update(derive_bezier7())
     eqs.update(derive_bezier3())
@@ -388,5 +394,5 @@ if __name__ == "__main__":
     for name, eq in eqs.items():
         print('eq: ', name)
 
-    generate_code(eqs, filename="bezier.c", dest_dir="gen")
+    generate_code(eqs, filename="bezier.c", dest_dir=args.dest_dir)
     print("complete")

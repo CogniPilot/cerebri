@@ -8,7 +8,7 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 
-#include "../../core/common/src/casadi/gen/common.h"
+#include "lib/core/common/casadi/common.h"
 #include <cerebri/core/casadi.h>
 #include <cerebri/core/common.h>
 

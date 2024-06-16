@@ -20,9 +20,9 @@
 
 #include <cerebri/core/casadi.h>
 
-#include "casadi/gen/bezier.h"
-#include "casadi/gen/common.h"
-#include "casadi/gen/rdd2.h"
+#include "app/rdd2/casadi/bezier.h"
+#include "app/rdd2/casadi/rdd2.h"
+#include "lib/core/common/casadi/common.h"
 
 #include "input_mapping.h"
 

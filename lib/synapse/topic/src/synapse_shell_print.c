@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <synapse_topic_list.h>
 
-#include "../../../core/common/src/casadi/gen/common.h"
+#include "lib/core/common/casadi/common.h"
 #include <cerebri/core/casadi.h>
 
 #include "synapse_shell_print.h"

@@ -15,10 +15,20 @@ jobs:
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
-      - name: Install Clang
+      - name: Set path
+        run: |
+          echo "/github/home/.local/bin" >> $GITHUB_PATH
+
+      - name: Python test
+        run: |
+          echo `which python3`
+ 
+      - name: Install Dependencies
         run: |
           apt update
-          apt install clang-format-14 -y
+          apt install clang-format-14 curl pipx -y
+          pipx install poetry==1.8.3
+          poetry config --list
 
       - name: Checkout
         uses: actions/checkout@v3

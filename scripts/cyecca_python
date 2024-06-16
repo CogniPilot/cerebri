@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+CYECCA_PATH=$SCRIPT_DIR/../../modules/lib/cyecca
+
+if [ ! -f $CYECCA_PATH/.venv/bin/python3 ] ; then
+  poetry install -C $CYECCA_PATH
+fi
+
+source ${CYECCA_PATH}/.venv/bin/activate
+python3 $@

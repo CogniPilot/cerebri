@@ -19,10 +19,6 @@ jobs:
         run: |
           echo "/github/home/.local/bin" >> $GITHUB_PATH
 
-      - name: Python test
-        run: |
-          echo `which python3`
- 
       - name: Install Dependencies
         run: |
           apt update

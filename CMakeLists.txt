@@ -20,11 +20,14 @@ endif()
 set(CEREBRI_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CYECCA_PYTHON  ${CEREBRI_ROOT_DIR}/scripts/cyecca_python)
 
-add_custom_target(cyecca_install
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/../modules/lib/cyecca/.venv/activate
   COMMAND echo "installing cyecca"
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/cyecca_install
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../modules/lib/cyecca/poetry.lock
-  )
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../modules/lib/cyecca/poetry.lock)
+
+add_custom_target(cyecca_install
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../modules/lib/cyecca/.venv/activate)
 
 add_subdirectory(lib)
 

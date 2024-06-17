@@ -104,7 +104,8 @@ add_custom_command(OUTPUT ${CASADI_DEST_DIR}/rdd2_loglinear.c
   DEPENDS cyecca_install)
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/bezier.c
-    COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/bezier.py ${CASADI_DEST_DIR})
+  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/bezier.py ${CASADI_DEST_DIR}
+  DEPENDS cyecca_install)
 
 set_source_files_properties(
   ${SOURCE_FILES}

@@ -11,5 +11,4 @@ if [ -f $PYTHON_PATH/activate ]; then
 	deactivate
 fi
 
-source ${CYECCA_PATH}/.venv/bin/activate
-python3 $@
+poetry install -C $CYECCA_PATH

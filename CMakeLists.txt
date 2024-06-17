@@ -19,7 +19,12 @@ if (NOT POETRY)
 endif()
 set(CEREBRI_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CYECCA_PYTHON  ${CEREBRI_ROOT_DIR}/scripts/cyecca_python)
-execute_process(COMMAND ${POETRY} install -C ${CEREBRI_ROOT_DIR}/../modules/lib/cyecca)
+
+add_custom_target(cyecca_install
+  COMMAND echo "installing cyecca"
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/cyecca_install
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../modules/lib/cyecca/poetry.lock
+  )
 
 add_subdirectory(lib)
 

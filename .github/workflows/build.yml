@@ -29,21 +29,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          path: example-application
+          path: cerebri
 
       - name: Initialize
-        working-directory: example-application
+        working-directory: cerebri
         run: |
           west init -l .
           west update
-          ./scripts/cyecca_install.sh
+          ./scripts/cyecca_install
 
       - name: Format Check
-        working-directory: example-application
+        working-directory: cerebri
         run: |
           west format -c
 
       - name: Twister Tests
-        working-directory: example-application
+        working-directory: cerebri
         run: |
           west test

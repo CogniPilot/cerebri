@@ -36,6 +36,7 @@ jobs:
         run: |
           west init -l .
           west update
+          ./scripts/cyecca_install.sh
 
       - name: Format Check
         working-directory: example-application

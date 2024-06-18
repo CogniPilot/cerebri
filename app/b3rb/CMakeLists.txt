@@ -91,8 +91,7 @@ if (CONFIG_CEREBRI_B3RB_CASADI)
 endif()
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/b3rb.c
-  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/b3rb.py ${CASADI_DEST_DIR}
-  DEPENDS cyecca_install)
+  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/b3rb.py ${CASADI_DEST_DIR})
 
 set_source_files_properties(
   ${SOURCE_FILES}

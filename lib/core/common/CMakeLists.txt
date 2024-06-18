@@ -18,7 +18,8 @@ set(CASADI_FILES
   )
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/common.c
-  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/common.py ${CASADI_DEST_DIR})
+  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/common.py ${CASADI_DEST_DIR}
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/common.py)
 
 set_source_files_properties(
   ${CASADI_FILES}

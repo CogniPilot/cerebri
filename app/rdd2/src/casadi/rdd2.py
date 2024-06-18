@@ -21,21 +21,9 @@ m = 2.24 # mass of vehicle
 deg2rad = np.pi/180 # degree to radian
 
 # attitude rate loop
-rollpitch_rate_max = 90 # deg/s
+rollpitch_rate_max = 60 # deg/s
 yaw_rate_max = 60 # deg/s
-
-#done kp_rollpitch_rate = 0.3
-#done ki_rollpitch_rate = 0.05
-#done rollpitch_rate_integral_max = 1.0
-
-# done kp_yaw_rate = 0.3
-# done ki_yaw_rate = 0.05
-# done yaw_rate_integral_max = 1.0
-
-# attitude loop
-rollpitch_max = 45 # deg
-#kp_rollpitch = 2
-#kp_yaw = 1
+rollpitch_max = 30 # deg
 
 # position loop
 kp_pos = 0.5 # position proportional gain

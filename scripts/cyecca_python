@@ -12,4 +12,6 @@ if [ -f $PYTHON_PATH/activate ]; then
 fi
 
 source ${CYECCA_PATH}/.venv/bin/activate
+echo python3 `which python3`
+
 python3 $@

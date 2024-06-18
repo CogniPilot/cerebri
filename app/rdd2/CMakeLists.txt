@@ -96,16 +96,13 @@ if (CONFIG_CEREBRI_RDD2_CASADI)
 endif()
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/rdd2.c
-  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2.py ${CASADI_DEST_DIR}
-  DEPENDS cyecca_install)
+  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2.py ${CASADI_DEST_DIR})
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/rdd2_loglinear.c
-  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2_loglinear.py ${CASADI_DEST_DIR}
-  DEPENDS cyecca_install)
+  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2_loglinear.py ${CASADI_DEST_DIR})
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/bezier.c
-  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/bezier.py ${CASADI_DEST_DIR}
-  DEPENDS cyecca_install)
+  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/bezier.py ${CASADI_DEST_DIR})
 
 set_source_files_properties(
   ${SOURCE_FILES}

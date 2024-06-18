@@ -132,31 +132,36 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
             stop(ctx);
             LOG_DBG("not armed, stopped");
         } else {
+            static double const F_max = 40.0;
             static double const l = CONFIG_CEREBRI_RDD2_MOTOR_L_MM * 1e-3;
             static double const Cm = CONFIG_CEREBRI_RDD2_MOTOR_CM * 1e-6;
             static double const Ct = CONFIG_CEREBRI_RDD2_MOTOR_CT * 1e-9;
             double omega[4];
+            double moment[3] = {
+                ctx->moment_sp.x,
+                ctx->moment_sp.y,
+                ctx->moment_sp.z
+            };
 
             // LOG_INF("thrust: %10.4f", ctx->force_sp.z);
 
-            /* control_allocation:(l,Cm,Ct,T,Mx,My,Mz)->(omega[4]) */
+            // control_allocation:(F_max,l,Cm,Ct,T,M[3])->(omega[4])
             CASADI_FUNC_ARGS(control_allocation)
-            args[0] = &l;
-            args[1] = &Cm;
-            args[2] = &Ct;
-            args[3] = &ctx->force_sp.z;
-            args[4] = &ctx->moment_sp.x;
-            args[5] = &ctx->moment_sp.y;
-            args[6] = &ctx->moment_sp.z;
+            args[0] = &F_max;
+            args[1] = &l;
+            args[2] = &Cm;
+            args[3] = &Ct;
+            args[4] = &ctx->force_sp.z;
+            args[5] = moment;
             res[0] = omega;
             CASADI_FUNC_CALL(control_allocation)
             for (int i = 0; i < 4; i++) {
                 if (!isfinite(omega[i])) {
                     LOG_WRN("omega is not finite: %10.4f", omega[i]);
                     omega[i] = 0;
-                } else if (omega[i] > 1400) {
+                } else if (omega[i] > 3000) {
                     LOG_WRN("omega too large: %10.4f", omega[i]);
-                    omega[i] = 1400;
+                    omega[i] = 3000;
                 } else if (omega[i] < 0) {
                     LOG_WRN("omega negative: %10.4f", omega[i]);
                     omega[i] = 0;

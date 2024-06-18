@@ -21,7 +21,7 @@ m = 2.24 # mass of vehicle
 deg2rad = np.pi/180 # degree to radian
 
 # attitude rate loop
-rollpitch_rate_max = 30 # deg/s
+rollpitch_rate_max = 90 # deg/s
 yaw_rate_max = 60 # deg/s
 
 #done kp_rollpitch_rate = 0.3
@@ -33,7 +33,7 @@ yaw_rate_max = 60 # deg/s
 # done yaw_rate_integral_max = 1.0
 
 # attitude loop
-rollpitch_max = 20 # deg
+rollpitch_max = 45 # deg
 #kp_rollpitch = 2
 #kp_yaw = 1
 
@@ -50,40 +50,68 @@ def derive_control_allocation(
     """
     quadrotor control allocation
     """
+    n_motors = 4
     l = ca.SX.sym('l')
     Cm = ca.SX.sym('Cm')
     Ct = ca.SX.sym('Ct')
     T = ca.SX.sym('T')
-    Mx = ca.SX.sym('Mx')
-    My = ca.SX.sym('My')
-    Mz = ca.SX.sym('Mz')
+    F_max = ca.SX.sym('F_max') # max thrust of each motor
+    M = ca.SX.sym('M', 3)
+
+    T_max = n_motors*F_max
+    F_min = 0
     A = ca.vertcat(
-        ca.horzcat(1/4, -1/(4*l), -1/(4*l), -1/(4*Cm)),
-        ca.horzcat(1/4, 1/(4*l), 1/(4*l), -1/(4*Cm)),
-        ca.horzcat(1/4, 1/(4*l), -1/(4*l), 1/(4*Cm)),
-        ca.horzcat(1/4, -1/(4*l), 1/(4*l), 1/(4*Cm)))
-    M = A@ca.vertcat(T, Mx, My, Mz)
-    for i in range(4):
-        M[i] = ca.if_else(M[i] < 0, 0, M[i])
-    omega = ca.sqrt(M/Ct)
+        ca.horzcat(1/n_motors, -1/(n_motors*l), -1/(n_motors*l), -1/(n_motors*Cm)),
+        ca.horzcat(1/n_motors, 1/(n_motors*l), 1/(n_motors*l), -1/(n_motors*Cm)),
+        ca.horzcat(1/n_motors, 1/(n_motors*l), -1/(n_motors*l), 1/(n_motors*Cm)),
+        ca.horzcat(1/n_motors, -1/(n_motors*l), 1/(n_motors*l), 1/(n_motors*Cm)))
+
+    T_sat = saturate(T, 0, T_max)
+    M_max = l*T_max/2 # max moment when half of motors on and half off
+    M_sat = saturatem(M, -M_max*ca.SX.ones(3), M_max*ca.SX.ones(3))
+
+    F_moment = A@ca.vertcat(0, M_sat)  # motor force for moment
+    F_thrust = A@ca.vertcat(T_sat, 0, 0, 0)  # motor force for thrust
+    F_sum = F_moment + F_thrust
+
+    C1  = F_max - ca.mmax(F_sum) # how much could increase thrust before sat
+    C2  = ca.mmin(F_sum) - F_min # how much could decrease thrust before sat
+
+    Fp_thrust = ca.if_else(C1 > 0,
+        ca.if_else(C2 > 0,  F_thrust, F_thrust - C2),
+        ca.if_else(C2 > 0,  F_thrust + C1, F_max/2*ca.SX.ones(4, 1)))
+
+    Fp_moment = ca.if_else(ca.logic_and(C1 < 0, C2 < 0),
+        F_moment*(F_max/2)/ca.mmax(ca.fabs(F_moment)),
+        F_moment)
+
+    Fp_sum = saturatem(Fp_moment + Fp_thrust, ca.SX.zeros(n_motors), F_max*ca.SX.ones(n_motors))
+    omega = ca.sqrt(Fp_sum/Ct)
+
     f_alloc = ca.Function("control_allocation",
-            [l, Cm, Ct, T, Mx, My, Mz],
+            [F_max, l, Cm, Ct, T, M],
             [omega],
-            ['l', 'Cm', 'Ct', 'T', 'Mx', 'My', 'Mz'],
+            ['F_max', 'l', 'Cm', 'Ct', 'T', 'M'],
             ['omega']
             )
     return {
-        "control_allocation": f_alloc
+        "f_alloc": f_alloc
     }
+
+def saturatem(x, x_min, x_max):
+    """
+    saturate a matrix
+    """
+    y = ca.SX.zeros(x.shape[0])
+    for i in range(x.shape[0]):
+        y[i] = saturate(x[i], x_min[i], x_max[i])
+    return y
 
 def saturate(x, x_min, x_max):
     """
-    saturate a vector
+    saturate
     """
-    y = x
-    for i in range(x.shape[0]):
-        y[i] =  ca.if_else(x[i] > x_max[i], x_max[i], ca.if_else(x[i] < x_min[i], x_min[i], x[i]))
-    return y
+    return ca.if_else(x > x_max, x_max, ca.if_else(x < x_min, x_min, x))
 
 def derive_joy_acro():
     """
@@ -244,7 +272,7 @@ def derive_attitude_rate_control():
     e = omega_r - omega
 
     # integral action helps balance distrubance moments (e.g. center of gravity offset)
-    i1 = saturate(i0 + e * dt, -i_max, i_max)
+    i1 = saturatem(i0 + e * dt, -i_max, i_max)
 
     M = kp * e + ki * i1
 
@@ -314,7 +342,7 @@ def derive_position_control():
 
     # throttle integral
     z_i_2 = z_i - e_p[2] * dt
-    z_i_2 = saturate(z_i_2,
+    z_i_2 = saturatem(z_i_2,
             -ca.vertcat(z_integral_max), ca.vertcat(z_integral_max))
 
     # trim throttle

@@ -20,7 +20,10 @@ endif()
 set(CEREBRI_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CYECCA_PYTHON  ${CEREBRI_ROOT_DIR}/scripts/cyecca_python)
 
-execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/cyecca_install)
+execute_process(
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/cyecca_install
+	COMMAND_ECHO STDOUT
+	)
 
 add_subdirectory(lib)
 

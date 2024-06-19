@@ -222,13 +222,29 @@ static int pwm_test_set_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     uint32_t pulse = atoi(argv[1]);
-    LOG_INF("sending pwm %d", pulse);
+    int motor = atoi(argv[2]);
     if (k_sem_count_get(&g_ctx.running) == 0) {
         shell_print(sh, "actuate_pwm running, stop it first");
         return -1;
     }
-    for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
-        actuator_pwm_t pwm = g_actuator_pwms[i];
+
+    if (motor < 0) {
+        for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
+            LOG_INF("sending pwm %d to motor %d", pulse, i);
+            actuator_pwm_t pwm = g_actuator_pwms[i];
+            int err = 0;
+            if (pwm.use_nano_seconds) {
+                err = pwm_set_pulse_dt(&pwm.device, PWM_NSEC(pulse));
+            } else {
+                err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pulse));
+            }
+            if (err) {
+                LOG_ERR("failed to set pulse %d on %s (err %d)", pwm.max, pwm.alias, err);
+            }
+        }
+    } else if (motor < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER) {
+        LOG_INF("sending pwm %d to motor %d", pulse, motor);
+        actuator_pwm_t pwm = g_actuator_pwms[motor];
         int err = 0;
         if (pwm.use_nano_seconds) {
             err = pwm_set_pulse_dt(&pwm.device, PWM_NSEC(pulse));
@@ -236,7 +252,8 @@ static int pwm_test_set_handler(const struct shell* sh,
             err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pulse));
         }
         if (err) {
-            LOG_ERR("failed to set pulse %d on %s (err %d)", pwm.max, pwm.alias, err);
+            LOG_ERR("motor %d failed to set pulse %d on %s (err %d)",
+                    motor, pwm.max, pwm.alias, err);
         }
     }
     return 0;
@@ -272,7 +289,7 @@ SHELL_SUBCMD_DICT_SET_CREATE(sub_actuate_pwm, actuate_pwm_cmd_handler,
     (status, &g_ctx, "status"));
 
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_actuate_pwm_test,
-    SHELL_CMD_ARG(set, NULL, "set the pwm", pwm_test_set_handler, 2, 0),
+    SHELL_CMD_ARG(set, NULL, "set <pulse> <motor> (pulse < 0 sets all)", pwm_test_set_handler, 3, 0),
     SHELL_SUBCMD_SET_END);
 
 SHELL_CMD_REGISTER(actuate_pwm, &sub_actuate_pwm, "actuate_pwm commands", NULL);

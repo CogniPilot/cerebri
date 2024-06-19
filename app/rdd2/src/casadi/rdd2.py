@@ -44,10 +44,10 @@ def derive_control_allocation(
     Ct = ca.SX.sym('Ct')
     T = ca.SX.sym('T')
     F_max = ca.SX.sym('F_max') # max thrust of each motor
+    F_min = ca.SX.sym('F_min') # min thrust of each motor
     M = ca.SX.sym('M', 3)
 
     T_max = n_motors*F_max
-    F_min = 0
     A = ca.vertcat(
         ca.horzcat(1/n_motors, -1/(n_motors*l), -1/(n_motors*l), -1/(n_motors*Cm)),
         ca.horzcat(1/n_motors, 1/(n_motors*l), 1/(n_motors*l), -1/(n_motors*Cm)),
@@ -77,9 +77,9 @@ def derive_control_allocation(
     omega = ca.sqrt(Fp_sum/Ct)
 
     f_alloc = ca.Function("control_allocation",
-            [F_max, l, Cm, Ct, T, M],
+            [F_min, F_max, l, Cm, Ct, T, M],
             [omega],
-            ['F_max', 'l', 'Cm', 'Ct', 'T', 'M'],
+            ['F_min', 'F_max', 'l', 'Cm', 'Ct', 'T', 'M'],
             ['omega']
             )
     return {

@@ -57,6 +57,7 @@ ZROS_TOPIC_DECLARE(topic_cmd_vel, synapse_msgs_Twist);
 ZROS_TOPIC_DECLARE(topic_cmd_vel_ethernet, synapse_msgs_Twist);
 ZROS_TOPIC_DECLARE(topic_force_sp, synapse_msgs_Vector3);
 ZROS_TOPIC_DECLARE(topic_imu, synapse_msgs_Imu);
+ZROS_TOPIC_DECLARE(topic_imu_filt_freq, synapse_msgs_Vector3);
 ZROS_TOPIC_DECLARE(topic_input, synapse_msgs_Input);
 ZROS_TOPIC_DECLARE(topic_input_sbus, synapse_msgs_Input);
 ZROS_TOPIC_DECLARE(topic_input_ethernet, synapse_msgs_Input);

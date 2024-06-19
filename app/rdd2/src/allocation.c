@@ -19,13 +19,10 @@
 #include <synapse_topic_list.h>
 
 #include <cerebri/core/casadi.h>
+#include <cerebri/core/constants.h>
 
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY 4
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 LOG_MODULE_REGISTER(rdd2_allocation, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
@@ -35,9 +32,9 @@ struct context {
     struct zros_node node;
     synapse_msgs_Status status;
     synapse_msgs_Actuators actuators;
-    synapse_msgs_Vector3 force_sp, moment_sp;
+    synapse_msgs_Vector3 imu_filt_freq, force_sp, moment_sp;
     struct zros_sub sub_status, sub_force_sp, sub_moment_sp;
-    struct zros_pub pub_actuators;
+    struct zros_pub pub_actuators, pub_imu_filt_freq;
     struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
@@ -55,10 +52,14 @@ static struct context g_ctx = {
             .has_stamp = true },
         .velocity_count = 4,
     },
+    .imu_filt_freq = synapse_msgs_Vector3_init_default,
+    .force_sp = synapse_msgs_Vector3_init_default,
+    .moment_sp = synapse_msgs_Vector3_init_default,
     .sub_status = {},
     .sub_force_sp = {},
     .sub_moment_sp = {},
     .pub_actuators = {},
+    .pub_imu_filt_freq = {},
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
@@ -73,6 +74,7 @@ static void rdd2_allocation_init(struct context* ctx)
     zros_sub_init(&ctx->sub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp, 300);
     zros_sub_init(&ctx->sub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp, 300);
     zros_pub_init(&ctx->pub_actuators, &ctx->node, &topic_actuators, &ctx->actuators);
+    zros_pub_init(&ctx->pub_imu_filt_freq, &ctx->node, &topic_imu_filt_freq, &ctx->imu_filt_freq);
     k_sem_take(&ctx->running, K_FOREVER);
 }
 
@@ -83,6 +85,7 @@ static void rdd2_allocation_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_force_sp);
     zros_sub_fini(&ctx->sub_moment_sp);
     zros_pub_fini(&ctx->pub_actuators);
+    zros_pub_fini(&ctx->pub_imu_filt_freq);
     zros_node_fini(&ctx->node);
     k_sem_give(&ctx->running);
 }
@@ -132,6 +135,7 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
             stop(ctx);
             LOG_DBG("not armed, stopped");
         } else {
+            static double const F_min = 0.3;
             static double const F_max = 40.0;
             static double const l = CONFIG_CEREBRI_RDD2_MOTOR_L_MM * 1e-3;
             static double const Cm = CONFIG_CEREBRI_RDD2_MOTOR_CM * 1e-6;
@@ -145,16 +149,18 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
 
             // LOG_INF("thrust: %10.4f", ctx->force_sp.z);
 
-            // control_allocation:(F_max,l,Cm,Ct,T,M[3])->(omega[4])
+            // control_allocation:(F_min,F_max,l,Cm,Ct,T,M[3])->(omega[4])
             CASADI_FUNC_ARGS(control_allocation)
-            args[0] = &F_max;
-            args[1] = &l;
-            args[2] = &Cm;
-            args[3] = &Ct;
-            args[4] = &ctx->force_sp.z;
-            args[5] = moment;
+            args[0] = &F_min;
+            args[1] = &F_max;
+            args[2] = &l;
+            args[3] = &Cm;
+            args[4] = &Ct;
+            args[5] = &ctx->force_sp.z;
+            args[6] = moment;
             res[0] = omega;
             CASADI_FUNC_CALL(control_allocation)
+            double min_omega = omega[0];
             for (int i = 0; i < 4; i++) {
                 if (!isfinite(omega[i])) {
                     LOG_WRN("omega is not finite: %10.4f", omega[i]);
@@ -167,7 +173,11 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
                     omega[i] = 0;
                 }
                 ctx->actuators.velocity[i] = omega[i];
+                if (omega[i] < min_omega) {
+                    min_omega = omega[i];
+                }
             }
+            ctx->imu_filt_freq.x = 0.5*min_omega;
         }
 
         stamp_header(&ctx->actuators.header, k_uptime_ticks());
@@ -175,6 +185,7 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
 
         // publish
         zros_pub_update(&ctx->pub_actuators);
+        zros_pub_update(&ctx->pub_imu_filt_freq);
     }
 
     rdd2_allocation_fini(ctx);

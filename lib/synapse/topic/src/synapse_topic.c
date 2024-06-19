@@ -67,6 +67,7 @@ static context_t g_ctx = {
         (cmd_vel_ethernet, &topic_cmd_vel_ethernet, "cmd_vel_ethernet"),                               \
         (force_sp, &topic_force_sp, "force_sp"),                                                       \
         (imu, &topic_imu, "imu"),                                                                      \
+        (imu_filt_freq, &topic_imu_filt_freq, "imu_filt_freq"),                                        \
         (input, &topic_input, "input"),                                                                \
         (input_ethernet, &topic_input_ethernet, "input_ethernet"),                                     \
         (input_sbus, &topic_input_sbus, "input_sbus"),                                                 \
@@ -247,6 +248,7 @@ void topic_work_handler(struct k_work* work)
         || topic == &topic_accel_sp
         || topic == &topic_moment_sp
         || topic == &topic_force_sp
+        || topic == &topic_imu_filt_freq
         || topic == &topic_velocity_sp
         || topic == &topic_position_sp
         || topic == &topic_accel_ff

@@ -4,7 +4,6 @@ import sys
 import math
 import sympy
 import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
 import casadi as ca
 import scipy.signal
@@ -61,13 +60,13 @@ def continuous_to_discrete_controllable_realization(G, name):
     C = ss_eval[n:, :n]
     D = ss_eval[n:, n:]
 
-
     x1 = A@x + B@u
     y = C@x + D@u
 
     f = ca.Function(name, list(ca_ss_syms.values()) + [x, u], [x1, y], list(ca_ss_syms.keys()) + ['x', 'u'], ['x_1', 'y'])
+    f_ss = ca.Function(name + '_ss', list(ca_ss_syms.values()), [A, B, C, D], list(ca_ss_syms.keys()), ['A', 'B', 'C', 'D'])
 
-    return f
+    return f, f_ss
 
 
 def derive_butterworth_2_filter():
@@ -78,12 +77,11 @@ def derive_butterworth_2_filter():
     s = sympy.symbols('s')
     T = sympy.symbols('T', real=True)
     wn = sympy.symbols('w_n', real=True)
-    tau = sympy.symbols('tau', real=True)
     zeta = sympy.sqrt(2)/2
     G = wn**2/(s**2 + 2*zeta*wn*s + wn**2)
-    f = continuous_to_discrete_controllable_realization(G, 'butterworth_2_filter')
+    f, f_ss = continuous_to_discrete_controllable_realization(G, 'butterworth_2_filter')
     return {
-        'butterworth_2_filter': f
+        'butterworth_2_filter': f,
     }
 
 

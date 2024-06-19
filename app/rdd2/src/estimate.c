@@ -21,15 +21,12 @@
 #include <synapse_topic_list.h>
 
 #include <cerebri/core/casadi.h>
+#include <cerebri/core/constants.h>
 
 #include "app/rdd2/casadi/rdd2.h"
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 LOG_MODULE_REGISTER(rdd2_estimate, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 

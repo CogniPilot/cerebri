@@ -22,16 +22,14 @@
 
 #include "app/rdd2/casadi/bezier.h"
 #include "app/rdd2/casadi/rdd2.h"
+
 #include "lib/core/common/casadi/common.h"
+#include "cerebri/core/constants.h"
 
 #include "input_mapping.h"
 
 #define MY_STACK_SIZE 8192
 #define MY_PRIORITY 4
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 LOG_MODULE_REGISTER(rdd2_command, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 

@@ -11,6 +11,7 @@
 #include "lib/core/common/casadi/common.h"
 #include <cerebri/core/casadi.h>
 #include <cerebri/core/common.h>
+#include <cerebri/core/constants.h>
 
 #include <synapse_topic_list.h>
 
@@ -26,11 +27,12 @@ LOG_MODULE_REGISTER(sense_imu, CONFIG_CEREBRI_SENSE_IMU_LOG_LEVEL);
 #define THREAD_STACK_SIZE 1024
 #define THREAD_PRIORITY 6
 
+#define IMU_DT_SAMPLE_MSEC 2
+
 static const double g_accel = 9.8;
 static const int g_calibration_count = 100;
 
-static const double wn = 80;
-static const double T = 0.002;
+static const double T = IMU_DT_SAMPLE_MSEC*1e-3;
 
 extern struct k_work_q g_high_priority_work_q;
 static void imu_work_handler(struct k_work* work);
@@ -46,11 +48,14 @@ typedef struct context_t {
     synapse_msgs_Imu imu;
     synapse_msgs_Status status;
     synapse_msgs_Status_Mode last_mode;
+    synapse_msgs_Vector3 imu_filt_freq;
     bool calibrated;
     // publications
     struct zros_pub pub_imu;
     // subscriptions
     struct zros_sub sub_status;
+    struct zros_sub sub_actuators;
+    struct zros_sub sub_imu_filter_freq;
     // gyro
     const struct device* gyro_dev[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT];
     double gyro_raw[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3];
@@ -85,11 +90,14 @@ static context_t g_ctx = {
         .linear_acceleration = synapse_msgs_Vector3_init_default,
         .has_orientation = false,
     },
+    .imu_filt_freq = synapse_msgs_Vector3_init_default,
     .status = synapse_msgs_Status_init_default,
     .last_mode = synapse_msgs_Status_Mode_MODE_UNKNOWN,
     .calibrated = false,
     .pub_imu = {},
     .sub_status = {},
+    .sub_actuators = {},
+    .sub_imu_filter_freq = {},
     .gyro_dev = {},
     .gyro_raw = {},
     .gyro_bias = {},
@@ -110,6 +118,7 @@ static void imu_init(context_t* ctx)
     zros_node_init(&ctx->node, "sense_imu");
     zros_pub_init(&ctx->pub_imu, &ctx->node, &topic_imu, &ctx->imu);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 1);
+    zros_sub_init(&ctx->sub_imu_filter_freq, &ctx->node, &topic_imu_filt_freq, &ctx->sub_imu_filter_freq, 10);
 
     // setup accel devices
 
@@ -155,10 +164,14 @@ void imu_read(context_t* ctx)
                         continue;
                     }
 
-                    /* butterworth_2_filter:(T,w_n,x[2],u)->(x_1[2],y) */
+                    // butterworth_2_filter:(T,w_n,x[2],u)->(x_1[2],y)
                     double u = ctx->accel_raw[i][j] - ctx->accel_bias[i][j];
                     double* x = ctx->accel_filter_state[i][j];
                     double y;
+                    double wn = ctx->imu_filt_freq.x;
+                    if (wn < 40*2*M_PI) {
+                        wn = 40*2*M_PI;
+                    }
                     CASADI_FUNC_ARGS(butterworth_2_filter);
                     args[0] = &T;
                     args[1] = &wn;
@@ -208,6 +221,10 @@ void imu_read(context_t* ctx)
                     double u = ctx->gyro_raw[i][j] - ctx->gyro_bias[i][j];
                     double* x = ctx->gyro_filter_state[i][j];
                     double y;
+                    double wn = ctx->imu_filt_freq.x;
+                    if (wn < 20*2*M_PI) {
+                        wn = 20*2*M_PI;
+                    }
                     CASADI_FUNC_ARGS(butterworth_2_filter);
                     args[0] = &T;
                     args[1] = &wn;

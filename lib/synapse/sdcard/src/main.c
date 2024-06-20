@@ -7,6 +7,7 @@
 #include <zephyr/shell/shell.h>
 
 #include <ff.h>
+#include <stdio.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/storage/disk_access.h>
@@ -26,7 +27,6 @@ LOG_MODULE_REGISTER(synapse_sdcard, LOG_LEVEL_INF);
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
 static FATFS fat_fs;
-/* mounting info */
 static struct fs_mount_t mp = {
     .type = FS_FATFS,
     .fs_data = &fat_fs,
@@ -175,7 +175,7 @@ static void synapse_sdcard_run(void* p0, void* p1, void* p2)
         if (zros_sub_update_available(&ctx->sub_imu)) {
             zros_sub_update(&ctx->sub_imu);
 
-            int n = snprintf(&ctx->file,
+            int n = snprintf(ctx->file_data_buffer,
                 WRITE_BUF_SIZE,
                 "%10.4f %10.4f %10.4f\n",
                 ctx->imu.angular_velocity.x,

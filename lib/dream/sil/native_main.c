@@ -82,7 +82,6 @@ static void udp_init(struct context* ctx)
 static void udp_tx(struct context* ctx)
 {
     static uint8_t buf[TX_BUF_SIZE];
-    memset(buf, 0, sizeof(buf));
 
     pthread_mutex_lock(&g_lock_tx);
     int len = ring_buf_get(&g_tx_buf, buf, TX_BUF_SIZE);
@@ -127,7 +126,6 @@ static void udp_rx(struct context* ctx)
 
     // write received data to sim_rx_buf
     static uint8_t buf[RX_BUF_SIZE];
-    memset(buf, 0, sizeof(buf));
     ret = recvfrom(ctx->sock, buf,
         sizeof(buf), MSG_DONTWAIT,
         (struct sockaddr*)&ctx->client_addr, &ctx->client_addr_len);

@@ -78,7 +78,6 @@ int udp_rx_receive(struct udp_rx* ctx)
         return 0;
     }
 
-    memset(ctx->rx_buf, 0, sizeof(ctx->rx_buf));
     ret = zsock_recvfrom(ctx->sock, ctx->rx_buf,
         sizeof(ctx->rx_buf), ZSOCK_MSG_DONTWAIT, (struct sockaddr*)&client_addr, &client_addr_len);
 

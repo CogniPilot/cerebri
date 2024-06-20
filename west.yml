@@ -38,13 +38,9 @@ manifest:
       remote: cognipilot
       revision: 9c0f4e73ae1a64a7a9a676975e8895d4775e1186 # main 6/17/24
       path: modules/lib/cyecca
-    - name: synapse_tinyframe
-      remote: cognipilot
-      revision: bed205a3d5a96c17201a8193a8c836938b6270ae # main 6/14/24
-      path: modules/lib/synapse_tinyframe
     - name: synapse_protobuf
       remote: cognipilot
-      revision: dc69184ab1d5f4f023561f7af8693e99955884de # main 6/14/24
+      revision: 849ab6d14f54c8ade1753c0fd44eec8e2d5045c8 # pr-frame 7/13/24
       path: modules/lib/synapse_protobuf
     - name: ubxlib
       remote: cognipilot

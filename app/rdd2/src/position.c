@@ -225,7 +225,7 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
                 args[2] = q_wb;
                 args[3] = p_rw;
                 args[4] = v_rw;
-                args[5] = q_r;
+                args[5] = qr_wb;
                 res[0] = zeta;
                 CASADI_FUNC_CALL(se23_error);
             }

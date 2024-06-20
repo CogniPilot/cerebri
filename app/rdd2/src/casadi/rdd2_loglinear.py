@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import casadi as ca
 import cyecca.lie as lie
-from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321
+from cyecca.lie.group_so3 import so3, SO3Quat, SO3EulerB321
 from cyecca.lie.group_se23 import SE23Quat, se23, SE23LieGroupElement, SE23LieAlgebraElement
 from cyecca.symbolic import SERIES
 
@@ -115,7 +115,7 @@ def derive_so3_attitude_control():
     # Lie algebra
     e = (X.inverse() * X_r).log()  # angular velocity to get to desired att in 1 sec
 
-    omega = kp * e.param # elementwise
+    omega = so3.elem(e.param).left_jacobian() @ ca.diag(kp) @ e.param # elementwise
 
     # FUNCTION
     # -------------------------------

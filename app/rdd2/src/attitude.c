@@ -208,11 +208,12 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
 
             // se23_attitude_control:(kp[3],zeta[9])->(omega[3])
             {
-                CASADI_FUNC_ARGS(se23_attitude_control);
+                CASADI_FUNC_ARGS(so3_attitude_control);
                 args[0] = kp;
-                args[1] = zeta;
+                args[1] = q_wb;
+                args[2] = q_r;
                 res[0] = omega;
-                CASADI_FUNC_CALL(se23_attitude_control);
+                CASADI_FUNC_CALL(so3_attitude_control);
             }
 #else
             {

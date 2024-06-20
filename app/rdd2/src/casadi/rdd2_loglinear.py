@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import casadi as ca
 import cyecca.lie as lie
-from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321
+from cyecca.lie.group_so3 import so3, SO3Quat, SO3EulerB321
 from cyecca.lie.group_se23 import SE23Quat, se23, SE23LieGroupElement, SE23LieAlgebraElement
 from cyecca.symbolic import SERIES
 
@@ -115,7 +115,7 @@ def derive_so3_attitude_control():
     # Lie algebra
     e = (X.inverse() * X_r).log()  # angular velocity to get to desired att in 1 sec
 
-    omega = kp * e.param # elementwise
+    omega = so3.elem(e.param).left_jacobian() @ ca.diag(kp) @ e.param # elementwise
 
     # FUNCTION
     # -------------------------------
@@ -151,7 +151,6 @@ def derive_outerloop_control():
     zeta = ca.SX.sym('zeta', 9)
     at_w = ca.SX.sym('at_w', 3)
     qc_wb = SO3Quat.elem(ca.SX.sym('qc_wb', 4)) # camera orientation
-    q_wb = SO3Quat.elem(ca.SX.sym('q_wb', 4))
     z_i = ca.SX.sym('z_i') # z velocity error integral
     dt = ca.SX.sym('dt') # time step
 
@@ -178,7 +177,8 @@ def derive_outerloop_control():
 
     # normalized thrust vector
     p_norm_max = 0.3*m*g
-    p_term = u_v + u_a + m * at_w
+    # p_term = u_v + u_a + m * at_w
+    p_term = m * at_w
     p_norm = ca.norm_2(p_term)
     p_term = ca.if_else(p_norm > p_norm_max, p_norm_max*p_term/p_norm, p_term)
 
@@ -222,9 +222,8 @@ def derive_outerloop_control():
     # -------------------------------
     f_get_u = ca.Function(
         "se23_position_control",
-        [thrust_trim, kp, zeta, at_w, qc_wb.param, q_wb.param, z_i, dt], [nT, qr_wb.param, z_i_2], 
-
-        ['thrust_trim', 'kp', 'zeta', 'at_w', 'qc_wb', 'q_wb', 'z_i', 'dt'], 
+        [thrust_trim, kp, zeta, at_w, qc_wb.param, z_i, dt], [nT, qr_wb.param, z_i_2], 
+        ['thrust_trim', 'kp', 'zeta', 'at_w', 'qc_wb', 'z_i', 'dt'], 
         ['nT', 'qr_wb', 'z_i_2'])
 
     f_se23_attitude_control = ca.Function(

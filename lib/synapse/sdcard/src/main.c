@@ -111,7 +111,7 @@ static struct context g_ctx = {
     .sub_imu = {},
     // data
     .imu = synapse_msgs_Imu_init_default,
-    .file = NULL,
+    .file = {},
     .file_data_buffer = {},
     // threading
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
@@ -144,6 +144,7 @@ static void synapse_sdcard_fini(struct context* ctx)
 static void synapse_sdcard_run(void* p0, void* p1, void* p2)
 {
     int rc = 0;
+    int count = 0;
     struct context* ctx = p0;
     ARG_UNUSED(p1);
     ARG_UNUSED(p2);
@@ -174,6 +175,7 @@ static void synapse_sdcard_run(void* p0, void* p1, void* p2)
 
         if (zros_sub_update_available(&ctx->sub_imu)) {
             zros_sub_update(&ctx->sub_imu);
+            count++;
 
             int n = snprintf(ctx->file_data_buffer,
                 WRITE_BUF_SIZE,
@@ -185,6 +187,13 @@ static void synapse_sdcard_run(void* p0, void* p1, void* p2)
             rc = fs_write(&ctx->file, ctx->file_data_buffer, n);
             if (rc < 0) {
                 LOG_ERR("write failed");
+            }
+            if (count > 1000) {
+                count = 0;
+                rc = fs_sync(&ctx->file);
+                if (rc < 0) {
+                    LOG_ERR("sync failed");
+                }
             }
         }
     }

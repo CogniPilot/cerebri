@@ -167,34 +167,35 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             double omega[3];
 
 #if defined(CONFIG_CEREBRI_RDD2_LOG_LINEAR_ATTITUDE)
-                double zeta[9];
-                double p_w[3] = {
-                    ctx->odometry_estimator.pose.pose.position.x,
-                    ctx->odometry_estimator.pose.pose.position.y,
-                    ctx->odometry_estimator.pose.pose.position.z
-                };
+            double zeta[9];
+            double p_w[3] = {
+                ctx->odometry_estimator.pose.pose.position.x,
+                ctx->odometry_estimator.pose.pose.position.y,
+                ctx->odometry_estimator.pose.pose.position.z
+            };
 
-                double v_b[3] = {
-                    ctx->odometry_estimator.twist.twist.linear.x,
-                    ctx->odometry_estimator.twist.twist.linear.y,
-                    ctx->odometry_estimator.twist.twist.linear.z
-                };
+            double v_b[3] = {
+                ctx->odometry_estimator.twist.twist.linear.x,
+                ctx->odometry_estimator.twist.twist.linear.y,
+                ctx->odometry_estimator.twist.twist.linear.z
+            };
 
-                double p_rw[3] = {
-                    ctx->position_sp.x,
-                    ctx->position_sp.y,
-                    ctx->position_sp.z
-                };
+            double p_rw[3] = {
+                ctx->position_sp.x,
+                ctx->position_sp.y,
+                ctx->position_sp.z
+            };
 
-                double v_rw[3] = {
-                    ctx->velocity_sp.x,
-                    ctx->velocity_sp.y,
-                    ctx->velocity_sp.z
-                };
+            double v_rw[3] = {
+                ctx->velocity_sp.x,
+                ctx->velocity_sp.y,
+                ctx->velocity_sp.z
+            };
 
-                // se23_error:(p_w[3],v_b[3],q_wb[4],p_rw[3],v_rw[3],q_r[4])->(zeta[9])
+            // se23_error:(p_w[3],v_b[3],q_wb[4],p_rw[3],v_rw[3],q_r[4])->(zeta[9])
 
-                {CASADI_FUNC_ARGS(se23_error);
+            {
+                CASADI_FUNC_ARGS(se23_error);
                 args[0] = p_w;
                 args[1] = v_b;
                 args[2] = q_wb;
@@ -202,10 +203,12 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
                 args[4] = v_rw;
                 args[5] = q_r;
                 res[0] = zeta;
-                CASADI_FUNC_CALL(se23_error);}
+                CASADI_FUNC_CALL(se23_error);
+            }
 
-                // se23_attitude_control:(kp[3],zeta[9])->(omega[3])
-                {CASADI_FUNC_ARGS(se23_attitude_control);
+            // se23_attitude_control:(kp[3],zeta[9])->(omega[3])
+            {
+                CASADI_FUNC_ARGS(se23_attitude_control);
                 args[0] = kp;
                 args[1] = zeta;
                 res[0] = omega;

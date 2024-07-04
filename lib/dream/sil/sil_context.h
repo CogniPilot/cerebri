@@ -7,8 +7,6 @@
 
 #include <signal.h>
 
-#include <synapse_tinyframe/TinyFrame.h>
-
 #include <synapse_protobuf/actuators.pb.h>
 #include <synapse_protobuf/altimeter.pb.h>
 #include <synapse_protobuf/battery_state.pb.h>
@@ -29,7 +27,6 @@ typedef struct context_s {
     pthread_t thread;
     bool clock_initialized;
     volatile sig_atomic_t shutdown;
-    TinyFrame tf;
     synapse_msgs_SimClock sim_clock;
     synapse_msgs_Time clock_offset;
     synapse_msgs_Actuators actuators;

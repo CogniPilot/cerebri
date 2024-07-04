@@ -11,6 +11,7 @@
 #include <synapse_protobuf/altimeter.pb.h>
 #include <synapse_protobuf/battery_state.pb.h>
 #include <synapse_protobuf/bezier_trajectory.pb.h>
+#include <synapse_protobuf/frame.pb.h>
 #include <synapse_protobuf/imu.pb.h>
 #include <synapse_protobuf/input.pb.h>
 #include <synapse_protobuf/led_array.pb.h>

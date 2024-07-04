@@ -6,5 +6,4 @@ build:
   cmake: .
   depends:
     - nanopb
-    - synapse_tinyframe
     - synapse_protobuf

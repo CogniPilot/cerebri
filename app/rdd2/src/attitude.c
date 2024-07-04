@@ -69,7 +69,6 @@ static struct context g_ctx = {
 
 static void rdd2_attitude_init(struct context* ctx)
 {
-    LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_attiude");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_position_sp, &ctx->node,
@@ -84,11 +83,11 @@ static void rdd2_attitude_init(struct context* ctx)
         &topic_angular_velocity_ff, &ctx->angular_velocity_ff, 50);
     zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node, &topic_angular_velocity_sp, &ctx->angular_velocity_sp);
     k_sem_take(&ctx->running, K_FOREVER);
+    LOG_INF("init");
 }
 
 static void rdd2_attitude_fini(struct context* ctx)
 {
-    LOG_INF("fini");
     zros_sub_fini(&ctx->sub_status);
     zros_sub_fini(&ctx->sub_position_sp);
     zros_sub_fini(&ctx->sub_velocity_sp);
@@ -98,6 +97,7 @@ static void rdd2_attitude_fini(struct context* ctx)
     zros_pub_fini(&ctx->pub_angular_velocity_sp);
     zros_node_fini(&ctx->node);
     k_sem_give(&ctx->running);
+    LOG_INF("fini");
 }
 
 static void rdd2_attitude_run(void* p0, void* p1, void* p2)

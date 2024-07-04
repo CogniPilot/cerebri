@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <zephyr/device.h>
+#include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
@@ -11,8 +13,6 @@
 #include <zros/private/zros_pub_struct.h>
 #include <zros/zros_node.h>
 #include <zros/zros_pub.h>
-
-#include <zephyr/input/input.h>
 
 #include <synapse_topic_list.h>
 
@@ -51,20 +51,20 @@ static struct context g_ctx = {
 
 static void sense_sbus_init(struct context* ctx)
 {
-    LOG_INF("init");
     zros_node_init(&ctx->node, "sense_sbus");
     zros_pub_init(&ctx->pub_input, &ctx->node, &topic_input_sbus, &ctx->input);
     ctx->last_event = 0;
     ctx->counter = 0;
     k_sem_take(&ctx->running, K_FOREVER);
+    LOG_INF("init");
 }
 
 static void sense_sbus_fini(struct context* ctx)
 {
-    LOG_INF("fini");
     zros_pub_fini(&ctx->pub_input);
     zros_node_fini(&ctx->node);
     k_sem_give(&ctx->running);
+    LOG_INF("fini");
 }
 
 static void sense_sbus_run(void* p0, void* p1, void* p2)
@@ -119,7 +119,7 @@ static void input_cb(struct input_event* evt)
     g_ctx.last_event = evt->code;
 }
 
-INPUT_CALLBACK_DEFINE(NULL, input_cb);
+INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_ALIAS(sbus)), input_cb);
 
 static int sense_sbus_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)

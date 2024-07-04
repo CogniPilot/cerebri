@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 config CEREBRI_SYNAPSE_ETH_RX
-  bool "ethernet receive"	
+  bool "ethernet rx"	
   default y
   depends on ZROS
   help

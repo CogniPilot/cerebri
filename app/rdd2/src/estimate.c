@@ -80,23 +80,23 @@ static struct context g_ctx = {
 
 static void rdd2_estimate_init(struct context* ctx)
 {
-    LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_estimate");
     zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->imu, 300);
     zros_sub_init(&ctx->sub_odometry_ethernet, &ctx->node, &topic_odometry_ethernet,
         &ctx->odometry_ethernet, 10);
     zros_pub_init(&ctx->pub_odometry, &ctx->node, &topic_odometry_estimator, &ctx->odometry);
     k_sem_take(&ctx->running, K_FOREVER);
+    LOG_INF("init");
 }
 
 static void rdd2_estimate_fini(struct context* ctx)
 {
-    LOG_INF("fini");
     zros_sub_fini(&ctx->sub_imu);
     zros_sub_fini(&ctx->sub_odometry_ethernet);
     zros_pub_fini(&ctx->pub_odometry);
     zros_node_fini(&ctx->node);
     k_sem_give(&ctx->running);
+    LOG_INF("fini");
 }
 
 static void rdd2_estimate_run(void* p0, void* p1, void* p2)

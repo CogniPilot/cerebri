@@ -32,8 +32,8 @@ struct context {
     synapse_msgs_Input input;
     synapse_msgs_Actuators actuators;
     synapse_msgs_Twist cmd_vel;
-    struct zros_sub sub_status, sub_input_ethernet, sub_input_sbus, sub_cmd_vel_ethernet;
-    struct zros_pub pub_actuators, pub_cmd_vel, pub_input;
+    struct zros_sub sub_status, sub_cmd_vel, sub_input;
+    struct zros_pub pub_actuators;
     const double wheel_radius;
     const double max_turn_angle;
     const double max_velocity;
@@ -50,12 +50,8 @@ static struct context g_ctx = {
     .actuators = synapse_msgs_Actuators_init_default,
     .cmd_vel = synapse_msgs_Twist_init_default,
     .sub_status = {},
-    .sub_input_ethernet = {},
-    .sub_input_sbus = {},
-    .sub_cmd_vel_ethernet = {},
+    .sub_cmd_vel = {},
     .pub_actuators = {},
-    .pub_cmd_vel = {},
-    .pub_input = {},
     .wheel_radius = CONFIG_CEREBRI_B3RB_WHEEL_RADIUS_MM / 1000.0,
     .max_turn_angle = CONFIG_CEREBRI_B3RB_MAX_TURN_ANGLE_MRAD / 1000.0,
     .max_velocity = CONFIG_CEREBRI_B3RB_MAX_VELOCITY_MM_S / 1000.0,
@@ -67,36 +63,36 @@ static struct context g_ctx = {
 
 static void b3rb_command_init(struct context* ctx)
 {
-    LOG_INF("init");
     zros_node_init(&ctx->node, "b3rb_command");
-    zros_sub_init(&ctx->sub_input_ethernet, &ctx->node, &topic_input_ethernet, &ctx->input, 10);
-    zros_sub_init(&ctx->sub_input_sbus, &ctx->node, &topic_input_sbus, &ctx->input, 10);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
-    zros_sub_init(&ctx->sub_cmd_vel_ethernet, &ctx->node, &topic_cmd_vel_ethernet, &ctx->cmd_vel, 10);
+    zros_sub_init(&ctx->sub_input, &ctx->node, &topic_input, &ctx->input, 10);
+    zros_sub_init(&ctx->sub_cmd_vel, &ctx->node, &topic_cmd_vel, &ctx->cmd_vel, 10);
     zros_pub_init(&ctx->pub_actuators, &ctx->node, &topic_actuators, &ctx->actuators);
-    zros_pub_init(&ctx->pub_cmd_vel, &ctx->node, &topic_cmd_vel, &ctx->cmd_vel);
-    zros_pub_init(&ctx->pub_input, &ctx->node, &topic_input, &ctx->input);
     k_sem_take(&ctx->running, K_FOREVER);
+    LOG_INF("init");
 }
 
 static void b3rb_command_fini(struct context* ctx)
 {
-    LOG_INF("fini");
-    zros_sub_fini(&ctx->sub_input_sbus);
-    zros_sub_fini(&ctx->sub_input_ethernet);
     zros_sub_fini(&ctx->sub_status);
-    zros_sub_fini(&ctx->sub_cmd_vel_ethernet);
-    zros_pub_fini(&ctx->pub_cmd_vel);
+    zros_sub_fini(&ctx->sub_input);
+    zros_sub_fini(&ctx->sub_cmd_vel);
     zros_pub_fini(&ctx->pub_actuators);
     zros_node_fini(&ctx->node);
     k_sem_give(&ctx->running);
+    LOG_INF("fini");
 }
 
-static void b3rb_cmd_vel_stop(struct context* ctx)
+static void b3rb_stop(struct context* ctx)
 {
+    for (int i = 0; i < ctx->input.channel_count; i++) {
+        ctx->input.channel[i] = 0;
+    }
+    ctx->cmd_vel.has_angular = true;
     ctx->cmd_vel.angular.x = 0;
     ctx->cmd_vel.angular.y = 0;
     ctx->cmd_vel.angular.z = 0;
+    ctx->cmd_vel.has_linear = true;
     ctx->cmd_vel.linear.x = 0;
     ctx->cmd_vel.linear.y = 0;
     ctx->cmd_vel.linear.z = 0;
@@ -110,41 +106,38 @@ static void b3rb_command_run(void* p0, void* p1, void* p2)
 
     b3rb_command_init(ctx);
 
-    struct k_poll_event events[] = {
-        *zros_sub_get_event(&ctx->sub_input_ethernet),
-        *zros_sub_get_event(&ctx->sub_input_sbus),
-        *zros_sub_get_event(&ctx->sub_cmd_vel_ethernet),
-    };
-
     double dt = 0;
     int64_t ticks_last = k_uptime_ticks();
 
     while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
         // wait for input event, publish at 1 Hz regardless
         int rc = 0;
+
+        struct k_poll_event events[3] = {
+            *zros_sub_get_event(&ctx->sub_status),
+            *zros_sub_get_event(&ctx->sub_input),
+            *zros_sub_get_event(&ctx->sub_cmd_vel),
+        };
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
+
         if (rc != 0) {
-            // LOG_DBG("not receiving input");
-            ctx->status.mode = synapse_msgs_Status_Mode_MODE_ATTITUDE;
-            for (int i = 0; i < ctx->input.channel_count; i++) {
-                ctx->input.channel[i] = 0;
-            }
-            b3rb_cmd_vel_stop(ctx);
+            b3rb_stop(ctx);
         }
 
-        if (zros_sub_update_available(&ctx->sub_status)) {
+        bool update_status = zros_sub_update_available(&ctx->sub_status);
+        bool update_input = zros_sub_update_available(&ctx->sub_input);
+        bool update_cmd_vel = zros_sub_update_available(&ctx->sub_cmd_vel);
+
+        if (update_status) {
             zros_sub_update(&ctx->sub_status);
         }
 
-        // prioritize onboard sbus input
-        if (zros_sub_update_available(&ctx->sub_input_sbus)) {
-            zros_sub_update(&ctx->sub_input_sbus);
-            zros_pub_update(&ctx->pub_input);
-            ctx->status.input_source = synapse_msgs_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL;
-        } else if (zros_sub_update_available(&ctx->sub_input_ethernet)) {
-            zros_sub_update(&ctx->sub_input_ethernet);
-            zros_pub_update(&ctx->pub_input);
-            ctx->status.input_source = synapse_msgs_Status_InputSource_INPUT_SOURCE_ETHERNET;
+        if (update_input) {
+            zros_sub_update(&ctx->sub_input);
+        }
+
+        if (update_cmd_vel) {
+            zros_sub_update(&ctx->sub_cmd_vel);
         }
 
         // calculate dt
@@ -152,7 +145,7 @@ static void b3rb_command_run(void* p0, void* p1, void* p2)
         dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         ticks_last = ticks_now;
         if (dt < 0 || dt > 0.5) {
-            LOG_DBG("input update rate too low");
+            LOG_ERR("input update rate too low: %10.4f", dt);
             continue;
         }
 
@@ -165,17 +158,6 @@ static void b3rb_command_run(void* p0, void* p1, void* p2)
 
             b3rb_set_actuators(&ctx->actuators, turn_angle, omega_fwd, armed);
             zros_pub_update(&ctx->pub_actuators);
-
-        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY) {
-
-            if (ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
-                if (zros_sub_update_available(&ctx->sub_cmd_vel_ethernet)) {
-                    zros_sub_update(&ctx->sub_cmd_vel_ethernet);
-                }
-            } else {
-                b3rb_cmd_vel_stop(ctx);
-            }
-            zros_pub_update(&ctx->pub_cmd_vel);
         }
     }
 

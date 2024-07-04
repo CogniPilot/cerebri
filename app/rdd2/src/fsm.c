@@ -142,7 +142,6 @@ static struct context g_ctx = {
 
 static void rdd2_fsm_init(struct context* ctx)
 {
-    LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_fsm");
     zros_sub_init(&ctx->sub_input, &ctx->node, &topic_input, &ctx->input, 5);
     zros_sub_init(&ctx->sub_battery_state, &ctx->node,
@@ -150,17 +149,18 @@ static void rdd2_fsm_init(struct context* ctx)
     zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 5);
     zros_pub_init(&ctx->pub_status, &ctx->node, &topic_status, &ctx->status);
     k_sem_take(&ctx->running, K_FOREVER);
+    LOG_INF("init");
 }
 
 static void rdd2_fsm_fini(struct context* ctx)
 {
-    LOG_INF("fini");
     zros_sub_fini(&ctx->sub_input);
     zros_sub_fini(&ctx->sub_battery_state);
     zros_sub_fini(&ctx->sub_safety);
     zros_pub_fini(&ctx->pub_status);
     zros_node_fini(&ctx->node);
     k_sem_give(&ctx->running);
+    LOG_INF("fini");
 }
 
 static void fsm_compute_input(struct status_input* input, const struct context* ctx)

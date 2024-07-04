@@ -67,24 +67,24 @@ static struct context g_ctx = {
 
 static void rdd2_allocation_init(struct context* ctx)
 {
-    LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_allocation");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp, 300);
     zros_sub_init(&ctx->sub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp, 300);
     zros_pub_init(&ctx->pub_actuators, &ctx->node, &topic_actuators, &ctx->actuators);
     k_sem_take(&ctx->running, K_FOREVER);
+    LOG_INF("init");
 }
 
 static void rdd2_allocation_fini(struct context* ctx)
 {
-    LOG_INF("fini");
     zros_sub_fini(&ctx->sub_status);
     zros_sub_fini(&ctx->sub_force_sp);
     zros_sub_fini(&ctx->sub_moment_sp);
     zros_pub_fini(&ctx->pub_actuators);
     zros_node_fini(&ctx->node);
     k_sem_give(&ctx->running);
+    LOG_INF("fini");
 }
 
 static void stop(struct context* ctx)

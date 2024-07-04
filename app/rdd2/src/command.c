@@ -102,7 +102,6 @@ static struct context g_ctx = {
 
 static void rdd2_command_init(struct context* ctx)
 {
-    LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_command");
     zros_sub_init(&ctx->sub_input_ethernet, &ctx->node, &topic_input_ethernet, &ctx->input, 10);
     zros_sub_init(&ctx->sub_input_sbus, &ctx->node, &topic_input_sbus, &ctx->input, 10);
@@ -132,11 +131,11 @@ static void rdd2_command_init(struct context* ctx)
     zros_pub_init(&ctx->pub_input, &ctx->node,
         &topic_input, &ctx->input);
     k_sem_take(&ctx->running, K_FOREVER);
+    LOG_INF("init");
 }
 
 static void rdd2_command_fini(struct context* ctx)
 {
-    LOG_INF("fini");
     zros_sub_fini(&ctx->sub_input_ethernet);
     zros_sub_fini(&ctx->sub_input_sbus);
     zros_sub_fini(&ctx->sub_status);
@@ -152,6 +151,7 @@ static void rdd2_command_fini(struct context* ctx)
     zros_pub_fini(&ctx->pub_position_sp);
     zros_node_fini(&ctx->node);
     k_sem_give(&ctx->running);
+    LOG_INF("fini");
 }
 
 static void rdd2_command_run(void* p0, void* p1, void* p2)

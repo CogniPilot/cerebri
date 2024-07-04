@@ -54,8 +54,6 @@ static void actuate_led_array_init(context* ctx)
     } else if (!device_is_ready(g_ctx.strip)) {
         LOG_ERR("LED strip device %s is not ready", g_ctx.strip->name);
         return;
-    } else {
-        LOG_INF("Found LED strip device %s", g_ctx.strip->name);
     }
 }
 

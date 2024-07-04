@@ -31,7 +31,6 @@ int udp_rx_init(struct udp_rx* ctx)
 int udp_rx_fini(struct udp_rx* ctx)
 {
     int ret = 0;
-    LOG_INF("closing socket");
     ret = zsock_close(ctx->sock);
     if (ret < 0) {
         LOG_ERR("failed to close socket: %d", ret);

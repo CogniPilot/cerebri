@@ -78,23 +78,23 @@ static struct context g_ctx = {
 
 static void b3rb_estimate_init(struct context* ctx)
 {
-    LOG_INF("init");
     zros_node_init(&ctx->node, "b3rb_estimate");
     zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->imu, 10);
     zros_sub_init(&ctx->sub_wheel_odometry, &ctx->node, &topic_wheel_odometry,
         &ctx->wheel_odometry, 10);
     zros_pub_init(&ctx->pub_odometry, &ctx->node, &topic_odometry_estimator, &ctx->odometry);
     k_sem_take(&ctx->running, K_FOREVER);
+    LOG_INF("init");
 }
 
 static void b3rb_estimate_fini(struct context* ctx)
 {
-    LOG_INF("fini");
     zros_pub_fini(&ctx->pub_odometry);
     zros_sub_fini(&ctx->sub_wheel_odometry);
     zros_sub_fini(&ctx->sub_imu);
     zros_node_fini(&ctx->node);
     k_sem_give(&ctx->running);
+    LOG_INF("fini");
 }
 
 static bool all_finite(double* src, size_t n)

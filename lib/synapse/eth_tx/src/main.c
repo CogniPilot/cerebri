@@ -5,7 +5,6 @@
 
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
-
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_sub_struct.h>
 
@@ -160,6 +159,7 @@ static int eth_tx_init(struct context* ctx)
     ctx->tf.userdata = ctx;
 
     k_sem_take(&ctx->running, K_FOREVER);
+    LOG_INF("init");
     return ret;
 };
 
@@ -176,6 +176,7 @@ static int eth_tx_fini(struct context* ctx)
     zros_node_fini(&ctx->node);
 
     k_sem_give(&ctx->running);
+    LOG_INF("fini");
     return ret;
 };
 

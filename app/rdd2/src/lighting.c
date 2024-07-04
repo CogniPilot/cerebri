@@ -60,24 +60,24 @@ static struct context g_ctx = {
 
 static void rdd2_lighting_init(struct context* ctx)
 {
-    LOG_INF("init");
     zros_node_init(&ctx->node, "rdd2_lighting");
     zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state, &ctx->battery_state, 10);
     zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 10);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_pub_init(&ctx->pub_led_array, &ctx->node, &topic_led_array, &ctx->led_array);
     k_sem_take(&ctx->running, K_FOREVER);
+    LOG_INF("init");
 }
 
 static void rdd2_lighting_fini(struct context* ctx)
 {
-    LOG_INF("fini");
     zros_sub_fini(&ctx->sub_battery_state);
     zros_sub_fini(&ctx->sub_safety);
     zros_sub_fini(&ctx->sub_status);
     zros_pub_fini(&ctx->pub_led_array);
     zros_node_fini(&ctx->node);
     k_sem_give(&ctx->running);
+    LOG_INF("fini");
 }
 
 static void set_led(const int index, const double* color, const double brightness, synapse_msgs_LED* led)

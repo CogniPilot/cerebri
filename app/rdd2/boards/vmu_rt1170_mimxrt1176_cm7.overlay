@@ -41,26 +41,20 @@
 		can1 = &flexcan2;
 		can2 = &flexcan3;
 		telem1 = &lpuart8; /* Use telem2 as telem1 */
-		/* accelerometers */
 		accel0 = &icm42688_1;
 		accel1 = &bmi08x_accel;
 		/* accel1 = &icm42688_0; */
-		/* gyroscopes */
 		/* gyro0 = &icm42688_0; */
 		gyro0 = &icm42688_1;
 		gyro1 = &bmi08x_gyro;
-		/* magnetometers */
 		mag0 = &ist8310;
 		mag1 = &bmm150;
-		/* barometric altimeters */
 		/* baro0 = &bmp388_0; */
 		baro0 = &bmp388_1;
-		/* power sensors */
 		power0 = &ina230;
-		/* safety button */
-		safety-button = &arming_button;
 		status-led = &ncp5623c;
 		buzzer = &buzzer0;
+		sbus = &sbus0;
 	};
 	cfg-device-gnss {
 		status = "okay";
@@ -162,99 +156,101 @@ uart0: &lpuart3 {
        status = "okay";
        current-speed = <115200>;
 };
+
 /* GNSS 2 */
 uart1: &lpuart5 {
        status = "okay";
        current-speed = <38400>;
 };
 
+/* SBUS */
 &lpuart6 {
-    sbus {
-        /delete-node/ right_stick_x;
-        /delete-node/ right_stick_y;
-        /delete-node/ left_stick_x;
-        /delete-node/ left_stick_y;
-        /delete-node/ kill_switch;
-
-        chan_1 {
-            channel = <1>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <1>;
-        };
-        chan_2 {
-            channel = <2>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <2>;
-        };
-        chan_3 {
-            channel = <3>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <3>;
-        };
-        chan_4 {
-            channel = <4>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <4>;
-        };
-        chan_5 {
-            channel = <5>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <5>;
-        };
-        chan_6 {
-            channel = <6>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <6>;
-        };
-        chan_7 {
-            channel = <7>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <7>;
-        };
-        chan_8 {
-            channel = <8>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <8>;
-        };
-        chan_9 {
-            channel = <9>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <9>;
-        };
-        chan_10 {
-            channel = <10>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <10>;
-        };
-        chan_11 {
-            channel = <11>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <11>;
-        };
-        chan_12 {
-            channel = <12>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <12>;
-        };
-        chan_13 {
-            channel = <13>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <13>;
-        };
-        chan_14 {
-            channel = <14>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <14>;
-        };
-        chan_15 {
-            channel = <15>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <15>;
-        };
-        chan_16 {
-            channel = <16>;
-            type = <INPUT_EV_ABS>;
-            zephyr,code = <16>;
-        };
-    };
+	sbus0: sbus {
+		/delete-node/ right_stick_x;
+		/delete-node/ right_stick_y;
+		/delete-node/ left_stick_x;
+		/delete-node/ left_stick_y;
+		/delete-node/ kill_switch;
+		compatible = "futaba,sbus";
+		chan_1 {
+			channel = <1>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <1>;
+		};
+		chan_2 {
+			channel = <2>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <2>;
+		};
+		chan_3 {
+			channel = <3>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <3>;
+		};
+		chan_4 {
+			channel = <4>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <4>;
+		};
+		chan_5 {
+			channel = <5>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <5>;
+		};
+		chan_6 {
+			channel = <6>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <6>;
+		};
+		chan_7 {
+			channel = <7>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <7>;
+		};
+		chan_8 {
+			channel = <8>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <8>;
+		};
+		chan_9 {
+			channel = <9>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <9>;
+		};
+		chan_10 {
+			channel = <10>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <10>;
+		};
+		chan_11 {
+			channel = <11>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <11>;
+		};
+		chan_12 {
+			channel = <12>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <12>;
+		};
+		chan_13 {
+			channel = <13>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <13>;
+		};
+		chan_14 {
+			channel = <14>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <14>;
+		};
+		chan_15 {
+			channel = <15>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <15>;
+		};
+		chan_16 {
+			channel = <16>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <16>;
+		};
+	};
 };

@@ -138,6 +138,7 @@ static int eth_rx_init(struct context* ctx)
 #endif
 
     k_sem_take(&ctx->running, K_FOREVER);
+    LOG_INF("started");
     return ret;
 };
 
@@ -151,6 +152,7 @@ static int eth_rx_fini(struct context* ctx)
     zros_node_fini(&ctx->node);
 
     k_sem_give(&ctx->running);
+    LOG_INF("stopped");
     return ret;
 };
 

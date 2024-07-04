@@ -16,10 +16,6 @@
 
 #include <pb_decode.h>
 
-#include <synapse_tinyframe/SynapseTopics.h>
-#include <synapse_tinyframe/TinyFrame.h>
-#include <synapse_tinyframe/utils.h>
-
 #define MY_STACK_SIZE 8192
 #define MY_PRIORITY 1
 
@@ -29,8 +25,8 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
 struct context {
     struct zros_node node;
+    synapse_msgs_Frame rx_frame;
     struct udp_rx udp;
-    TinyFrame tf;
     struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
@@ -39,47 +35,80 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
+    .rx_frame = synapse_msgs_Frame_init_default,
     .udp = {},
-    .tf = {},
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
     .thread_data = {},
 };
 
-#define TOPIC_LISTENER(CHANNEL, CLASS)                                            \
-    static TF_Result CHANNEL##_listener(TinyFrame* tf, TF_Msg* frame)             \
-    {                                                                             \
-        CLASS msg = CLASS##_init_default;                                         \
-        pb_istream_t stream = pb_istream_from_buffer(frame->data, frame->len);    \
-        int rc = pb_decode(&stream, CLASS##_fields, &msg);                        \
-        if (rc) {                                                                 \
-            zros_topic_publish(&topic_##CHANNEL, &msg);                           \
-            LOG_DBG("%s decoding\n", #CHANNEL);                                   \
-        } else {                                                                  \
-            LOG_WRN("%s decoding failed: %s\n", #CHANNEL, PB_GET_ERROR(&stream)); \
-        }                                                                         \
-        return TF_STAY;                                                           \
+static void handle_frame(struct context* ctx)
+{
+    synapse_msgs_Frame* frame = &ctx->rx_frame;
+    void* msg = NULL;
+    struct zros_topic* topic = NULL;
+
+    // determine topic for data
+    if (frame->which_msg == synapse_msgs_Frame_bezier_trajectory_tag) {
+        msg = &frame->msg.bezier_trajectory;
+        if (frame->topic == synapse_msgs_Topic_TOPIC_BEZIER_TRAJECTORY) {
+            topic = &topic_bezier_trajectory_ethernet;
+        }
+    } else if (frame->which_msg == synapse_msgs_Frame_time_tag) {
+        msg = &frame->msg.time;
+        if (frame->topic == synapse_msgs_Topic_TOPIC_CLOCK_OFFSET) {
+            topic = &topic_clock_offset_ethernet;
+        }
+    } else if (frame->which_msg == synapse_msgs_Frame_input_tag) {
+        msg = &frame->msg.input;
+        if (frame->topic == synapse_msgs_Topic_TOPIC_INPUT) {
+            topic = &topic_input_ethernet;
+        }
+    } else if (frame->which_msg == synapse_msgs_Frame_twist_tag) {
+        msg = &frame->msg.twist;
+        if (frame->topic == synapse_msgs_Topic_TOPIC_CMD_VEL) {
+            topic = &topic_cmd_vel_ethernet;
+        }
+#ifdef CONFIG_CEREBRI_DREAM_HIL
+    } else if (frame->which_msg == synapse_msgs_Frame_battery_state_tag) {
+        msg = &frame->msg.battery_state;
+        if (frame->topic == synapse_msgs_Topic_TOPIC_BATTERY_STATE) {
+            topic = &topic_battery_state;
+        }
+    } else if (frame->which_msg == synapse_msgs_Frame_imutag) {
+        msg = &frame->msg.imu;
+        if (frame->topic == synapse_msgs_Topic_TOPIC_IMU) {
+            topic = &topic_imu;
+        }
+    } else if (frame->which_msg == synapse_msgs_Frame_magnetic_fieldtag) {
+        msg = &frame->msg.magnetic_field;
+        if (frame->topic == synapse_msgs_Topic_TOPIC_MAGNETIC_FIELD) {
+            topic = &topic_magnetic_field;
+        }
+    } else if (frame->which_msg == synapse_msgs_Frame_nav_sat_fixtag) {
+        msg = &frame->msg.nav_sat_fix;
+        if (frame->topic == synapse_msgs_Topic_TOPIC_NAV_SAT_FIX) {
+            zros_topic_publish(&topic_nav_sat_fix, msg);
+        }
+    } else if (frame->which_msg == synapse_msgs_Frame_wheel_odometrytag) {
+        msg = &frame->msg.wheel_odometry;
+        if (frame->topic == synapse_msgs_Topic_TOPIC_WHEEL_ODOMETRY) {
+            topic = &topic_wheel_odometry;
+        }
+#endif
     }
 
-// topic listeners
-TOPIC_LISTENER(bezier_trajectory_ethernet, synapse_msgs_BezierTrajectory)
-TOPIC_LISTENER(clock_offset_ethernet, synapse_msgs_Time)
-TOPIC_LISTENER(cmd_vel_ethernet, synapse_msgs_Twist)
-TOPIC_LISTENER(input_ethernet, synapse_msgs_Input)
-#ifdef CONFIG_CEREBRI_DREAM_HIL
-TOPIC_LISTENER(battery_state, synapse_msgs_BatteryState)
-TOPIC_LISTENER(imu, synapse_msgs_Imu)
-TOPIC_LISTENER(magnetic_field, synapse_msgs_MagneticField)
-TOPIC_LISTENER(nav_sat_fix, synapse_msgs_NavSatFix)
-TOPIC_LISTENER(wheel_odometry, synapse_msgs_WheelOdometry)
-#endif
-
-static TF_Result genericListener(TinyFrame* tf, TF_Msg* msg)
-{
-    LOG_WRN("unhandled tinyframe type: %4d", msg->type);
-    // dumpFrameInfo(msg);
-    return TF_STAY;
+    if (msg == NULL) {
+        LOG_ERR("unhandled message: %d", frame->which_msg);
+    } else if (topic == NULL) {
+        LOG_ERR("unhandled topic: %d", frame->topic);
+    } else {
+        int ret = zros_topic_publish(topic, msg);
+        if (ret != 0) {
+            LOG_ERR("failed to publish topic: %d msg: %d", frame->topic, frame->which_msg);
+        }
+    }
 }
 
 static int eth_rx_init(struct context* ctx)
@@ -94,48 +123,6 @@ static int eth_rx_init(struct context* ctx)
         LOG_ERR("udp rx init failed: %d", ret);
         return ret;
     }
-
-    // initialize tinyframe
-    ret = TF_InitStatic(&ctx->tf, TF_MASTER, NULL);
-    if (ret < 0) {
-        LOG_ERR("tf init failed: %d", ret);
-        return ret;
-    }
-    ctx->tf.userdata = ctx;
-
-    // add tinyframe listeners
-    ret = TF_AddGenericListener(&ctx->tf, genericListener);
-    if (ret < 0)
-        return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_BEZIER_TRAJECTORY_TOPIC, bezier_trajectory_ethernet_listener);
-    if (ret < 0)
-        return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CMD_VEL_TOPIC, cmd_vel_ethernet_listener);
-    if (ret < 0)
-        return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_INPUT_TOPIC, input_ethernet_listener);
-    if (ret < 0)
-        return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_CLOCK_OFFSET_TOPIC, clock_offset_ethernet_listener);
-    if (ret < 0)
-        return ret;
-#ifdef CONFIG_CEREBRI_DREAM_HIL
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_BATTERY_STATE_TOPIC, battery_state_listener);
-    if (ret < 0)
-        return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_IMU_TOPIC, imu_listener);
-    if (ret < 0)
-        return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_MAGNETIC_FIELD_TOPIC, magnetic_field_listener);
-    if (ret < 0)
-        return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_NAV_SAT_FIX_TOPIC, nav_sat_fix_listener);
-    if (ret < 0)
-        return ret;
-    ret = TF_AddTypeListener(&ctx->tf, SYNAPSE_WHEEL_ODOMETRY_TOPIC, wheel_odometry_listener);
-    if (ret < 0)
-        return ret;
-#endif
 
     k_sem_take(&ctx->running, K_FOREVER);
     return ret;
@@ -169,6 +156,7 @@ static void eth_rx_run(void* p0, void* p1, void* p2)
     }
 
     LOG_INF("running");
+    pb_istream_t stream;
 
     // while running
     while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
@@ -177,11 +165,15 @@ static void eth_rx_run(void* p0, void* p1, void* p2)
         if (received < 0) {
             LOG_ERR("connection error: %d", errno);
         } else if (received > 0) {
-            TF_Accept(&ctx->tf, ctx->udp.rx_buf, received);
+            stream = pb_istream_from_buffer(ctx->udp.rx_buf, received);
+            while (stream.bytes_left > 0) {
+                if (!pb_decode_ex(&stream, synapse_msgs_Frame_fields, &ctx->rx_frame, PB_DECODE_DELIMITED)) {
+                    LOG_ERR("failed to decode msg: %s\n", PB_GET_ERROR(&stream));
+                } else {
+                    handle_frame(ctx);
+                }
+            }
         }
-
-        // tell tinyframe time has passed
-        TF_Tick(&ctx->tf);
     }
 
     // deconstructor

@@ -214,7 +214,6 @@ static int topic_echo(const struct shell* sh, struct zros_topic* topic, void* ms
                 zros_sub_update(&sub);
                 echo(buf, sizeof(buf), msg);
                 shell_print(sh, "%s", buf);
-                memset(buf, 0, sizeof(buf));
             }
         }
     }

@@ -18,32 +18,11 @@
 
 #include <synapse_topic_list.h>
 
-#include <synapse_tinyframe/SynapseTopics.h>
-#include <synapse_tinyframe/TinyFrame.h>
-#include <synapse_tinyframe/utils.h>
-
 #define MY_STACK_SIZE 8192
 #define MY_PRIORITY 1
+#define TX_BUF_SIZE 8192
 
 LOG_MODULE_REGISTER(eth_tx, LOG_LEVEL_DBG);
-
-#define TOPIC_PUBLISHER(DATA, CLASS, TOPIC)                                   \
-    {                                                                         \
-        TF_Msg msg;                                                           \
-        TF_ClearMsg(&msg);                                                    \
-        uint8_t buf[CLASS##_size];                                            \
-        memset(buf, 0, CLASS##_size);                                         \
-        pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));  \
-        int rc = pb_encode(&stream, CLASS##_fields, DATA);                    \
-        if (rc) {                                                             \
-            msg.type = TOPIC;                                                 \
-            msg.data = buf;                                                   \
-            msg.len = stream.bytes_written;                                   \
-            TF_Send(&ctx->tf, &msg);                                          \
-        } else {                                                              \
-            printf("%s encoding failed: %s\n", #DATA, PB_GET_ERROR(&stream)); \
-        }                                                                     \
-    }
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
@@ -57,14 +36,13 @@ struct context {
         sub_nav_sat_fix,
         sub_status;
     // topic data
+    synapse_msgs_Frame tx_frame;
     synapse_msgs_Actuators actuators;
     synapse_msgs_NavSatFix nav_sat_fix;
     synapse_msgs_Odometry odometry_estimator;
     synapse_msgs_Status status;
     // connections
     struct udp_tx udp;
-    // tinyframe
-    TinyFrame tf;
     // status
     struct k_sem running;
     size_t stack_size;
@@ -87,32 +65,36 @@ static struct context g_ctx = {
     .thread_data = {},
 };
 
-static void tf_write(TinyFrame* tf, const uint8_t* buf, uint32_t len)
+static void send_frame(struct context* ctx, synapse_msgs_Topic topic)
 {
-    struct context* ctx = tf->userdata;
-    udp_tx_send(&ctx->udp, buf, len);
-}
-
-static void send_uptime(struct context* ctx)
-{
-    TF_Msg msg;
-    TF_ClearMsg(&msg);
-    uint8_t buf[synapse_msgs_Time_size];
-    pb_ostream_t stream = pb_ostream_from_buffer((pu8)buf, sizeof(buf));
-    int64_t ticks = k_uptime_ticks();
-    int64_t sec = ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-    int32_t nanosec = (ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-    synapse_msgs_Time message;
-    message.sec = sec;
-    message.nanosec = nanosec;
-    int rc = pb_encode(&stream, synapse_msgs_Time_fields, &message);
-    if (rc) {
-        msg.type = SYNAPSE_UPTIME_TOPIC;
-        msg.data = buf;
-        msg.len = stream.bytes_written;
-        TF_Send(&ctx->tf, &msg);
+    synapse_msgs_Frame* frame = &ctx->tx_frame;
+    frame->topic = topic;
+    if (topic == synapse_msgs_Topic_TOPIC_ACTUATORS) {
+        frame->msg.actuators = ctx->actuators;
+        frame->which_msg = synapse_msgs_Frame_actuators_tag;
+    } else if (topic == synapse_msgs_Topic_TOPIC_NAV_SAT_FIX) {
+        frame->msg.nav_sat_fix = ctx->nav_sat_fix;
+        frame->which_msg = synapse_msgs_Frame_nav_sat_fix_tag;
+    } else if (topic == synapse_msgs_Topic_TOPIC_ODOMETRY) {
+        frame->msg.odometry = ctx->odometry_estimator;
+        frame->which_msg = synapse_msgs_Frame_odometry_tag;
+    } else if (topic == synapse_msgs_Topic_TOPIC_STATUS) {
+        frame->msg.status = ctx->status;
+        frame->which_msg = synapse_msgs_Frame_status_tag;
+    } else if (topic == synapse_msgs_Topic_TOPIC_UPTIME) {
+        int64_t ticks = k_uptime_ticks();
+        int64_t sec = ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        int32_t nanosec = (ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
+        frame->msg.time.sec = sec;
+        frame->msg.time.nanosec = nanosec;
+        frame->which_msg = synapse_msgs_Frame_time_tag;
+    }
+    static uint8_t tx_buf[TX_BUF_SIZE];
+    pb_ostream_t stream = pb_ostream_from_buffer(tx_buf, sizeof(tx_buf));
+    if (!pb_encode_ex(&stream, synapse_msgs_Frame_fields, frame, PB_ENCODE_DELIMITED)) {
+        LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
     } else {
-        printf("uptime encoding failed: %s\n", PB_GET_ERROR(&stream));
+        udp_tx_send(&ctx->udp, tx_buf, stream.bytes_written);
     }
 }
 
@@ -150,14 +132,6 @@ static int eth_tx_init(struct context* ctx)
         LOG_ERR("udp init failed: %d", ret);
         return ret;
     }
-
-    // setup tinyframe
-    ret = TF_InitStatic(&ctx->tf, TF_MASTER, tf_write);
-    if (ret < 0) {
-        LOG_ERR("tf init failed: %d", ret);
-        return ret;
-    }
-    ctx->tf.userdata = ctx;
 
     k_sem_take(&ctx->running, K_FOREVER);
     return ret;
@@ -203,6 +177,7 @@ static void eth_tx_run(void* p0, void* p1, void* p2)
         int64_t now = k_uptime_ticks();
 
         struct k_poll_event events[] = {
+            *zros_sub_get_event(&ctx->sub_actuators),
             *zros_sub_get_event(&ctx->sub_status),
             *zros_sub_get_event(&ctx->sub_odometry_estimator),
             *zros_sub_get_event(&ctx->sub_nav_sat_fix),
@@ -214,28 +189,30 @@ static void eth_tx_run(void* p0, void* p1, void* p2)
             LOG_DBG("poll timeout");
         }
 
+        if (zros_sub_update_available(&ctx->sub_actuators)) {
+            zros_sub_update(&ctx->sub_actuators);
+            send_frame(ctx, synapse_msgs_Topic_TOPIC_ACTUATORS);
+        }
+
         if (zros_sub_update_available(&ctx->sub_nav_sat_fix)) {
             zros_sub_update(&ctx->sub_nav_sat_fix);
-            TOPIC_PUBLISHER(&ctx->nav_sat_fix, synapse_msgs_NavSatFix, SYNAPSE_NAV_SAT_FIX_TOPIC);
+            send_frame(ctx, synapse_msgs_Topic_TOPIC_NAV_SAT_FIX);
         }
 
         if (zros_sub_update_available(&ctx->sub_status)) {
             zros_sub_update(&ctx->sub_status);
-            TOPIC_PUBLISHER(&ctx->status, synapse_msgs_Status, SYNAPSE_STATUS_TOPIC);
+            send_frame(ctx, synapse_msgs_Topic_TOPIC_STATUS);
         }
 
         if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
             zros_sub_update(&ctx->sub_odometry_estimator);
-            TOPIC_PUBLISHER(&ctx->odometry_estimator, synapse_msgs_Odometry, SYNAPSE_ODOMETRY_TOPIC);
+            send_frame(ctx, synapse_msgs_Topic_TOPIC_ODOMETRY);
         }
 
         if (now - ticks_last_uptime > CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
-            send_uptime(ctx);
+            send_frame(ctx, synapse_msgs_Topic_TOPIC_UPTIME);
             ticks_last_uptime = now;
         }
-
-        // tell tinyframe time has passed
-        TF_Tick(&ctx->tf);
     }
 
     // deconstructor

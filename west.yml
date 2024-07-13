@@ -40,7 +40,7 @@ manifest:
       path: modules/lib/cyecca
     - name: synapse_protobuf
       remote: cognipilot
-      revision: 849ab6d14f54c8ade1753c0fd44eec8e2d5045c8 # pr-frame 7/13/24
+      revision: 09a6546113d5d09c6fb27d6c2f8fe19a4ee718b6 # main 7/13/24
       path: modules/lib/synapse_protobuf
     - name: ubxlib
       remote: cognipilot

@@ -26,7 +26,7 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 struct context {
     struct zros_node node;
     struct zros_pub pub_input;
-    synapse_msgs_Input input;
+    synapse_pb_Input input;
     struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;

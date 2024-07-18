@@ -8,7 +8,7 @@
 
 #include <synapse_topic_list.h>
 
-void b3rb_set_actuators(synapse_msgs_Actuators* msg, double turn_angle, double omega_fwd, bool armed);
+void b3rb_set_actuators(synapse_pb_Actuators* msg, double turn_angle, double omega_fwd, bool armed);
 
 #endif // CEREBRI_B3RB_MIXING_H
 /* vi: ts=4 sw=4 et */

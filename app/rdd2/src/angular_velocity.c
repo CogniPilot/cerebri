@@ -29,9 +29,9 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Status status;
-    synapse_msgs_Vector3 angular_velocity_sp, moment_sp, moment_ff;
-    synapse_msgs_Odometry odometry_estimator;
+    synapse_pb_Status status;
+    synapse_pb_Vector3 angular_velocity_sp, moment_sp, moment_ff;
+    synapse_pb_Odometry odometry_estimator;
     struct zros_sub sub_status, sub_angular_velocity_sp, sub_odometry_estimator, sub_moment_ff;
     struct zros_pub pub_moment_sp;
     struct k_sem running;
@@ -42,10 +42,10 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
-    .status = synapse_msgs_Status_init_default,
-    .moment_sp = synapse_msgs_Vector3_init_default,
-    .angular_velocity_sp = synapse_msgs_Vector3_init_default,
-    .moment_ff = synapse_msgs_Vector3_init_default,
+    .status = synapse_pb_Status_init_default,
+    .moment_sp = synapse_pb_Vector3_init_default,
+    .angular_velocity_sp = synapse_pb_Vector3_init_default,
+    .moment_ff = synapse_pb_Vector3_init_default,
     .sub_status = {},
     .sub_angular_velocity_sp = {},
     .sub_odometry_estimator = {},

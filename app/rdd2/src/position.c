@@ -36,10 +36,10 @@ static const double thrust_trim = CONFIG_CEREBRI_RDD2_THRUST_TRIM * 1e-3;
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Status status;
-    synapse_msgs_Odometry odometry_estimator;
-    synapse_msgs_Vector3 force_sp, position_sp, velocity_sp, accel_ff;
-    synapse_msgs_Quaternion attitude_sp, orientation_sp;
+    synapse_pb_Status status;
+    synapse_pb_Odometry odometry_estimator;
+    synapse_pb_Vector3 force_sp, position_sp, velocity_sp, accel_ff;
+    synapse_pb_Quaternion attitude_sp, orientation_sp;
     struct zros_sub sub_status,
         sub_position_sp, sub_velocity_sp, sub_accel_ff, sub_odometry_estimator,
         sub_orientation_sp;
@@ -51,14 +51,14 @@ struct context {
 };
 
 static struct context g_ctx = {
-    .status = synapse_msgs_Status_init_default,
-    .force_sp = synapse_msgs_Vector3_init_default,
-    .odometry_estimator = synapse_msgs_Odometry_init_default,
-    .attitude_sp = synapse_msgs_Quaternion_init_default,
-    .orientation_sp = synapse_msgs_Quaternion_init_default,
-    .position_sp = synapse_msgs_Vector3_init_default,
-    .velocity_sp = synapse_msgs_Vector3_init_default,
-    .accel_ff = synapse_msgs_Vector3_init_default,
+    .status = synapse_pb_Status_init_default,
+    .force_sp = synapse_pb_Vector3_init_default,
+    .odometry_estimator = synapse_pb_Odometry_init_default,
+    .attitude_sp = synapse_pb_Quaternion_init_default,
+    .orientation_sp = synapse_pb_Quaternion_init_default,
+    .position_sp = synapse_pb_Vector3_init_default,
+    .velocity_sp = synapse_pb_Vector3_init_default,
+    .accel_ff = synapse_pb_Vector3_init_default,
     .sub_status = {},
     .sub_position_sp = {},
     .sub_velocity_sp = {},
@@ -160,7 +160,7 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
             continue;
         }
 
-        if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_POSITION || ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY || ctx->status.mode == synapse_msgs_Status_Mode_MODE_ACCELERATION || ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
+        if (ctx->status.mode == synapse_pb_Status_Mode_MODE_POSITION || ctx->status.mode == synapse_pb_Status_Mode_MODE_VELOCITY || ctx->status.mode == synapse_pb_Status_Mode_MODE_ACCELERATION || ctx->status.mode == synapse_pb_Status_Mode_MODE_BEZIER) {
 
             double p_w[3] = {
                 ctx->odometry_estimator.pose.pose.position.x,

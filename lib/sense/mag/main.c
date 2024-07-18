@@ -28,7 +28,7 @@ typedef struct context {
     const struct device* device[CONFIG_CEREBRI_SENSE_MAG_COUNT];
     struct zros_node node;
     struct zros_pub pub;
-    synapse_msgs_MagneticField data;
+    synapse_pb_MagneticField data;
 } context_t;
 
 static context_t g_ctx = {
@@ -42,9 +42,9 @@ static context_t g_ctx = {
             .frame_id = "base_link",
             .has_stamp = true,
             .seq = 0,
-            .stamp = synapse_msgs_Time_init_default,
+            .stamp = synapse_pb_Time_init_default,
         },
-        .magnetic_field = synapse_msgs_Vector3_init_default,
+        .magnetic_field = synapse_pb_Vector3_init_default,
         .has_magnetic_field = true,
         .magnetic_field_covariance = {},
         .magnetic_field_covariance_count = 0,

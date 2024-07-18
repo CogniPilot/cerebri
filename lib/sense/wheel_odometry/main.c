@@ -13,7 +13,7 @@
 #include <zros/zros_node.h>
 #include <zros/zros_pub.h>
 
-#include <synapse_protobuf/wheel_odometry.pb.h>
+#include <synapse_pb/wheel_odometry.pb.h>
 #include <synapse_topic_list.h>
 
 LOG_MODULE_REGISTER(sense_wheel_odometry, CONFIG_CEREBRI_SENSE_WHEEL_ODOMETRY_LOG_LEVEL);
@@ -32,7 +32,7 @@ typedef struct context {
     const struct device* device[N_SENSORS];
     struct zros_node node;
     struct zros_pub pub;
-    synapse_msgs_WheelOdometry data;
+    synapse_pb_WheelOdometry data;
 } context_t;
 
 static context_t g_ctx = {
@@ -46,7 +46,7 @@ static context_t g_ctx = {
             .frame_id = "base_link",
             .has_stamp = true,
             .seq = 0,
-            .stamp = synapse_msgs_Time_init_default,
+            .stamp = synapse_pb_Time_init_default,
         },
         .rotation = 0,
     }

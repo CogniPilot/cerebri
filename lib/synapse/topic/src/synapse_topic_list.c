@@ -17,7 +17,7 @@
 //*******************************************************************
 static const char* unhandled = "UNHANDLED";
 
-void stamp_header(synapse_msgs_Header* hdr, int64_t ticks)
+void stamp_header(synapse_pb_Header* hdr, int64_t ticks)
 {
     int64_t sec = ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
     int32_t nanosec = (ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
@@ -26,149 +26,149 @@ void stamp_header(synapse_msgs_Header* hdr, int64_t ticks)
     hdr->stamp.nanosec = nanosec;
 }
 
-const char* input_source_str(synapse_msgs_Status_InputSource src)
+const char* input_source_str(synapse_pb_Status_InputSource src)
 {
-    if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_UNKNOWN) {
+    if (src == synapse_pb_Status_InputSource_INPUT_SOURCE_UNKNOWN) {
         return "unknown";
-    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL) {
+    } else if (src == synapse_pb_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL) {
         return "radio_control";
-    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_ETHERNET) {
+    } else if (src == synapse_pb_Status_InputSource_INPUT_SOURCE_ETHERNET) {
         return "ethernet";
-    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_CAN) {
+    } else if (src == synapse_pb_Status_InputSource_INPUT_SOURCE_CAN) {
         return "can";
-    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_RESERVED_0) {
+    } else if (src == synapse_pb_Status_InputSource_INPUT_SOURCE_RESERVED_0) {
         return "reserved 0";
-    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_RESERVED_1) {
+    } else if (src == synapse_pb_Status_InputSource_INPUT_SOURCE_RESERVED_1) {
         return "reserved 1";
-    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_RESERVED_2) {
+    } else if (src == synapse_pb_Status_InputSource_INPUT_SOURCE_RESERVED_2) {
         return "reserved 2";
-    } else if (src == synapse_msgs_Status_InputSource_INPUT_SOURCE_RESERVED_3) {
+    } else if (src == synapse_pb_Status_InputSource_INPUT_SOURCE_RESERVED_3) {
         return "reserved 3";
     }
     return unhandled;
 }
 
-const char* topic_source_str(synapse_msgs_Status_TopicSource src)
+const char* topic_source_str(synapse_pb_Status_TopicSource src)
 {
-    if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_UNKNOWN) {
+    if (src == synapse_pb_Status_TopicSource_TOPIC_SOURCE_UNKNOWN) {
         return "unknown";
-    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT) {
+    } else if (src == synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT) {
         return "input";
-    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_LOCAL) {
+    } else if (src == synapse_pb_Status_TopicSource_TOPIC_SOURCE_LOCAL) {
         return "local";
-    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
+    } else if (src == synapse_pb_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
         return "ethernet";
-    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_CAN) {
+    } else if (src == synapse_pb_Status_TopicSource_TOPIC_SOURCE_CAN) {
         return "can";
-    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_RESERVED_0) {
+    } else if (src == synapse_pb_Status_TopicSource_TOPIC_SOURCE_RESERVED_0) {
         return "reserved 0";
-    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_RESERVED_1) {
+    } else if (src == synapse_pb_Status_TopicSource_TOPIC_SOURCE_RESERVED_1) {
         return "reserved 1";
-    } else if (src == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_RESERVED_2) {
+    } else if (src == synapse_pb_Status_TopicSource_TOPIC_SOURCE_RESERVED_2) {
         return "reserved 2";
     }
     return unhandled;
 }
 
-const char* mode_str(synapse_msgs_Status_Mode mode)
+const char* mode_str(synapse_pb_Status_Mode mode)
 {
-    if (mode == synapse_msgs_Status_Mode_MODE_UNKNOWN) {
+    if (mode == synapse_pb_Status_Mode_MODE_UNKNOWN) {
         return "unknown";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_CALIBRATION) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_CALIBRATION) {
         return "calibration";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_ACTUATORS) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_ACTUATORS) {
         return "manual";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_ATTITUDE_RATE) {
         return "attitude rate";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_ATTITUDE) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_ATTITUDE) {
         return "attitude";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_ALTITUDE) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_ALTITUDE) {
         return "altitude";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_POSITION) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_POSITION) {
         return "position";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_VELOCITY) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_VELOCITY) {
         return "velocity";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_ACCELERATION) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_ACCELERATION) {
         return "acceleration";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_BEZIER) {
         return "bezier";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_0) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_RESERVED_0) {
         return "reserved 0";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_1) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_RESERVED_1) {
         return "reserved 1";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_2) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_RESERVED_2) {
         return "reserved 2";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_3) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_RESERVED_3) {
         return "reserved 3";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_4) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_RESERVED_4) {
         return "reserved 4";
-    } else if (mode == synapse_msgs_Status_Mode_MODE_RESERVED_5) {
+    } else if (mode == synapse_pb_Status_Mode_MODE_RESERVED_5) {
         return "reserved 5";
     }
     return unhandled;
 }
 
-const char* armed_str(synapse_msgs_Status_Arming arming)
+const char* armed_str(synapse_pb_Status_Arming arming)
 {
-    if (arming == synapse_msgs_Status_Arming_ARMING_UNKNOWN) {
+    if (arming == synapse_pb_Status_Arming_ARMING_UNKNOWN) {
         return "unknown";
-    } else if (arming == synapse_msgs_Status_Arming_ARMING_ARMED) {
+    } else if (arming == synapse_pb_Status_Arming_ARMING_ARMED) {
         return "armed";
-    } else if (arming == synapse_msgs_Status_Arming_ARMING_DISARMED) {
+    } else if (arming == synapse_pb_Status_Arming_ARMING_DISARMED) {
         return "disarmed";
     }
     return unhandled;
 }
 
-const char* safety_str(synapse_msgs_Safety_Status safety)
+const char* safety_str(synapse_pb_Safety_Status safety)
 {
-    if (safety == synapse_msgs_Safety_Status_SAFETY_UNKNOWN) {
+    if (safety == synapse_pb_Safety_Status_SAFETY_UNKNOWN) {
         return "unknown";
-    } else if (safety == synapse_msgs_Safety_Status_SAFETY_SAFE) {
+    } else if (safety == synapse_pb_Safety_Status_SAFETY_SAFE) {
         return "safe";
-    } else if (safety == synapse_msgs_Safety_Status_SAFETY_UNSAFE) {
+    } else if (safety == synapse_pb_Safety_Status_SAFETY_UNSAFE) {
         return "unsafe";
     }
     return unhandled;
 }
 
-const char* status_safety_str(synapse_msgs_Status_Safety safety)
+const char* status_safety_str(synapse_pb_Status_Safety safety)
 {
-    if (safety == synapse_msgs_Status_Safety_SAFETY_UNKNOWN) {
+    if (safety == synapse_pb_Status_Safety_SAFETY_UNKNOWN) {
         return "unknown";
-    } else if (safety == synapse_msgs_Status_Safety_SAFETY_SAFE) {
+    } else if (safety == synapse_pb_Status_Safety_SAFETY_SAFE) {
         return "safe";
-    } else if (safety == synapse_msgs_Status_Safety_SAFETY_UNSAFE) {
+    } else if (safety == synapse_pb_Status_Safety_SAFETY_UNSAFE) {
         return "unsafe";
     }
     return unhandled;
 }
 
-const char* link_status_str(synapse_msgs_Status_LinkStatus status)
+const char* link_status_str(synapse_pb_Status_LinkStatus status)
 {
-    if (status == synapse_msgs_Status_LinkStatus_STATUS_UNKNOWN) {
+    if (status == synapse_pb_Status_LinkStatus_STATUS_UNKNOWN) {
         return "unknown";
-    } else if (status == synapse_msgs_Status_LinkStatus_STATUS_NOMINAL) {
+    } else if (status == synapse_pb_Status_LinkStatus_STATUS_NOMINAL) {
         return "nominal";
-    } else if (status == synapse_msgs_Status_LinkStatus_STATUS_DISABLED) {
+    } else if (status == synapse_pb_Status_LinkStatus_STATUS_DISABLED) {
         return "disabled";
-    } else if (status == synapse_msgs_Status_LinkStatus_STATUS_LOSS) {
+    } else if (status == synapse_pb_Status_LinkStatus_STATUS_LOSS) {
         return "loss";
     }
     return unhandled;
 }
 
-const char* fuel_str(synapse_msgs_Status_Fuel fuel)
+const char* fuel_str(synapse_pb_Status_Fuel fuel)
 {
-    if (fuel == synapse_msgs_Status_Fuel_FUEL_UNKNOWN) {
+    if (fuel == synapse_pb_Status_Fuel_FUEL_UNKNOWN) {
         return "unknown";
-    } else if (fuel == synapse_msgs_Status_Fuel_FUEL_CRITICAL) {
+    } else if (fuel == synapse_pb_Status_Fuel_FUEL_CRITICAL) {
         return "critical";
-    } else if (fuel == synapse_msgs_Status_Fuel_FUEL_LOW) {
+    } else if (fuel == synapse_pb_Status_Fuel_FUEL_LOW) {
         return "low";
-    } else if (fuel == synapse_msgs_Status_Fuel_FUEL_NOMINAL) {
+    } else if (fuel == synapse_pb_Status_Fuel_FUEL_NOMINAL) {
         return "nominal";
-    } else if (fuel == synapse_msgs_Status_Fuel_FUEL_OVER_CAPACITY) {
+    } else if (fuel == synapse_pb_Status_Fuel_FUEL_OVER_CAPACITY) {
         return "over capacity";
     }
     return unhandled;
@@ -177,38 +177,38 @@ const char* fuel_str(synapse_msgs_Status_Fuel fuel)
 /********************************************************************
  * topics
  ********************************************************************/
-ZROS_TOPIC_DEFINE(accel_ff, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(accel_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(actuators, synapse_msgs_Actuators);
-ZROS_TOPIC_DEFINE(altimeter, synapse_msgs_Altimeter);
-ZROS_TOPIC_DEFINE(angular_velocity_ff, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(angular_velocity_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(attitude_sp, synapse_msgs_Quaternion);
-ZROS_TOPIC_DEFINE(battery_state, synapse_msgs_BatteryState);
-ZROS_TOPIC_DEFINE(bezier_trajectory, synapse_msgs_BezierTrajectory);
-ZROS_TOPIC_DEFINE(bezier_trajectory_ethernet, synapse_msgs_BezierTrajectory);
-ZROS_TOPIC_DEFINE(clock_offset_ethernet, synapse_msgs_Time);
-ZROS_TOPIC_DEFINE(cmd_vel, synapse_msgs_Twist);
-ZROS_TOPIC_DEFINE(cmd_vel_ethernet, synapse_msgs_Twist);
-ZROS_TOPIC_DEFINE(force_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(imu, synapse_msgs_Imu);
-ZROS_TOPIC_DEFINE(input, synapse_msgs_Input);
-ZROS_TOPIC_DEFINE(input_ethernet, synapse_msgs_Input);
-ZROS_TOPIC_DEFINE(input_sbus, synapse_msgs_Input);
-ZROS_TOPIC_DEFINE(led_array, synapse_msgs_LEDArray);
-ZROS_TOPIC_DEFINE(magnetic_field, synapse_msgs_MagneticField);
-ZROS_TOPIC_DEFINE(moment_ff, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(moment_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(nav_sat_fix, synapse_msgs_NavSatFix);
-ZROS_TOPIC_DEFINE(odometry_estimator, synapse_msgs_Odometry);
-ZROS_TOPIC_DEFINE(odometry_ethernet, synapse_msgs_Odometry);
-ZROS_TOPIC_DEFINE(orientation_sp, synapse_msgs_Quaternion);
-ZROS_TOPIC_DEFINE(position_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(pwm, synapse_msgs_Pwm);
-ZROS_TOPIC_DEFINE(safety, synapse_msgs_Safety);
-ZROS_TOPIC_DEFINE(status, synapse_msgs_Status);
-ZROS_TOPIC_DEFINE(velocity_sp, synapse_msgs_Vector3);
-ZROS_TOPIC_DEFINE(wheel_odometry, synapse_msgs_WheelOdometry);
+ZROS_TOPIC_DEFINE(accel_ff, synapse_pb_Vector3);
+ZROS_TOPIC_DEFINE(accel_sp, synapse_pb_Vector3);
+ZROS_TOPIC_DEFINE(actuators, synapse_pb_Actuators);
+ZROS_TOPIC_DEFINE(altimeter, synapse_pb_Altimeter);
+ZROS_TOPIC_DEFINE(angular_velocity_ff, synapse_pb_Vector3);
+ZROS_TOPIC_DEFINE(angular_velocity_sp, synapse_pb_Vector3);
+ZROS_TOPIC_DEFINE(attitude_sp, synapse_pb_Quaternion);
+ZROS_TOPIC_DEFINE(battery_state, synapse_pb_BatteryState);
+ZROS_TOPIC_DEFINE(bezier_trajectory, synapse_pb_BezierTrajectory);
+ZROS_TOPIC_DEFINE(bezier_trajectory_ethernet, synapse_pb_BezierTrajectory);
+ZROS_TOPIC_DEFINE(clock_offset_ethernet, synapse_pb_Time);
+ZROS_TOPIC_DEFINE(cmd_vel, synapse_pb_Twist);
+ZROS_TOPIC_DEFINE(cmd_vel_ethernet, synapse_pb_Twist);
+ZROS_TOPIC_DEFINE(force_sp, synapse_pb_Vector3);
+ZROS_TOPIC_DEFINE(imu, synapse_pb_Imu);
+ZROS_TOPIC_DEFINE(input, synapse_pb_Input);
+ZROS_TOPIC_DEFINE(input_ethernet, synapse_pb_Input);
+ZROS_TOPIC_DEFINE(input_sbus, synapse_pb_Input);
+ZROS_TOPIC_DEFINE(led_array, synapse_pb_LEDArray);
+ZROS_TOPIC_DEFINE(magnetic_field, synapse_pb_MagneticField);
+ZROS_TOPIC_DEFINE(moment_ff, synapse_pb_Vector3);
+ZROS_TOPIC_DEFINE(moment_sp, synapse_pb_Vector3);
+ZROS_TOPIC_DEFINE(nav_sat_fix, synapse_pb_NavSatFix);
+ZROS_TOPIC_DEFINE(odometry_estimator, synapse_pb_Odometry);
+ZROS_TOPIC_DEFINE(odometry_ethernet, synapse_pb_Odometry);
+ZROS_TOPIC_DEFINE(orientation_sp, synapse_pb_Quaternion);
+ZROS_TOPIC_DEFINE(position_sp, synapse_pb_Vector3);
+ZROS_TOPIC_DEFINE(pwm, synapse_pb_Pwm);
+ZROS_TOPIC_DEFINE(safety, synapse_pb_Safety);
+ZROS_TOPIC_DEFINE(status, synapse_pb_Status);
+ZROS_TOPIC_DEFINE(velocity_sp, synapse_pb_Vector3);
+ZROS_TOPIC_DEFINE(wheel_odometry, synapse_pb_WheelOdometry);
 
 static struct zros_topic* topic_list[] = {
     &topic_accel_ff,

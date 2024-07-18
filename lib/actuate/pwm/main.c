@@ -31,9 +31,9 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 extern actuator_pwm_t g_actuator_pwms[];
 
 struct context {
-    synapse_msgs_Actuators actuators;
-    synapse_msgs_Status status;
-    synapse_msgs_Pwm pwm;
+    synapse_pb_Actuators actuators;
+    synapse_pb_Status status;
+    synapse_pb_Pwm pwm;
     struct zros_node node;
     struct zros_sub sub_actuators, sub_status;
     struct zros_pub pub_pwm;
@@ -45,8 +45,8 @@ struct context {
 };
 
 static struct context g_ctx = {
-    .actuators = synapse_msgs_Actuators_init_default,
-    .status = synapse_msgs_Status_init_default,
+    .actuators = synapse_pb_Actuators_init_default,
+    .status = synapse_pb_Status_init_default,
     .pwm = {
         .channel = {},
         .channel_count = CONFIG_CEREBRI_ACTUATE_PWM_NUMBER,
@@ -94,9 +94,9 @@ static void actuate_pwm_fini(struct context* ctx)
     k_sem_give(&ctx->running);
 }
 
-static void pwm_update(const synapse_msgs_Status* status, const synapse_msgs_Actuators* actuators)
+static void pwm_update(const synapse_pb_Status* status, const synapse_pb_Actuators* actuators)
 {
-    bool armed = status->arming == synapse_msgs_Status_Arming_ARMING_ARMED;
+    bool armed = status->arming == synapse_pb_Status_Arming_ARMING_ARMED;
     int err = 0;
 
     for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
@@ -184,8 +184,8 @@ static void actuate_pwm_run(void* p0, void* p1, void* p2)
         if (rc != 0) {
             LOG_DBG("no actuator message received");
             // put motors in disarmed state
-            if (ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED) {
-                ctx->status.arming = synapse_msgs_Status_Arming_ARMING_DISARMED;
+            if (ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) {
+                ctx->status.arming = synapse_pb_Status_Arming_ARMING_DISARMED;
                 LOG_ERR("disarming motors due to actuator msg timeout!");
             }
         }

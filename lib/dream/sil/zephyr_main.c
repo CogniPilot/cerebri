@@ -13,7 +13,7 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 
-#include <synapse_protobuf/sim_clock.pb.h>
+#include <synapse_pb/sim_clock.pb.h>
 
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_sub_struct.h>
@@ -38,12 +38,12 @@ pthread_mutex_t g_lock_rx;
 struct context {
     int sock;
     pthread_t thread;
-    synapse_msgs_Frame tx_frame, rx_frame;
+    synapse_pb_Frame tx_frame, rx_frame;
     bool clock_initialized;
-    synapse_msgs_SimClock sim_clock;
-    synapse_msgs_Time clock_offset_ethernet;
-    synapse_msgs_Actuators actuators;
-    synapse_msgs_LEDArray led_array;
+    synapse_pb_SimClock sim_clock;
+    synapse_pb_Time clock_offset_ethernet;
+    synapse_pb_Actuators actuators;
+    synapse_pb_LEDArray led_array;
     uint64_t uptime_last;
 };
 
@@ -70,33 +70,33 @@ int read_sim(uint8_t* buf, uint32_t len)
 struct context g_ctx = {
     .sock = -1,
     .thread = 0,
-    .tx_frame = synapse_msgs_Frame_init_default,
-    .rx_frame = synapse_msgs_Frame_init_default,
+    .tx_frame = synapse_pb_Frame_init_default,
+    .rx_frame = synapse_pb_Frame_init_default,
     .clock_initialized = false,
-    .sim_clock = synapse_msgs_SimClock_init_default,
-    .clock_offset_ethernet = synapse_msgs_Time_init_default,
-    .actuators = synapse_msgs_Actuators_init_default,
-    .led_array = synapse_msgs_LEDArray_init_default,
+    .sim_clock = synapse_pb_SimClock_init_default,
+    .clock_offset_ethernet = synapse_pb_Time_init_default,
+    .actuators = synapse_pb_Actuators_init_default,
+    .led_array = synapse_pb_LEDArray_init_default,
     .uptime_last = 0
 };
 
 static K_THREAD_STACK_DEFINE(my_stack_area, MY_STACK_SIZE);
 static struct k_thread my_thread_data;
 
-static void send_frame(struct context* ctx, synapse_msgs_Topic topic)
+static void send_frame(struct context* ctx, synapse_pb_Topic topic)
 {
-    synapse_msgs_Frame* frame = &ctx->tx_frame;
+    synapse_pb_Frame* frame = &ctx->tx_frame;
     frame->topic = topic;
-    if (topic == synapse_msgs_Topic_TOPIC_ACTUATORS) {
+    if (topic == synapse_pb_Topic_TOPIC_ACTUATORS) {
         frame->msg.actuators = ctx->actuators;
-        frame->which_msg = synapse_msgs_Frame_actuators_tag;
-    } else if (topic == synapse_msgs_Topic_TOPIC_LED_ARRAY) {
+        frame->which_msg = synapse_pb_Frame_actuators_tag;
+    } else if (topic == synapse_pb_Topic_TOPIC_LED_ARRAY) {
         frame->msg.led_array = ctx->led_array;
-        frame->which_msg = synapse_msgs_Frame_led_array_tag;
+        frame->which_msg = synapse_pb_Frame_led_array_tag;
     }
     static uint8_t tx_buf[TX_BUF_SIZE];
     pb_ostream_t stream = pb_ostream_from_buffer(tx_buf, sizeof(tx_buf));
-    if (!pb_encode_ex(&stream, synapse_msgs_Frame_fields, frame, PB_ENCODE_DELIMITED)) {
+    if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, frame, PB_ENCODE_DELIMITED)) {
         LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
     } else {
         write_sim(tx_buf, stream.bytes_written);
@@ -105,9 +105,9 @@ static void send_frame(struct context* ctx, synapse_msgs_Topic topic)
 
 static void handle_frame(struct context* ctx)
 {
-    synapse_msgs_Frame* frame = &ctx->rx_frame;
-    if (frame->which_msg == synapse_msgs_Frame_sim_clock_tag) {
-        if (frame->topic == synapse_msgs_Topic_TOPIC_SIM_CLOCK) {
+    synapse_pb_Frame* frame = &ctx->rx_frame;
+    if (frame->which_msg == synapse_pb_Frame_sim_clock_tag) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_SIM_CLOCK) {
             struct context* ctx = &g_ctx;
             ctx->sim_clock = frame->msg.sim_clock;
             if (!ctx->clock_initialized) {
@@ -148,28 +148,28 @@ static void handle_frame(struct context* ctx)
                 k_usleep(wait_usec);
             }
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_nav_sat_fix_tag) {
-        if (frame->topic == synapse_msgs_Topic_TOPIC_NAV_SAT_FIX) {
+    } else if (frame->which_msg == synapse_pb_Frame_nav_sat_fix_tag) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_NAV_SAT_FIX) {
             zros_topic_publish(&topic_nav_sat_fix, &frame->msg.nav_sat_fix);
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_imu_tag) {
-        if (frame->topic == synapse_msgs_Topic_TOPIC_IMU) {
+    } else if (frame->which_msg == synapse_pb_Frame_imu_tag) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_IMU) {
             zros_topic_publish(&topic_imu, &frame->msg.imu);
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_magnetic_field_tag) {
-        if (frame->topic == synapse_msgs_Topic_TOPIC_MAGNETIC_FIELD) {
+    } else if (frame->which_msg == synapse_pb_Frame_magnetic_field_tag) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_MAGNETIC_FIELD) {
             zros_topic_publish(&topic_magnetic_field, &frame->msg.magnetic_field);
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_battery_state_tag) {
-        if (frame->topic == synapse_msgs_Topic_TOPIC_BATTERY_STATE) {
+    } else if (frame->which_msg == synapse_pb_Frame_battery_state_tag) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_BATTERY_STATE) {
             zros_topic_publish(&topic_battery_state, &frame->msg.battery_state);
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_wheel_odometry_tag) {
-        if (frame->topic == synapse_msgs_Topic_TOPIC_WHEEL_ODOMETRY) {
+    } else if (frame->which_msg == synapse_pb_Frame_wheel_odometry_tag) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_WHEEL_ODOMETRY) {
             zros_topic_publish(&topic_wheel_odometry, &frame->msg.wheel_odometry);
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_odometry_tag) {
-        if (frame->topic == synapse_msgs_Topic_TOPIC_ODOMETRY) {
+    } else if (frame->which_msg == synapse_pb_Frame_odometry_tag) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_ODOMETRY) {
             zros_topic_publish(&topic_odometry_ethernet, &frame->msg.odometry);
             ;
         }
@@ -211,13 +211,13 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
             // send actuators if subscription updated
             if (zros_sub_update_available(&sub_actuators)) {
                 zros_sub_update(&sub_actuators);
-                send_frame(ctx, synapse_msgs_Topic_TOPIC_ACTUATORS);
+                send_frame(ctx, synapse_pb_Topic_TOPIC_ACTUATORS);
             }
 
             // send led_array if subscription updated
             if (zros_sub_update_available(&sub_led_array)) {
                 zros_sub_update(&sub_led_array);
-                send_frame(ctx, synapse_msgs_Topic_TOPIC_LED_ARRAY);
+                send_frame(ctx, synapse_pb_Topic_TOPIC_LED_ARRAY);
             }
         }
 
@@ -226,7 +226,7 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
         if (len > 0) {
             stream = pb_istream_from_buffer(buf, len);
             while (stream.bytes_left > 0) {
-                if (!pb_decode_ex(&stream, synapse_msgs_Frame_fields, &ctx->rx_frame, PB_DECODE_DELIMITED)) {
+                if (!pb_decode_ex(&stream, synapse_pb_Frame_fields, &ctx->rx_frame, PB_DECODE_DELIMITED)) {
                     LOG_INF("failed to decode msg: %s\n", PB_GET_ERROR(&stream));
                     break;
                 } else {

@@ -43,9 +43,9 @@ typedef struct context_t {
     // node
     struct zros_node node;
     // data
-    synapse_msgs_Imu imu;
-    synapse_msgs_Status status;
-    synapse_msgs_Status_Mode last_mode;
+    synapse_pb_Imu imu;
+    synapse_pb_Status status;
+    synapse_pb_Status_Mode last_mode;
     bool calibrated;
     // publications
     struct zros_pub pub_imu;
@@ -80,13 +80,13 @@ static context_t g_ctx = {
             .has_stamp = true,
             .seq = 0 },
         .has_angular_velocity = true,
-        .angular_velocity = synapse_msgs_Vector3_init_default,
+        .angular_velocity = synapse_pb_Vector3_init_default,
         .has_linear_acceleration = true,
-        .linear_acceleration = synapse_msgs_Vector3_init_default,
+        .linear_acceleration = synapse_pb_Vector3_init_default,
         .has_orientation = false,
     },
-    .status = synapse_msgs_Status_init_default,
-    .last_mode = synapse_msgs_Status_Mode_MODE_UNKNOWN,
+    .status = synapse_pb_Status_init_default,
+    .last_mode = synapse_pb_Status_Mode_MODE_UNKNOWN,
     .calibrated = false,
     .pub_imu = {},
     .sub_status = {},
@@ -398,7 +398,7 @@ void imu_work_handler(struct k_work* work)
     }
 
     // handle calibration request
-    if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CALIBRATION && ctx->last_mode != synapse_msgs_Status_Mode_MODE_CALIBRATION) {
+    if (ctx->status.mode == synapse_pb_Status_Mode_MODE_CALIBRATION && ctx->last_mode != synapse_pb_Status_Mode_MODE_CALIBRATION) {
         ctx->calibrated = false;
     }
     ctx->last_mode = ctx->status.mode;

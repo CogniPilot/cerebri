@@ -25,7 +25,7 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Frame rx_frame;
+    synapse_pb_Frame rx_frame;
     struct udp_rx udp;
     struct k_sem running;
     size_t stack_size;
@@ -35,7 +35,7 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
-    .rx_frame = synapse_msgs_Frame_init_default,
+    .rx_frame = synapse_pb_Frame_init_default,
     .udp = {},
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
@@ -45,55 +45,55 @@ static struct context g_ctx = {
 
 static void handle_frame(struct context* ctx)
 {
-    synapse_msgs_Frame* frame = &ctx->rx_frame;
+    synapse_pb_Frame* frame = &ctx->rx_frame;
     void* msg = NULL;
     struct zros_topic* topic = NULL;
 
     // determine topic for data
-    if (frame->which_msg == synapse_msgs_Frame_bezier_trajectory_tag) {
+    if (frame->which_msg == synapse_pb_Frame_bezier_trajectory_tag) {
         msg = &frame->msg.bezier_trajectory;
-        if (frame->topic == synapse_msgs_Topic_TOPIC_BEZIER_TRAJECTORY) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_BEZIER_TRAJECTORY) {
             topic = &topic_bezier_trajectory_ethernet;
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_time_tag) {
+    } else if (frame->which_msg == synapse_pb_Frame_time_tag) {
         msg = &frame->msg.time;
-        if (frame->topic == synapse_msgs_Topic_TOPIC_CLOCK_OFFSET) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_CLOCK_OFFSET) {
             topic = &topic_clock_offset_ethernet;
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_input_tag) {
+    } else if (frame->which_msg == synapse_pb_Frame_input_tag) {
         msg = &frame->msg.input;
-        if (frame->topic == synapse_msgs_Topic_TOPIC_INPUT) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_INPUT) {
             topic = &topic_input_ethernet;
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_twist_tag) {
+    } else if (frame->which_msg == synapse_pb_Frame_twist_tag) {
         msg = &frame->msg.twist;
-        if (frame->topic == synapse_msgs_Topic_TOPIC_CMD_VEL) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_CMD_VEL) {
             topic = &topic_cmd_vel_ethernet;
         }
 #ifdef CONFIG_CEREBRI_DREAM_HIL
-    } else if (frame->which_msg == synapse_msgs_Frame_battery_state_tag) {
+    } else if (frame->which_msg == synapse_pb_Frame_battery_state_tag) {
         msg = &frame->msg.battery_state;
-        if (frame->topic == synapse_msgs_Topic_TOPIC_BATTERY_STATE) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_BATTERY_STATE) {
             topic = &topic_battery_state;
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_imutag) {
+    } else if (frame->which_msg == synapse_pb_Frame_imutag) {
         msg = &frame->msg.imu;
-        if (frame->topic == synapse_msgs_Topic_TOPIC_IMU) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_IMU) {
             topic = &topic_imu;
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_magnetic_fieldtag) {
+    } else if (frame->which_msg == synapse_pb_Frame_magnetic_fieldtag) {
         msg = &frame->msg.magnetic_field;
-        if (frame->topic == synapse_msgs_Topic_TOPIC_MAGNETIC_FIELD) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_MAGNETIC_FIELD) {
             topic = &topic_magnetic_field;
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_nav_sat_fixtag) {
+    } else if (frame->which_msg == synapse_pb_Frame_nav_sat_fixtag) {
         msg = &frame->msg.nav_sat_fix;
-        if (frame->topic == synapse_msgs_Topic_TOPIC_NAV_SAT_FIX) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_NAV_SAT_FIX) {
             zros_topic_publish(&topic_nav_sat_fix, msg);
         }
-    } else if (frame->which_msg == synapse_msgs_Frame_wheel_odometrytag) {
+    } else if (frame->which_msg == synapse_pb_Frame_wheel_odometrytag) {
         msg = &frame->msg.wheel_odometry;
-        if (frame->topic == synapse_msgs_Topic_TOPIC_WHEEL_ODOMETRY) {
+        if (frame->topic == synapse_pb_Topic_TOPIC_WHEEL_ODOMETRY) {
             topic = &topic_wheel_odometry;
         }
 #endif
@@ -169,7 +169,7 @@ static void eth_rx_run(void* p0, void* p1, void* p2)
         } else if (received > 0) {
             stream = pb_istream_from_buffer(ctx->udp.rx_buf, received);
             while (stream.bytes_left > 0) {
-                if (!pb_decode_ex(&stream, synapse_msgs_Frame_fields, &ctx->rx_frame, PB_DECODE_DELIMITED)) {
+                if (!pb_decode_ex(&stream, synapse_pb_Frame_fields, &ctx->rx_frame, PB_DECODE_DELIMITED)) {
                     LOG_ERR("failed to decode msg: %s\n", PB_GET_ERROR(&stream));
                 } else {
                     handle_frame(ctx);

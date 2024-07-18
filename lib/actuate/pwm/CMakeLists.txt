@@ -12,4 +12,4 @@ zephyr_library_sources(
   actuator_pwm.c
   )
 
-add_dependencies(cerebri_actuate_pwm synapse_protobuf)
+add_dependencies(cerebri_actuate_pwm synapse_pb)

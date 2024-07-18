@@ -32,7 +32,7 @@ typedef struct context {
     const struct device* device[N_SENSORS];
     struct zros_node node;
     struct zros_pub pub;
-    synapse_msgs_BatteryState data;
+    synapse_pb_BatteryState data;
 } context_t;
 
 static context_t g_ctx = {
@@ -46,7 +46,7 @@ static context_t g_ctx = {
             .frame_id = "base_link",
             .has_stamp = true,
             .seq = 0,
-            .stamp = synapse_msgs_Time_init_default,
+            .stamp = synapse_pb_Time_init_default,
         },
         .capacity = 0,
         .cell_temperature = {},
@@ -58,9 +58,9 @@ static context_t g_ctx = {
         .design_capacity = 0,
         .location = "",
         .percentage = 0,
-        .power_supply_health = synapse_msgs_BatteryState_PowerSupplyHealth_UNKNOWN_HEALTH,
-        .power_supply_technology = synapse_msgs_BatteryState_PowerSupplyTechnology_UNKNOWN_TECHNOLOGY,
-        .power_supply_status = synapse_msgs_BatteryState_PowerSupplyStatus_UNKNOWN_STATUS,
+        .power_supply_health = synapse_pb_BatteryState_PowerSupplyHealth_UNKNOWN_HEALTH,
+        .power_supply_technology = synapse_pb_BatteryState_PowerSupplyTechnology_UNKNOWN_TECHNOLOGY,
+        .power_supply_status = synapse_pb_BatteryState_PowerSupplyStatus_UNKNOWN_STATUS,
         .present = true,
         .serial_number = "0",
         .temperature = 0,

@@ -2,7 +2,7 @@
 #define CEREBRI_RDD2_INPUT_MAPPING_H_
 
 #include <stdbool.h>
-#include <synapse_protobuf/input.pb.h>
+#include <synapse_pb/input.pb.h>
 
 enum {
     CH_RIGHT_STICK_RIGHT = 0,
@@ -41,7 +41,7 @@ struct input_request {
     bool lights_on;
 };
 
-void input_request_compute(struct input_request* req, const synapse_msgs_Input* input);
+void input_request_compute(struct input_request* req, const synapse_pb_Input* input);
 
 #endif // CEREBRI_RDD2_INPUT_MAPPING_H_
 

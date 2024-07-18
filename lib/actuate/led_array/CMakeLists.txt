@@ -11,4 +11,4 @@ zephyr_library_sources(
   main.c
   )
 
-add_dependencies(cerebri_actuate_led_array synapse_protobuf)
+add_dependencies(cerebri_actuate_led_array synapse_pb)

@@ -21,7 +21,7 @@ int three_position_switch(float val)
     }
 }
 
-void input_request_compute(struct input_request* req, const synapse_msgs_Input* input)
+void input_request_compute(struct input_request* req, const synapse_pb_Input* input)
 {
     // handle input
     int swa = two_position_switch(input->channel[CH_SWA_DOWN]);

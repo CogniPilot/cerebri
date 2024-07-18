@@ -120,11 +120,11 @@ struct status_input {
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Input input, input_sbus, input_ethernet;
-    synapse_msgs_BatteryState battery_state;
-    synapse_msgs_Safety safety;
-    synapse_msgs_Status status;
-    synapse_msgs_Twist cmd_vel, cmd_vel_ethernet;
+    synapse_pb_Input input, input_sbus, input_ethernet;
+    synapse_pb_BatteryState battery_state;
+    synapse_pb_Safety safety;
+    synapse_pb_Status status;
+    synapse_pb_Twist cmd_vel, cmd_vel_ethernet;
     struct status_input status_input;
     struct zros_sub sub_input_sbus, sub_input_ethernet, sub_battery_state, sub_safety, sub_cmd_vel_ethernet;
     struct zros_pub pub_status, pub_input, pub_cmd_vel;
@@ -141,27 +141,27 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
-    .input = synapse_msgs_Input_init_default,
-    .battery_state = synapse_msgs_BatteryState_init_default,
-    .safety = synapse_msgs_Safety_init_default,
+    .input = synapse_pb_Input_init_default,
+    .battery_state = synapse_pb_BatteryState_init_default,
+    .safety = synapse_pb_Safety_init_default,
     .status = {
         .has_header = true,
         .header = {
             .frame_id = "base_link",
             .has_stamp = true,
             .seq = 0,
-            .stamp = synapse_msgs_Time_init_default,
+            .stamp = synapse_pb_Time_init_default,
         },
-        .arming = synapse_msgs_Status_Arming_ARMING_DISARMED,
-        .fuel = synapse_msgs_Status_Fuel_FUEL_UNKNOWN,
+        .arming = synapse_pb_Status_Arming_ARMING_DISARMED,
+        .fuel = synapse_pb_Status_Fuel_FUEL_UNKNOWN,
         .fuel_percentage = 0,
         .flag = 0,
-        .input_status = synapse_msgs_Status_LinkStatus_STATUS_UNKNOWN,
-        .input_source = synapse_msgs_Status_InputSource_INPUT_SOURCE_ETHERNET,
-        .topic_source = synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT,
-        .mode = synapse_msgs_Status_Mode_MODE_ACTUATORS,
+        .input_status = synapse_pb_Status_LinkStatus_STATUS_UNKNOWN,
+        .input_source = synapse_pb_Status_InputSource_INPUT_SOURCE_ETHERNET,
+        .topic_source = synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT,
+        .mode = synapse_pb_Status_Mode_MODE_ACTUATORS,
         .power = 0.0,
-        .safety = synapse_msgs_Status_Safety_SAFETY_UNKNOWN,
+        .safety = synapse_pb_Status_Safety_SAFETY_UNKNOWN,
         .status_message = "",
     },
     .sub_battery_state = {},
@@ -219,12 +219,12 @@ static void fsm_compute_input(struct status_input* input, struct context* ctx)
     input_request_compute(&input->req, &ctx->input);
 
     // precompute logical states
-    input->armed = ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED;
+    input->armed = ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED;
 
-    input->mode_unknown = ctx->status.mode == synapse_msgs_Status_Mode_MODE_UNKNOWN;
-    input->mode_calibration = ctx->status.mode == synapse_msgs_Status_Mode_MODE_CALIBRATION;
+    input->mode_unknown = ctx->status.mode == synapse_pb_Status_Mode_MODE_UNKNOWN;
+    input->mode_calibration = ctx->status.mode == synapse_pb_Status_Mode_MODE_CALIBRATION;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
-    input->safe = ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE || ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNKNOWN;
+    input->safe = ctx->safety.status == synapse_pb_Safety_Status_SAFETY_SAFE || ctx->safety.status == synapse_pb_Safety_Status_SAFETY_UNKNOWN;
 #else
     input->safe = false;
 #endif
@@ -246,14 +246,14 @@ static void fsm_compute_input(struct status_input* input, struct context* ctx)
     input->update_input_sbus = zros_sub_update_available(&ctx->sub_input_sbus);
     input->update_input_ethernet = zros_sub_update_available(&ctx->sub_input_ethernet);
     input->update_cmd_vel_ethernet = zros_sub_update_available(&ctx->sub_cmd_vel_ethernet);
-    input->topic_source_ethernet = ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET;
-    input->topic_source_input = ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT;
+    input->topic_source_ethernet = ctx->status.topic_source == synapse_pb_Status_TopicSource_TOPIC_SOURCE_ETHERNET;
+    input->topic_source_input = ctx->status.topic_source == synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT;
     input->input_timeout = (ctx->now_ticks - ctx->input_last_ticks) > ctx->input_loss_ticks;
-    input->input_status_loss = ctx->status.input_status == synapse_msgs_Status_LinkStatus_STATUS_LOSS;
-    input->input_source_ethernet = ctx->status.input_source == synapse_msgs_Status_InputSource_INPUT_SOURCE_ETHERNET;
-    input->input_source_radio_control = ctx->status.input_source == synapse_msgs_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL;
+    input->input_status_loss = ctx->status.input_status == synapse_pb_Status_LinkStatus_STATUS_LOSS;
+    input->input_source_ethernet = ctx->status.input_source == synapse_pb_Status_InputSource_INPUT_SOURCE_ETHERNET;
+    input->input_source_radio_control = ctx->status.input_source == synapse_pb_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL;
     input->topic_timeout = (ctx->now_ticks - ctx->topic_last_ticks) > ctx->topic_loss_ticks;
-    input->topic_status_loss = ctx->status.topic_status == synapse_msgs_Status_LinkStatus_STATUS_LOSS;
+    input->topic_status_loss = ctx->status.topic_status == synapse_pb_Status_LinkStatus_STATUS_LOSS;
 
     // derived booleans
     input->update_input_from_ethernet = input->update_input_ethernet && input->input_source_ethernet;
@@ -267,15 +267,15 @@ static void fsm_compute_input(struct status_input* input, struct context* ctx)
     input->topic_lost_now = !input->topic_status_loss && input->topic_timeout;
 }
 
-static void fsm_update(synapse_msgs_Status* status, const struct status_input* input)
+static void fsm_update(synapse_pb_Status* status, const struct status_input* input)
 {
     // arm transition
     transition(
         &status->arming, // state
         input->req.arm, // request
         "request arm", // label
-        synapse_msgs_Status_Arming_ARMING_DISARMED, // pre
-        synapse_msgs_Status_Arming_ARMING_ARMED, // post
+        synapse_pb_Status_Arming_ARMING_DISARMED, // pre
+        synapse_pb_Status_Arming_ARMING_ARMED, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
@@ -291,8 +291,8 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->arming, // state
         input->req.disarm, // request
         "request disarm", // label
-        synapse_msgs_Status_Arming_ARMING_ARMED, // pre
-        synapse_msgs_Status_Arming_ARMING_DISARMED, // post
+        synapse_pb_Status_Arming_ARMING_ARMED, // pre
+        synapse_pb_Status_Arming_ARMING_DISARMED, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -301,8 +301,8 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->arming, // state
         input->fuel_critical, // request
         "disarm fuel critical", // label
-        synapse_msgs_Status_Arming_ARMING_ARMED, // pre
-        synapse_msgs_Status_Arming_ARMING_DISARMED, // post
+        synapse_pb_Status_Arming_ARMING_ARMED, // pre
+        synapse_pb_Status_Arming_ARMING_DISARMED, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -311,8 +311,8 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->arming, // state
         input->safe, // request
         "disarm safety engaged", // label
-        synapse_msgs_Status_Arming_ARMING_ARMED, // pre
-        synapse_msgs_Status_Arming_ARMING_DISARMED, // post
+        synapse_pb_Status_Arming_ARMING_ARMED, // pre
+        synapse_pb_Status_Arming_ARMING_DISARMED, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -323,7 +323,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         input->req.mode_actuators, // request
         "request mode actuators", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_Mode_MODE_ACTUATORS, // post
+        synapse_pb_Status_Mode_MODE_ACTUATORS, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -333,7 +333,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         input->req.mode_velocity, // request
         "request mode velocity", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_Mode_MODE_VELOCITY, // post
+        synapse_pb_Status_Mode_MODE_VELOCITY, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -343,7 +343,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         input->req.mode_bezier, // request
         "request mode bezier", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_Mode_MODE_BEZIER, // post
+        synapse_pb_Status_Mode_MODE_BEZIER, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -353,7 +353,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         input->req.mode_calibration, // request
         "request mode calibration", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_Mode_MODE_CALIBRATION, // post
+        synapse_pb_Status_Mode_MODE_CALIBRATION, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
@@ -365,8 +365,8 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->topic_source, // state
         input->req.topic_source_input, // request
         "request topic source input", // label
-        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // pre
-        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT, // post
+        synapse_pb_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // pre
+        synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
@@ -377,8 +377,8 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->topic_source, // state
         input->req.topic_source_ethernet, // request
         "request topic source ethernet", // label
-        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT, // pre
-        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // post
+        synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT, // pre
+        synapse_pb_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
@@ -390,36 +390,36 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
     status->header.seq++;
 }
 
-static void status_add_extra_info(synapse_msgs_Status* status,
+static void status_add_extra_info(synapse_pb_Status* status,
     struct status_input* input,
     const struct context* ctx)
 {
     if (input->req.lights_on) {
-        status->flag |= synapse_msgs_Status_Flag_FLAG_LIGHTING;
+        status->flag |= synapse_pb_Status_Flag_FLAG_LIGHTING;
     } else {
-        status->flag &= ~synapse_msgs_Status_Flag_FLAG_LIGHTING;
+        status->flag &= ~synapse_pb_Status_Flag_FLAG_LIGHTING;
     }
     if (input->fuel_critical) {
-        status->fuel = synapse_msgs_Status_Fuel_FUEL_CRITICAL;
+        status->fuel = synapse_pb_Status_Fuel_FUEL_CRITICAL;
     } else if (input->fuel_low) {
-        status->fuel = synapse_msgs_Status_Fuel_FUEL_LOW;
+        status->fuel = synapse_pb_Status_Fuel_FUEL_LOW;
     } else {
-        status->fuel = synapse_msgs_Status_Fuel_FUEL_NOMINAL;
+        status->fuel = synapse_pb_Status_Fuel_FUEL_NOMINAL;
     }
     double bat_max = CONFIG_CEREBRI_B3RB_BATTERY_MAX_MILLIVOLT / 1000.0;
     double bat_min = CONFIG_CEREBRI_B3RB_BATTERY_MIN_MILLIVOLT / 1000.0;
     status->fuel_percentage = 100 * (ctx->battery_state.voltage - bat_min) / (bat_max - bat_min);
     status->power = ctx->battery_state.voltage * ctx->battery_state.current;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
-    if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE) {
-        status->safety = synapse_msgs_Status_Safety_SAFETY_SAFE;
-    } else if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNSAFE) {
-        status->safety = synapse_msgs_Status_Safety_SAFETY_UNSAFE;
-    } else if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNKNOWN) {
-        status->safety = synapse_msgs_Status_Safety_SAFETY_UNKNOWN;
+    if (ctx->safety.status == synapse_pb_Safety_Status_SAFETY_SAFE) {
+        status->safety = synapse_pb_Status_Safety_SAFETY_SAFE;
+    } else if (ctx->safety.status == synapse_pb_Safety_Status_SAFETY_UNSAFE) {
+        status->safety = synapse_pb_Status_Safety_SAFETY_UNSAFE;
+    } else if (ctx->safety.status == synapse_pb_Safety_Status_SAFETY_UNKNOWN) {
+        status->safety = synapse_pb_Status_Safety_SAFETY_UNKNOWN;
     }
 #else
-    status->safety = synapse_msgs_Status_Safety_SAFETY_UNSAFE;
+    status->safety = synapse_pb_Status_Safety_SAFETY_UNSAFE;
 #endif
 }
 
@@ -490,22 +490,22 @@ static void b3rb_fsm_run(void* p0, void* p1, void* p2)
         // check for input regained
         if (in->input_regained_now) {
             LOG_INF("input regained");
-            ctx->status.input_status = synapse_msgs_Status_LinkStatus_STATUS_NOMINAL;
+            ctx->status.input_status = synapse_pb_Status_LinkStatus_STATUS_NOMINAL;
         }
 
         // check for input loss
         if (in->input_lost_now) {
             LOG_INF("input loss");
-            ctx->status.input_status = synapse_msgs_Status_LinkStatus_STATUS_LOSS;
+            ctx->status.input_status = synapse_pb_Status_LinkStatus_STATUS_LOSS;
         }
 
         // if signal loss, try to reconfigure to another link
         if (in->input_status_loss) {
             if (in->update_input_sbus) {
-                ctx->status.input_source = synapse_msgs_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL;
+                ctx->status.input_source = synapse_pb_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL;
                 LOG_INF("reconfiguring link to use radio control");
             } else if (in->update_input_ethernet) {
-                ctx->status.input_source = synapse_msgs_Status_InputSource_INPUT_SOURCE_ETHERNET;
+                ctx->status.input_source = synapse_pb_Status_InputSource_INPUT_SOURCE_ETHERNET;
                 LOG_INF("reconfiguring link to use ethernet");
             }
         }
@@ -524,13 +524,13 @@ static void b3rb_fsm_run(void* p0, void* p1, void* p2)
         // check for topic regained
         if (in->topic_regained_now) {
             LOG_INF("topic regained");
-            ctx->status.topic_status = synapse_msgs_Status_LinkStatus_STATUS_NOMINAL;
+            ctx->status.topic_status = synapse_pb_Status_LinkStatus_STATUS_NOMINAL;
         }
 
         // check for topic loss
         if (in->topic_lost_now) {
             LOG_INF("topic loss");
-            ctx->status.topic_status = synapse_msgs_Status_LinkStatus_STATUS_LOSS;
+            ctx->status.topic_status = synapse_pb_Status_LinkStatus_STATUS_LOSS;
         }
 
         // publish control topics

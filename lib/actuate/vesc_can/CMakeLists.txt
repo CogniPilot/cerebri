@@ -12,4 +12,4 @@ zephyr_library_sources(
   actuator_vesc_can.c
   )
 
-add_dependencies(cerebri_actuate_vesc_can synapse_protobuf)
+add_dependencies(cerebri_actuate_vesc_can synapse_pb)

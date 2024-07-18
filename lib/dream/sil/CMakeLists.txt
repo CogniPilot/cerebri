@@ -17,6 +17,6 @@ zephyr_library_sources(
   zephyr_main.c
   )
 
-add_dependencies(cerebri_dream_sil synapse_protobuf)
+add_dependencies(cerebri_dream_sil synapse_pb)
 
 # vi: ts=2 sw=2 et

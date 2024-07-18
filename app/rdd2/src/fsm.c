@@ -93,10 +93,10 @@ struct status_input {
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Input input;
-    synapse_msgs_BatteryState battery_state;
-    synapse_msgs_Safety safety;
-    synapse_msgs_Status status;
+    synapse_pb_Input input;
+    synapse_pb_BatteryState battery_state;
+    synapse_pb_Safety safety;
+    synapse_pb_Status status;
     struct status_input status_input;
     struct zros_sub sub_input, sub_battery_state, sub_safety;
     struct zros_pub pub_status;
@@ -108,26 +108,26 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
-    .input = synapse_msgs_Input_init_default,
-    .battery_state = synapse_msgs_BatteryState_init_default,
-    .safety = synapse_msgs_Safety_init_default,
+    .input = synapse_pb_Input_init_default,
+    .battery_state = synapse_pb_BatteryState_init_default,
+    .safety = synapse_pb_Safety_init_default,
     .status = {
         .has_header = true,
         .header = {
             .frame_id = "base_link",
             .has_stamp = true,
             .seq = 0,
-            .stamp = synapse_msgs_Time_init_default,
+            .stamp = synapse_pb_Time_init_default,
         },
-        .arming = synapse_msgs_Status_Arming_ARMING_DISARMED,
-        .fuel = synapse_msgs_Status_Fuel_FUEL_UNKNOWN,
+        .arming = synapse_pb_Status_Arming_ARMING_DISARMED,
+        .fuel = synapse_pb_Status_Fuel_FUEL_UNKNOWN,
         .fuel_percentage = 0,
-        .input_status = synapse_msgs_Status_LinkStatus_STATUS_UNKNOWN,
-        .input_source = synapse_msgs_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL,
-        .topic_source = synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT,
-        .mode = synapse_msgs_Status_Mode_MODE_ATTITUDE,
+        .input_status = synapse_pb_Status_LinkStatus_STATUS_UNKNOWN,
+        .input_source = synapse_pb_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL,
+        .topic_source = synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT,
+        .mode = synapse_pb_Status_Mode_MODE_ATTITUDE,
         .power = 0.0,
-        .safety = synapse_msgs_Status_Safety_SAFETY_UNKNOWN,
+        .safety = synapse_pb_Status_Safety_SAFETY_UNKNOWN,
         .status_message = "",
     },
     .sub_input = {},
@@ -168,9 +168,9 @@ static void fsm_compute_input(struct status_input* input, const struct context* 
     input_request_compute(&input->req, &ctx->input);
 
     // precompute logical states
-    input->mode_set = ctx->status.mode != synapse_msgs_Status_Mode_MODE_UNKNOWN;
+    input->mode_set = ctx->status.mode != synapse_pb_Status_Mode_MODE_UNKNOWN;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
-    input->safe = ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE || ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNKNOWN;
+    input->safe = ctx->safety.status == synapse_pb_Safety_Status_SAFETY_SAFE || ctx->safety.status == synapse_pb_Safety_Status_SAFETY_UNKNOWN;
 #else
     input->safe = false;
 #endif
@@ -184,21 +184,21 @@ static void fsm_compute_input(struct status_input* input, const struct context* 
 #endif
 }
 
-static void fsm_update(synapse_msgs_Status* status, const struct status_input* input)
+static void fsm_update(synapse_pb_Status* status, const struct status_input* input)
 {
     // arm transition
     transition(
         &status->arming, // state
         input->req.arm, // request
         "request arm", // label
-        synapse_msgs_Status_Arming_ARMING_DISARMED, // pre
-        synapse_msgs_Status_Arming_ARMING_ARMED, // post
+        synapse_pb_Status_Arming_ARMING_DISARMED, // pre
+        synapse_pb_Status_Arming_ARMING_ARMED, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
         5,
-        status->mode == synapse_msgs_Status_Mode_MODE_UNKNOWN, "mode not set",
-        status->mode == synapse_msgs_Status_Mode_MODE_CALIBRATION, "mode calibration",
+        status->mode == synapse_pb_Status_Mode_MODE_UNKNOWN, "mode not set",
+        status->mode == synapse_pb_Status_Mode_MODE_CALIBRATION, "mode calibration",
         input->safe, "safety on",
         input->fuel_critical, "fuel_critical",
         input->fuel_low, "fuel_low");
@@ -208,8 +208,8 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->arming, // state
         input->req.disarm, // request
         "request disarm", // label
-        synapse_msgs_Status_Arming_ARMING_ARMED, // pre
-        synapse_msgs_Status_Arming_ARMING_DISARMED, // post
+        synapse_pb_Status_Arming_ARMING_ARMED, // pre
+        synapse_pb_Status_Arming_ARMING_DISARMED, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -219,8 +219,8 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->arming, // state
         input->fuel_critical, // request
         "disarm fuel critical", // label
-        synapse_msgs_Status_Arming_ARMING_ARMED, // pre
-        synapse_msgs_Status_Arming_ARMING_DISARMED, // post
+        synapse_pb_Status_Arming_ARMING_ARMED, // pre
+        synapse_pb_Status_Arming_ARMING_DISARMED, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -229,8 +229,8 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->arming, // state
         input->safe, // request
         "disarm safety engaged", // label
-        synapse_msgs_Status_Arming_ARMING_ARMED, // pre
-        synapse_msgs_Status_Arming_ARMING_DISARMED, // post
+        synapse_pb_Status_Arming_ARMING_ARMED, // pre
+        synapse_pb_Status_Arming_ARMING_DISARMED, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -241,7 +241,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         input->req.mode_attitude_rate, // request
         "request mode attitude rate", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE, // post
+        synapse_pb_Status_Mode_MODE_ATTITUDE_RATE, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -251,7 +251,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         input->req.mode_attitude, // request
         "request mode attitude", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_Mode_MODE_ATTITUDE, // post
+        synapse_pb_Status_Mode_MODE_ATTITUDE, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -261,7 +261,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         input->req.mode_velocity, // request
         "request mode velocity", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_Mode_MODE_VELOCITY, // post
+        synapse_pb_Status_Mode_MODE_VELOCITY, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -271,7 +271,7 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         input->req.mode_bezier, // request
         "request mode bezier", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_Mode_MODE_BEZIER, // post
+        synapse_pb_Status_Mode_MODE_BEZIER, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         0); // guards
@@ -281,20 +281,20 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         input->req.mode_calibration, // request
         "request mode calibration", // label
         STATE_ANY, // pre
-        synapse_msgs_Status_Mode_MODE_CALIBRATION, // post
+        synapse_pb_Status_Mode_MODE_CALIBRATION, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
         1,
-        status->arming == synapse_msgs_Status_Arming_ARMING_ARMED, "disarm required");
+        status->arming == synapse_pb_Status_Arming_ARMING_ARMED, "disarm required");
 
     // topic source transitions
     transition(
         &status->topic_source, // state
         input->req.topic_source_input, // request
         "request topic source input", // label
-        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // pre
-        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT, // post
+        synapse_pb_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // pre
+        synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
@@ -304,8 +304,8 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
         &status->topic_source, // state
         input->req.topic_source_ethernet, // request
         "request topic source ethernet", // label
-        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT, // pre
-        synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // post
+        synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT, // pre
+        synapse_pb_Status_TopicSource_TOPIC_SOURCE_ETHERNET, // post
         status->status_message, sizeof(status->status_message), // status
         &status->request_seq, &status->request_rejected, // request
         // guards
@@ -316,31 +316,31 @@ static void fsm_update(synapse_msgs_Status* status, const struct status_input* i
     status->header.seq++;
 }
 
-static void status_add_extra_info(synapse_msgs_Status* status,
+static void status_add_extra_info(synapse_pb_Status* status,
     struct status_input* input,
     const struct context* ctx)
 {
     if (input->fuel_critical) {
-        status->fuel = synapse_msgs_Status_Fuel_FUEL_CRITICAL;
+        status->fuel = synapse_pb_Status_Fuel_FUEL_CRITICAL;
     } else if (input->fuel_low) {
-        status->fuel = synapse_msgs_Status_Fuel_FUEL_LOW;
+        status->fuel = synapse_pb_Status_Fuel_FUEL_LOW;
     } else {
-        status->fuel = synapse_msgs_Status_Fuel_FUEL_NOMINAL;
+        status->fuel = synapse_pb_Status_Fuel_FUEL_NOMINAL;
     }
     double bat_max = CONFIG_CEREBRI_RDD2_BATTERY_NCELLS * CONFIG_CEREBRI_RDD2_BATTERY_CELL_MAX_MILLIVOLT / 1000.0;
     double bat_min = CONFIG_CEREBRI_RDD2_BATTERY_NCELLS * CONFIG_CEREBRI_RDD2_BATTERY_CELL_MIN_MILLIVOLT / 1000.0;
     status->fuel_percentage = 100 * (ctx->battery_state.voltage - bat_min) / (bat_max - bat_min);
     status->power = ctx->battery_state.voltage * ctx->battery_state.current;
 #ifdef CONFIG_CEREBRI_SENSE_SAFETY
-    if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE) {
-        status->safety = synapse_msgs_Status_Safety_SAFETY_SAFE;
-    } else if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNSAFE) {
-        status->safety = synapse_msgs_Status_Safety_SAFETY_UNSAFE;
-    } else if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNKNOWN) {
-        status->safety = synapse_msgs_Status_Safety_SAFETY_UNKNOWN;
+    if (ctx->safety.status == synapse_pb_Safety_Status_SAFETY_SAFE) {
+        status->safety = synapse_pb_Status_Safety_SAFETY_SAFE;
+    } else if (ctx->safety.status == synapse_pb_Safety_Status_SAFETY_UNSAFE) {
+        status->safety = synapse_pb_Status_Safety_SAFETY_UNSAFE;
+    } else if (ctx->safety.status == synapse_pb_Safety_Status_SAFETY_UNKNOWN) {
+        status->safety = synapse_pb_Status_Safety_SAFETY_UNKNOWN;
     }
 #else
-    status->safety = synapse_msgs_Status_Safety_SAFETY_UNSAFE;
+    status->safety = synapse_pb_Status_Safety_SAFETY_UNSAFE;
 #endif
 }
 
@@ -383,18 +383,18 @@ static void rdd2_fsm_run(void* p0, void* p1, void* p2)
         // prioritize onboard input
         if (zros_sub_update_available(&ctx->sub_input)) {
             zros_sub_update(&ctx->sub_input);
-            if (ctx->status.input_status == synapse_msgs_Status_LinkStatus_STATUS_LOSS) {
+            if (ctx->status.input_status == synapse_pb_Status_LinkStatus_STATUS_LOSS) {
                 LOG_DBG("input regained");
             }
             input_last_ticks = now_ticks;
-            ctx->status.input_status = synapse_msgs_Status_LinkStatus_STATUS_NOMINAL;
+            ctx->status.input_status = synapse_pb_Status_LinkStatus_STATUS_NOMINAL;
         }
 
         // check for input loss
-        if (ctx->status.input_status != synapse_msgs_Status_LinkStatus_STATUS_LOSS
+        if (ctx->status.input_status != synapse_pb_Status_LinkStatus_STATUS_LOSS
             && (now_ticks - input_last_ticks) > input_loss_ticks) {
             LOG_DBG("input loss");
-            ctx->status.input_status = synapse_msgs_Status_LinkStatus_STATUS_LOSS;
+            ctx->status.input_status = synapse_pb_Status_LinkStatus_STATUS_LOSS;
         }
 
         // perform processing

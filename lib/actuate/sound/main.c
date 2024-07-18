@@ -22,10 +22,10 @@ LOG_MODULE_REGISTER(cerebri_actuate_sound, CONFIG_CEREBRI_ACTUATE_SOUND_LOG_LEVE
 
 typedef struct _context {
     struct zros_node node;
-    synapse_msgs_Status status;
-    synapse_msgs_Status_Mode status_last_mode;
-    synapse_msgs_Status_Arming status_last_arming;
-    synapse_msgs_Status_Safety status_last_safety;
+    synapse_pb_Status status;
+    synapse_pb_Status_Mode status_last_mode;
+    synapse_pb_Status_Arming status_last_arming;
+    synapse_pb_Status_Safety status_last_safety;
     uint32_t status_last_request_seq;
     struct zros_sub sub_status;
     struct tones_t* sound;
@@ -36,10 +36,10 @@ typedef struct _context {
 
 static context g_ctx = {
     .node = {},
-    .status = synapse_msgs_Status_init_default,
-    .status_last_mode = synapse_msgs_Status_Mode_MODE_UNKNOWN,
-    .status_last_arming = synapse_msgs_Status_Arming_ARMING_UNKNOWN,
-    .status_last_safety = synapse_msgs_Status_Safety_SAFETY_UNKNOWN,
+    .status = synapse_pb_Status_init_default,
+    .status_last_mode = synapse_pb_Status_Mode_MODE_UNKNOWN,
+    .status_last_arming = synapse_pb_Status_Arming_ARMING_UNKNOWN,
+    .status_last_safety = synapse_pb_Status_Safety_SAFETY_UNKNOWN,
     .status_last_request_seq = 0,
     .sub_status = {},
     .sound = NULL,
@@ -108,34 +108,34 @@ static void actuate_sound_entry_point(void* p0, void* p1, void* p2)
 
         if (ctx->status.mode != ctx->status_last_mode) {
             ctx->status_last_mode = ctx->status.mode;
-            if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_ACTUATORS) {
+            if (ctx->status.mode == synapse_pb_Status_Mode_MODE_ACTUATORS) {
                 play_sound(ctx, manual_mode_tone, ARRAY_SIZE(manual_mode_tone));
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
+            } else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_BEZIER) {
                 play_sound(ctx, auto_mode_tone, ARRAY_SIZE(auto_mode_tone));
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY) {
+            } else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_VELOCITY) {
                 play_sound(ctx, cmd_vel_mode_tone, ARRAY_SIZE(cmd_vel_mode_tone));
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CALIBRATION) {
+            } else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_CALIBRATION) {
                 play_sound(ctx, cal_mode_tone, ARRAY_SIZE(cal_mode_tone));
             }
         }
 
-        if (ctx->status_last_arming == synapse_msgs_Status_Arming_ARMING_UNKNOWN) {
+        if (ctx->status_last_arming == synapse_pb_Status_Arming_ARMING_UNKNOWN) {
             ctx->status_last_arming = ctx->status.arming;
         }
 
-        else if (ctx->status_last_arming == synapse_msgs_Status_Arming_ARMING_DISARMED && ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED) {
+        else if (ctx->status_last_arming == synapse_pb_Status_Arming_ARMING_DISARMED && ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) {
             ctx->status_last_arming = ctx->status.arming;
             play_sound(ctx, armed_tone, ARRAY_SIZE(armed_tone));
         }
 
-        else if (ctx->status_last_arming == synapse_msgs_Status_Arming_ARMING_ARMED && ctx->status.arming == synapse_msgs_Status_Arming_ARMING_DISARMED) {
+        else if (ctx->status_last_arming == synapse_pb_Status_Arming_ARMING_ARMED && ctx->status.arming == synapse_pb_Status_Arming_ARMING_DISARMED) {
             ctx->status_last_arming = ctx->status.arming;
             play_sound(ctx, disarmed_tone, ARRAY_SIZE(disarmed_tone));
         }
 
         if (ctx->status.safety != ctx->status_last_safety) {
             ctx->status_last_safety = ctx->status.safety;
-            if (ctx->status.safety == synapse_msgs_Status_Safety_SAFETY_SAFE) {
+            if (ctx->status.safety == synapse_pb_Status_Safety_SAFETY_SAFE) {
                 if (!ctx->started) {
                     play_sound(ctx, airy_start_tone, ARRAY_SIZE(airy_start_tone));
                     ctx->started = true;
@@ -144,12 +144,12 @@ static void actuate_sound_entry_point(void* p0, void* p1, void* p2)
                 }
             }
 
-            else if (ctx->status.safety == synapse_msgs_Status_Safety_SAFETY_UNSAFE) {
+            else if (ctx->status.safety == synapse_pb_Status_Safety_SAFETY_UNSAFE) {
                 play_sound(ctx, safety_off_tone, ARRAY_SIZE(safety_off_tone));
             }
         }
 
-        if (ctx->status.fuel == synapse_msgs_Status_Fuel_FUEL_LOW) {
+        if (ctx->status.fuel == synapse_pb_Status_Fuel_FUEL_LOW) {
             int64_t now_ticks = k_uptime_ticks();
             if ((now_ticks - fuel_low_last_alarm_ticks) > fuel_low_period_sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
                 fuel_low_last_alarm_ticks = now_ticks;
@@ -157,12 +157,12 @@ static void actuate_sound_entry_point(void* p0, void* p1, void* p2)
             }
         }
 
-        if (ctx->status.fuel == synapse_msgs_Status_Fuel_FUEL_CRITICAL) {
+        if (ctx->status.fuel == synapse_pb_Status_Fuel_FUEL_CRITICAL) {
             play_sound(ctx, fuel_tone, ARRAY_SIZE(fuel_tone));
         }
 
-        if (ctx->status.input_status == synapse_msgs_Status_LinkStatus_STATUS_LOSS
-            && ctx->status.safety == synapse_msgs_Status_Safety_SAFETY_UNSAFE) {
+        if (ctx->status.input_status == synapse_pb_Status_LinkStatus_STATUS_LOSS
+            && ctx->status.safety == synapse_pb_Status_Safety_SAFETY_UNSAFE) {
             int64_t now_ticks = k_uptime_ticks();
             if ((now_ticks - input_loss_last_alarm_ticks) > input_loss_period_sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
                 input_loss_last_alarm_ticks = now_ticks;

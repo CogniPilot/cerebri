@@ -33,8 +33,8 @@ LOG_MODULE_REGISTER(pubsub, CONFIG_PUBSUB_LOG_LEVEL);
 /********************************************************************
  * pub entry point
  ********************************************************************/
-synapse_msgs_Imu pub_msg_imu[PUBLISHER_COUNT] = {};
-synapse_msgs_BatteryState pub_msg_battery_state[PUBLISHER_COUNT] = {};
+synapse_pb_Imu pub_msg_imu[PUBLISHER_COUNT] = {};
+synapse_pb_BatteryState pub_msg_battery_state[PUBLISHER_COUNT] = {};
 
 void* allocator_malloc(size_t size)
 {
@@ -62,8 +62,8 @@ static void pub_entry_point(void* p0, void* p1, void* p2)
 
     // snprintf(node.name, sizeof(node.name), "pub %d", id);
     int rc = 0;
-    synapse_msgs_Imu* imu = &pub_msg_imu[id];
-    synapse_msgs_BatteryState* battery = &pub_msg_battery_state[id];
+    synapse_pb_Imu* imu = &pub_msg_imu[id];
+    synapse_pb_BatteryState* battery = &pub_msg_battery_state[id];
 
     struct zros_pub pub_imu;
     rc = zros_pub_init(&pub_imu, &node, &topic_imu, imu);
@@ -118,8 +118,8 @@ static void pub_entry_point(void* p0, void* p1, void* p2)
 /********************************************************************
  * sub entry point
  ********************************************************************/
-synapse_msgs_Imu sub_msg_imu[SUBSCRIBER_COUNT];
-synapse_msgs_BatteryState sub_msg_battery[SUBSCRIBER_COUNT];
+synapse_pb_Imu sub_msg_imu[SUBSCRIBER_COUNT];
+synapse_pb_BatteryState sub_msg_battery[SUBSCRIBER_COUNT];
 
 static void sub_entry_point(void* p0, void* p1, void* p2)
 {
@@ -132,7 +132,7 @@ static void sub_entry_point(void* p0, void* p1, void* p2)
     zros_node_init(&node, name);
 
     // imu
-    synapse_msgs_Imu* imu = &sub_msg_imu[id];
+    synapse_pb_Imu* imu = &sub_msg_imu[id];
     struct zros_sub sub_imu;
     rc = zros_sub_init(&sub_imu, &node, &topic_imu, imu, 10);
     if (rc != 0) {
@@ -141,7 +141,7 @@ static void sub_entry_point(void* p0, void* p1, void* p2)
     }
 
     // battery
-    synapse_msgs_BatteryState* battery = &sub_msg_battery[id];
+    synapse_pb_BatteryState* battery = &sub_msg_battery[id];
     struct zros_sub sub_battery;
     rc = zros_sub_init(&sub_battery, &node, &topic_battery_state, battery, 1);
     if (rc != 0) {

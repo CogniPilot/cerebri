@@ -30,9 +30,9 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Twist cmd_vel;
-    synapse_msgs_Status status;
-    synapse_msgs_Actuators actuators;
+    synapse_pb_Twist cmd_vel;
+    synapse_pb_Status status;
+    synapse_pb_Actuators actuators;
     struct zros_sub sub_status, sub_cmd_vel;
     struct zros_pub pub_actuators;
     const double wheel_radius;
@@ -45,9 +45,9 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
-    .cmd_vel = synapse_msgs_Twist_init_default,
-    .status = synapse_msgs_Status_init_default,
-    .actuators = synapse_msgs_Actuators_init_default,
+    .cmd_vel = synapse_pb_Twist_init_default,
+    .status = synapse_pb_Status_init_default,
+    .actuators = synapse_pb_Actuators_init_default,
     .sub_status = {},
     .sub_cmd_vel = {},
     .pub_actuators = {},
@@ -100,7 +100,7 @@ static void b3rb_velocity_update(struct context* ctx)
         turn_angle = delta;
     }
 
-    bool armed = ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED;
+    bool armed = ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED;
 
     b3rb_set_actuators(&ctx->actuators, turn_angle, omega_fwd, armed);
 
@@ -136,7 +136,7 @@ static void b3rb_velocity_run(void* p0, void* p1, void* p2)
         }
 
         // handle modes
-        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_ACTUATORS) {
+        if (ctx->status.mode != synapse_pb_Status_Mode_MODE_ACTUATORS) {
             b3rb_velocity_update(ctx);
         }
     }

@@ -29,10 +29,10 @@ struct context {
     // node
     struct zros_node node;
     // data
-    synapse_msgs_BatteryState battery_state;
-    synapse_msgs_Safety safety;
-    synapse_msgs_Status status;
-    synapse_msgs_LEDArray led_array;
+    synapse_pb_BatteryState battery_state;
+    synapse_pb_Safety safety;
+    synapse_pb_Status status;
+    synapse_pb_LEDArray led_array;
     // subscriptions
     struct zros_sub sub_battery_state, sub_safety, sub_status;
     // publications
@@ -45,10 +45,10 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
-    .battery_state = synapse_msgs_BatteryState_init_default,
-    .safety = synapse_msgs_Safety_init_default,
-    .status = synapse_msgs_Status_init_default,
-    .led_array = synapse_msgs_LEDArray_init_default,
+    .battery_state = synapse_pb_BatteryState_init_default,
+    .safety = synapse_pb_Safety_init_default,
+    .status = synapse_pb_Status_init_default,
+    .led_array = synapse_pb_LEDArray_init_default,
     .sub_safety = {},
     .sub_status = {},
     .pub_led_array = {},
@@ -80,7 +80,7 @@ static void rdd2_lighting_fini(struct context* ctx)
     LOG_INF("fini");
 }
 
-static void set_led(const int index, const double* color, const double brightness, synapse_msgs_LED* led)
+static void set_led(const int index, const double* color, const double brightness, synapse_pb_LED* led)
 {
     led->index = index;
     led->r = brightness * color[0];
@@ -146,13 +146,13 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
         // mode leds
         for (size_t i = 0; i < ARRAY_SIZE(mode_leds); i++) {
             const double* color = NULL;
-            if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_ATTITUDE) {
+            if (ctx->status.mode == synapse_pb_Status_Mode_MODE_ATTITUDE) {
                 color = color_manual;
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY) {
+            } else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_VELOCITY) {
                 color = color_cmd_vel;
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
+            } else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_BEZIER) {
                 color = color_auto;
-            } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_CALIBRATION) {
+            } else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_CALIBRATION) {
                 color = color_calibration;
             } else {
                 color = color_unknown;
@@ -167,9 +167,9 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
             if (battery_critical) {
                 color = color_battery_critical;
             } else {
-                if (ctx->status.arming == synapse_msgs_Status_Arming_ARMING_DISARMED) {
+                if (ctx->status.arming == synapse_pb_Status_Arming_ARMING_DISARMED) {
                     color = color_disarmed;
-                } else if (ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED) {
+                } else if (ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) {
                     color = color_armed;
                 } else {
                     color = color_unknown;
@@ -182,9 +182,9 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
         // safety leds
         for (size_t i = 0; i < ARRAY_SIZE(safety_leds); i++) {
             const double* color = NULL;
-            if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_SAFE) {
+            if (ctx->safety.status == synapse_pb_Safety_Status_SAFETY_SAFE) {
                 color = color_safe;
-            } else if (ctx->safety.status == synapse_msgs_Safety_Status_SAFETY_UNSAFE) {
+            } else if (ctx->safety.status == synapse_pb_Safety_Status_SAFETY_UNSAFE) {
                 color = color_unsafe;
             } else {
                 color = color_unknown;

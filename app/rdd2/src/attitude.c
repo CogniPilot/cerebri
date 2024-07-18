@@ -34,10 +34,10 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Status status;
-    synapse_msgs_Odometry odometry_estimator;
-    synapse_msgs_Quaternion attitude_sp;
-    synapse_msgs_Vector3 position_sp, velocity_sp, angular_velocity_sp, angular_velocity_ff;
+    synapse_pb_Status status;
+    synapse_pb_Odometry odometry_estimator;
+    synapse_pb_Quaternion attitude_sp;
+    synapse_pb_Vector3 position_sp, velocity_sp, angular_velocity_sp, angular_velocity_ff;
     struct zros_sub sub_status, sub_position_sp, sub_velocity_sp, sub_attitude_sp, sub_odometry_estimator, sub_angular_velocity_ff;
     struct zros_pub pub_angular_velocity_sp;
     struct k_sem running;
@@ -48,13 +48,13 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
-    .status = synapse_msgs_Status_init_default,
-    .attitude_sp = synapse_msgs_Quaternion_init_default,
-    .position_sp = synapse_msgs_Vector3_init_default,
-    .velocity_sp = synapse_msgs_Vector3_init_default,
-    .angular_velocity_sp = synapse_msgs_Vector3_init_default,
-    .angular_velocity_ff = synapse_msgs_Vector3_init_default,
-    .odometry_estimator = synapse_msgs_Odometry_init_default,
+    .status = synapse_pb_Status_init_default,
+    .attitude_sp = synapse_pb_Quaternion_init_default,
+    .position_sp = synapse_pb_Vector3_init_default,
+    .velocity_sp = synapse_pb_Vector3_init_default,
+    .angular_velocity_sp = synapse_pb_Vector3_init_default,
+    .angular_velocity_ff = synapse_pb_Vector3_init_default,
+    .odometry_estimator = synapse_pb_Odometry_init_default,
     .sub_status = {},
     .sub_position_sp = {},
     .sub_velocity_sp = {},
@@ -143,7 +143,7 @@ static void rdd2_attitude_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_angular_velocity_ff);
         }
 
-        if (ctx->status.mode != synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE) {
+        if (ctx->status.mode != synapse_pb_Status_Mode_MODE_ATTITUDE_RATE) {
             double q_wb[4] = {
                 ctx->odometry_estimator.pose.pose.orientation.w,
                 ctx->odometry_estimator.pose.pose.orientation.x,

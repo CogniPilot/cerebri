@@ -6,4 +6,4 @@ build:
   cmake: .
   depends:
     - nanopb
-    - synapse_protobuf
+    - synapse_pb

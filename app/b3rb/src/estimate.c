@@ -38,9 +38,9 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 // private context
 struct context {
     struct zros_node node;
-    synapse_msgs_WheelOdometry wheel_odometry;
-    synapse_msgs_Imu imu;
-    synapse_msgs_Odometry odometry;
+    synapse_pb_WheelOdometry wheel_odometry;
+    synapse_pb_Imu imu;
+    synapse_pb_Odometry odometry;
     struct zros_sub sub_wheel_odometry, sub_imu;
     struct zros_pub pub_odometry;
     double x[3];
@@ -54,8 +54,8 @@ struct context {
 // private initialization
 static struct context g_ctx = {
     .node = {},
-    .wheel_odometry = synapse_msgs_WheelOdometry_init_default,
-    .imu = synapse_msgs_Imu_init_default,
+    .wheel_odometry = synapse_pb_WheelOdometry_init_default,
+    .imu = synapse_pb_Imu_init_default,
     .odometry = {
         .child_frame_id = "base_link",
         .has_header = true,

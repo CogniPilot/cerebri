@@ -15,7 +15,7 @@
 #include <zros/zros_node.h>
 #include <zros/zros_sub.h>
 
-#include <synapse_protobuf/led_array.pb.h>
+#include <synapse_pb/led_array.pb.h>
 #include <synapse_topic_list.h>
 
 #define DELAY_TIME K_MSEC(40)
@@ -30,13 +30,13 @@ extern struct k_work_q g_low_priority_work_q;
 typedef struct _context {
     struct zros_node node;
     struct zros_sub sub;
-    synapse_msgs_LEDArray data;
+    synapse_pb_LEDArray data;
     const struct device* strip;
     struct led_rgb strip_colors[CONFIG_CEREBRI_ACTUATE_LED_ARRAY_COUNT];
 } context;
 
 static context g_ctx = {
-    .data = synapse_msgs_LEDArray_init_default,
+    .data = synapse_pb_LEDArray_init_default,
     .node = {},
     .sub = {},
     .strip = NULL,
@@ -79,7 +79,7 @@ void actuate_led_array_entry_point(context* ctx)
 
         // perform processing
         for (int i = 0; i < ctx->data.led_count; i++) {
-            synapse_msgs_LED led = ctx->data.led[i];
+            synapse_pb_LED led = ctx->data.led[i];
             if (led.index > CONFIG_CEREBRI_ACTUATE_LED_ARRAY_COUNT) {
                 LOG_ERR("Setting LED index out of range");
                 continue;

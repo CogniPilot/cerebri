@@ -5,7 +5,7 @@
 
 #include "mixing.h"
 
-void b3rb_set_actuators(synapse_msgs_Actuators* msg, double turn_angle, double omega_fwd, bool armed)
+void b3rb_set_actuators(synapse_pb_Actuators* msg, double turn_angle, double omega_fwd, bool armed)
 {
     msg->has_header = true;
     stamp_header(&msg->header, k_uptime_ticks());

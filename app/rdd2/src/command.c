@@ -42,15 +42,15 @@ static const double thrust_delta = CONFIG_CEREBRI_RDD2_THRUST_DELTA * 1e-3;
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Input input;
-    synapse_msgs_Vector3 angular_velocity_ff, force_sp, accel_ff, moment_ff, velocity_sp, position_sp;
-    synapse_msgs_Quaternion attitude_sp, orientation_sp;
-    synapse_msgs_BezierTrajectory bezier_trajectory;
-    synapse_msgs_Time clock_offset;
-    synapse_msgs_Status status;
-    synapse_msgs_Status last_status;
-    synapse_msgs_Odometry odometry_estimator;
-    synapse_msgs_Twist cmd_vel;
+    synapse_pb_Input input;
+    synapse_pb_Vector3 angular_velocity_ff, force_sp, accel_ff, moment_ff, velocity_sp, position_sp;
+    synapse_pb_Quaternion attitude_sp, orientation_sp;
+    synapse_pb_BezierTrajectory bezier_trajectory;
+    synapse_pb_Time clock_offset;
+    synapse_pb_Status status;
+    synapse_pb_Status last_status;
+    synapse_pb_Odometry odometry_estimator;
+    synapse_pb_Twist cmd_vel;
     struct zros_sub sub_bezier_trajectory_ethernet, sub_status, sub_input_ethernet, sub_input_sbus,
         sub_odometry_estimator, sub_cmd_vel_ethernet, sub_clock_offset_ethernet;
     struct zros_pub pub_attitude_sp, pub_angular_velocity_ff, pub_force_sp, pub_accel_ff, pub_moment_ff,
@@ -64,19 +64,19 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
-    .input = synapse_msgs_Input_init_default,
-    .attitude_sp = synapse_msgs_Quaternion_init_default,
-    .angular_velocity_ff = synapse_msgs_Vector3_init_default,
-    .force_sp = synapse_msgs_Vector3_init_default,
-    .bezier_trajectory = synapse_msgs_BezierTrajectory_init_default,
-    .status = synapse_msgs_Status_init_default,
-    .last_status = synapse_msgs_Status_init_default,
-    .velocity_sp = synapse_msgs_Vector3_init_default,
-    .accel_ff = synapse_msgs_Vector3_init_default,
-    .moment_ff = synapse_msgs_Vector3_init_default,
-    .orientation_sp = synapse_msgs_Quaternion_init_default,
-    .position_sp = synapse_msgs_Vector3_init_default,
-    .cmd_vel = synapse_msgs_Twist_init_default,
+    .input = synapse_pb_Input_init_default,
+    .attitude_sp = synapse_pb_Quaternion_init_default,
+    .angular_velocity_ff = synapse_pb_Vector3_init_default,
+    .force_sp = synapse_pb_Vector3_init_default,
+    .bezier_trajectory = synapse_pb_BezierTrajectory_init_default,
+    .status = synapse_pb_Status_init_default,
+    .last_status = synapse_pb_Status_init_default,
+    .velocity_sp = synapse_pb_Vector3_init_default,
+    .accel_ff = synapse_pb_Vector3_init_default,
+    .moment_ff = synapse_pb_Vector3_init_default,
+    .orientation_sp = synapse_pb_Quaternion_init_default,
+    .position_sp = synapse_pb_Vector3_init_default,
+    .cmd_vel = synapse_pb_Twist_init_default,
     .sub_input_ethernet = {},
     .sub_input_sbus = {},
     .sub_status = {},
@@ -178,7 +178,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
         rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
         if (rc != 0) {
             // LOG_DBG("not receiving input");
-            ctx->status.mode = synapse_msgs_Status_Mode_MODE_ATTITUDE;
+            ctx->status.mode = synapse_pb_Status_Mode_MODE_ATTITUDE;
             for (int i = 0; i < ctx->input.channel_count; i++) {
                 ctx->input.channel[i] = 0;
             }
@@ -202,11 +202,11 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
         if (zros_sub_update_available(&ctx->sub_input_sbus)) {
             zros_sub_update(&ctx->sub_input_sbus);
             zros_pub_update(&ctx->pub_input);
-            ctx->status.input_source = synapse_msgs_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL;
+            ctx->status.input_source = synapse_pb_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL;
         } else if (zros_sub_update_available(&ctx->sub_input_ethernet)) {
             zros_sub_update(&ctx->sub_input_ethernet);
             zros_pub_update(&ctx->pub_input);
-            ctx->status.input_source = synapse_msgs_Status_InputSource_INPUT_SOURCE_ETHERNET;
+            ctx->status.input_source = synapse_pb_Status_InputSource_INPUT_SOURCE_ETHERNET;
         }
 
         if (zros_sub_update_available(&ctx->sub_bezier_trajectory_ethernet)) {
@@ -245,7 +245,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
         };
 
         // handle joy based on mode
-        if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_ATTITUDE_RATE) {
+        if (ctx->status.mode == synapse_pb_Status_Mode_MODE_ATTITUDE_RATE) {
             double omega[3];
             double thrust;
             {
@@ -290,7 +290,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                 zros_pub_update(&ctx->pub_force_sp);
             }
 
-        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_ATTITUDE) {
+        } else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_ATTITUDE) {
             double qr[4];
             double thrust;
             {
@@ -338,10 +338,10 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                 zros_pub_update(&ctx->pub_force_sp);
             }
 
-        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_VELOCITY) {
+        } else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_VELOCITY) {
 
-            bool now_vel = ctx->last_status.mode != synapse_msgs_Status_Mode_MODE_VELOCITY;
-            bool now_armed = (ctx->status.arming == synapse_msgs_Status_Arming_ARMING_ARMED) && (ctx->last_status.arming != synapse_msgs_Status_Arming_ARMING_ARMED);
+            bool now_vel = ctx->last_status.mode != synapse_pb_Status_Mode_MODE_VELOCITY;
+            bool now_armed = (ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) && (ctx->last_status.arming != synapse_pb_Status_Arming_ARMING_ARMED);
 
             double yaw, pitch, roll;
             {
@@ -369,13 +369,13 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             double yaw_rate = 0;
             double vb[3] = { 0, 0, 0 };
 
-            if (ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_INPUT) {
+            if (ctx->status.topic_source == synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT) {
                 yaw_rate = 60 * deg2rad * input_yaw;
                 vb[0] = 2.0 * input_pitch;
                 vb[1] = -2.0 * input_roll; // positive roll is negative y
                 vb[2] = input_thrust;
                 // LOG_INF("onboard yawrate: %10.4f vbx: %10.4f %10.4f %10.4f", yaw_rate, vbx, vby, vbz);
-            } else if (ctx->status.topic_source == synapse_msgs_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
+            } else if (ctx->status.topic_source == synapse_pb_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
                 yaw_rate = ctx->cmd_vel.angular.z;
                 vb[0] = ctx->cmd_vel.linear.x;
                 vb[1] = ctx->cmd_vel.linear.y;
@@ -451,7 +451,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             ctx->accel_ff.z = 0;
             zros_pub_update(&ctx->pub_accel_ff);
 
-        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
+        } else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_BEZIER) {
             // goal -> given position goal, find cmd_vel
             uint64_t time_start_nsec = ctx->bezier_trajectory.time_start;
             uint64_t time_stop_nsec = time_start_nsec;
@@ -609,7 +609,7 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
                 zros_pub_update(&ctx->pub_orientation_sp);
             }
 
-        } else if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_UNKNOWN) {
+        } else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_UNKNOWN) {
             // LOG_ERR("unknown mode");
         }
     }

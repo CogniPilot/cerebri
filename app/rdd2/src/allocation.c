@@ -33,9 +33,9 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Status status;
-    synapse_msgs_Actuators actuators;
-    synapse_msgs_Vector3 force_sp, moment_sp;
+    synapse_pb_Status status;
+    synapse_pb_Actuators actuators;
+    synapse_pb_Vector3 force_sp, moment_sp;
     struct zros_sub sub_status, sub_force_sp, sub_moment_sp;
     struct zros_pub pub_actuators;
     struct k_sem running;
@@ -46,7 +46,7 @@ struct context {
 
 static struct context g_ctx = {
     .node = {},
-    .status = synapse_msgs_Status_init_default,
+    .status = synapse_pb_Status_init_default,
     .actuators = {
         .has_header = true,
         .header = {
@@ -128,7 +128,7 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
         if (rc < 0) {
             stop(ctx);
             LOG_DBG("no data, stopped");
-        } else if (ctx->status.arming != synapse_msgs_Status_Arming_ARMING_ARMED) {
+        } else if (ctx->status.arming != synapse_pb_Status_Arming_ARMING_ARMED) {
             stop(ctx);
             LOG_DBG("not armed, stopped");
         } else {

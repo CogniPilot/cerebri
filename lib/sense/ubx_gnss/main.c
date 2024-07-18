@@ -33,7 +33,7 @@ LOG_MODULE_REGISTER(ubx_gnss, CONFIG_CEREBRI_SENSE_UBX_GNSS_LOG_LEVEL);
 typedef struct context {
     struct zros_node node;
     struct zros_pub pub;
-    synapse_msgs_NavSatFix data;
+    synapse_pb_NavSatFix data;
     int32_t gMeasurementPeriodMs;
     bool running;
     bool isAlive;
@@ -48,7 +48,7 @@ static context_t g_ctx = {
             .frame_id = "wgs84",
             .has_stamp = true,
             .seq = 0,
-            .stamp = synapse_msgs_Time_init_default,
+            .stamp = synapse_pb_Time_init_default,
         },
         .altitude = 0,
         .latitude = 0,
@@ -70,7 +70,7 @@ void publish_gnss_data(uDeviceHandle_t devHandle,
     ctx->isAlive = true;
 
     if (errorCode == 0) {
-        synapse_msgs_NavSatFix msg = synapse_msgs_NavSatFix_init_default;
+        synapse_pb_NavSatFix msg = synapse_pb_NavSatFix_init_default;
 
         ctx->data.latitude = pLocation->latitudeX1e7 / 1e7;
         ctx->data.longitude = pLocation->longitudeX1e7 / 1e7;

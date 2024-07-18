@@ -14,7 +14,7 @@
 #include <zros/zros_node.h>
 #include <zros/zros_pub.h>
 
-#include <synapse_protobuf/safety.pb.h>
+#include <synapse_pb/safety.pb.h>
 #include <synapse_topic_list.h>
 
 #define MY_STACK_SIZE 1024
@@ -27,7 +27,7 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 typedef struct context {
     struct zros_node node;
     struct zros_pub pub;
-    synapse_msgs_Safety data;
+    synapse_pb_Safety data;
     struct k_sem running;
     struct k_sem data_sem;
     size_t stack_size;
@@ -44,8 +44,8 @@ static context_t g_ctx = {
             .frame_id = "base_link",
             .has_stamp = true,
             .seq = 0,
-            .stamp = synapse_msgs_Time_init_default },
-        .status = synapse_msgs_Safety_Status_SAFETY_SAFE,
+            .stamp = synapse_pb_Time_init_default },
+        .status = synapse_pb_Safety_Status_SAFETY_SAFE,
     },
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
@@ -117,11 +117,11 @@ static void input_cb(struct input_event* evt)
         if (ret < 0) {
             LOG_ERR("failed to take data sem");
         } else if (ret == 0) {
-            synapse_msgs_Safety_Status status = ctx->data.status;
-            if (status == synapse_msgs_Safety_Status_SAFETY_SAFE) {
-                ctx->data.status = synapse_msgs_Safety_Status_SAFETY_UNSAFE;
+            synapse_pb_Safety_Status status = ctx->data.status;
+            if (status == synapse_pb_Safety_Status_SAFETY_SAFE) {
+                ctx->data.status = synapse_pb_Safety_Status_SAFETY_UNSAFE;
             } else {
-                ctx->data.status = synapse_msgs_Safety_Status_SAFETY_SAFE;
+                ctx->data.status = synapse_pb_Safety_Status_SAFETY_SAFE;
             }
             stamp_header(&ctx->data.header, k_uptime_ticks());
             ctx->data.header.seq++;

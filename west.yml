@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 61471d5a49cf0cb57845c5e3203e4dc4f0da34e2 # zephyr_cogni-3.6-v0
+      revision: 10d327960551d14281a60b3dee4f6ee8704edd20 # zephyr_cogni-3.6-v0
       import:
         - name-allowlist:
           - nanopb
@@ -28,7 +28,6 @@ manifest:
           - cmsis
           - ubxlib
           - fatfs
-          - littlefs
           - segger
     - name: zros
       remote: cognipilot
@@ -38,10 +37,10 @@ manifest:
       remote: cognipilot
       revision: 9c0f4e73ae1a64a7a9a676975e8895d4775e1186 # main 6/17/24
       path: modules/lib/cyecca
-    - name: synapse_protobuf
+    - name: synapse_pb
       remote: cognipilot
-      revision: 09a6546113d5d09c6fb27d6c2f8fe19a4ee718b6 # main 7/13/24
-      path: modules/lib/synapse_protobuf
+      revision: c52b4869af9b7eb347df366a6b089e389a864aaf # main 7/16/24
+      path: modules/lib/synapse_pb
     - name: ubxlib
       remote: cognipilot
       path: modules/lib/ubxlib

@@ -8,7 +8,7 @@
 
 #include <math.h>
 #include <stdio.h>
-#include <synapse_protobuf/vector3.pb.h>
+#include <synapse_pb/vector3.pb.h>
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
 #include <zros/private/zros_sub_struct.h>
@@ -237,10 +237,10 @@ void topic_work_handler(struct k_work* work)
     msg_handler_t* handler = ctx->handler;
 
     if (topic == &topic_actuators) {
-        synapse_msgs_Actuators msg = {};
+        synapse_pb_Actuators msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_actuators);
     } else if (topic == &topic_altimeter) {
-        synapse_msgs_Altimeter msg = {};
+        synapse_pb_Altimeter msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_altimeter);
     } else if (topic == &topic_angular_velocity_sp
         || topic == &topic_accel_sp
@@ -251,54 +251,54 @@ void topic_work_handler(struct k_work* work)
         || topic == &topic_accel_ff
         || topic == &topic_moment_ff
         || topic == &topic_angular_velocity_ff) {
-        synapse_msgs_Vector3 msg = {};
+        synapse_pb_Vector3 msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_vector3);
     } else if (topic == &topic_attitude_sp || topic == &topic_orientation_sp) {
-        synapse_msgs_Quaternion msg = {};
+        synapse_pb_Quaternion msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_quaternion);
     } else if (topic == &topic_battery_state) {
-        synapse_msgs_BatteryState msg = {};
+        synapse_pb_BatteryState msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_battery_state);
     } else if (topic == &topic_bezier_trajectory_ethernet || topic == &topic_bezier_trajectory) {
-        synapse_msgs_BezierTrajectory msg = {};
+        synapse_pb_BezierTrajectory msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_bezier_trajectory);
     } else if (topic == &topic_clock_offset_ethernet) {
-        synapse_msgs_Time msg = {};
+        synapse_pb_Time msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_time);
     } else if (topic == &topic_cmd_vel || topic == &topic_cmd_vel_ethernet) {
-        synapse_msgs_Twist msg = {};
+        synapse_pb_Twist msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_twist);
     } else if (topic == &topic_status) {
-        synapse_msgs_Status msg = {};
+        synapse_pb_Status msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_status);
     } else if (topic == &topic_imu) {
-        synapse_msgs_Imu msg = {};
+        synapse_pb_Imu msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_imu);
     } else if (topic == &topic_input_ethernet
         || topic == &topic_input_sbus
         || topic == &topic_input) {
-        synapse_msgs_Input msg = {};
+        synapse_pb_Input msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_input);
     } else if (topic == &topic_led_array) {
-        synapse_msgs_LEDArray msg = {};
+        synapse_pb_LEDArray msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_ledarray);
     } else if (topic == &topic_pwm) {
-        synapse_msgs_Pwm msg = {};
+        synapse_pb_Pwm msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_pwm);
     } else if (topic == &topic_magnetic_field) {
-        synapse_msgs_MagneticField msg = {};
+        synapse_pb_MagneticField msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_magnetic_field);
     } else if (topic == &topic_nav_sat_fix) {
-        synapse_msgs_NavSatFix msg = {};
+        synapse_pb_NavSatFix msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_navsatfix);
     } else if (topic == &topic_odometry_estimator || topic == &topic_odometry_ethernet) {
-        synapse_msgs_Odometry msg = {};
+        synapse_pb_Odometry msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_odometry);
     } else if (topic == &topic_safety) {
-        synapse_msgs_Safety msg = {};
+        synapse_pb_Safety msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_safety);
     } else if (topic == &topic_wheel_odometry) {
-        synapse_msgs_WheelOdometry msg = {};
+        synapse_pb_WheelOdometry msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_wheel_odometry);
     } else {
         char name[20];

@@ -33,7 +33,7 @@ typedef struct context_t {
     // node
     struct zros_node node;
     // data
-    synapse_msgs_Altimeter altimeter;
+    synapse_pb_Altimeter altimeter;
     // publications
     struct zros_pub pub;
     // devices

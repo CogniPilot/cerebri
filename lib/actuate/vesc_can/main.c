@@ -40,13 +40,13 @@ extern actuator_vesc_can_t g_actuator_vesc_cans[];
 typedef struct _context {
     struct zros_node node;
     struct zros_sub sub_actuators;
-    synapse_msgs_Actuators actuators;
+    synapse_pb_Actuators actuators;
 } context;
 
 static context g_ctx = {
     .node = {},
     .sub_actuators = {},
-    .actuators = synapse_msgs_Actuators_init_default,
+    .actuators = synapse_pb_Actuators_init_default,
 };
 
 static int stop_canbus(const actuator_vesc_can_t* actuator)

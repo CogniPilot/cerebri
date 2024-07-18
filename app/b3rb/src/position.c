@@ -30,11 +30,11 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
 struct context {
     struct zros_node node;
-    synapse_msgs_Status status;
-    synapse_msgs_BezierTrajectory bezier_trajectory_ethernet;
-    synapse_msgs_Time clock_offset_ethernet;
-    synapse_msgs_Odometry odometry_estimator;
-    synapse_msgs_Twist cmd_vel;
+    synapse_pb_Status status;
+    synapse_pb_BezierTrajectory bezier_trajectory_ethernet;
+    synapse_pb_Time clock_offset_ethernet;
+    synapse_pb_Odometry odometry_estimator;
+    synapse_pb_Twist cmd_vel;
     struct zros_sub sub_status, sub_clock_offset_ethernet, sub_odometry_estimator, sub_bezier_trajectory_ethernet;
     struct zros_pub pub_cmd_vel;
     const double wheel_base;
@@ -48,15 +48,15 @@ struct context {
 };
 
 static struct context g_ctx = {
-    .status = synapse_msgs_Status_init_default,
-    .bezier_trajectory_ethernet = synapse_msgs_BezierTrajectory_init_default,
-    .clock_offset_ethernet = synapse_msgs_Time_init_default,
-    .odometry_estimator = synapse_msgs_Odometry_init_default,
+    .status = synapse_pb_Status_init_default,
+    .bezier_trajectory_ethernet = synapse_pb_BezierTrajectory_init_default,
+    .clock_offset_ethernet = synapse_pb_Time_init_default,
+    .odometry_estimator = synapse_pb_Odometry_init_default,
     .cmd_vel = {
         .has_angular = true,
         .has_linear = true,
-        .linear = synapse_msgs_Vector3_init_default,
-        .angular = synapse_msgs_Vector3_init_default,
+        .linear = synapse_pb_Vector3_init_default,
+        .angular = synapse_pb_Vector3_init_default,
     },
     .sub_status = {},
     .sub_clock_offset_ethernet = {},
@@ -237,7 +237,7 @@ static void b3rb_position_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_clock_offset_ethernet);
         }
 
-        if (ctx->status.mode == synapse_msgs_Status_Mode_MODE_BEZIER) {
+        if (ctx->status.mode == synapse_pb_Status_Mode_MODE_BEZIER) {
             bezier_position_mode(ctx);
             zros_pub_update(&ctx->pub_cmd_vel);
         }

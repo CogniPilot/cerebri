@@ -35,11 +35,11 @@ struct context {
         sub_nav_sat_fix,
         sub_status;
     // topic data
-    synapse_msgs_Frame tx_frame;
-    synapse_msgs_Actuators actuators;
-    synapse_msgs_NavSatFix nav_sat_fix;
-    synapse_msgs_Odometry odometry_estimator;
-    synapse_msgs_Status status;
+    synapse_pb_Frame tx_frame;
+    synapse_pb_Actuators actuators;
+    synapse_pb_NavSatFix nav_sat_fix;
+    synapse_pb_Odometry odometry_estimator;
+    synapse_pb_Status status;
     // connections
     struct udp_tx udp;
     // status
@@ -64,33 +64,33 @@ static struct context g_ctx = {
     .thread_data = {},
 };
 
-static void send_frame(struct context* ctx, synapse_msgs_Topic topic)
+static void send_frame(struct context* ctx, synapse_pb_Topic topic)
 {
-    synapse_msgs_Frame* frame = &ctx->tx_frame;
+    synapse_pb_Frame* frame = &ctx->tx_frame;
     frame->topic = topic;
-    if (topic == synapse_msgs_Topic_TOPIC_ACTUATORS) {
+    if (topic == synapse_pb_Topic_TOPIC_ACTUATORS) {
         frame->msg.actuators = ctx->actuators;
-        frame->which_msg = synapse_msgs_Frame_actuators_tag;
-    } else if (topic == synapse_msgs_Topic_TOPIC_NAV_SAT_FIX) {
+        frame->which_msg = synapse_pb_Frame_actuators_tag;
+    } else if (topic == synapse_pb_Topic_TOPIC_NAV_SAT_FIX) {
         frame->msg.nav_sat_fix = ctx->nav_sat_fix;
-        frame->which_msg = synapse_msgs_Frame_nav_sat_fix_tag;
-    } else if (topic == synapse_msgs_Topic_TOPIC_ODOMETRY) {
+        frame->which_msg = synapse_pb_Frame_nav_sat_fix_tag;
+    } else if (topic == synapse_pb_Topic_TOPIC_ODOMETRY) {
         frame->msg.odometry = ctx->odometry_estimator;
-        frame->which_msg = synapse_msgs_Frame_odometry_tag;
-    } else if (topic == synapse_msgs_Topic_TOPIC_STATUS) {
+        frame->which_msg = synapse_pb_Frame_odometry_tag;
+    } else if (topic == synapse_pb_Topic_TOPIC_STATUS) {
         frame->msg.status = ctx->status;
-        frame->which_msg = synapse_msgs_Frame_status_tag;
-    } else if (topic == synapse_msgs_Topic_TOPIC_UPTIME) {
+        frame->which_msg = synapse_pb_Frame_status_tag;
+    } else if (topic == synapse_pb_Topic_TOPIC_UPTIME) {
         int64_t ticks = k_uptime_ticks();
         int64_t sec = ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         int32_t nanosec = (ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         frame->msg.time.sec = sec;
         frame->msg.time.nanosec = nanosec;
-        frame->which_msg = synapse_msgs_Frame_time_tag;
+        frame->which_msg = synapse_pb_Frame_time_tag;
     }
     static uint8_t tx_buf[TX_BUF_SIZE];
     pb_ostream_t stream = pb_ostream_from_buffer(tx_buf, sizeof(tx_buf));
-    if (!pb_encode_ex(&stream, synapse_msgs_Frame_fields, frame, PB_ENCODE_DELIMITED)) {
+    if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, frame, PB_ENCODE_DELIMITED)) {
         LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
     } else {
         udp_tx_send(&ctx->udp, tx_buf, stream.bytes_written);
@@ -192,26 +192,26 @@ static void eth_tx_run(void* p0, void* p1, void* p2)
 
         if (zros_sub_update_available(&ctx->sub_actuators)) {
             zros_sub_update(&ctx->sub_actuators);
-            send_frame(ctx, synapse_msgs_Topic_TOPIC_ACTUATORS);
+            send_frame(ctx, synapse_pb_Topic_TOPIC_ACTUATORS);
         }
 
         if (zros_sub_update_available(&ctx->sub_nav_sat_fix)) {
             zros_sub_update(&ctx->sub_nav_sat_fix);
-            send_frame(ctx, synapse_msgs_Topic_TOPIC_NAV_SAT_FIX);
+            send_frame(ctx, synapse_pb_Topic_TOPIC_NAV_SAT_FIX);
         }
 
         if (zros_sub_update_available(&ctx->sub_status)) {
             zros_sub_update(&ctx->sub_status);
-            send_frame(ctx, synapse_msgs_Topic_TOPIC_STATUS);
+            send_frame(ctx, synapse_pb_Topic_TOPIC_STATUS);
         }
 
         if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
             zros_sub_update(&ctx->sub_odometry_estimator);
-            send_frame(ctx, synapse_msgs_Topic_TOPIC_ODOMETRY);
+            send_frame(ctx, synapse_pb_Topic_TOPIC_ODOMETRY);
         }
 
         if (now - ticks_last_uptime > CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
-            send_frame(ctx, synapse_msgs_Topic_TOPIC_UPTIME);
+            send_frame(ctx, synapse_pb_Topic_TOPIC_UPTIME);
             ticks_last_uptime = now;
         }
     }

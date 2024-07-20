@@ -424,7 +424,7 @@ int sense_imu_entry_point(context_t* ctx)
     imu_init(ctx);
     // delay initiali calibration 1 s
     k_msleep(1000);
-    k_timer_start(&ctx->timer, K_MSEC(2), K_MSEC(2));
+    k_timer_start(&ctx->timer, K_USEC(1000), K_USEC(1000));
     return 0;
 }
 

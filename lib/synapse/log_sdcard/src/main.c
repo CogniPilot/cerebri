@@ -13,9 +13,9 @@
 
 #include <pb_encode.h>
 
+#include <ff.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>
-#include <ff.h>
 
 #include <synapse_topic_list.h>
 
@@ -24,16 +24,13 @@
 #define MY_PRIORITY 1
 #define BUF_SIZE 8192
 
-
 static FATFS fat_fs;
 static struct fs_mount_t mp = {
     .type = FS_FATFS,
     .fs_data = &fat_fs,
 };
 
-
 LOG_MODULE_REGISTER(log_sdcard, LOG_LEVEL_DBG);
-
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
@@ -199,14 +196,13 @@ static void log_sdcard_run(void* p0, void* p1, void* p2)
 
         if (zros_sub_update_available(&ctx->sub_imu)) {
             zros_sub_update(&ctx->sub_imu);
-            ctx->frame.topic = synapse_pb_Topic_TOPIC_IMU;
             ctx->frame.which_msg = synapse_pb_Frame_imu_tag;
             pb_ostream_t stream = pb_ostream_from_buffer(ctx->buf, BUF_SIZE);
             if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, &ctx->frame, PB_ENCODE_DELIMITED)) {
                 LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
             } else {
                 fs_write(&ctx->file, ctx->buf, stream.bytes_written);
-                //LOG_INF("logged %d bytes", stream.bytes_written);
+                // LOG_INF("logged %d bytes", stream.bytes_written);
             }
         }
     }

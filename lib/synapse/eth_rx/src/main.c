@@ -52,61 +52,41 @@ static void handle_frame(struct context* ctx)
     // determine topic for data
     if (frame->which_msg == synapse_pb_Frame_bezier_trajectory_tag) {
         msg = &frame->msg.bezier_trajectory;
-        if (frame->topic == synapse_pb_Topic_TOPIC_BEZIER_TRAJECTORY) {
-            topic = &topic_bezier_trajectory_ethernet;
-        }
-    } else if (frame->which_msg == synapse_pb_Frame_time_tag) {
-        msg = &frame->msg.time;
-        if (frame->topic == synapse_pb_Topic_TOPIC_CLOCK_OFFSET) {
-            topic = &topic_clock_offset_ethernet;
-        }
+        topic = &topic_bezier_trajectory_ethernet;
+    } else if (frame->which_msg == synapse_pb_Frame_clock_offset_tag) {
+        msg = &frame->msg.clock_offset;
+        topic = &topic_clock_offset_ethernet;
     } else if (frame->which_msg == synapse_pb_Frame_input_tag) {
         msg = &frame->msg.input;
-        if (frame->topic == synapse_pb_Topic_TOPIC_INPUT) {
-            topic = &topic_input_ethernet;
-        }
-    } else if (frame->which_msg == synapse_pb_Frame_twist_tag) {
-        msg = &frame->msg.twist;
-        if (frame->topic == synapse_pb_Topic_TOPIC_CMD_VEL) {
-            topic = &topic_cmd_vel_ethernet;
-        }
+        topic = &topic_input_ethernet;
+    } else if (frame->which_msg == synapse_pb_Frame_cmd_vel_tag) {
+        msg = &frame->msg.cmd_vel;
+        topic = &topic_cmd_vel_ethernet;
 #ifdef CONFIG_CEREBRI_DREAM_HIL
     } else if (frame->which_msg == synapse_pb_Frame_battery_state_tag) {
         msg = &frame->msg.battery_state;
-        if (frame->topic == synapse_pb_Topic_TOPIC_BATTERY_STATE) {
-            topic = &topic_battery_state;
-        }
+        topic = &topic_battery_state;
     } else if (frame->which_msg == synapse_pb_Frame_imutag) {
         msg = &frame->msg.imu;
-        if (frame->topic == synapse_pb_Topic_TOPIC_IMU) {
-            topic = &topic_imu;
-        }
+        topic = &topic_imu;
     } else if (frame->which_msg == synapse_pb_Frame_magnetic_fieldtag) {
         msg = &frame->msg.magnetic_field;
-        if (frame->topic == synapse_pb_Topic_TOPIC_MAGNETIC_FIELD) {
-            topic = &topic_magnetic_field;
-        }
+        topic = &topic_magnetic_field;
     } else if (frame->which_msg == synapse_pb_Frame_nav_sat_fixtag) {
         msg = &frame->msg.nav_sat_fix;
-        if (frame->topic == synapse_pb_Topic_TOPIC_NAV_SAT_FIX) {
-            zros_topic_publish(&topic_nav_sat_fix, msg);
-        }
+        zros_topic_publish(&topic_nav_sat_fix, msg);
     } else if (frame->which_msg == synapse_pb_Frame_wheel_odometrytag) {
         msg = &frame->msg.wheel_odometry;
-        if (frame->topic == synapse_pb_Topic_TOPIC_WHEEL_ODOMETRY) {
-            topic = &topic_wheel_odometry;
-        }
+        topic = &topic_wheel_odometry;
 #endif
     }
 
     if (msg == NULL) {
         LOG_ERR("unhandled message: %d", frame->which_msg);
-    } else if (topic == NULL) {
-        LOG_ERR("unhandled topic: %d", frame->topic);
     } else {
         int ret = zros_topic_publish(topic, msg);
         if (ret != 0) {
-            LOG_ERR("failed to publish topic: %d msg: %d", frame->topic, frame->which_msg);
+            LOG_ERR("failed to publish msg: %d", frame->which_msg);
         }
     }
 }

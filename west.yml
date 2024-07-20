@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 61471d5a49cf0cb57845c5e3203e4dc4f0da34e2 # zephyr_cogni-3.6-v0
+      revision: merge-icm4268x-final
       import:
         - name-allowlist:
           - nanopb
@@ -45,8 +45,8 @@ manifest:
     - name: ubxlib
       remote: cognipilot
       path: modules/lib/ubxlib
-      revision: 9c485ed5ab663b96cae6199498356fd13ee35904 # b_mythical 04/12/24
+      revision: brave
     - name: hal_nxp
       remote: cognipilot
-      revision: a092d490a5bd7ed2db6fceb8c0b720cb4ead099a # pr-qtmr-pwm
+      revision: master
       path: modules/hal/nxp

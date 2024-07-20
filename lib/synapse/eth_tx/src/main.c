@@ -64,29 +64,24 @@ static struct context g_ctx = {
     .thread_data = {},
 };
 
-static void send_frame(struct context* ctx, synapse_pb_Topic topic)
+static void send_frame(struct context* ctx, pb_size_t which_msg)
 {
     synapse_pb_Frame* frame = &ctx->tx_frame;
-    frame->topic = topic;
-    if (topic == synapse_pb_Topic_TOPIC_ACTUATORS) {
+    frame->which_msg = which_msg;
+    if (which_msg == synapse_pb_Frame_actuators_tag) {
         frame->msg.actuators = ctx->actuators;
-        frame->which_msg = synapse_pb_Frame_actuators_tag;
-    } else if (topic == synapse_pb_Topic_TOPIC_NAV_SAT_FIX) {
+    } else if (which_msg == synapse_pb_Frame_nav_sat_fix_tag) {
         frame->msg.nav_sat_fix = ctx->nav_sat_fix;
-        frame->which_msg = synapse_pb_Frame_nav_sat_fix_tag;
-    } else if (topic == synapse_pb_Topic_TOPIC_ODOMETRY) {
+    } else if (which_msg == synapse_pb_Frame_odometry_tag) {
         frame->msg.odometry = ctx->odometry_estimator;
-        frame->which_msg = synapse_pb_Frame_odometry_tag;
-    } else if (topic == synapse_pb_Topic_TOPIC_STATUS) {
+    } else if (which_msg == synapse_pb_Frame_status_tag) {
         frame->msg.status = ctx->status;
-        frame->which_msg = synapse_pb_Frame_status_tag;
-    } else if (topic == synapse_pb_Topic_TOPIC_UPTIME) {
+    } else if (which_msg == synapse_pb_Frame_uptime_tag) {
         int64_t ticks = k_uptime_ticks();
         int64_t sec = ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         int32_t nanosec = (ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-        frame->msg.time.sec = sec;
-        frame->msg.time.nanosec = nanosec;
-        frame->which_msg = synapse_pb_Frame_time_tag;
+        frame->msg.uptime.sec = sec;
+        frame->msg.uptime.nanosec = nanosec;
     }
     static uint8_t tx_buf[TX_BUF_SIZE];
     pb_ostream_t stream = pb_ostream_from_buffer(tx_buf, sizeof(tx_buf));
@@ -192,26 +187,26 @@ static void eth_tx_run(void* p0, void* p1, void* p2)
 
         if (zros_sub_update_available(&ctx->sub_actuators)) {
             zros_sub_update(&ctx->sub_actuators);
-            send_frame(ctx, synapse_pb_Topic_TOPIC_ACTUATORS);
+            send_frame(ctx, synapse_pb_Frame_actuators_tag);
         }
 
         if (zros_sub_update_available(&ctx->sub_nav_sat_fix)) {
             zros_sub_update(&ctx->sub_nav_sat_fix);
-            send_frame(ctx, synapse_pb_Topic_TOPIC_NAV_SAT_FIX);
+            send_frame(ctx, synapse_pb_Frame_nav_sat_fix_tag);
         }
 
         if (zros_sub_update_available(&ctx->sub_status)) {
             zros_sub_update(&ctx->sub_status);
-            send_frame(ctx, synapse_pb_Topic_TOPIC_STATUS);
+            send_frame(ctx, synapse_pb_Frame_status_tag);
         }
 
         if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
             zros_sub_update(&ctx->sub_odometry_estimator);
-            send_frame(ctx, synapse_pb_Topic_TOPIC_ODOMETRY);
+            send_frame(ctx, synapse_pb_Frame_odometry_tag);
         }
 
         if (now - ticks_last_uptime > CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
-            send_frame(ctx, synapse_pb_Topic_TOPIC_UPTIME);
+            send_frame(ctx, synapse_pb_Frame_uptime_tag);
             ticks_last_uptime = now;
         }
     }

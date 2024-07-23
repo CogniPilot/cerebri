@@ -41,13 +41,8 @@ static context_t g_ctx = {
     .node = {},
     .pub = {},
     .data = {
-        .has_header = true,
-        .header = {
-            .frame_id = "base_link",
-            .has_stamp = true,
-            .seq = 0,
-            .stamp = synapse_pb_Time_init_default,
-        },
+        .has_stamp = true,
+        .stamp = synapse_pb_Timestamp_init_default,
         .capacity = 0,
         .cell_temperature = {},
         .cell_temperature_count = 0,
@@ -81,8 +76,7 @@ void power_work_handler(struct k_work* work)
     sensor_channel_get(ctx->device[0], SENSOR_CHAN_VOLTAGE, &voltage);
     sensor_channel_get(ctx->device[0], SENSOR_CHAN_CURRENT, &current);
 
-    stamp_header(&ctx->data.header, k_uptime_ticks());
-    ctx->data.header.seq++;
+    stamp_msg(&ctx->data.stamp, k_uptime_ticks());
     ctx->data.voltage = sensor_value_to_double(&voltage);
     ctx->data.current = sensor_value_to_double(&current);
 

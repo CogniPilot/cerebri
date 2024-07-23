@@ -54,6 +54,7 @@ static context_t g_ctx = {
 #define TOPIC_DICTIONARY()                                                                             \
     (accel_sp, &topic_accel_sp, "accel_sp"),                                                           \
         (accel_ff, &topic_accel_ff, "accel_ff"),                                                       \
+        (accel_array_0, &topic_accel_array_0, "accel_array_0"),                                        \
         (actuators, &topic_actuators, "actuators"),                                                    \
         (altimeter, &topic_altimeter, "altimeter"),                                                    \
         (angular_velocity_ff, &topic_angular_velocity_ff, "angular_velocity_ff"),                      \
@@ -239,6 +240,9 @@ void topic_work_handler(struct k_work* work)
     if (topic == &topic_actuators) {
         synapse_pb_Actuators msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_actuators);
+    } else if (topic == &topic_accel_array_0) {
+        synapse_pb_Vector3Array msg = {};
+        handler(sh, topic, &msg, (snprint_t*)&snprint_vector3_array);
     } else if (topic == &topic_altimeter) {
         synapse_pb_Altimeter msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_altimeter);
@@ -263,8 +267,8 @@ void topic_work_handler(struct k_work* work)
         synapse_pb_BezierTrajectory msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_bezier_trajectory);
     } else if (topic == &topic_clock_offset_ethernet) {
-        synapse_pb_Time msg = {};
-        handler(sh, topic, &msg, (snprint_t*)&snprint_time);
+        synapse_pb_ClockOffset msg = {};
+        handler(sh, topic, &msg, (snprint_t*)&snprint_clock_offset);
     } else if (topic == &topic_cmd_vel || topic == &topic_cmd_vel_ethernet) {
         synapse_pb_Twist msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_twist);

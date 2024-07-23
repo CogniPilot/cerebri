@@ -79,7 +79,7 @@ void actuate_led_array_entry_point(context* ctx)
 
         // perform processing
         for (int i = 0; i < ctx->data.led_count; i++) {
-            synapse_pb_LED led = ctx->data.led[i];
+            synapse_pb_LEDArray_LED led = ctx->data.led[i];
             if (led.index > CONFIG_CEREBRI_ACTUATE_LED_ARRAY_COUNT) {
                 LOG_ERR("Setting LED index out of range");
                 continue;

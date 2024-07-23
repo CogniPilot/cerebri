@@ -141,9 +141,9 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
              * omega[3],omega_r[3],i0[3],dt)->(M[3],i1[3]) */
             CASADI_FUNC_ARGS(attitude_rate_control);
             double omega[3] = {
-                ctx->odometry_estimator.twist.twist.angular.x,
-                ctx->odometry_estimator.twist.twist.angular.y,
-                ctx->odometry_estimator.twist.twist.angular.z,
+                ctx->odometry_estimator.twist.angular.x,
+                ctx->odometry_estimator.twist.angular.y,
+                ctx->odometry_estimator.twist.angular.z,
             };
             double omega_r[3] = {
                 ctx->angular_velocity_sp.x,

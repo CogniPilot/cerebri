@@ -36,8 +36,8 @@ int snprint_pwm(char* buf, size_t n, synapse_pb_Pwm* m)
 int snprint_actuators(char* buf, size_t n, synapse_pb_Actuators* m)
 {
     size_t offset = 0;
-    if (m->has_header) {
-        offset += snprint_header(buf + offset, n - offset, &m->header);
+    if (m->has_stamp) {
+        offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
     }
 
     for (int i = 0; i < m->position_count; i++) {
@@ -72,15 +72,15 @@ int snprint_altimeter(char* buf, size_t n, synapse_pb_Altimeter* m)
 int snprint_battery_state(char* buf, size_t n, synapse_pb_BatteryState* m)
 {
     size_t offset = 0;
-    if (m->has_header) {
-        offset += snprint_header(buf + offset, n - offset, &m->header);
+    if (m->has_stamp) {
+        offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
     }
     offset += snprintf_cat(buf + offset, n - offset, "voltage: %10.4f V, current: %10.4f A\n",
         m->voltage, m->current);
     return offset;
 }
 
-int snprint_bezier_curve(char* buf, size_t n, synapse_pb_BezierCurve* m)
+int snprint_bezier_curve(char* buf, size_t n, synapse_pb_BezierTrajectory_Curve* m)
 {
     size_t offset = 0;
     for (int i = 0; i < m->x_count; i++) {
@@ -130,8 +130,8 @@ int snprint_bezier_curve(char* buf, size_t n, synapse_pb_BezierCurve* m)
 int snprint_bezier_trajectory(char* buf, size_t n, synapse_pb_BezierTrajectory* m)
 {
     size_t offset = 0;
-    if (m->has_header) {
-        offset += snprint_header(buf + offset, n - offset, &m->header);
+    if (m->has_stamp) {
+        offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
     }
 
     offset += snprintf_cat(buf + offset, n - offset, "time start: %lld\n", m->time_start);
@@ -146,8 +146,8 @@ int snprint_bezier_trajectory(char* buf, size_t n, synapse_pb_BezierTrajectory* 
 int snprint_status(char* buf, size_t n, synapse_pb_Status* m)
 {
     size_t offset = 0;
-    if (m->has_header) {
-        offset += snprint_header(buf + offset, n - offset, &m->header);
+    if (m->has_stamp) {
+        offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
     }
     offset += snprintf_cat(buf + offset, n - offset,
         "armed: %s\ninput source: %s\ntopic source: %s\nmode: %s\nsafety: %s\nfuel: %s\n"
@@ -161,46 +161,20 @@ int snprint_status(char* buf, size_t n, synapse_pb_Status* m)
     return offset;
 }
 
-int snprint_header(char* buf, size_t n, synapse_pb_Header* m)
-{
-    size_t offset = 0;
-    if (m->has_stamp) {
-        offset += snprint_time(buf + offset, n - offset, &m->stamp);
-    }
-    offset += snprintf_cat(buf + offset, n - offset, "frame: %s\n", m->frame_id);
-    offset += snprintf_cat(buf + offset, n - offset, "seq: %d\n", m->seq);
-    return offset;
-}
-
 int snprint_imu(char* buf, size_t n, synapse_pb_Imu* m)
 {
     size_t offset = 0;
-    if (m->has_header) {
-        offset += snprint_header(buf + offset, n - offset, &m->header);
+    if (m->has_stamp) {
+        offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
     }
-
     if (m->has_angular_velocity) {
         offset += snprintf_cat(buf + offset, n - offset, "angular velocity [rad/s]\n");
         offset += snprint_vector3(buf + offset, n - offset, &m->angular_velocity);
-
-        for (int i = 0; i < m->angular_velocity_covariance_count; i++) {
-            if (i == 0) {
-                offset += snprintf_cat(buf + offset, n - offset, "covariance\n");
-            }
-            offset += snprintf_cat(buf + offset, n - offset, "%10.4f", m->angular_velocity_covariance[i]);
-        }
     }
 
     if (m->has_linear_acceleration) {
         offset += snprintf_cat(buf + offset, n - offset, "linear acceleration [m/s^2]\n");
         offset += snprint_vector3(buf + offset, n - offset, &m->linear_acceleration);
-
-        for (int i = 0; i < m->linear_acceleration_covariance_count; i++) {
-            if (i == 0) {
-                offset += snprintf_cat(buf + offset, n - offset, "covariance\n");
-            }
-            offset += snprintf_cat(buf + offset, n - offset, "%10.4f", m->linear_acceleration_covariance[i]);
-        }
     }
 
     if (m->has_orientation) {
@@ -239,28 +213,22 @@ int snprint_ledarray(char* buf, size_t n, synapse_pb_LEDArray* m)
 int snprint_magnetic_field(char* buf, size_t n, synapse_pb_MagneticField* m)
 {
     size_t offset = 0;
-    if (m->has_header) {
-        offset += snprint_header(buf + offset, n - offset, &m->header);
+    if (m->has_stamp) {
+        offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
     }
 
     if (m->has_magnetic_field) {
         offset += snprint_vector3(buf + offset, n - offset, &m->magnetic_field);
     }
 
-    for (int i = 0; i < m->magnetic_field_covariance_count; i++) {
-        if (i == 0) {
-            offset += snprintf_cat(buf + offset, n - offset, "covariance\n");
-        }
-        offset += snprintf_cat(buf + offset, n - offset, "%10.4f\n", m->magnetic_field_covariance[i]);
-    }
     return offset;
 }
 
 int snprint_navsatfix(char* buf, size_t n, synapse_pb_NavSatFix* m)
 {
     size_t offset = 0;
-    if (m->has_header) {
-        offset += snprint_header(buf + offset, n - offset, &m->header);
+    if (m->has_stamp) {
+        offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
     }
     offset += snprintf_cat(buf + offset, n - offset, "lat: %10.7f deg\n", m->latitude);
     offset += snprintf_cat(buf + offset, n - offset, "lon: %10.7f deg\n", m->longitude);
@@ -271,24 +239,19 @@ int snprint_navsatfix(char* buf, size_t n, synapse_pb_NavSatFix* m)
 int snprint_odometry(char* buf, size_t n, synapse_pb_Odometry* m)
 {
     size_t offset = 0;
-    if (m->has_header) {
-        offset += snprint_header(buf + offset, n - offset, &m->header);
+    if (m->has_stamp) {
+        offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
     }
 
     if (m->has_pose) {
-        offset += snprint_pose_with_covariance(buf + offset, n - offset, &m->pose);
+        offset += snprint_pose(buf + offset, n - offset, &m->pose);
     }
 
     if (m->has_twist) {
-        offset += snprint_twist_with_covariance(buf + offset, n - offset, &m->twist);
+        offset += snprint_twist(buf + offset, n - offset, &m->twist);
     }
     offset += snprintf_cat(buf + offset, n - offset, "child frame: %s\n", m->child_frame_id);
     return offset;
-}
-
-int snprint_point(char* buf, size_t n, synapse_pb_Point* m)
-{
-    return snprintf_cat(buf, 100, "x: %10.4f y: %10.4f z: %10.4f\n", m->x, m->y, m->z);
 }
 
 int snprint_pose(char* buf, size_t n, synapse_pb_Pose* m)
@@ -296,28 +259,12 @@ int snprint_pose(char* buf, size_t n, synapse_pb_Pose* m)
     size_t offset = 0;
     if (m->has_position) {
         offset += snprintf_cat(buf + offset, n - offset, "position\n");
-        offset += snprint_point(buf + offset, n - offset, &m->position);
+        offset += snprint_vector3(buf + offset, n - offset, &m->position);
     }
 
     if (m->has_orientation) {
         offset += snprintf_cat(buf + offset, n - offset, "orientation\n");
         offset += snprint_quaternion(buf + offset, n - offset, &m->orientation);
-    }
-    return offset;
-}
-
-int snprint_pose_with_covariance(char* buf, size_t n, synapse_pb_PoseWithCovariance* m)
-{
-    size_t offset = 0;
-    if (m->has_pose) {
-        offset += snprint_pose(buf + offset, n - offset, &m->pose);
-    }
-
-    for (int i = 0; i < m->covariance_count; i++) {
-        if (i == 0) {
-            offset += snprintf_cat(buf + offset, n - offset, "covariance\n");
-        }
-        offset += snprintf_cat(buf + offset, n - offset, "%10.4f\n", m->covariance[i]);
     }
     return offset;
 }
@@ -340,17 +287,22 @@ int snprint_quaternion(char* buf, size_t n, synapse_pb_Quaternion* m)
 int snprint_safety(char* buf, size_t n, synapse_pb_Safety* m)
 {
     size_t offset = 0;
-    if (m->has_header) {
-        offset += snprint_header(buf + offset, n - offset, &m->header);
+    if (m->has_stamp) {
+        offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
     }
     offset += snprintf_cat(buf + offset, n - offset, "safety: %s\n",
         safety_str(m->status));
     return offset;
 }
 
-int snprint_time(char* buf, size_t n, synapse_pb_Time* m)
+int snprint_timestamp(char* buf, size_t n, synapse_pb_Timestamp* m)
 {
-    return snprintf_cat(buf, n, "stamp: %lld.%09d\n", m->sec, m->nanosec);
+    return snprintf_cat(buf, n, "stamp: %lld.%09d\n", m->seconds, m->nanos);
+}
+
+int snprint_clock_offset(char* buf, size_t n, synapse_pb_ClockOffset* m)
+{
+    return snprintf_cat(buf, n, "stamp: %lld.%09d\n", m->offset.seconds, m->offset.nanos);
 }
 
 int snprint_twist(char* buf, size_t n, synapse_pb_Twist* m)
@@ -367,32 +319,25 @@ int snprint_twist(char* buf, size_t n, synapse_pb_Twist* m)
     return offset;
 }
 
-int snprint_twist_with_covariance(char* buf, size_t n, synapse_pb_TwistWithCovariance* m)
-{
-    size_t offset = 0;
-    if (m->has_twist) {
-        offset += snprint_twist(buf + offset, n - offset, &m->twist);
-    }
-
-    for (int i = 0; i < m->covariance_count; i++) {
-        if (i == 0) {
-            offset += snprintf_cat(buf + offset, n - offset, "covariance\n");
-        }
-        offset += snprintf_cat(buf + offset, n - offset, "%10.4f", m->covariance[i]);
-    }
-    return offset;
-}
-
 int snprint_vector3(char* buf, size_t n, synapse_pb_Vector3* m)
 {
     return snprintf_cat(buf, n, "x: %10.4f y: %10.4f z: %10.4f\n", m->x, m->y, m->z);
 }
 
+int snprint_vector3_array(char* buf, size_t n, synapse_pb_Vector3Array* m)
+{
+    size_t offset = 0;
+    for (int i = 0; i < m->value_count; i++) {
+        offset += snprint_vector3(buf + offset, n - offset, &m->value[i]);
+    }
+    return offset;
+}
+
 int snprint_wheel_odometry(char* buf, size_t n, synapse_pb_WheelOdometry* m)
 {
     size_t offset = 0;
-    if (m->has_header) {
-        offset += snprint_header(buf + offset, n - offset, &m->header);
+    if (m->has_stamp) {
+        offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
     }
     offset += snprintf_cat(buf + offset, n - offset, "rotation: %10.4f\n", m->rotation);
     return offset;

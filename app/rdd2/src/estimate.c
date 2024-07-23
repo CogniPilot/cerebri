@@ -57,16 +57,15 @@ static struct context g_ctx = {
     .imu = synapse_pb_Imu_init_default,
     .odometry = {
         .child_frame_id = "base_link",
-        .has_header = true,
-        .header.frame_id = "odom",
+        .has_stamp = true,
+        .stamp = synapse_pb_Timestamp_init_default,
+        .frame_id = "odom",
         .has_pose = true,
         .has_twist = true,
-        .pose.has_pose = true,
-        .pose.pose.has_position = true,
-        .pose.pose.has_orientation = true,
-        .twist.has_twist = true,
-        .twist.twist.has_angular = true,
-        .twist.twist.has_linear = true,
+        .pose.has_position = true,
+        .pose.has_orientation = true,
+        .twist.has_angular = true,
+        .twist.has_linear = true,
     },
     .sub_odometry_ethernet = {},
     .sub_imu = {},
@@ -111,8 +110,6 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
     rdd2_estimate_init(ctx);
 
     // variables
-    int32_t seq = 0;
-
     struct k_poll_event events[1] = {};
 
     // wait for imu
@@ -171,29 +168,29 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
             zros_sub_update(&ctx->sub_odometry_ethernet);
 
 #if defined(CONFIG_CEREBRI_RDD2_ESTIMATE_ODOMETRY_ETHERNET)
-            __ASSERT(fabs((ctx->odometry_ethernet.pose.pose.orientation.w * ctx->odometry_ethernet.pose.pose.orientation.w
-                              + ctx->odometry_ethernet.pose.pose.orientation.x * ctx->odometry_ethernet.pose.pose.orientation.x
-                              + ctx->odometry_ethernet.pose.pose.orientation.y * ctx->odometry_ethernet.pose.pose.orientation.y
-                              + ctx->odometry_ethernet.pose.pose.orientation.z * ctx->odometry_ethernet.pose.pose.orientation.z)
+            __ASSERT(fabs((ctx->odometry_ethernet.pose.orientation.w * ctx->odometry_ethernet.pose.orientation.w
+                              + ctx->odometry_ethernet.pose.orientation.x * ctx->odometry_ethernet.pose.orientation.x
+                              + ctx->odometry_ethernet.pose.orientation.y * ctx->odometry_ethernet.pose.orientation.y
+                              + ctx->odometry_ethernet.pose.orientation.z * ctx->odometry_ethernet.pose.orientation.z)
                          - 1)
                     < 1e-2,
                 "quaternion normal error");
 
             // use offboard odometry to reset position
-            x[0] = ctx->odometry_ethernet.pose.pose.position.x;
-            x[1] = ctx->odometry_ethernet.pose.pose.position.y;
-            x[2] = ctx->odometry_ethernet.pose.pose.position.z;
+            x[0] = ctx->odometry_ethernet.pose.position.x;
+            x[1] = ctx->odometry_ethernet.pose.position.y;
+            x[2] = ctx->odometry_ethernet.pose.position.z;
 
             // use offboard odometry to reset velocity
-            x[3] = ctx->odometry_ethernet.twist.twist.linear.x;
-            x[4] = ctx->odometry_ethernet.twist.twist.linear.y;
-            x[5] = ctx->odometry_ethernet.twist.twist.linear.z;
+            x[3] = ctx->odometry_ethernet.twist.linear.x;
+            x[4] = ctx->odometry_ethernet.twist.linear.y;
+            x[5] = ctx->odometry_ethernet.twist.linear.z;
 
             // use offboard odometry to reset orientation
-            x[6] = ctx->odometry_ethernet.pose.pose.orientation.w;
-            x[7] = ctx->odometry_ethernet.pose.pose.orientation.x;
-            x[8] = ctx->odometry_ethernet.pose.pose.orientation.y;
-            x[9] = ctx->odometry_ethernet.pose.pose.orientation.z;
+            x[6] = ctx->odometry_ethernet.pose.orientation.w;
+            x[7] = ctx->odometry_ethernet.pose.orientation.x;
+            x[8] = ctx->odometry_ethernet.pose.orientation.y;
+            x[9] = ctx->odometry_ethernet.pose.orientation.z;
 #endif
         }
 
@@ -242,27 +239,26 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
 
         // publish odometry
         if (data_ok) {
-            stamp_header(&ctx->odometry.header, k_uptime_ticks());
-            ctx->odometry.header.seq = seq++;
-            ctx->odometry.pose.pose.position.x = x[0];
-            ctx->odometry.pose.pose.position.y = x[1];
-            ctx->odometry.pose.pose.position.z = x[2];
-            ctx->odometry.twist.twist.linear.x = x[3];
-            ctx->odometry.twist.twist.linear.y = x[4];
-            ctx->odometry.twist.twist.linear.z = x[5];
-            ctx->odometry.pose.pose.orientation.w = x[6];
-            ctx->odometry.pose.pose.orientation.x = x[7];
-            ctx->odometry.pose.pose.orientation.y = x[8];
-            ctx->odometry.pose.pose.orientation.z = x[9];
-            ctx->odometry.twist.twist.angular.x = ctx->imu.angular_velocity.x;
-            ctx->odometry.twist.twist.angular.y = ctx->imu.angular_velocity.y;
-            ctx->odometry.twist.twist.angular.z = ctx->imu.angular_velocity.z;
+            stamp_msg(&ctx->odometry.stamp, k_uptime_ticks());
+            ctx->odometry.pose.position.x = x[0];
+            ctx->odometry.pose.position.y = x[1];
+            ctx->odometry.pose.position.z = x[2];
+            ctx->odometry.twist.linear.x = x[3];
+            ctx->odometry.twist.linear.y = x[4];
+            ctx->odometry.twist.linear.z = x[5];
+            ctx->odometry.pose.orientation.w = x[6];
+            ctx->odometry.pose.orientation.x = x[7];
+            ctx->odometry.pose.orientation.y = x[8];
+            ctx->odometry.pose.orientation.z = x[9];
+            ctx->odometry.twist.angular.x = ctx->imu.angular_velocity.x;
+            ctx->odometry.twist.angular.y = ctx->imu.angular_velocity.y;
+            ctx->odometry.twist.angular.z = ctx->imu.angular_velocity.z;
 
             // check quaternion normal
-            __ASSERT(fabs((ctx->odometry.pose.pose.orientation.w * ctx->odometry.pose.pose.orientation.w
-                              + ctx->odometry.pose.pose.orientation.x * ctx->odometry.pose.pose.orientation.x
-                              + ctx->odometry.pose.pose.orientation.y * ctx->odometry.pose.pose.orientation.y
-                              + ctx->odometry.pose.pose.orientation.z * ctx->odometry.pose.pose.orientation.z)
+            __ASSERT(fabs((ctx->odometry.pose.orientation.w * ctx->odometry.pose.orientation.w
+                              + ctx->odometry.pose.orientation.x * ctx->odometry.pose.orientation.x
+                              + ctx->odometry.pose.orientation.y * ctx->odometry.pose.orientation.y
+                              + ctx->odometry.pose.orientation.z * ctx->odometry.pose.orientation.z)
                          - 1)
                     < 1e-2,
                 "quaternion normal error");

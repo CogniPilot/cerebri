@@ -48,12 +48,8 @@ static struct context g_ctx = {
     .node = {},
     .status = synapse_pb_Status_init_default,
     .actuators = {
-        .has_header = true,
-        .header = {
-            .seq = 0,
-            .frame_id = "odom",
-            .has_stamp = true },
-        .velocity_count = 4,
+        .has_stamp = true,
+        .stamp = synapse_pb_Timestamp_init_default,
     },
     .sub_status = {},
     .sub_force_sp = {},
@@ -170,8 +166,7 @@ static void rdd2_allocation_run(void* p0, void* p1, void* p2)
             }
         }
 
-        stamp_header(&ctx->actuators.header, k_uptime_ticks());
-        ctx->actuators.header.seq++;
+        stamp_msg(&ctx->actuators.stamp, k_uptime_ticks());
 
         // publish
         zros_pub_update(&ctx->pub_actuators);

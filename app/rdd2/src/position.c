@@ -163,15 +163,15 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
         if (ctx->status.mode == synapse_pb_Status_Mode_MODE_POSITION || ctx->status.mode == synapse_pb_Status_Mode_MODE_VELOCITY || ctx->status.mode == synapse_pb_Status_Mode_MODE_ACCELERATION || ctx->status.mode == synapse_pb_Status_Mode_MODE_BEZIER) {
 
             double p_w[3] = {
-                ctx->odometry_estimator.pose.pose.position.x,
-                ctx->odometry_estimator.pose.pose.position.y,
-                ctx->odometry_estimator.pose.pose.position.z
+                ctx->odometry_estimator.pose.position.x,
+                ctx->odometry_estimator.pose.position.y,
+                ctx->odometry_estimator.pose.position.z
             };
 
             double v_b[3] = {
-                ctx->odometry_estimator.twist.twist.linear.x,
-                ctx->odometry_estimator.twist.twist.linear.y,
-                ctx->odometry_estimator.twist.twist.linear.z
+                ctx->odometry_estimator.twist.linear.x,
+                ctx->odometry_estimator.twist.linear.y,
+                ctx->odometry_estimator.twist.linear.z
             };
 
             double p_rw[3] = {
@@ -187,10 +187,10 @@ static void rdd2_position_run(void* p0, void* p1, void* p2)
             };
 
             double q_wb[4] = {
-                ctx->odometry_estimator.pose.pose.orientation.w,
-                ctx->odometry_estimator.pose.pose.orientation.x,
-                ctx->odometry_estimator.pose.pose.orientation.y,
-                ctx->odometry_estimator.pose.pose.orientation.z
+                ctx->odometry_estimator.pose.orientation.w,
+                ctx->odometry_estimator.pose.orientation.x,
+                ctx->odometry_estimator.pose.orientation.y,
+                ctx->odometry_estimator.pose.orientation.z
             };
 
             double qc_wb[4] = {

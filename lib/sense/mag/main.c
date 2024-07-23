@@ -37,13 +37,9 @@ static context_t g_ctx = {
     .node = {},
     .pub = {},
     .data = {
-        .has_header = true,
-        .header = {
-            .frame_id = "base_link",
-            .has_stamp = true,
-            .seq = 0,
-            .stamp = synapse_pb_Time_init_default,
-        },
+        .has_stamp = true,
+        .frame_id = "base_link",
+        .stamp = synapse_pb_Timestamp_init_default,
         .magnetic_field = synapse_pb_Vector3_init_default,
         .has_magnetic_field = true,
         .magnetic_field_covariance = {},
@@ -82,8 +78,7 @@ void mag_work_handler(struct k_work* work)
     };
 
     // publish
-    stamp_header(&ctx->data.header, k_uptime_ticks());
-    ctx->data.header.seq++;
+    stamp_msg(&ctx->data.stamp, k_uptime_ticks());
     ctx->data.magnetic_field.x = mag[0];
     ctx->data.magnetic_field.y = mag[1];
     ctx->data.magnetic_field.z = mag[2];

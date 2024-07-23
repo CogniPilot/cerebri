@@ -17,13 +17,12 @@
 //*******************************************************************
 static const char* unhandled = "UNHANDLED";
 
-void stamp_header(synapse_pb_Header* hdr, int64_t ticks)
+void stamp_msg(synapse_pb_Timestamp* msg, int64_t ticks)
 {
     int64_t sec = ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
     int32_t nanosec = (ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-    hdr->has_stamp = true;
-    hdr->stamp.sec = sec;
-    hdr->stamp.nanosec = nanosec;
+    msg->seconds = sec;
+    msg->nanos = nanosec;
 }
 
 const char* input_source_str(synapse_pb_Status_InputSource src)
@@ -177,6 +176,7 @@ const char* fuel_str(synapse_pb_Status_Fuel fuel)
 /********************************************************************
  * topics
  ********************************************************************/
+ZROS_TOPIC_DEFINE(accel_array_0, synapse_pb_Vector3Array);
 ZROS_TOPIC_DEFINE(accel_ff, synapse_pb_Vector3);
 ZROS_TOPIC_DEFINE(accel_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DEFINE(actuators, synapse_pb_Actuators);
@@ -187,7 +187,7 @@ ZROS_TOPIC_DEFINE(attitude_sp, synapse_pb_Quaternion);
 ZROS_TOPIC_DEFINE(battery_state, synapse_pb_BatteryState);
 ZROS_TOPIC_DEFINE(bezier_trajectory, synapse_pb_BezierTrajectory);
 ZROS_TOPIC_DEFINE(bezier_trajectory_ethernet, synapse_pb_BezierTrajectory);
-ZROS_TOPIC_DEFINE(clock_offset_ethernet, synapse_pb_Time);
+ZROS_TOPIC_DEFINE(clock_offset_ethernet, synapse_pb_ClockOffset);
 ZROS_TOPIC_DEFINE(cmd_vel, synapse_pb_Twist);
 ZROS_TOPIC_DEFINE(cmd_vel_ethernet, synapse_pb_Twist);
 ZROS_TOPIC_DEFINE(force_sp, synapse_pb_Vector3);
@@ -211,6 +211,7 @@ ZROS_TOPIC_DEFINE(velocity_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DEFINE(wheel_odometry, synapse_pb_WheelOdometry);
 
 static struct zros_topic* topic_list[] = {
+    &topic_accel_array_0,
     &topic_accel_ff,
     &topic_accel_sp,
     &topic_actuators,

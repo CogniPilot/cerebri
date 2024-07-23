@@ -2,6 +2,7 @@
 
 add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_BARO baro)
 add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_IMU imu)
+add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_ACCEL accel)
 add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_SBUS sbus)
 add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_MAG mag)
 add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_POWER power)

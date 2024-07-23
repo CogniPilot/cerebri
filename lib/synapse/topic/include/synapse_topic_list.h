@@ -22,15 +22,16 @@
 #include <synapse_pb/quaternion.pb.h>
 #include <synapse_pb/safety.pb.h>
 #include <synapse_pb/status.pb.h>
-#include <synapse_pb/time.pb.h>
 #include <synapse_pb/twist.pb.h>
+#include <synapse_pb/uptime.pb.h>
 #include <synapse_pb/vector3.pb.h>
+#include <synapse_pb/vector3_array.pb.h>
 #include <synapse_pb/wheel_odometry.pb.h>
 
 /********************************************************************
  * helper
  ********************************************************************/
-void stamp_header(synapse_pb_Header* hdr, int64_t ticks);
+void stamp_msg(synapse_pb_Timestamp* hdr, int64_t ticks);
 const char* mode_str(synapse_pb_Status_Mode mode);
 const char* input_source_str(synapse_pb_Status_InputSource src);
 const char* topic_source_str(synapse_pb_Status_TopicSource src);
@@ -43,6 +44,7 @@ const char* link_status_str(synapse_pb_Status_LinkStatus status);
 /********************************************************************
  * topics
  ********************************************************************/
+ZROS_TOPIC_DECLARE(topic_accel_array_0, synapse_pb_Vector3Array);
 ZROS_TOPIC_DECLARE(topic_accel_ff, synapse_pb_Vector3);
 ZROS_TOPIC_DECLARE(topic_accel_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DECLARE(topic_actuators, synapse_pb_Actuators);

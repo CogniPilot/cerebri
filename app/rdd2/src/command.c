@@ -46,7 +46,7 @@ struct context {
     synapse_pb_Vector3 angular_velocity_ff, force_sp, accel_ff, moment_ff, velocity_sp, position_sp;
     synapse_pb_Quaternion attitude_sp, orientation_sp;
     synapse_pb_BezierTrajectory bezier_trajectory;
-    synapse_pb_Time clock_offset;
+    synapse_pb_ClockOffset clock_offset;
     synapse_pb_Status status;
     synapse_pb_Status last_status;
     synapse_pb_Odometry odometry_estimator;
@@ -238,10 +238,10 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
         // estimated attitude quaternion
         double q[4] = {
-            ctx->odometry_estimator.pose.pose.orientation.w,
-            ctx->odometry_estimator.pose.pose.orientation.x,
-            ctx->odometry_estimator.pose.pose.orientation.y,
-            ctx->odometry_estimator.pose.pose.orientation.z
+            ctx->odometry_estimator.pose.orientation.w,
+            ctx->odometry_estimator.pose.orientation.x,
+            ctx->odometry_estimator.pose.orientation.y,
+            ctx->odometry_estimator.pose.orientation.z
         };
 
         // handle joy based on mode
@@ -360,9 +360,9 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             // reset position setpoint if now auto or now armed
             if (now_vel || now_armed) {
                 LOG_INF("position_sp, camera_yaw reset");
-                ctx->position_sp.x = ctx->odometry_estimator.pose.pose.position.x;
-                ctx->position_sp.y = ctx->odometry_estimator.pose.pose.position.y;
-                ctx->position_sp.z = ctx->odometry_estimator.pose.pose.position.z;
+                ctx->position_sp.x = ctx->odometry_estimator.pose.position.x;
+                ctx->position_sp.y = ctx->odometry_estimator.pose.position.y;
+                ctx->position_sp.z = ctx->odometry_estimator.pose.position.z;
                 ctx->camera_yaw = yaw;
             }
 
@@ -395,9 +395,9 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
             ctx->position_sp.z += dt * vw[2];
 
             double e[3] = {
-                ctx->position_sp.x - ctx->odometry_estimator.pose.pose.position.x,
-                ctx->position_sp.y - ctx->odometry_estimator.pose.pose.position.y,
-                ctx->position_sp.z - ctx->odometry_estimator.pose.pose.position.z
+                ctx->position_sp.x - ctx->odometry_estimator.pose.position.x,
+                ctx->position_sp.y - ctx->odometry_estimator.pose.position.y,
+                ctx->position_sp.z - ctx->odometry_estimator.pose.position.z
             };
 
             double norm_e = sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]);
@@ -406,9 +406,9 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
             // saturate position setpoint distance from vehicle
             if (norm_e > pos_error_max) {
-                ctx->position_sp.x = ctx->odometry_estimator.pose.pose.position.x + e[0] * pos_error_max / norm_e;
-                ctx->position_sp.y = ctx->odometry_estimator.pose.pose.position.y + e[1] * pos_error_max / norm_e;
-                ctx->position_sp.z = ctx->odometry_estimator.pose.pose.position.z + e[2] * pos_error_max / norm_e;
+                ctx->position_sp.x = ctx->odometry_estimator.pose.position.x + e[0] * pos_error_max / norm_e;
+                ctx->position_sp.y = ctx->odometry_estimator.pose.position.y + e[1] * pos_error_max / norm_e;
+                ctx->position_sp.z = ctx->odometry_estimator.pose.position.z + e[2] * pos_error_max / norm_e;
             }
 
             // desired camera direction
@@ -453,11 +453,14 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
         } else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_BEZIER) {
             // goal -> given position goal, find cmd_vel
-            uint64_t time_start_nsec = ctx->bezier_trajectory.time_start;
+            uint64_t time_start_nsec = (ctx->bezier_trajectory.time_start.seconds * 1e9
+                + ctx->bezier_trajectory.time_start.nanos);
             uint64_t time_stop_nsec = time_start_nsec;
 
             // get current time
-            uint64_t time_nsec = k_uptime_get() * 1e6 + ctx->clock_offset.sec * 1e9 + ctx->clock_offset.nanosec;
+            uint64_t time_nsec = (k_uptime_get() * 1e6
+                + ctx->clock_offset.offset.seconds * 1e9
+                + ctx->clock_offset.offset.nanos);
 
             if (time_nsec < time_start_nsec) {
                 LOG_DBG("time current: %" PRIu64
@@ -473,11 +476,17 @@ static void rdd2_command_run(void* p0, void* p1, void* p2)
 
             while (true) {
 
+                synapse_pb_BezierTrajectory_Curve* curve = &ctx->bezier_trajectory.curves[curve_index];
+                synapse_pb_BezierTrajectory_Curve* curve_prev = &ctx->bezier_trajectory.curves[curve_index - 1];
+
+                uint64_t curve_stop_nsec = curve->time_stop.seconds * 1e9 + curve->time_stop.nanos;
+                uint64_t curve_stop_prev_nsec = curve_prev->time_stop.seconds * 1e9 + curve_prev->time_stop.nanos;
+
                 // check if time handled by current trajectory
-                if (time_nsec < ctx->bezier_trajectory.curves[curve_index].time_stop) {
-                    time_stop_nsec = ctx->bezier_trajectory.curves[curve_index].time_stop;
+                if (time_nsec < curve_stop_nsec) {
+                    time_stop_nsec = curve_stop_nsec;
                     if (curve_index > 0) {
-                        time_start_nsec = ctx->bezier_trajectory.curves[curve_index - 1].time_stop;
+                        time_start_nsec = curve_stop_prev_nsec;
                     }
                     break;
                 }

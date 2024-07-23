@@ -74,11 +74,8 @@ static context_t g_ctx = {
     .timer = Z_TIMER_INITIALIZER(g_ctx.timer, imu_timer_handler, NULL),
     .node = {},
     .imu = {
-        .has_header = true,
-        .header = {
-            .frame_id = "base_link",
-            .has_stamp = true,
-            .seq = 0 },
+        .has_stamp = true,
+        .stamp = synapse_pb_Timestamp_init_default,
         .has_angular_velocity = true,
         .angular_velocity = synapse_pb_Vector3_init_default,
         .has_linear_acceleration = true,
@@ -368,8 +365,7 @@ void imu_publish(context_t* ctx)
     static const int gyro_select = 0;
 
     // update message
-    stamp_header(&ctx->imu.header, k_uptime_ticks());
-    ctx->imu.header.seq++;
+    stamp_msg(&ctx->imu.stamp, k_uptime_ticks());
     if (fabs(ctx->gyro_raw[gyro_select][0]) > 1000) {
     }
     // TODO handle board specific transforms

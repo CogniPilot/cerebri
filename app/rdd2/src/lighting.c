@@ -80,7 +80,7 @@ static void rdd2_lighting_fini(struct context* ctx)
     LOG_INF("fini");
 }
 
-static void set_led(const int index, const double* color, const double brightness, synapse_pb_LED* led)
+static void set_led(const int index, const double* color, const double brightness, synapse_pb_LEDArray_LED* led)
 {
     led->index = index;
     led->r = brightness * color[0];
@@ -194,8 +194,7 @@ static void rdd2_lighting_run(void* p0, void* p1, void* p2)
         }
 
         // set timestamp
-        stamp_header(&ctx->led_array.header, k_uptime_ticks());
-        ctx->led_array.header.seq++;
+        stamp_msg(&ctx->led_array.stamp, k_uptime_ticks());
         ctx->led_array.led_count = led_msg_index;
 
         zros_pub_update(&ctx->pub_led_array);

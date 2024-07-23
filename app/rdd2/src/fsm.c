@@ -112,13 +112,8 @@ static struct context g_ctx = {
     .battery_state = synapse_pb_BatteryState_init_default,
     .safety = synapse_pb_Safety_init_default,
     .status = {
-        .has_header = true,
-        .header = {
-            .frame_id = "base_link",
-            .has_stamp = true,
-            .seq = 0,
-            .stamp = synapse_pb_Time_init_default,
-        },
+        .has_stamp = true,
+        .stamp = synapse_pb_Timestamp_init_default,
         .arming = synapse_pb_Status_Arming_ARMING_DISARMED,
         .fuel = synapse_pb_Status_Fuel_FUEL_UNKNOWN,
         .fuel_percentage = 0,
@@ -312,8 +307,7 @@ static void fsm_update(synapse_pb_Status* status, const struct status_input* inp
         0);
 
     // set timestamp
-    stamp_header(&status->header, k_uptime_ticks());
-    status->header.seq++;
+    stamp_msg(&status->stamp, k_uptime_ticks());
 }
 
 static void status_add_extra_info(synapse_pb_Status* status,

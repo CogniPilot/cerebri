@@ -43,19 +43,13 @@ static context_t g_ctx = {
     .node = {},
     .pub = {},
     .data = {
-        .has_header = true,
-        .header = {
-            .frame_id = "wgs84",
-            .has_stamp = true,
-            .seq = 0,
-            .stamp = synapse_pb_Time_init_default,
-        },
+        .has_stamp = true,
+        .stamp = synapse_pb_Timestamp_init_default,
         .altitude = 0,
         .latitude = 0,
         .longitude = 0,
-        .position_covariance = {},
-        .position_covariance_count = 0,
-        .position_covariance_type = 0,
+        .position_covariance = synapse_pb_Covariance3_init_default,
+        .position_covariance_type = synapse_pb_NavSatFix_CovarianceType_UNKNOWN,
         .status = { .service = 0, .status = 0 } },
     .gMeasurementPeriodMs = 100,
     .running = false,
@@ -75,8 +69,7 @@ void publish_gnss_data(uDeviceHandle_t devHandle,
         ctx->data.latitude = pLocation->latitudeX1e7 / 1e7;
         ctx->data.longitude = pLocation->longitudeX1e7 / 1e7;
         ctx->data.altitude = pLocation->altitudeMillimetres / 1e3;
-        stamp_header(&ctx->data.header, k_uptime_ticks());
-        ctx->data.header.seq++;
+        stamp_msg(&ctx->data.stamp, k_uptime_ticks());
 
         // TODO Covariance
         zros_pub_update(&ctx->pub);

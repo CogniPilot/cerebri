@@ -39,12 +39,8 @@ static context_t g_ctx = {
     .node = {},
     .pub = {},
     .data = {
-        .has_header = true,
-        .header = {
-            .frame_id = "base_link",
-            .has_stamp = true,
-            .seq = 0,
-            .stamp = synapse_pb_Time_init_default },
+        .has_stamp = true,
+        .stamp = synapse_pb_Timestamp_init_default,
         .status = synapse_pb_Safety_Status_SAFETY_SAFE,
     },
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
@@ -123,8 +119,7 @@ static void input_cb(struct input_event* evt)
             } else {
                 ctx->data.status = synapse_pb_Safety_Status_SAFETY_SAFE;
             }
-            stamp_header(&ctx->data.header, k_uptime_ticks());
-            ctx->data.header.seq++;
+            stamp_msg(&ctx->data.stamp, k_uptime_ticks());
             zros_pub_update(&ctx->pub);
             k_sem_give(&ctx->data_sem);
         }

@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 04516a8c85063dd04c3405f4405b3dde2fd784fe # merge-icm4268x-final
+      revision: 44f71550d0370ffe7864b613fae3474eb89d812f # pr-log-sdcard
       import:
         - name-allowlist:
           - nanopb

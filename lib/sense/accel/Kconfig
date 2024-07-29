@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 menuconfig CEREBRI_SENSE_ACCEL
   bool "ACCEL"
-  default y
   depends on CEREBRI_CORE_COMMON
   depends on ZROS
   help

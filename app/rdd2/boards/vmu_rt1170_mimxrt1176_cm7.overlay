@@ -41,10 +41,10 @@
 		can1 = &flexcan2;
 		can2 = &flexcan3;
 		telem1 = &lpuart8; /* Use telem2 as telem1 */
-		accel0 = &icm42686;
-		accel1 = &icm42688;
-		gyro0 = &icm42686;
-		gyro1 = &icm42688;
+		/*accel0 = &icm42686;*/
+		accel0 = &icm42688_1;
+		/*gyro0 = &icm42686;*/
+		gyro0 = &icm42688_1;
 		mag0 = &ist8310;
 		mag1 = &bmm150;
 		/* baro0 = &bmp388_0; */

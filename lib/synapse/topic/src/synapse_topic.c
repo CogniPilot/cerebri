@@ -67,6 +67,7 @@ static context_t g_ctx = {
         (cmd_vel, &topic_cmd_vel, "cmd_vel"),                                                          \
         (cmd_vel_ethernet, &topic_cmd_vel_ethernet, "cmd_vel_ethernet"),                               \
         (force_sp, &topic_force_sp, "force_sp"),                                                       \
+        (gyro_array_0, &topic_gyro_array_0, "gyro_array_0"),                                           \
         (imu, &topic_imu, "imu"),                                                                      \
         (input, &topic_input, "input"),                                                                \
         (input_ethernet, &topic_input_ethernet, "input_ethernet"),                                     \
@@ -240,7 +241,8 @@ void topic_work_handler(struct k_work* work)
     if (topic == &topic_actuators) {
         synapse_pb_Actuators msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_actuators);
-    } else if (topic == &topic_accel_array_0) {
+    } else if (topic == &topic_accel_array_0
+        || topic == &topic_gyro_array_0) {
         synapse_pb_Vector3Array msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_vector3_array);
     } else if (topic == &topic_altimeter) {

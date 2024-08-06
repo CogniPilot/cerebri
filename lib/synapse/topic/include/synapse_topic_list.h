@@ -59,6 +59,7 @@ ZROS_TOPIC_DECLARE(topic_clock_offset_ethernet, synapse_pb_Time);
 ZROS_TOPIC_DECLARE(topic_cmd_vel, synapse_pb_Twist);
 ZROS_TOPIC_DECLARE(topic_cmd_vel_ethernet, synapse_pb_Twist);
 ZROS_TOPIC_DECLARE(topic_force_sp, synapse_pb_Vector3);
+ZROS_TOPIC_DECLARE(topic_gyro_array_0, synapse_pb_Vector3Array);
 ZROS_TOPIC_DECLARE(topic_imu, synapse_pb_Imu);
 ZROS_TOPIC_DECLARE(topic_input, synapse_pb_Input);
 ZROS_TOPIC_DECLARE(topic_input_sbus, synapse_pb_Input);

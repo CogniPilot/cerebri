@@ -37,6 +37,7 @@
 	};
 
 	aliases {
+		dma0 = &edma0;
 		can0 = &flexcan1;
 		can1 = &flexcan2;
 		can2 = &flexcan3;
@@ -127,6 +128,18 @@
 	};
 };
 
+&lpspi1 {
+	/delete-node/ icm42688p0@0;
+	/delete-property/ dmas;
+	/delete-property/ dma-names;
+};
+
+&lpspi2 {
+	pinctrl-0 = <&pinmux_lpspi2>;
+	dmas = <&edma0 0 38>, <&edma0 1 39>;
+	dma-names = "rx", "tx";
+};
+
 &lpspi6 {
 	status = "okay";
 	apa102: apa102@0 {
@@ -140,6 +153,11 @@
 				 LED_COLOR_ID_RED>;
 	};
 };
+
+&edma0 {
+	status = "okay";
+};
+
 
 &lpi2c2 {
 	/delete-node/ bmp388@76;

@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: merge-icm4268x-final
+      revision: 44f71550d0370ffe7864b613fae3474eb89d812f # pr-log-sdcard
       import:
         - name-allowlist:
           - nanopb
@@ -31,7 +31,7 @@ manifest:
           - segger
     - name: zros
       remote: cognipilot
-      revision: 739d990b9f613468c11941cecf6ef45b4485336b # main 6/05/24
+      revision: 93de4213e5c6c1a3cf1f879ed1e6e4e0b7cb2ae5 # main 8/07/24
       path: modules/lib/zros
     - name: cyecca
       remote: cognipilot
@@ -39,7 +39,7 @@ manifest:
       path: modules/lib/cyecca
     - name: synapse_pb
       remote: cognipilot
-      revision: dd1898f39c78743489ce16b68d4c7ad1c64516c2 # pr-fifo 7/23/24
+      revision: 3109c41ea35b5aacb30b6d2a37ab626d9ae24d05 # pr-fifo 8/11/24
       path: modules/lib/synapse_pb
     - name: ubxlib
       remote: cognipilot

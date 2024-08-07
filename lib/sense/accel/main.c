@@ -19,9 +19,9 @@
 
 #include <synapse_topic_list.h>
 
-#define MY_STACK_SIZE 4096
-#define MY_PRIORITY 4
-#define BATCH_DURATION 25
+#define MY_STACK_SIZE 8192
+#define MY_PRIORITY 1
+#define BATCH_DURATION 50
 
 LOG_MODULE_REGISTER(sense_accel, CONFIG_CEREBRI_SENSE_ACCEL_LOG_LEVEL);
 
@@ -30,62 +30,72 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 // private context
 struct context {
     struct zros_node node;
-    synapse_pb_Vector3Array accel_array;
-    struct zros_pub pub_accel_array;
+    synapse_pb_ImuQ31Array imu_q31_array;
+    synapse_pb_Imu imu;
+    struct zros_pub pub_imu;
+    struct zros_pub pub_imu_q31_array;
     struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
     struct rtio_sqe* streaming_handle;
-    struct sensor_stream_trigger iodev_accel_trigger;
-    struct sensor_read_config iodev_accel_stream_config;
+    struct sensor_stream_trigger stream_trigger;
+    struct sensor_read_config stream_config;
 };
 
 // private initialization
 static struct context g_ctx = {
     .node = {},
-    .accel_array = synapse_pb_Vector3Array_init_default,
-    .pub_accel_array = {},
+    .pub_imu = {},
+    .pub_imu_q31_array = {},
+    .imu = {
+        .has_stamp = true,
+        .has_angular_velocity = true,
+        .has_linear_acceleration = true },
+    .imu_q31_array = {
+        .has_stamp = true,
+    },
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
     .thread_data = {},
     .streaming_handle = NULL,
-    .iodev_accel_trigger = {
+    .stream_trigger = {
         .opt = SENSOR_STREAM_DATA_INCLUDE,
         .trigger = SENSOR_TRIG_FIFO_WATERMARK,
     },
-    .iodev_accel_stream_config = {
+    .stream_config = {
         .sensor = DEVICE_DT_GET(DT_ALIAS(accel0)),
         .is_streaming = true,
-        .triggers = &g_ctx.iodev_accel_trigger,
+        .triggers = &g_ctx.stream_trigger,
         .count = 0,
         .max = 1,
     },
 };
 
 static RTIO_IODEV_DEFINE(iodev_accel_stream, &__sensor_iodev_api,
-    &g_ctx.iodev_accel_stream_config);
+    &g_ctx.stream_config);
 
 RTIO_DEFINE_WITH_MEMPOOL(accel_rtio, 4, 4, 32, 64, 4);
 
 static int sense_accel_init(struct context* ctx)
 {
     zros_node_init(&ctx->node, "sense_accel");
-    zros_pub_init(&ctx->pub_accel_array, &ctx->node, &topic_accel_array_0, &ctx->accel_array);
+    zros_pub_init(&ctx->pub_imu, &ctx->node, &topic_imu, &ctx->imu);
+    zros_pub_init(&ctx->pub_imu_q31_array, &ctx->node, &topic_imu_q31_array, &ctx->imu_q31_array);
 
-    ctx->iodev_accel_stream_config.count = 1;
+    ctx->stream_config.count = 1;
 
-    LOG_INF("device: %p", ctx->iodev_accel_stream_config.sensor);
+    LOG_INF("device: %p", ctx->stream_config.sensor);
 
     struct sensor_value val = { BATCH_DURATION, 0 };
     sensor_attr_set(
-        ctx->iodev_accel_stream_config.sensor,
+        ctx->stream_config.sensor,
         SENSOR_CHAN_ALL,
         SENSOR_ATTR_BATCH_DURATION, &val);
 
     sensor_attr_get(
-        ctx->iodev_accel_stream_config.sensor,
+        ctx->stream_config.sensor,
         SENSOR_CHAN_ALL,
         SENSOR_ATTR_BATCH_DURATION, &val);
     LOG_INF("set batch duration to: %d", val.val1);
@@ -117,7 +127,8 @@ double q31_to_double(int32_t q31_value, int8_t shift)
 
 static void sense_accel_fini(struct context* ctx)
 {
-    zros_pub_fini(&ctx->pub_accel_array);
+    zros_pub_fini(&ctx->pub_imu);
+    zros_pub_fini(&ctx->pub_imu_q31_array);
     zros_node_fini(&ctx->node);
 
     if (ctx->streaming_handle != NULL) {
@@ -140,87 +151,121 @@ static void accel_processing_callback(int result, uint8_t* buf, uint32_t buf_len
         int8_t shift;
     } accumulator_buffer;
 
+    if (result < 0) {
+        LOG_ERR("read failed");
+        return;
+    }
+
     struct context* ctx = userdata;
 
-    /*
-    if (ctx->iodev_accel_stream_config.sensor->api == NULL) {
+    if (ctx->stream_config.sensor->api == NULL) {
         LOG_ERR("sensor api is NULL");
         return;
     }
-    */
 
     const struct sensor_decoder_api* decoder;
-    int rc = sensor_get_decoder(ctx->iodev_accel_stream_config.sensor, &decoder);
+    int rc = sensor_get_decoder(ctx->stream_config.sensor, &decoder);
     if (rc != 0) {
         LOG_ERR("failed to get decoder");
         return;
     }
 
-    struct sensor_chan_spec ch = {
-        .chan_idx = 0,
-        .chan_type = SENSOR_CHAN_ACCEL_XYZ
+    int channels[] = {
+        SENSOR_CHAN_GYRO_XYZ,
+        SENSOR_CHAN_ACCEL_XYZ,
     };
-    /*
-    size_t base_size;
-    size_t frame_size;
-    uint16_t frame_count;
-    rc = decoder->get_size_info(ch, &base_size, &frame_size);
-    if (rc != 0) {
-        LOG_ERR("skipping unsupported channel accel_xyz:%d", ch.chan_idx);
-        return;
-    }
-    if (base_size > ARRAY_SIZE(decoded_buffer)) {
-        LOG_ERR("base_size > buffer size");
-        return;
-    }
-    ctx->accel_array.has_stamp = true;
+    bool gyro_updated = false;
+    bool accel_updated = false;
 
-    if (decoder->get_frame_count(buf, ch, &frame_count) != 0) {
-        LOG_ERR("failed to get frame count");
-        return;
-    }
-    */
+    ctx->imu_q31_array.frame_count = 0;
 
-    uint32_t fit = 0;
-    memset(&accumulator_buffer, 0, sizeof(accumulator_buffer));
-    while (decoder->decode(buf, ch, &fit, 1, decoded_buffer) > 0) {
-        struct sensor_three_axis_data* data = (struct sensor_three_axis_data*)decoded_buffer;
-        if (accumulator_buffer.count == 0) {
-            accumulator_buffer.base_timestamp_ns = data->header.base_timestamp_ns;
-            accumulator_buffer.timestamp_delta = data->readings[0].timestamp_delta;
-            accumulator_buffer.shift = data->shift;
+    for (int i = 0; i < ARRAY_SIZE(channels); i++) {
+        int chan = channels[i];
+        struct sensor_chan_spec ch = {
+            .chan_idx = 0,
+            .chan_type = chan,
+        };
+
+        uint32_t fit = 0;
+        uint32_t frame_idx = 0;
+        memset(&accumulator_buffer, 0, sizeof(accumulator_buffer));
+        while (decoder->decode(buf, ch, &fit, 1, decoded_buffer) > 0) {
+            if (accumulator_buffer.count >= 127) {
+                LOG_ERR("fifo overflow: %d", accumulator_buffer.count);
+                break;
+            }
+
+            if (ch.chan_type == SENSOR_CHAN_GYRO_XYZ || ch.chan_type == SENSOR_CHAN_ACCEL_XYZ) {
+                struct sensor_three_axis_data* data = (struct sensor_three_axis_data*)decoded_buffer;
+                if (accumulator_buffer.count == 0) {
+                    accumulator_buffer.base_timestamp_ns = data->header.base_timestamp_ns;
+                    accumulator_buffer.timestamp_delta = data->readings[0].timestamp_delta;
+                    accumulator_buffer.shift = data->shift;
+                    if (ch.chan_type == SENSOR_CHAN_GYRO_XYZ) {
+                        ctx->imu_q31_array.gyro_shift = data->shift;
+                    } else if (ch.chan_type == SENSOR_CHAN_ACCEL_XYZ) {
+                        ctx->imu_q31_array.accel_shift = data->shift;
+                    }
+                }
+                accumulator_buffer.values[0] += data->readings[0].values[0];
+                accumulator_buffer.values[1] += data->readings[0].values[1];
+                accumulator_buffer.values[2] += data->readings[0].values[2];
+                accumulator_buffer.count++;
+
+                if (ch.chan_type == SENSOR_CHAN_GYRO_XYZ) {
+                    ctx->imu_q31_array.frame[frame_idx].gyro_x = data->readings[0].values[0];
+                    ctx->imu_q31_array.frame[frame_idx].gyro_y = data->readings[0].values[1];
+                    ctx->imu_q31_array.frame[frame_idx].gyro_z = data->readings[0].values[2];
+                    ctx->imu_q31_array.frame[frame_idx].delta_nanos = data->readings[0].timestamp_delta;
+                } else if (ch.chan_type == SENSOR_CHAN_ACCEL_XYZ) {
+                    ctx->imu_q31_array.frame[frame_idx].accel_x = data->readings[0].values[0];
+                    ctx->imu_q31_array.frame[frame_idx].accel_y = data->readings[0].values[1];
+                    ctx->imu_q31_array.frame[frame_idx].accel_z = data->readings[0].values[2];
+                    ctx->imu_q31_array.frame[frame_idx].delta_nanos = data->readings[0].timestamp_delta;
+                }
+            }
+
+            if (frame_idx > ctx->imu_q31_array.frame_count) {
+                ctx->imu_q31_array.frame_count = frame_idx;
+            }
+            if (frame_idx++ >= ARRAY_SIZE(ctx->imu_q31_array.frame)) {
+                LOG_ERR("frame overflow");
+                break;
+            }
         }
-        accumulator_buffer.values[0] += data->readings[0].x;
-        accumulator_buffer.values[1] += data->readings[0].y;
-        accumulator_buffer.values[2] += data->readings[0].z;
-        // LOG_INF("%" PRIsensor_three_axis_data,
-        //          PRIsensor_three_axis_data_arg(*data, 0));
-        accumulator_buffer.count++;
+
+        double x = q31_to_double(accumulator_buffer.values[0] / accumulator_buffer.count, accumulator_buffer.shift);
+        double y = q31_to_double(accumulator_buffer.values[1] / accumulator_buffer.count, accumulator_buffer.shift);
+        double z = q31_to_double(accumulator_buffer.values[2] / accumulator_buffer.count, accumulator_buffer.shift);
+        synapse_pb_Timestamp stamp;
+        synapse_pb_Duration delta;
+        stamp.seconds = accumulator_buffer.base_timestamp_ns / 1e9;
+        stamp.nanos = accumulator_buffer.base_timestamp_ns - stamp.seconds * 1e9;
+        delta.seconds = accumulator_buffer.timestamp_delta / 1e9;
+        delta.nanos = accumulator_buffer.timestamp_delta - delta.seconds * 1e9;
+
+        if (ch.chan_type == SENSOR_CHAN_GYRO_XYZ) {
+            // LOG_INF("gyro %10.4f %10.4f %10.4f", x, y, z);
+            ctx->imu_q31_array.stamp = stamp;
+            ctx->imu.angular_velocity.x = x;
+            ctx->imu.angular_velocity.y = y;
+            ctx->imu.angular_velocity.z = z;
+            ctx->imu.stamp = stamp;
+            gyro_updated = true;
+        } else if (ch.chan_type == SENSOR_CHAN_ACCEL_XYZ) {
+            ctx->imu_q31_array.stamp = stamp;
+            ctx->imu.linear_acceleration.x = x;
+            ctx->imu.linear_acceleration.y = y;
+            ctx->imu.linear_acceleration.z = z;
+            ctx->imu.stamp = stamp;
+            accel_updated = true;
+        }
     }
 
-    double x = q31_to_double(accumulator_buffer.values[0] / accumulator_buffer.count, accumulator_buffer.shift);
-    double y = q31_to_double(accumulator_buffer.values[1] / accumulator_buffer.count, accumulator_buffer.shift);
-    double z = q31_to_double(accumulator_buffer.values[2] / accumulator_buffer.count, accumulator_buffer.shift);
-
-    if (accumulator_buffer.count >= 127) {
-        LOG_ERR("fifo overflow: %d", accumulator_buffer.count);
+    if (gyro_updated || accel_updated) {
+        zros_pub_update(&ctx->pub_imu);
+        zros_pub_update(&ctx->pub_imu_q31_array);
     }
-    // LOG_INF("fifo len: %d", accumulator_buffer.count);
-
-    // LOG_INF("channel: %d, read: %d", ch.chan_idx, accumulator_buffer.count);
-    zros_pub_update(&ctx->pub_accel_array);
-    ctx->accel_array.value[0].x = x;
-    ctx->accel_array.value[0].y = y;
-    ctx->accel_array.value[0].z = z;
-    int64_t base_sec = accumulator_buffer.base_timestamp_ns / 1e9;
-    int64_t base_nano = accumulator_buffer.base_timestamp_ns - base_sec * 1e9;
-    int64_t delta_sec = accumulator_buffer.timestamp_delta / 1e9;
-    int64_t delta_nano = accumulator_buffer.timestamp_delta - delta_sec * 1e9;
-    ctx->accel_array.stamp.seconds = base_sec;
-    ctx->accel_array.stamp.nanos = base_nano;
-    ctx->accel_array.delta.seconds = delta_sec;
-    ctx->accel_array.delta.nanos = delta_nano;
-    ctx->accel_array.value_count = 1;
 }
 
 static void sense_accel_run(void* p0, void* p1, void* p2)
@@ -306,7 +351,6 @@ SHELL_CMD_REGISTER(sense_accel, &sub_sense_accel, "sense accel commands", NULL);
 
 static int sense_accel_sys_init(void)
 {
-    k_msleep(1000);
     return start(&g_ctx);
 };
 

@@ -54,7 +54,6 @@ static context_t g_ctx = {
 #define TOPIC_DICTIONARY()                                                                             \
     (accel_sp, &topic_accel_sp, "accel_sp"),                                                           \
         (accel_ff, &topic_accel_ff, "accel_ff"),                                                       \
-        (accel_array_0, &topic_accel_array_0, "accel_array_0"),                                        \
         (actuators, &topic_actuators, "actuators"),                                                    \
         (altimeter, &topic_altimeter, "altimeter"),                                                    \
         (angular_velocity_ff, &topic_angular_velocity_ff, "angular_velocity_ff"),                      \
@@ -68,6 +67,7 @@ static context_t g_ctx = {
         (cmd_vel_ethernet, &topic_cmd_vel_ethernet, "cmd_vel_ethernet"),                               \
         (force_sp, &topic_force_sp, "force_sp"),                                                       \
         (imu, &topic_imu, "imu"),                                                                      \
+        (imu_q31_array, &topic_imu_q31_array, "imu_q31_array"),                                        \
         (input, &topic_input, "input"),                                                                \
         (input_ethernet, &topic_input_ethernet, "input_ethernet"),                                     \
         (input_sbus, &topic_input_sbus, "input_sbus"),                                                 \
@@ -240,9 +240,9 @@ void topic_work_handler(struct k_work* work)
     if (topic == &topic_actuators) {
         synapse_pb_Actuators msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_actuators);
-    } else if (topic == &topic_accel_array_0) {
-        synapse_pb_Vector3Array msg = {};
-        handler(sh, topic, &msg, (snprint_t*)&snprint_vector3_array);
+    } else if (topic == &topic_imu_q31_array) {
+        synapse_pb_ImuQ31Array msg = {};
+        handler(sh, topic, &msg, (snprint_t*)&snprint_imu_q31_array);
     } else if (topic == &topic_altimeter) {
         synapse_pb_Altimeter msg = {};
         handler(sh, topic, &msg, (snprint_t*)&snprint_altimeter);

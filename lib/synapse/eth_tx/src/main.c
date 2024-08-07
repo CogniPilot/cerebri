@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <stdio.h>
+
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 #include <zros/private/zros_node_struct.h>
@@ -76,12 +78,13 @@ static void send_frame(struct context* ctx, pb_size_t which_msg)
         frame->msg.odometry = ctx->odometry_estimator;
     } else if (which_msg == synapse_pb_Frame_status_tag) {
         frame->msg.status = ctx->status;
-    } else if (which_msg == synapse_pb_Frame_uptime_tag) {
+    } else if (which_msg == synapse_pb_Frame_clock_offset_tag) {
         int64_t ticks = k_uptime_ticks();
         int64_t sec = ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         int32_t nanosec = (ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-        frame->msg.uptime.uptime.seconds = sec;
-        frame->msg.uptime.uptime.nanos = nanosec;
+        snprintf(frame->topic, ARRAY_SIZE(frame->topic), "uptime");
+        frame->msg.duration.seconds = sec;
+        frame->msg.duration.nanos = nanosec;
     }
     static uint8_t tx_buf[TX_BUF_SIZE];
     pb_ostream_t stream = pb_ostream_from_buffer(tx_buf, sizeof(tx_buf));
@@ -206,7 +209,7 @@ static void eth_tx_run(void* p0, void* p1, void* p2)
         }
 
         if (now - ticks_last_uptime > CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
-            send_frame(ctx, synapse_pb_Frame_uptime_tag);
+            send_frame(ctx, synapse_pb_Frame_clock_offset_tag);
             ticks_last_uptime = now;
         }
     }

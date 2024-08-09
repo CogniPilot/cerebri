@@ -99,7 +99,7 @@ static int start(struct context* ctx)
     return 0;
 }
 
-static void input_cb(struct input_event* evt)
+static void input_cb(struct input_event* evt, void * userdata)
 {
     struct context* ctx = &g_ctx;
 
@@ -126,7 +126,7 @@ static void input_cb(struct input_event* evt)
     }
 }
 
-INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_PATH(gpio_keys)), input_cb);
+INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_PATH(gpio_keys)), input_cb, NULL);
 
 static int sense_safety_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)

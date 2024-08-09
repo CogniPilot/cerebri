@@ -39,6 +39,7 @@ struct context {
     struct zros_node node;
     // subscriptions
     struct zros_sub sub_imu;
+    //struct zros_sub sub_gyro_array;
     // file
     struct fs_file_t file;
     synapse_pb_Frame frame;
@@ -53,6 +54,7 @@ struct context {
 static struct context g_ctx = {
     .node = {},
     .sub_imu = {},
+    //.sub_gyro_array = {},
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
@@ -121,6 +123,14 @@ static int log_sdcard_init(struct context* ctx)
         return ret;
     }
 
+    /*
+    ret = zros_sub_init(&ctx->sub_gyro_array, &ctx->node, &topic_gyro_array_0, &ctx->frame.msg, 8000);
+    if (ret < 0) {
+        LOG_ERR("init imu failed: %d", ret);
+        return ret;
+    }
+    */
+
     ret = mount_sd_card();
     if (ret < 0) {
         return ret;
@@ -148,6 +158,7 @@ static int log_sdcard_fini(struct context* ctx)
 
     // close subscriptions
     zros_sub_fini(&ctx->sub_imu);
+    //zros_sub_fini(&ctx->sub_gyro_array);
     zros_node_fini(&ctx->node);
 
     ret = fs_close(&ctx->file);
@@ -186,6 +197,7 @@ static void log_sdcard_run(void* p0, void* p1, void* p2)
     while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
         struct k_poll_event events[] = {
             *zros_sub_get_event(&ctx->sub_imu),
+            //*zros_sub_get_event(&ctx->sub_gyro_array),
         };
 
         int rc = 0;
@@ -205,6 +217,21 @@ static void log_sdcard_run(void* p0, void* p1, void* p2)
                 // LOG_INF("logged %d bytes", stream.bytes_written);
             }
         }
+
+        /*
+        if (zros_sub_update_available(&ctx->sub_gyro_array)) {
+            zros_sub_update(&ctx->sub_gyro_array);
+            ctx->frame.which_msg = synapse_pb_Frame_gyro_array_0_tag;
+            pb_ostream_t stream = pb_ostream_from_buffer(ctx->buf, BUF_SIZE);
+            if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, &ctx->frame, PB_ENCODE_DELIMITED)) {
+                LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
+            } else {
+                fs_write(&ctx->file, ctx->buf, stream.bytes_written);
+                // LOG_INF("logged %d bytes", stream.bytes_written);
+            }
+        }
+        */
+
     }
 
     // deconstructor
@@ -259,6 +286,6 @@ static int log_sdcard_sys_init(void)
     return start(&g_ctx);
 };
 
-SYS_INIT(log_sdcard_sys_init, APPLICATION, 0);
+//SYS_INIT(log_sdcard_sys_init, APPLICATION, 0);
 
 // vi: ts=4 sw=4 et

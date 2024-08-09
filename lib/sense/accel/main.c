@@ -207,6 +207,22 @@ static void accel_processing_callback(int result, uint8_t* buf, uint32_t buf_len
                 accumulator_buffer.values[1] += data->readings[0].values[1];
                 accumulator_buffer.values[2] += data->readings[0].values[2];
                 accumulator_buffer.count++;
+
+                double x = q31_to_double(data->readings[0].values[0], data->shift);
+                double y = q31_to_double(data->readings[0].values[1], data->shift);
+                double z = q31_to_double(data->readings[0].values[2], data->shift);
+
+                if (ch.chan_type == SENSOR_CHAN_GYRO_XYZ) {
+                    ctx->gyro_array.value[ctx->gyro_array.value_count].x = x;
+                    ctx->gyro_array.value[ctx->gyro_array.value_count].y = y;
+                    ctx->gyro_array.value[ctx->gyro_array.value_count].z = z;
+                    ctx->gyro_array.value_count += 1;
+                } else if (ch.chan_type == SENSOR_CHAN_ACCEL_XYZ) {
+                    ctx->accel_array.value[ctx->accel_array.value_count].x = x;
+                    ctx->accel_array.value[ctx->accel_array.value_count].y = y;
+                    ctx->accel_array.value[ctx->accel_array.value_count].z = z;
+                    ctx->accel_array.value_count += 1;
+                }
             }
         }
 
@@ -224,10 +240,10 @@ static void accel_processing_callback(int result, uint8_t* buf, uint32_t buf_len
             // LOG_INF("gyro %10.4f %10.4f %10.4f", x, y, z);
             ctx->gyro_array.stamp = stamp;
             ctx->gyro_array.delta = delta;
-            ctx->gyro_array.value_count = 1;
-            ctx->gyro_array.value[0].x = x;
-            ctx->gyro_array.value[0].y = y;
-            ctx->gyro_array.value[0].z = z;
+            //ctx->gyro_array.value_count = 1;
+            //ctx->gyro_array.value[0].x = x;
+            //ctx->gyro_array.value[0].y = y;
+            //ctx->gyro_array.value[0].z = z;
             ctx->imu.angular_velocity.x = x;
             ctx->imu.angular_velocity.y = y;
             ctx->imu.angular_velocity.z = z;

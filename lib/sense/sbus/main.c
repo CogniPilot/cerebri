@@ -94,7 +94,7 @@ static int start(struct context* ctx)
     return 0;
 }
 
-static void input_cb(struct input_event* evt)
+static void input_cb(struct input_event* evt, void * userdata)
 {
     // check if still running
     if (k_sem_count_get(&g_ctx.running) != 0) {
@@ -107,7 +107,7 @@ static void input_cb(struct input_event* evt)
     if (evt->code > 0 && evt->code <= g_ctx.input.channel_count) {
         g_ctx.input.channel[evt->code - 1] = (evt->value - x0) / scale;
     } else {
-        LOG_INF("unhandled event: %d %d %d %d", evt->code, evt->sync, evt->type, evt->value);
+        LOG_DBG("unhandled event: %d %d %d %d", evt->code, evt->sync, evt->type, evt->value);
     }
 
     if (evt->code < g_ctx.last_event) {
@@ -119,7 +119,7 @@ static void input_cb(struct input_event* evt)
     g_ctx.last_event = evt->code;
 }
 
-INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_ALIAS(sbus)), input_cb);
+INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_ALIAS(sbus)), input_cb, NULL);
 
 static int sense_sbus_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)

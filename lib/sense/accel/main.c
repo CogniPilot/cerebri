@@ -20,7 +20,7 @@
 #include <synapse_topic_list.h>
 
 #define MY_STACK_SIZE 8192
-#define MY_PRIORITY 4
+#define MY_PRIORITY 1
 #define BATCH_DURATION 50
 
 LOG_MODULE_REGISTER(sense_accel, CONFIG_CEREBRI_SENSE_ACCEL_LOG_LEVEL);
@@ -30,12 +30,10 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 // private context
 struct context {
     struct zros_node node;
-    synapse_pb_Vector3Array accel_array;
-    synapse_pb_Vector3Array gyro_array;
+    synapse_pb_ImuQ31Array imu_q31_array;
     synapse_pb_Imu imu;
-    struct zros_pub pub_accel_array;
-    struct zros_pub pub_gyro_array;
     struct zros_pub pub_imu;
+    struct zros_pub pub_imu_q31_array;
     struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
@@ -48,15 +46,15 @@ struct context {
 // private initialization
 static struct context g_ctx = {
     .node = {},
-    .pub_accel_array = {},
-    .pub_gyro_array = {},
     .pub_imu = {},
+    .pub_imu_q31_array = {},
     .imu = {
         .has_stamp = true,
         .has_angular_velocity = true,
         .has_linear_acceleration = true },
-    .accel_array = synapse_pb_Vector3Array_init_default,
-    .gyro_array = synapse_pb_Vector3Array_init_default,
+    .imu_q31_array = {
+        .has_stamp = true,
+    },
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
@@ -83,9 +81,8 @@ RTIO_DEFINE_WITH_MEMPOOL(accel_rtio, 4, 4, 32, 64, 4);
 static int sense_accel_init(struct context* ctx)
 {
     zros_node_init(&ctx->node, "sense_accel");
-    zros_pub_init(&ctx->pub_accel_array, &ctx->node, &topic_accel_array_0, &ctx->accel_array);
-    zros_pub_init(&ctx->pub_gyro_array, &ctx->node, &topic_gyro_array_0, &ctx->gyro_array);
     zros_pub_init(&ctx->pub_imu, &ctx->node, &topic_imu, &ctx->imu);
+    zros_pub_init(&ctx->pub_imu_q31_array, &ctx->node, &topic_imu_q31_array, &ctx->imu_q31_array);
 
     ctx->stream_config.count = 1;
 
@@ -130,9 +127,8 @@ double q31_to_double(int32_t q31_value, int8_t shift)
 
 static void sense_accel_fini(struct context* ctx)
 {
-    zros_pub_fini(&ctx->pub_accel_array);
-    zros_pub_fini(&ctx->pub_gyro_array);
     zros_pub_fini(&ctx->pub_imu);
+    zros_pub_fini(&ctx->pub_imu_q31_array);
     zros_node_fini(&ctx->node);
 
     if (ctx->streaming_handle != NULL) {
@@ -181,6 +177,8 @@ static void accel_processing_callback(int result, uint8_t* buf, uint32_t buf_len
     bool gyro_updated = false;
     bool accel_updated = false;
 
+    ctx->imu_q31_array.frame_count = 0;
+
     for (int i = 0; i < ARRAY_SIZE(channels); i++) {
         int chan = channels[i];
         struct sensor_chan_spec ch = {
@@ -189,6 +187,7 @@ static void accel_processing_callback(int result, uint8_t* buf, uint32_t buf_len
         };
 
         uint32_t fit = 0;
+        uint32_t frame_idx = 0;
         memset(&accumulator_buffer, 0, sizeof(accumulator_buffer));
         while (decoder->decode(buf, ch, &fit, 1, decoded_buffer) > 0) {
             if (accumulator_buffer.count >= 127) {
@@ -202,27 +201,36 @@ static void accel_processing_callback(int result, uint8_t* buf, uint32_t buf_len
                     accumulator_buffer.base_timestamp_ns = data->header.base_timestamp_ns;
                     accumulator_buffer.timestamp_delta = data->readings[0].timestamp_delta;
                     accumulator_buffer.shift = data->shift;
+                    if (ch.chan_type == SENSOR_CHAN_GYRO_XYZ) {
+                        ctx->imu_q31_array.gyro_shift = data->shift;
+                    } else if (ch.chan_type == SENSOR_CHAN_ACCEL_XYZ) {
+                        ctx->imu_q31_array.accel_shift = data->shift;
+                    }
                 }
                 accumulator_buffer.values[0] += data->readings[0].values[0];
                 accumulator_buffer.values[1] += data->readings[0].values[1];
                 accumulator_buffer.values[2] += data->readings[0].values[2];
                 accumulator_buffer.count++;
 
-                double x = q31_to_double(data->readings[0].values[0], data->shift);
-                double y = q31_to_double(data->readings[0].values[1], data->shift);
-                double z = q31_to_double(data->readings[0].values[2], data->shift);
-
                 if (ch.chan_type == SENSOR_CHAN_GYRO_XYZ) {
-                    ctx->gyro_array.value[ctx->gyro_array.value_count].x = x;
-                    ctx->gyro_array.value[ctx->gyro_array.value_count].y = y;
-                    ctx->gyro_array.value[ctx->gyro_array.value_count].z = z;
-                    ctx->gyro_array.value_count += 1;
+                    ctx->imu_q31_array.frame[frame_idx].gyro_x = data->readings[0].values[0];
+                    ctx->imu_q31_array.frame[frame_idx].gyro_y = data->readings[0].values[1];
+                    ctx->imu_q31_array.frame[frame_idx].gyro_z = data->readings[0].values[2];
+                    ctx->imu_q31_array.frame[frame_idx].delta_nanos = data->readings[0].timestamp_delta;
                 } else if (ch.chan_type == SENSOR_CHAN_ACCEL_XYZ) {
-                    ctx->accel_array.value[ctx->accel_array.value_count].x = x;
-                    ctx->accel_array.value[ctx->accel_array.value_count].y = y;
-                    ctx->accel_array.value[ctx->accel_array.value_count].z = z;
-                    ctx->accel_array.value_count += 1;
+                    ctx->imu_q31_array.frame[frame_idx].accel_x = data->readings[0].values[0];
+                    ctx->imu_q31_array.frame[frame_idx].accel_y = data->readings[0].values[1];
+                    ctx->imu_q31_array.frame[frame_idx].accel_z = data->readings[0].values[2];
+                    ctx->imu_q31_array.frame[frame_idx].delta_nanos = data->readings[0].timestamp_delta;
                 }
+            }
+
+            if (frame_idx > ctx->imu_q31_array.frame_count) {
+                ctx->imu_q31_array.frame_count = frame_idx;
+            }
+            if (frame_idx++ >= ARRAY_SIZE(ctx->imu_q31_array.frame)) {
+                LOG_ERR("frame overflow");
+                break;
             }
         }
 
@@ -238,24 +246,14 @@ static void accel_processing_callback(int result, uint8_t* buf, uint32_t buf_len
 
         if (ch.chan_type == SENSOR_CHAN_GYRO_XYZ) {
             // LOG_INF("gyro %10.4f %10.4f %10.4f", x, y, z);
-            ctx->gyro_array.stamp = stamp;
-            ctx->gyro_array.delta = delta;
-            //ctx->gyro_array.value_count = 1;
-            //ctx->gyro_array.value[0].x = x;
-            //ctx->gyro_array.value[0].y = y;
-            //ctx->gyro_array.value[0].z = z;
+            ctx->imu_q31_array.stamp = stamp;
             ctx->imu.angular_velocity.x = x;
             ctx->imu.angular_velocity.y = y;
             ctx->imu.angular_velocity.z = z;
             ctx->imu.stamp = stamp;
             gyro_updated = true;
         } else if (ch.chan_type == SENSOR_CHAN_ACCEL_XYZ) {
-            ctx->accel_array.stamp = stamp;
-            ctx->accel_array.delta = delta;
-            ctx->accel_array.value_count = 1;
-            ctx->accel_array.value[0].x = x;
-            ctx->accel_array.value[0].y = y;
-            ctx->accel_array.value[0].z = z;
+            ctx->imu_q31_array.stamp = stamp;
             ctx->imu.linear_acceleration.x = x;
             ctx->imu.linear_acceleration.y = y;
             ctx->imu.linear_acceleration.z = z;
@@ -266,16 +264,7 @@ static void accel_processing_callback(int result, uint8_t* buf, uint32_t buf_len
 
     if (gyro_updated || accel_updated) {
         zros_pub_update(&ctx->pub_imu);
-    }
-
-    if (gyro_updated) {
-        zros_pub_update(&ctx->pub_gyro_array);
-        // LOG_INF("gyro fifo len: %d", accumulator_buffer.count);
-    }
-
-    if (accel_updated) {
-        zros_pub_update(&ctx->pub_accel_array);
-        // LOG_INF("accel fifo len: %d", accumulator_buffer.count);
+        zros_pub_update(&ctx->pub_imu_q31_array);
     }
 }
 

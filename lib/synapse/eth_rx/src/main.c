@@ -59,8 +59,8 @@ static void handle_frame(struct context* ctx)
     } else if (frame->which_msg == synapse_pb_Frame_input_tag) {
         msg = &frame->msg.input;
         topic = &topic_input_ethernet;
-    } else if (frame->which_msg == synapse_pb_Frame_cmd_vel_tag) {
-        msg = &frame->msg.cmd_vel;
+    } else if (frame->which_msg == synapse_pb_Frame_twist_tag) {
+        msg = &frame->msg.twist;
         topic = &topic_cmd_vel_ethernet;
 #ifdef CONFIG_CEREBRI_DREAM_HIL
     } else if (frame->which_msg == synapse_pb_Frame_battery_state_tag) {

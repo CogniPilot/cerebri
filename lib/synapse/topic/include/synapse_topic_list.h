@@ -23,9 +23,7 @@
 #include <synapse_pb/safety.pb.h>
 #include <synapse_pb/status.pb.h>
 #include <synapse_pb/twist.pb.h>
-#include <synapse_pb/uptime.pb.h>
 #include <synapse_pb/vector3.pb.h>
-#include <synapse_pb/vector3_array.pb.h>
 #include <synapse_pb/wheel_odometry.pb.h>
 
 /********************************************************************
@@ -44,7 +42,6 @@ const char* link_status_str(synapse_pb_Status_LinkStatus status);
 /********************************************************************
  * topics
  ********************************************************************/
-ZROS_TOPIC_DECLARE(topic_accel_array_0, synapse_pb_Vector3Array);
 ZROS_TOPIC_DECLARE(topic_accel_ff, synapse_pb_Vector3);
 ZROS_TOPIC_DECLARE(topic_accel_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DECLARE(topic_actuators, synapse_pb_Actuators);
@@ -59,8 +56,8 @@ ZROS_TOPIC_DECLARE(topic_clock_offset_ethernet, synapse_pb_Time);
 ZROS_TOPIC_DECLARE(topic_cmd_vel, synapse_pb_Twist);
 ZROS_TOPIC_DECLARE(topic_cmd_vel_ethernet, synapse_pb_Twist);
 ZROS_TOPIC_DECLARE(topic_force_sp, synapse_pb_Vector3);
-ZROS_TOPIC_DECLARE(topic_gyro_array_0, synapse_pb_Vector3Array);
 ZROS_TOPIC_DECLARE(topic_imu, synapse_pb_Imu);
+ZROS_TOPIC_DECLARE(topic_imu_q31_array, synapse_pb_ImuQ31Array);
 ZROS_TOPIC_DECLARE(topic_input, synapse_pb_Input);
 ZROS_TOPIC_DECLARE(topic_input_sbus, synapse_pb_Input);
 ZROS_TOPIC_DECLARE(topic_input_ethernet, synapse_pb_Input);

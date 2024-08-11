@@ -176,7 +176,6 @@ const char* fuel_str(synapse_pb_Status_Fuel fuel)
 /********************************************************************
  * topics
  ********************************************************************/
-ZROS_TOPIC_DEFINE(accel_array_0, synapse_pb_Vector3Array);
 ZROS_TOPIC_DEFINE(accel_ff, synapse_pb_Vector3);
 ZROS_TOPIC_DEFINE(accel_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DEFINE(actuators, synapse_pb_Actuators);
@@ -191,8 +190,8 @@ ZROS_TOPIC_DEFINE(clock_offset_ethernet, synapse_pb_ClockOffset);
 ZROS_TOPIC_DEFINE(cmd_vel, synapse_pb_Twist);
 ZROS_TOPIC_DEFINE(cmd_vel_ethernet, synapse_pb_Twist);
 ZROS_TOPIC_DEFINE(force_sp, synapse_pb_Vector3);
-ZROS_TOPIC_DEFINE(gyro_array_0, synapse_pb_Vector3Array);
 ZROS_TOPIC_DEFINE(imu, synapse_pb_Imu);
+ZROS_TOPIC_DEFINE(imu_q31_array, synapse_pb_ImuQ31Array);
 ZROS_TOPIC_DEFINE(input, synapse_pb_Input);
 ZROS_TOPIC_DEFINE(input_ethernet, synapse_pb_Input);
 ZROS_TOPIC_DEFINE(input_sbus, synapse_pb_Input);
@@ -212,7 +211,6 @@ ZROS_TOPIC_DEFINE(velocity_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DEFINE(wheel_odometry, synapse_pb_WheelOdometry);
 
 static struct zros_topic* topic_list[] = {
-    &topic_accel_array_0,
     &topic_accel_ff,
     &topic_accel_sp,
     &topic_actuators,
@@ -226,8 +224,8 @@ static struct zros_topic* topic_list[] = {
     &topic_clock_offset_ethernet,
     &topic_cmd_vel,
     &topic_cmd_vel_ethernet,
-    &topic_gyro_array_0,
     &topic_imu,
+    &topic_imu_q31_array,
     &topic_input,
     &topic_input_ethernet,
     &topic_input_sbus,

@@ -18,6 +18,8 @@
 #include <zros/zros_pub.h>
 #include <zros/zros_sub.h>
 
+#include <cerebri/core/perf_counter.h>
+
 #include <synapse_topic_list.h>
 
 #include <cerebri/core/casadi.h>
@@ -48,6 +50,7 @@ struct context {
     size_t stack_size;
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
+    struct perf_counter perf;
 };
 
 // private initialization
@@ -75,6 +78,7 @@ static struct context g_ctx = {
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
     .thread_data = {},
+    .perf = {},
 };
 
 static void rdd2_estimate_init(struct context* ctx)
@@ -84,6 +88,7 @@ static void rdd2_estimate_init(struct context* ctx)
     zros_sub_init(&ctx->sub_odometry_ethernet, &ctx->node, &topic_odometry_ethernet,
         &ctx->odometry_ethernet, 10);
     zros_pub_init(&ctx->pub_odometry, &ctx->node, &topic_odometry_estimator, &ctx->odometry);
+    perf_counter_init(&ctx->perf, "estimator imu", 1.0/100);
     k_sem_take(&ctx->running, K_FOREVER);
     LOG_INF("init");
 }
@@ -148,6 +153,7 @@ static void rdd2_estimate_run(void* p0, void* p1, void* p2)
 
         if (zros_sub_update_available(&ctx->sub_imu)) {
             zros_sub_update(&ctx->sub_imu);
+            perf_counter_update(&ctx->perf);
         }
 
         /*

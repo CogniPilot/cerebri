@@ -4,11 +4,11 @@
 zephyr_library_named(cerebri_sense_accel)
 
 
-zephyr_include_directories(${CMAKE_SOURCE_DIR})
+zephyr_include_directories()
 
 zephyr_library_sources(
   main.c
   )
 
-add_dependencies(cerebri_sense_accel
-	synapse_pb cerebri_core_common)
+add_dependencies(cerebri_sense_accel synapse_pb)
+add_dependencies(cerebri_sense_accel cerebri_core_common)

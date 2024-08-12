@@ -1,0 +1,16 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+menuconfig CEREBRI_SENSE_ICM42688
+  bool "ICM42688"
+  depends on CEREBRI_CORE_COMMON
+  depends on ZROS
+  help
+    This option enables the ICM42688 driver interface
+
+if CEREBRI_SENSE_ICM42688
+
+module = CEREBRI_SENSE_ICM42688
+module-str = sense_accel
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # CEREBRI_SENSE_ICM42688

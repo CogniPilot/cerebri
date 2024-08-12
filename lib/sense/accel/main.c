@@ -17,6 +17,8 @@
 #include <zros/zros_pub.h>
 #include <zros/zros_sub.h>
 
+#include <cerebri/core/perf_counter.h>
+
 #include <synapse_topic_list.h>
 
 #define MY_STACK_SIZE 8192
@@ -41,6 +43,7 @@ struct context {
     struct rtio_sqe* streaming_handle;
     struct sensor_stream_trigger stream_trigger;
     struct sensor_read_config stream_config;
+    struct perf_counter perf;
 };
 
 // private initialization
@@ -83,6 +86,7 @@ static int sense_accel_init(struct context* ctx)
     zros_node_init(&ctx->node, "sense_accel");
     zros_pub_init(&ctx->pub_imu, &ctx->node, &topic_imu, &ctx->imu);
     zros_pub_init(&ctx->pub_imu_q31_array, &ctx->node, &topic_imu_q31_array, &ctx->imu_q31_array);
+    perf_counter_init(&ctx->perf, "sense_accel", 1.0/100);
 
     ctx->stream_config.count = 1;
 
@@ -127,6 +131,7 @@ double q31_to_double(int32_t q31_value, int8_t shift)
 
 static void sense_accel_fini(struct context* ctx)
 {
+    perf_counter_fini(&ctx->perf);
     zros_pub_fini(&ctx->pub_imu);
     zros_pub_fini(&ctx->pub_imu_q31_array);
     zros_node_fini(&ctx->node);
@@ -279,8 +284,11 @@ static void sense_accel_run(void* p0, void* p1, void* p2)
 
     while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 
+
         sensor_processing_with_callback(
             &accel_rtio, accel_processing_callback);
+
+        perf_counter_update(&ctx->perf);
 
         /*
         LOG_INF("publishing");

@@ -39,6 +39,7 @@ static struct context g_ctx = {
     .node = {},
     .pub_input = {},
     .input = {
+        .has_timestamp = true,
         .channel_count = 16,
         .channel = {} },
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
@@ -96,30 +97,33 @@ static int start(struct context* ctx)
 
 static void input_cb(struct input_event* evt, void * userdata)
 {
+    struct context * ctx = userdata;
+
     // check if still running
-    if (k_sem_count_get(&g_ctx.running) != 0) {
+    if (k_sem_count_get(&ctx->running) != 0) {
         return;
     }
 
     double x0 = 1024;
     double scale = 784;
 
-    if (evt->code > 0 && evt->code <= g_ctx.input.channel_count) {
-        g_ctx.input.channel[evt->code - 1] = (evt->value - x0) / scale;
+    if (evt->code > 0 && evt->code <= ctx->input.channel_count) {
+        ctx->input.channel[evt->code - 1] = (evt->value - x0) / scale;
     } else {
         LOG_DBG("unhandled event: %d %d %d %d", evt->code, evt->sync, evt->type, evt->value);
     }
 
-    if (evt->code < g_ctx.last_event) {
-        if (g_ctx.counter++ > 10) {
-            zros_pub_update(&g_ctx.pub_input);
-            g_ctx.counter = 0;
+    if (evt->code < ctx->last_event) {
+        if (ctx->counter++ > 10) {
+            stamp_msg(&ctx->input.timestamp, k_uptime_ticks());
+            zros_pub_update(&ctx->pub_input);
+            ctx->counter = 0;
         }
     }
-    g_ctx.last_event = evt->code;
+    ctx->last_event = evt->code;
 }
 
-INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_ALIAS(sbus)), input_cb, NULL);
+INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_ALIAS(sbus)), input_cb, &g_ctx);
 
 static int sense_sbus_cmd_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)

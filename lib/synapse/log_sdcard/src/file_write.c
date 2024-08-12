@@ -26,10 +26,7 @@
 #define FS_RET_OK FR_OK
 #define MY_STACK_SIZE 8192
 #define MY_PRIORITY 1
-#define FILE_WRITE_PRIORITY 5
-#define FILE_WRITE_STACK_SIZE 8192
 #define BUF_SIZE 8192
-#define BUF_SIZE_WRITE_TRIGGER 4096
 
 
 static FATFS fat_fs;
@@ -38,52 +35,21 @@ static struct fs_mount_t mp = {
     .fs_data = &fat_fs,
 };
 
-LOG_MODULE_REGISTER(log_sdcard, LOG_LEVEL_DBG);
+LOG_MODULE_DECLARE(log_sdcard, LOG_LEVEL_DBG);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
-static K_THREAD_STACK_DEFINE(g_file_write_stack_area, FILE_WRITE_STACK_SIZE);
-
-struct file_write_context {
-    struct fs_file_t * file;
-    uint8_t * buf;
-    size_t n;
-};
 
 struct context {
-    // zros node handle
-    struct zros_node node;
-    // subscriptions
-    struct zros_sub sub_imu;
-    struct zros_sub sub_imu_q31_array;
-    struct zros_sub sub_pwm;
-    struct zros_sub sub_input;
-    // file
     struct fs_file_t file;
-    synapse_pb_Frame frame;
-    int8_t buf_index;
-    uint8_t buf[2][BUF_SIZE];
-    // status
-    struct k_sem running;
-    size_t stack_size;
-    k_thread_stack_t* stack_area;
-    size_t file_write_stack_size;
-    k_thread_stack_t* file_write_stack_area;
-    struct k_thread thread_data;
-    struct perf_counter perf;
-    uint32_t buf_bytes;
-    struct file_write_context fw_ctx;
-    struct k_thread file_write_thread;
+    uint8_t buf[BUF_SIZE];
+    size_t n;
 };
 
 static struct context g_ctx = {
     .node = {},
-    .sub_imu = {},
-    .sub_imu_q31_array = {},
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
-    .file_write_stack_size = FILE_WRITE_STACK_SIZE,
-    .file_write_stack_area = g_file_write_stack_area,
     .thread_data = {},
     .perf = {},
     .buf_index = 0,
@@ -139,37 +105,9 @@ static int mount_sd_card(void)
     return 0;
 }
 
-static int log_sdcard_init(struct context* ctx)
+static int log_sdcard_file_write_init(struct context* ctx)
 {
     int ret = 0;
-    // initialize node
-    zros_node_init(&ctx->node, "log_sdcard");
-    perf_counter_init(&ctx->perf, "log imu", 1.0/100);
-
-    // initialize node subscriptions
-    ret = zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->frame.msg, 8000);
-    if (ret < 0) {
-        LOG_ERR("init imu failed: %d", ret);
-        return ret;
-    }
-
-    ret = zros_sub_init(&ctx->sub_imu_q31_array, &ctx->node, &topic_imu_q31_array, &ctx->frame.msg, 8000);
-    if (ret < 0) {
-        LOG_ERR("init imu failed: %d", ret);
-        return ret;
-    }
-
-    ret = zros_sub_init(&ctx->sub_pwm, &ctx->node, &topic_pwm, &ctx->frame.msg, 8000);
-    if (ret < 0) {
-        LOG_ERR("init pwm failed: %d", ret);
-        return ret;
-    }
-
-    ret = zros_sub_init(&ctx->sub_input, &ctx->node, &topic_input, &ctx->frame.msg, 8000);
-    if (ret < 0) {
-        LOG_ERR("init input failed: %d", ret);
-        return ret;
-    }
 
     ret = mount_sd_card();
     if (ret < 0) {

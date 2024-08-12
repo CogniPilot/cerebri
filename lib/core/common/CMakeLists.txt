@@ -31,5 +31,6 @@ set_source_files_properties(
 
 zephyr_library_sources(
   src/common.c
+  src/perf_counter.c
   ${CASADI_FILES}
   )

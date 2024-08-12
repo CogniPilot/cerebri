@@ -48,6 +48,7 @@ static struct context g_ctx = {
     .actuators = synapse_pb_Actuators_init_default,
     .status = synapse_pb_Status_init_default,
     .pwm = {
+        .has_timestamp = true,
         .channel = {},
         .channel_count = CONFIG_CEREBRI_ACTUATE_PWM_NUMBER,
     },
@@ -94,9 +95,9 @@ static void actuate_pwm_fini(struct context* ctx)
     k_sem_give(&ctx->running);
 }
 
-static void pwm_update(const synapse_pb_Status* status, const synapse_pb_Actuators* actuators)
+static void pwm_update(struct context * ctx)
 {
-    bool armed = status->arming == synapse_pb_Status_Arming_ARMING_ARMED;
+    bool armed = ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED;
     int err = 0;
 
     for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
@@ -105,7 +106,7 @@ static void pwm_update(const synapse_pb_Status* status, const synapse_pb_Actuato
         uint32_t pulse = pwm.disarmed;
         if (armed) {
             if (pwm.type == PWM_TYPE_NORMALIZED) {
-                float input = armed ? actuators->normalized[pwm.index] : 0;
+                float input = armed ? ctx->actuators.normalized[pwm.index] : 0;
                 if (input < -1 || input > 1) {
                     LOG_ERR("normalized input out of bounds");
                     continue;
@@ -117,7 +118,7 @@ static void pwm_update(const synapse_pb_Status* status, const synapse_pb_Actuato
                 }
                 LOG_DBG("%s position index %d with input %f pulse %d", pwm.alias, pwm.index, (double)input, pulse);
             } else if (pwm.type == PWM_TYPE_POSITION) {
-                float input = armed ? actuators->position[pwm.index] : 0;
+                float input = armed ? ctx->actuators.position[pwm.index] : 0;
                 uint32_t output = (uint32_t)((pwm.slope * input) + pwm.intercept);
                 if (output > pwm.max) {
                     pulse = pwm.max;
@@ -131,7 +132,7 @@ static void pwm_update(const synapse_pb_Status* status, const synapse_pb_Actuato
                 LOG_DBG("%s position index %d with input %f output %d pulse %d",
                     pwm.alias, pwm.index, (double)input, output, pulse);
             } else if (pwm.type == PWM_TYPE_VELOCITY) {
-                float input = armed ? actuators->velocity[pwm.index] : 0;
+                float input = armed ? ctx->actuators.velocity[pwm.index] : 0;
                 uint32_t output = (uint32_t)((pwm.slope * input) + pwm.intercept);
                 if (output > pwm.max) {
                     pulse = pwm.max;
@@ -146,7 +147,7 @@ static void pwm_update(const synapse_pb_Status* status, const synapse_pb_Actuato
                     pwm.alias, pwm.index, (double)input, output, pulse);
             }
         }
-        g_ctx.pwm.channel[i] = pulse;
+        ctx->pwm.channel[i] = pulse;
 
         if (pwm.use_nano_seconds) {
             err = pwm_set_pulse_dt(&pwm.device, PWM_NSEC(pulse));
@@ -159,7 +160,8 @@ static void pwm_update(const synapse_pb_Status* status, const synapse_pb_Actuato
         }
     }
 
-    zros_pub_update(&g_ctx.pub_pwm);
+    stamp_msg(&ctx->pwm.timestamp, k_uptime_ticks());
+    zros_pub_update(&ctx->pub_pwm);
 }
 
 static void actuate_pwm_run(void* p0, void* p1, void* p2)
@@ -199,7 +201,7 @@ static void actuate_pwm_run(void* p0, void* p1, void* p2)
         }
 
         // update pwm
-        pwm_update(&ctx->status, &ctx->actuators);
+        pwm_update(ctx);
     }
 
     actuate_pwm_fini(ctx);

@@ -86,7 +86,7 @@ static int sense_accel_init(struct context* ctx)
     zros_node_init(&ctx->node, "sense_accel");
     zros_pub_init(&ctx->pub_imu, &ctx->node, &topic_imu, &ctx->imu);
     zros_pub_init(&ctx->pub_imu_q31_array, &ctx->node, &topic_imu_q31_array, &ctx->imu_q31_array);
-    perf_counter_init(&ctx->perf, "sense_accel", 1.0/100);
+    perf_counter_init(&ctx->perf, "sense_accel", 1.0 / 100);
 
     ctx->stream_config.count = 1;
 
@@ -283,7 +283,6 @@ static void sense_accel_run(void* p0, void* p1, void* p2)
     sense_accel_init(ctx);
 
     while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
-
 
         sensor_processing_with_callback(
             &accel_rtio, accel_processing_callback);

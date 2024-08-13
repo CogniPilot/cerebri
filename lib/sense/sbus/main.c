@@ -95,9 +95,9 @@ static int start(struct context* ctx)
     return 0;
 }
 
-static void input_cb(struct input_event* evt, void * userdata)
+static void input_cb(struct input_event* evt, void* userdata)
 {
-    struct context * ctx = userdata;
+    struct context* ctx = userdata;
 
     // check if still running
     if (k_sem_count_get(&ctx->running) != 0) {

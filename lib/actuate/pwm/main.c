@@ -95,7 +95,7 @@ static void actuate_pwm_fini(struct context* ctx)
     k_sem_give(&ctx->running);
 }
 
-static void pwm_update(struct context * ctx)
+static void pwm_update(struct context* ctx)
 {
     bool armed = ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED;
     int err = 0;

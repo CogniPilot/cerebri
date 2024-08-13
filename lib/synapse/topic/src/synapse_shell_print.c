@@ -332,9 +332,9 @@ int snprint_imu_q31_array(char* buf, size_t n, synapse_pb_ImuQ31Array* m)
         offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
     }
     for (int i = 0; i < m->frame_count; i++) {
-        synapse_pb_ImuQ31Array_Frame * f = &m->frame[i];
+        synapse_pb_ImuQ31Array_Frame* f = &m->frame[i];
         offset += snprintf_cat(buf + offset, n - offset, "%11d %11d %11d %11d %11d %11d %11d %11d\n",
-                f->delta_nanos, f->accel_x, f->accel_y, f->accel_z, f->gyro_x, f->gyro_y, f->gyro_z, f->temp);
+            f->delta_nanos, f->accel_x, f->accel_y, f->accel_z, f->gyro_x, f->gyro_y, f->gyro_z, f->temp);
     }
     return offset;
 }

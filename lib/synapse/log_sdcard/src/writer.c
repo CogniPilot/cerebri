@@ -16,7 +16,7 @@
 
 #define FS_RET_OK FR_OK
 #define MY_STACK_SIZE 8192
-#define MY_PRIORITY 10
+#define MY_PRIORITY 1
 #define BUF_SIZE 131072
 
 extern struct ring_buf rb_sdcard;
@@ -37,6 +37,7 @@ struct context {
     size_t stack_size;
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
+    size_t total_size_written;
 };
 
 static struct context g_ctx = {
@@ -45,6 +46,7 @@ static struct context g_ctx = {
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
     .thread_data = {},
+    .total_size_written = 0,
 };
 
 static const char* disk_mount_pt = "/SD:";
@@ -156,24 +158,27 @@ static void log_sdcard_writer_run(void* p0, void* p1, void* p2)
     }
 
     // while running
-    uint8_t * data;
     size_t size;
     size_t size_written;
-    int rc;
     int64_t last_ticks = 0;
+    uint8_t* data;
     while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
-        k_msleep(100);
+
+        k_msleep(1);
         size = ring_buf_get_claim(&rb_sdcard, &data, BUF_SIZE);
-        LOG_INF("writing: %d bytes to sdcard", size);
-        size_written = fs_write(&ctx->file, data, size);
-        if (size != size_written) {
-            LOG_ERR("file write failed %d/%d", size_written, size);
+        if (size > 0) {
+            // LOG_INF("writing: %d bytes to sdcard", size);
+            size_written = fs_write(&ctx->file, data, size);
+            ctx->total_size_written += size_written;
+            ring_buf_get_finish(&rb_sdcard, size);
+            if (size != size_written) {
+                LOG_ERR("file write failed %d/%d", size_written, size);
+            }
         }
-        rc = ring_buf_get_finish(&rb_sdcard, size);
-        if (rc != 0) {
-            LOG_INF("proc size exceeds amount of valid data in ring buffer");
-        }
-        if (k_uptime_ticks() - last_ticks > CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
+        int64_t now_ticks = k_uptime_ticks();
+        if (now_ticks - last_ticks > 4 * CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
+            // LOG_INF("fsync");
+            last_ticks = now_ticks;
             fs_sync(&ctx->file);
         }
     }
@@ -213,7 +218,8 @@ static int log_sdcard_writer_cmd_handler(const struct shell* sh,
             shell_print(sh, "not running");
         }
     } else if (strcmp(argv[0], "status") == 0) {
-        shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
+        shell_print(sh, "running: %d size written: %10.3f MB",
+            (int)k_sem_count_get(&g_ctx.running) == 0, ((double)ctx->total_size_written) / 1048576L);
     }
     return 0;
 }

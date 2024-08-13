@@ -8,6 +8,7 @@ zephyr_include_directories()
 
 zephyr_library_sources(
   src/main.c
+  src/writer.c
   )
 
 zephyr_link_libraries(ELMFAT)

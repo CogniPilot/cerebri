@@ -17,37 +17,17 @@
 
 #include <pb_encode.h>
 
-#include <ff.h>
-#include <zephyr/fs/fs.h>
-#include <zephyr/storage/disk_access.h>
-
 #include <synapse_topic_list.h>
 
-#define FS_RET_OK FR_OK
 #define MY_STACK_SIZE 8192
 #define MY_PRIORITY 1
-#define FILE_WRITE_PRIORITY 5
-#define FILE_WRITE_STACK_SIZE 8192
-#define BUF_SIZE 8192
-#define BUF_SIZE_WRITE_TRIGGER 4096
+#define BUF_SIZE 131072
 
-
-static FATFS fat_fs;
-static struct fs_mount_t mp = {
-    .type = FS_FATFS,
-    .fs_data = &fat_fs,
-};
+RING_BUF_DECLARE(rb_sdcard, BUF_SIZE);
 
 LOG_MODULE_REGISTER(log_sdcard, LOG_LEVEL_DBG);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
-static K_THREAD_STACK_DEFINE(g_file_write_stack_area, FILE_WRITE_STACK_SIZE);
-
-struct file_write_context {
-    struct fs_file_t * file;
-    uint8_t * buf;
-    size_t n;
-};
 
 struct context {
     // zros node handle
@@ -58,21 +38,13 @@ struct context {
     struct zros_sub sub_pwm;
     struct zros_sub sub_input;
     // file
-    struct fs_file_t file;
     synapse_pb_Frame frame;
-    int8_t buf_index;
-    uint8_t buf[2][BUF_SIZE];
     // status
     struct k_sem running;
     size_t stack_size;
     k_thread_stack_t* stack_area;
-    size_t file_write_stack_size;
-    k_thread_stack_t* file_write_stack_area;
     struct k_thread thread_data;
     struct perf_counter perf;
-    uint32_t buf_bytes;
-    struct file_write_context fw_ctx;
-    struct k_thread file_write_thread;
 };
 
 static struct context g_ctx = {
@@ -82,62 +54,9 @@ static struct context g_ctx = {
     .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
     .stack_size = MY_STACK_SIZE,
     .stack_area = g_my_stack_area,
-    .file_write_stack_size = FILE_WRITE_STACK_SIZE,
-    .file_write_stack_area = g_file_write_stack_area,
     .thread_data = {},
     .perf = {},
-    .buf_index = 0,
-    .buf_bytes = 0,
 };
-
-static const char* disk_mount_pt = "/SD:";
-
-static int mount_sd_card(void)
-{
-    /* raw disk i/o */
-    static const char* disk_pdrv = "SD";
-    uint64_t memory_size_mb;
-    uint32_t block_count;
-    uint32_t block_size;
-
-    if (disk_access_init(disk_pdrv) != 0) {
-        LOG_ERR("Storage init ERROR!");
-        return -1;
-    }
-
-    if (disk_access_ioctl(disk_pdrv,
-            DISK_IOCTL_GET_SECTOR_COUNT, &block_count)) {
-        LOG_ERR("Unable to get sector count");
-        return -1;
-    }
-    LOG_INF("Block count %u", block_count);
-
-    if (disk_access_ioctl(disk_pdrv,
-            DISK_IOCTL_GET_SECTOR_SIZE, &block_size)) {
-        LOG_ERR("Unable to get sector size");
-        return -1;
-    }
-    LOG_INF("Sector size %u", block_size);
-
-    memory_size_mb = (uint64_t)block_count * block_size;
-    LOG_INF("Memory Size(MB) %u", (uint32_t)(memory_size_mb >> 20));
-
-    mp.mnt_point = disk_mount_pt;
-
-    int res = fs_mount(&mp);
-
-    if (res == FR_OK) {
-        LOG_INF("Disk mounted.");
-    } else {
-        LOG_INF("Failed to mount disk - trying one more time");
-        res = fs_mount(&mp);
-        if (res != FR_OK) {
-            LOG_INF("Error mounting disk.");
-            return -1;
-        }
-    }
-    return 0;
-}
 
 static int log_sdcard_init(struct context* ctx)
 {
@@ -171,22 +90,6 @@ static int log_sdcard_init(struct context* ctx)
         return ret;
     }
 
-    ret = mount_sd_card();
-    if (ret < 0) {
-        return ret;
-    }
-
-    fs_file_t_init(&ctx->file);
-
-    // delete old file if it exists
-    fs_unlink("/SD:/data.pb");
-
-    // open file
-    ret = fs_open(&ctx->file, "/SD:/data.pb", FS_O_WRITE | FS_O_CREATE | FS_O_APPEND);
-    if (ret < 0) {
-        return ret;
-    }
-
     k_sem_take(&ctx->running, K_FOREVER);
     LOG_INF("init");
     return ret;
@@ -203,53 +106,30 @@ static int log_sdcard_fini(struct context* ctx)
     zros_sub_fini(&ctx->sub_imu_q31_array);
     zros_node_fini(&ctx->node);
 
-    ret = fs_close(&ctx->file);
-    if (ret != 0) {
-        LOG_ERR("failed to close file");
-    }
-
-    ret = fs_unmount(&mp);
-    if (ret < 0) {
-        LOG_ERR("failed to unmount disk");
-    }
-
     k_sem_give(&ctx->running);
     LOG_INF("fini");
     return ret;
 };
 
-static void file_write_entry_point(void * p0, void * p1, void * p2) {
-    struct file_write_context * ctx = p0;
-    fs_write(ctx->file, ctx->buf, ctx->n);
-    fs_sync(ctx->file);
-};
-
 static void log_sdcard_write_frame(struct context * ctx) {
-    pb_ostream_t stream = pb_ostream_from_buffer(&ctx->buf[ctx->buf_index][ctx->buf_bytes], BUF_SIZE);
+    uint8_t * data;
+    size_t msg_size;
+    size_t claimed_size;
+    pb_get_encoded_size(&msg_size, synapse_pb_Frame_fields, &ctx->frame);
+    msg_size += 10; // to account for length delimieter
+    claimed_size = ring_buf_put_claim(&rb_sdcard, &data, BUF_SIZE); 
+    if (claimed_size < msg_size) {
+        //LOG_ERR("failed to claim: %d/%d", claimed_size, msg_size);
+        ring_buf_put_finish(&rb_sdcard, claimed_size);
+        return;
+    }
+    pb_ostream_t stream = pb_ostream_from_buffer(data, claimed_size);
     if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, &ctx->frame, PB_ENCODE_DELIMITED)) {
         LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
+        ring_buf_put_finish(&rb_sdcard, stream.bytes_written);
+        return;
     } else {
-        ctx->buf_bytes += stream.bytes_written;
-        //LOG_INF("stream bytes: %d", stream.bytes_written);
-        if (ctx->buf_bytes > BUF_SIZE_WRITE_TRIGGER) {
-            LOG_INF("writing %d", ctx->buf_bytes);
-            ctx->fw_ctx.file = &ctx->file;
-            ctx->fw_ctx.buf = ctx->buf[ctx->buf_index];
-            ctx->fw_ctx.n = ctx->buf_bytes;
-            LOG_INF("joining file write thread");
-            k_thread_join(&ctx->file_write_thread, K_FOREVER);
-            LOG_INF("creating file write thread");
-            k_thread_create(&ctx->file_write_thread, g_file_write_stack_area,
-                    ctx->file_write_stack_size,
-                    file_write_entry_point,
-                    &ctx->fw_ctx, NULL, NULL,
-                    FILE_WRITE_PRIORITY, 0, K_NO_WAIT);
-            ctx->buf_bytes = 0;
-            // switch buffers for new writes
-            ctx->buf_index = !ctx->buf_index;
-        } else {
-            //LOG_INF("skip write");
-        }
+        ring_buf_put_finish(&rb_sdcard, stream.bytes_written);
     }
 }
 

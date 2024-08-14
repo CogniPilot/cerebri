@@ -22,6 +22,7 @@
 #define MY_STACK_SIZE 8192
 #define MY_PRIORITY 1
 #define BUF_SIZE 131072
+#define TOPIC_RATE_HZ 10000
 
 RING_BUF_DECLARE(rb_sdcard, BUF_SIZE);
 
@@ -63,34 +64,37 @@ static int log_sdcard_init(struct context* ctx)
     int ret = 0;
     // initialize node
     zros_node_init(&ctx->node, "log_sdcard");
-    perf_counter_init(&ctx->perf, "log imu", 1.0/100);
+    perf_counter_init(&ctx->perf, "log imu", 1.0 / 100);
 
     // initialize node subscriptions
-    ret = zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->frame.msg, 8000);
+    ret = zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->frame.msg, TOPIC_RATE_HZ);
     if (ret < 0) {
         LOG_ERR("init imu failed: %d", ret);
         return ret;
     }
 
-    ret = zros_sub_init(&ctx->sub_imu_q31_array, &ctx->node, &topic_imu_q31_array, &ctx->frame.msg, 8000);
+    ret = zros_sub_init(&ctx->sub_imu_q31_array, &ctx->node, &topic_imu_q31_array, &ctx->frame.msg, TOPIC_RATE_HZ);
     if (ret < 0) {
-        LOG_ERR("init imu failed: %d", ret);
+        LOG_ERR("init imu_q31_array failed: %d", ret);
         return ret;
     }
 
-    ret = zros_sub_init(&ctx->sub_pwm, &ctx->node, &topic_pwm, &ctx->frame.msg, 8000);
+    ret = zros_sub_init(&ctx->sub_pwm, &ctx->node, &topic_pwm, &ctx->frame.msg, TOPIC_RATE_HZ);
     if (ret < 0) {
         LOG_ERR("init pwm failed: %d", ret);
         return ret;
     }
 
-    ret = zros_sub_init(&ctx->sub_input, &ctx->node, &topic_input, &ctx->frame.msg, 8000);
+    ret = zros_sub_init(&ctx->sub_input, &ctx->node, &topic_input, &ctx->frame.msg, TOPIC_RATE_HZ);
     if (ret < 0) {
         LOG_ERR("init input failed: %d", ret);
         return ret;
     }
 
     k_sem_take(&ctx->running, K_FOREVER);
+
+    // make sure writer is ready
+    k_msleep(1000);
     LOG_INF("init");
     return ret;
 };
@@ -111,25 +115,25 @@ static int log_sdcard_fini(struct context* ctx)
     return ret;
 };
 
-static void log_sdcard_write_frame(struct context * ctx) {
-    uint8_t * data;
-    size_t msg_size;
-    size_t claimed_size;
-    pb_get_encoded_size(&msg_size, synapse_pb_Frame_fields, &ctx->frame);
-    msg_size += 10; // to account for length delimieter
-    claimed_size = ring_buf_put_claim(&rb_sdcard, &data, BUF_SIZE); 
-    if (claimed_size < msg_size) {
-        //LOG_ERR("failed to claim: %d/%d", claimed_size, msg_size);
-        ring_buf_put_finish(&rb_sdcard, claimed_size);
-        return;
-    }
-    pb_ostream_t stream = pb_ostream_from_buffer(data, claimed_size);
+static void log_sdcard_write_frame(struct context* ctx)
+{
+    static uint8_t buf[8192];
+    size_t size_written, size_available;
+    pb_ostream_t stream = pb_ostream_from_buffer(buf, ARRAY_SIZE(buf));
     if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, &ctx->frame, PB_ENCODE_DELIMITED)) {
         LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
-        ring_buf_put_finish(&rb_sdcard, stream.bytes_written);
-        return;
     } else {
-        ring_buf_put_finish(&rb_sdcard, stream.bytes_written);
+        size_available = ring_buf_space_get(&rb_sdcard);
+        if (size_available < stream.bytes_written) {
+            LOG_WRN("dropping packet, stream full");
+        } else {
+            size_written = ring_buf_put(&rb_sdcard, buf, stream.bytes_written);
+            if (size_written != stream.bytes_written) {
+                LOG_INF("partial write: %d/%d", size_written, stream.bytes_written);
+                return;
+            }
+            // LOG_INF("writing %d", stream.bytes_written);
+        }
     }
 }
 
@@ -158,7 +162,7 @@ static void log_sdcard_run(void* p0, void* p1, void* p2)
         };
 
         int rc = 0;
-        rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
+        rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(2000));
         if (rc != 0) {
             LOG_DBG("poll timeout");
         }

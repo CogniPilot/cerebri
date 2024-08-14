@@ -62,10 +62,10 @@ static void rdd2_angular_velocity_init(struct context* ctx)
     zros_node_init(&ctx->node, "rdd2_angular_velocity");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_angular_velocity_sp, &ctx->node,
-        &topic_angular_velocity_sp, &ctx->angular_velocity_sp, 50);
+        &topic_angular_velocity_sp, &ctx->angular_velocity_sp, 1000);
     zros_sub_init(&ctx->sub_odometry_estimator, &ctx->node,
-        &topic_odometry_estimator, &ctx->odometry_estimator, 50);
-    zros_sub_init(&ctx->sub_moment_ff, &ctx->node, &topic_moment_ff, &ctx->moment_ff, 50);
+        &topic_odometry_estimator, &ctx->odometry_estimator, 1000);
+    zros_sub_init(&ctx->sub_moment_ff, &ctx->node, &topic_moment_ff, &ctx->moment_ff, 1000);
     zros_pub_init(&ctx->pub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp);
     k_sem_take(&ctx->running, K_FOREVER);
     LOG_INF("init");

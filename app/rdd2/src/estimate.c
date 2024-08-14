@@ -88,7 +88,7 @@ static void rdd2_estimate_init(struct context* ctx)
     zros_sub_init(&ctx->sub_odometry_ethernet, &ctx->node, &topic_odometry_ethernet,
         &ctx->odometry_ethernet, 10);
     zros_pub_init(&ctx->pub_odometry, &ctx->node, &topic_odometry_estimator, &ctx->odometry);
-    perf_counter_init(&ctx->perf, "estimator imu", 1.0/100);
+    perf_counter_init(&ctx->perf, "estimator imu", 1.0 / 100);
     k_sem_take(&ctx->running, K_FOREVER);
     LOG_INF("init");
 }

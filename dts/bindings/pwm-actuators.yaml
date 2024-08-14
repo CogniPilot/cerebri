@@ -1,0 +1,64 @@
+# Copyright (c) 2024 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+description: PWM actuators parent node
+
+  A generic binding for PWM actuators. Note that this binding
+  has no vendor prefix, as it does not target a specific device or vendor.
+
+compatible: "pwm-actuators"
+
+child-binding:
+  description: PWM actuators node
+  properties:
+    label:
+      type: string
+      description : user label
+
+    pwms:
+      required: true
+      type: phandle-array
+      description: Reference to a PWM instance.
+
+    disarmed-ms:
+      default: 1000
+      type: int
+      description: pwm signal in ms to send when disarmed
+
+    min-ms:
+      default: 1200
+      type: int
+      description: Minimum pwm signal in ms to send
+
+    center-ms:
+      required: true
+      type: int
+      description: Center pwm signal in ms to send (maps 0 input to pwm)
+
+    scale:
+      required: true
+      type: int
+      description: The scale in pwm per unit of input
+
+    scale-div:
+      default: 1
+      type: int
+      description: A divisor for the scale
+
+    max-ms:
+      default: 1800
+      type: int
+      description: Maximum pwm signal in ms to send
+
+    use-nano-seconds:
+      type: boolean
+      description: Use nanoseconds for pwm signal
+
+    input-type:
+      default: "normalized"
+      type: string
+      description: What type of input singal to actuators
+      enum:
+        - "normalized"
+        - "position"
+        - "velocity"

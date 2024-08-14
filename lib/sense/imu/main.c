@@ -8,7 +8,7 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 
-#include <cerebri/core/casadi.h>
+//#include <cerebri/core/casadi.h>
 #include <cerebri/core/common.h>
 
 #include <synapse_topic_list.h>
@@ -27,9 +27,6 @@ LOG_MODULE_REGISTER(sense_imu, CONFIG_CEREBRI_SENSE_IMU_LOG_LEVEL);
 
 static const double g_accel = 9.8;
 static const int g_calibration_count = 100;
-
-static const double wn = 80;
-static const double T = 0.002;
 
 extern struct k_work_q g_high_priority_work_q;
 static void imu_work_handler(struct k_work* work);
@@ -53,16 +50,12 @@ typedef struct context_t {
     // gyro
     const struct device* gyro_dev[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT];
     double gyro_raw[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3];
-    double gyro_filt[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3];
     double gyro_bias[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3];
-    double gyro_filter_state[CONFIG_CEREBRI_SENSE_IMU_GYRO_COUNT][3][2];
 
     // accel
     const struct device* accel_dev[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT];
     double accel_raw[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3];
-    double accel_filt[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3];
     double accel_bias[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3];
-    double accel_filter_state[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT][3][2];
     double accel_scale[CONFIG_CEREBRI_SENSE_IMU_ACCEL_COUNT];
 
     // 2nd order butterworth filter states
@@ -89,13 +82,9 @@ static context_t g_ctx = {
     .gyro_dev = {},
     .gyro_raw = {},
     .gyro_bias = {},
-    .gyro_filt = {},
-    .gyro_filter_state = {},
     .accel_dev = {},
     .accel_raw = {},
     .accel_bias = {},
-    .accel_filt = {},
-    .accel_filter_state = {},
 };
 
 static void imu_init(context_t* ctx)
@@ -151,30 +140,6 @@ void imu_read(context_t* ctx)
                         continue;
                     }
 
-                    /* butterworth_2_filter:(T,w_n,x[2],u)->(x_1[2],y) */
-                    double u = ctx->accel_raw[i][j] - ctx->accel_bias[i][j];
-                    double* x = ctx->accel_filter_state[i][j];
-                    double y;
-                    CASADI_FUNC_ARGS(butterworth_2_filter);
-                    args[0] = &T;
-                    args[1] = &wn;
-                    args[2] = x;
-                    args[3] = &u;
-                    res[0] = x;
-                    res[1] = &y;
-                    CASADI_FUNC_CALL(butterworth_2_filter);
-                    for (int k = 0; k < 2; k++) {
-                        if (!isfinite(x[k])) {
-                            LOG_ERR("state not finite");
-                        } else {
-                            ctx->accel_filter_state[i][j][k] = x[k];
-                        }
-                    }
-                    if (!isfinite(y)) {
-                        LOG_ERR("output not finite");
-                    } else {
-                        ctx->accel_filt[i][j] = y;
-                    }
                 }
 
                 LOG_DBG("accel %d: %d.%06d %d.%06d %d.%06d", i,
@@ -200,30 +165,6 @@ void imu_read(context_t* ctx)
                         continue;
                     }
 
-                    /* butterworth_2_filter:(T,w_n,x[2],u)->(x_1[2],y) */
-                    double u = ctx->gyro_raw[i][j] - ctx->gyro_bias[i][j];
-                    double* x = ctx->gyro_filter_state[i][j];
-                    double y;
-                    CASADI_FUNC_ARGS(butterworth_2_filter);
-                    args[0] = &T;
-                    args[1] = &wn;
-                    args[2] = x;
-                    args[3] = &u;
-                    res[0] = x;
-                    res[1] = &y;
-                    CASADI_FUNC_CALL(butterworth_2_filter);
-                    for (int k = 0; k < 2; k++) {
-                        if (!isfinite(x[k])) {
-                            LOG_ERR("state not finite");
-                        } else {
-                            ctx->gyro_filter_state[i][j][k] = x[k];
-                        }
-                    }
-                    if (!isfinite(y)) {
-                        LOG_ERR("output not finite");
-                    } else {
-                        ctx->gyro_filt[i][j] = y;
-                    }
                 }
 
                 LOG_DBG("gyro %d: %d.%06d %d.%06d %d.%06d", i,
@@ -371,12 +312,12 @@ void imu_publish(context_t* ctx)
     // x: forward: (-y for icm42688)
     // y: left: (x for icm42688)
     // z: up: (z for icm42688)
-    ctx->imu.angular_velocity.x = -ctx->gyro_filt[gyro_select][1];
-    ctx->imu.angular_velocity.y = ctx->gyro_filt[gyro_select][0];
-    ctx->imu.angular_velocity.z = ctx->gyro_filt[gyro_select][2];
-    ctx->imu.linear_acceleration.x = -ctx->accel_filt[accel_select][1] / ctx->accel_scale[accel_select];
-    ctx->imu.linear_acceleration.y = ctx->accel_filt[accel_select][0] / ctx->accel_scale[accel_select];
-    ctx->imu.linear_acceleration.z = ctx->accel_filt[accel_select][2] / ctx->accel_scale[accel_select];
+    ctx->imu.angular_velocity.x = ctx->gyro_raw[gyro_select][0];
+    ctx->imu.angular_velocity.y = ctx->gyro_raw[gyro_select][1];
+    ctx->imu.angular_velocity.z = ctx->gyro_raw[gyro_select][2];
+    ctx->imu.linear_acceleration.x = ctx->accel_raw[accel_select][0] / ctx->accel_scale[accel_select];
+    ctx->imu.linear_acceleration.y = ctx->accel_raw[accel_select][1] / ctx->accel_scale[accel_select];
+    ctx->imu.linear_acceleration.z = ctx->accel_raw[accel_select][2] / ctx->accel_scale[accel_select];
 
     // publish message
     zros_pub_update(&ctx->pub_imu);
@@ -419,7 +360,7 @@ int sense_imu_entry_point(context_t* ctx)
     imu_init(ctx);
     // delay initiali calibration 1 s
     k_msleep(1000);
-    k_timer_start(&ctx->timer, K_USEC(1000), K_USEC(1000));
+    k_timer_start(&ctx->timer, K_MSEC(5), K_MSEC(5));
     return 0;
 }
 

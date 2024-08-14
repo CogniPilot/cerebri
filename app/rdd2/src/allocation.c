@@ -50,6 +50,12 @@ static struct context g_ctx = {
     .actuators = {
         .has_stamp = true,
         .stamp = synapse_pb_Timestamp_init_default,
+        .velocity_count = 4,
+        .normalized_count = 0,
+        .position_count = 0,
+        .position = {},
+        .normalized = {},
+        .velocity = {},
     },
     .sub_status = {},
     .sub_force_sp = {},
@@ -65,8 +71,8 @@ static void rdd2_allocation_init(struct context* ctx)
 {
     zros_node_init(&ctx->node, "rdd2_allocation");
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
-    zros_sub_init(&ctx->sub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp, 300);
-    zros_sub_init(&ctx->sub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp, 300);
+    zros_sub_init(&ctx->sub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp, 1000);
+    zros_sub_init(&ctx->sub_moment_sp, &ctx->node, &topic_moment_sp, &ctx->moment_sp, 1000);
     zros_pub_init(&ctx->pub_actuators, &ctx->node, &topic_actuators, &ctx->actuators);
     k_sem_take(&ctx->running, K_FOREVER);
     LOG_INF("init");

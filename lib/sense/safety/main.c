@@ -99,7 +99,7 @@ static int start(struct context* ctx)
     return 0;
 }
 
-static void input_cb(struct input_event* evt, void * userdata)
+static void input_cb(struct input_event* evt, void* userdata)
 {
     struct context* ctx = &g_ctx;
 

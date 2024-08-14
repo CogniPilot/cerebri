@@ -78,8 +78,8 @@ static int actuate_pwm_init(struct context* ctx)
     }
 
     zros_node_init(&ctx->node, "actuate_pwm");
-    zros_sub_init(&ctx->sub_actuators, &ctx->node, &topic_actuators, &ctx->actuators, 100);
-    zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 100);
+    zros_sub_init(&ctx->sub_actuators, &ctx->node, &topic_actuators, &ctx->actuators, 1000);
+    zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 1000);
     zros_pub_init(&ctx->pub_pwm, &ctx->node, &topic_pwm, &ctx->pwm);
     k_sem_take(&ctx->running, K_FOREVER);
     return 0;

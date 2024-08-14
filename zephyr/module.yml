@@ -7,3 +7,5 @@ build:
   depends:
     - nanopb
     - synapse_pb
+    - cmsis
+    - cmsis-dsp

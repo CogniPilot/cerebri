@@ -321,7 +321,7 @@ int snprint_twist(char* buf, size_t n, synapse_pb_Twist* m)
 
 int snprint_vector3(char* buf, size_t n, synapse_pb_Vector3* m)
 {
-    return snprintf_cat(buf, n, "x: %10.4f y: %10.4f z: %10.4f\n", m->x, m->y, m->z);
+    return snprintf_cat(buf, n, "x: %10.7f y: %10.7f z: %10.7f\n", m->x, m->y, m->z);
 }
 
 int snprint_imu_q31_array(char* buf, size_t n, synapse_pb_ImuQ31Array* m)

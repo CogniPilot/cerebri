@@ -26,6 +26,7 @@ manifest:
           - mbedtls
           - hal_nxp
           - cmsis
+          - cmsis-dsp
           - ubxlib
           - fatfs
           - segger

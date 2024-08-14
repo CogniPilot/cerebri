@@ -118,17 +118,22 @@ static int log_sdcard_fini(struct context* ctx)
 static void log_sdcard_write_frame(struct context* ctx)
 {
     static uint8_t buf[8192];
-    size_t size_written;
+    size_t size_written, size_available;
     pb_ostream_t stream = pb_ostream_from_buffer(buf, ARRAY_SIZE(buf));
     if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, &ctx->frame, PB_ENCODE_DELIMITED)) {
         LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
     } else {
-        size_written = ring_buf_put(&rb_sdcard, buf, stream.bytes_written);
-        if (size_written != stream.bytes_written) {
-            LOG_INF("partial write: %d/%d", size_written, stream.bytes_written);
-            return;
+        size_available = ring_buf_space_get(&rb_sdcard);
+        if (size_available < stream.bytes_written) {
+            LOG_WRN("dropping packet, stream full");
+        } else {
+            size_written = ring_buf_put(&rb_sdcard, buf, stream.bytes_written);
+            if (size_written != stream.bytes_written) {
+                LOG_INF("partial write: %d/%d", size_written, stream.bytes_written);
+                return;
+            }
+            // LOG_INF("writing %d", stream.bytes_written);
         }
-        // LOG_INF("writing %d", stream.bytes_written);
     }
 }
 

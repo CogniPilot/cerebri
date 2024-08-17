@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 42b738eeb754e1201781577a5864685dc9843d62 # pr-vmu-sensor-update 08/10/24
+      revision: ab84d14b90a676f18582277b4cfcd8e9ce63e52a # pr-vmu-sensor-update 08/15/24
       import:
         - name-allowlist:
           - nanopb

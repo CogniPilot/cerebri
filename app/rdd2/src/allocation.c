@@ -50,6 +50,12 @@ static struct context g_ctx = {
     .actuators = {
         .has_stamp = true,
         .stamp = synapse_pb_Timestamp_init_default,
+        .velocity_count = 4,
+        .normalized_count = 0,
+        .position_count = 0,
+        .position = {},
+        .normalized = {},
+        .velocity = {},
     },
     .sub_status = {},
     .sub_force_sp = {},

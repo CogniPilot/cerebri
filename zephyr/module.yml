@@ -4,6 +4,8 @@
 build:
   kconfig: Kconfig
   cmake: .
+  settings:
+    dts_root: .
   depends:
     - nanopb
     - synapse_pb

@@ -2,7 +2,6 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
-#include "actuator_pwm.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <zephyr/drivers/pwm.h>
@@ -23,12 +22,46 @@ LOG_MODULE_REGISTER(actuate_pwm, CONFIG_CEREBRI_ACTUATE_PWM_LOG_LEVEL);
 
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
+#define NUM_ACTUATORS DT_CHILD_NUM(DT_NODELABEL(pwm_actuators))
 
-#define PWM_SHELL_NODE DT_NODE_EXISTS(DT_NODELABEL(pwm_shell))
+typedef enum pwm_type_t {
+    PWM_TYPE_normalized = 0,
+    PWM_TYPE_position = 1,
+    PWM_TYPE_velocity = 2,
+} pwm_type_t;
+
+typedef struct actuator_pwm_t {
+    const char * label;
+    struct pwm_dt_spec device;
+    uint32_t disarmed;
+    uint32_t min;
+    uint32_t max;
+    uint32_t center;
+    bool use_nano_seconds;
+    double scale;
+    uint8_t index;
+    pwm_type_t type;
+} actuator_pwm_t;
+
+#define PWM_ACTUATOR_DEFINE(node_id) \
+{ \
+    .label = DT_NODE_FULL_NAME(node_id), \
+    .device = PWM_DT_SPEC_GET_BY_IDX(node_id, 0), \
+    .disarmed = DT_PROP(node_id, disarmed_ms), \
+    .min = DT_PROP(node_id, min_ms), \
+    .max = DT_PROP(node_id, max_ms), \
+    .center = DT_PROP(node_id, center_ms), \
+    .use_nano_seconds = DT_PROP(node_id, use_nano_seconds), \
+    .scale = ((double) DT_PROP(node_id, scale)) / DT_PROP(node_id, scale_div), \
+    .index =  DT_NODE_CHILD_IDX(node_id), \
+    .type = DT_ENUM_IDX(node_id, input_type), \
+},
+
+const actuator_pwm_t g_actuator_pwms[] = {
+    DT_FOREACH_CHILD(DT_NODELABEL(pwm_actuators), PWM_ACTUATOR_DEFINE)
+};
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
-
-extern actuator_pwm_t g_actuator_pwms[];
 
 struct context {
     synapse_pb_Actuators actuators;
@@ -50,7 +83,7 @@ static struct context g_ctx = {
     .pwm = {
         .has_timestamp = true,
         .channel = {},
-        .channel_count = CONFIG_CEREBRI_ACTUATE_PWM_NUMBER,
+        .channel_count = NUM_ACTUATORS,
     },
     .node = {},
     .sub_status = {},
@@ -67,11 +100,10 @@ static int actuate_pwm_init(struct context* ctx)
 {
     LOG_INF("init");
     // check pwm config
-    for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
+    for (int i = 0; i < NUM_ACTUATORS; i++) {
         actuator_pwm_t pwm = g_actuator_pwms[i];
-        if (pwm.max < pwm.center || pwm.min > pwm.center) {
-            LOG_ERR("config pwm_%d min, center, "
-                    "max must monotonically increase",
+        if (pwm.max < pwm.min) {
+            LOG_ERR("config pwm_%d min, max must monotonically increase",
                 i);
             return -1;
         }
@@ -79,7 +111,7 @@ static int actuate_pwm_init(struct context* ctx)
 
     zros_node_init(&ctx->node, "actuate_pwm");
     zros_sub_init(&ctx->sub_actuators, &ctx->node, &topic_actuators, &ctx->actuators, 1000);
-    zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 1000);
+    zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_pub_init(&ctx->pub_pwm, &ctx->node, &topic_pwm, &ctx->pwm);
     k_sem_take(&ctx->running, K_FOREVER);
     return 0;
@@ -100,53 +132,31 @@ static void pwm_update(struct context* ctx)
     bool armed = ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED;
     int err = 0;
 
-    for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
+    for (int i = 0; i < NUM_ACTUATORS; i++) {
         actuator_pwm_t pwm = g_actuator_pwms[i];
 
         uint32_t pulse = pwm.disarmed;
+        double input = 0;
+
+        if (pwm.type == PWM_TYPE_normalized) {
+            input = ctx->actuators.normalized[pwm.index];
+        } else if (pwm.type == PWM_TYPE_position) {
+            input = ctx->actuators.position[pwm.index];
+        } else if (pwm.type == PWM_TYPE_velocity) {
+            input = ctx->actuators.velocity[pwm.index];
+        }
+
         if (armed) {
-            if (pwm.type == PWM_TYPE_NORMALIZED) {
-                float input = armed ? ctx->actuators.normalized[pwm.index] : 0;
-                if (input < -1 || input > 1) {
-                    LOG_ERR("normalized input out of bounds");
-                    continue;
-                }
-                if (input > 0) {
-                    pulse += input * (pwm.max - pwm.center);
-                } else {
-                    pulse += input * (pwm.center - pwm.min);
-                }
-                LOG_DBG("%s position index %d with input %f pulse %d", pwm.alias, pwm.index, (double)input, pulse);
-            } else if (pwm.type == PWM_TYPE_POSITION) {
-                float input = armed ? ctx->actuators.position[pwm.index] : 0;
-                uint32_t output = (uint32_t)((pwm.slope * input) + pwm.intercept);
-                if (output > pwm.max) {
-                    pulse = pwm.max;
-                    LOG_DBG("%s  position command saturated, requested %d > %d", pwm.alias, output, pwm.max);
-                } else if (output < pwm.min) {
-                    pulse = pwm.min;
-                    LOG_DBG("%s  position command saturated, requested %d < %d", pwm.alias, output, pwm.min);
-                } else {
-                    pulse = output;
-                }
-                LOG_DBG("%s position index %d with input %f output %d pulse %d",
-                    pwm.alias, pwm.index, (double)input, output, pulse);
-            } else if (pwm.type == PWM_TYPE_VELOCITY) {
-                float input = armed ? ctx->actuators.velocity[pwm.index] : 0;
-                uint32_t output = (uint32_t)((pwm.slope * input) + pwm.intercept);
-                if (output > pwm.max) {
-                    pulse = pwm.max;
-                    LOG_DBG("%s velocity command saturated, requested %d > %d\n", pwm.alias, output, pwm.max);
-                } else if (output < pwm.min) {
-                    pulse = pwm.min;
-                    LOG_DBG("%s  velocity command saturated, requested %d < %d\n", pwm.alias, output, pwm.min);
-                } else {
-                    pulse = output;
-                }
-                LOG_DBG("%s  velocity index %d with input %f output %d pulse %d\n",
-                    pwm.alias, pwm.index, (double)input, output, pulse);
+            pulse = (uint32_t)((pwm.scale * input) + pwm.center);
+            if (pulse > pwm.max) {
+                pulse = pwm.max;
+                LOG_DBG("%d  pwm saturated, requested %d > %d", pwm.index, pulse, pwm.max);
+            } else if (pulse < pwm.min) {
+                pulse = pwm.min;
+                LOG_DBG("%d  pwm saturated, requested %d < %d", pwm.index, pulse, pwm.min);
             }
         }
+
         ctx->pwm.channel[i] = pulse;
 
         if (pwm.use_nano_seconds) {
@@ -156,7 +166,7 @@ static void pwm_update(struct context* ctx)
         }
 
         if (err) {
-            LOG_ERR("failed to set pulse %d on %s (err %d)", pulse, pwm.alias, err);
+            LOG_ERR("failed to set pulse %d on %d (err %d)", pwm.index, pulse, err);
         }
     }
 
@@ -229,7 +239,7 @@ static int pwm_test_set_handler(const struct shell* sh,
         shell_print(sh, "actuate_pwm running, stop it first");
         return -1;
     }
-    for (int i = 0; i < CONFIG_CEREBRI_ACTUATE_PWM_NUMBER; i++) {
+    for (int i = 0; i < NUM_ACTUATORS; i++) {
         actuator_pwm_t pwm = g_actuator_pwms[i];
         int err = 0;
         if (pwm.use_nano_seconds) {
@@ -238,7 +248,7 @@ static int pwm_test_set_handler(const struct shell* sh,
             err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pulse));
         }
         if (err) {
-            LOG_ERR("failed to set pulse %d on %s (err %d)", pwm.max, pwm.alias, err);
+            LOG_ERR("failed to set pulse %d on %d (err %d)", pwm.max, pwm.index, err);
         }
     }
     return 0;
@@ -288,5 +298,7 @@ static int actuate_pwm_sys_init(void)
 };
 
 SYS_INIT(actuate_pwm_sys_init, APPLICATION, 1);
+
+
 
 /* vi: ts=4 sw=4 et */

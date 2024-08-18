@@ -6,7 +6,6 @@
 / {
 	pwm_actuators: pwm_actuators {
 		compatible = "cerebri,pwm-actuators";
-		topic = "actuators";
 		aux0 {
 			input-type = "velocity";
 			pwms = <&flexpwm1_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;

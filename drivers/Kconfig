@@ -3,6 +3,9 @@
 
 menu "Libraries"
 
-rsource "core/Kconfig"
+rsource "synapse/Kconfig"
+rsource "actuate/Kconfig"
+rsource "dream/Kconfig"
+rsource "sense/Kconfig"
 
 endmenu

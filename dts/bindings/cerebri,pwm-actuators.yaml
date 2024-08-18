@@ -6,7 +6,13 @@ description: PWM actuators parent node
   A generic binding for PWM actuators. Note that this binding
   has no vendor prefix, as it does not target a specific device or vendor.
 
-compatible: "pwm-actuators"
+compatible: "cerebri,pwm-actuators"
+
+properties:
+  topic:
+    type: string
+    required: true
+    description : zros topic
 
 child-binding:
   description: PWM actuators node

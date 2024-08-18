@@ -2,6 +2,9 @@
  * Copyright CogniPilot Foundation 2023
  * SPDX-License-Identifier: Apache-2.0
  */
+
+#define DT_DRV_COMPAT cerebri_pwm_actuators
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <zephyr/drivers/pwm.h>
@@ -20,9 +23,9 @@
 
 LOG_MODULE_REGISTER(actuate_pwm, CONFIG_CEREBRI_ACTUATE_PWM_LOG_LEVEL);
 
+#define CONFIG_PWM_ACTUATORS_INIT_PRIORITY 50
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
-#define NUM_ACTUATORS DT_CHILD_NUM(DT_NODELABEL(pwm_actuators))
 
 typedef enum pwm_type_t {
     PWM_TYPE_normalized = 0,
@@ -43,26 +46,6 @@ typedef struct actuator_pwm_t {
     pwm_type_t type;
 } actuator_pwm_t;
 
-#define PWM_ACTUATOR_DEFINE(node_id)                                              \
-    {                                                                             \
-        .label = DT_NODE_FULL_NAME(node_id),                                      \
-        .device = PWM_DT_SPEC_GET_BY_IDX(node_id, 0),                             \
-        .disarmed = DT_PROP(node_id, disarmed_ms),                                \
-        .min = DT_PROP(node_id, min_ms),                                          \
-        .max = DT_PROP(node_id, max_ms),                                          \
-        .center = DT_PROP(node_id, center_ms),                                    \
-        .use_nano_seconds = DT_PROP(node_id, use_nano_seconds),                   \
-        .scale = ((double)DT_PROP(node_id, scale)) / DT_PROP(node_id, scale_div), \
-        .index = DT_NODE_CHILD_IDX(node_id),                                      \
-        .type = DT_ENUM_IDX(node_id, input_type),                                 \
-    },
-
-const actuator_pwm_t g_actuator_pwms[] = {
-    DT_FOREACH_CHILD(DT_NODELABEL(pwm_actuators), PWM_ACTUATOR_DEFINE)
-};
-
-static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
-
 struct context {
     synapse_pb_Actuators actuators;
     synapse_pb_Status status;
@@ -75,33 +58,16 @@ struct context {
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
     uint32_t test_pulse;
-};
-
-static struct context g_ctx = {
-    .actuators = synapse_pb_Actuators_init_default,
-    .status = synapse_pb_Status_init_default,
-    .pwm = {
-        .has_timestamp = true,
-        .channel = {},
-        .channel_count = NUM_ACTUATORS,
-    },
-    .node = {},
-    .sub_status = {},
-    .sub_actuators = {},
-    .pub_pwm = {},
-    .running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
-    .stack_size = MY_STACK_SIZE,
-    .stack_area = g_my_stack_area,
-    .thread_data = {},
-    .test_pulse = 0,
+    const actuator_pwm_t* actuator_pwms;
+    uint8_t num_actuators;
 };
 
 static int actuate_pwm_init(struct context* ctx)
 {
     LOG_INF("init");
     // check pwm config
-    for (int i = 0; i < NUM_ACTUATORS; i++) {
-        actuator_pwm_t pwm = g_actuator_pwms[i];
+    for (int i = 0; i < ctx->num_actuators; i++) {
+        actuator_pwm_t pwm = ctx->actuator_pwms[i];
         if (pwm.max < pwm.min) {
             LOG_ERR("config pwm_%d min, max must monotonically increase",
                 i);
@@ -132,8 +98,8 @@ static void pwm_update(struct context* ctx)
     bool armed = ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED;
     int err = 0;
 
-    for (int i = 0; i < NUM_ACTUATORS; i++) {
-        actuator_pwm_t pwm = g_actuator_pwms[i];
+    for (int i = 0; i < ctx->num_actuators; i++) {
+        actuator_pwm_t pwm = ctx->actuator_pwms[i];
 
         uint32_t pulse = pwm.disarmed;
         double input = 0;
@@ -229,18 +195,18 @@ static int start(struct context* ctx)
     return 0;
 }
 
-//#if CONFIG_ACTUATE_PWM_SHELL
 static int pwm_test_set_handler(const struct shell* sh,
     size_t argc, char** argv, void* data)
 {
     uint32_t pulse = atoi(argv[1]);
     LOG_INF("sending pwm %d", pulse);
-    if (k_sem_count_get(&g_ctx.running) == 0) {
+    struct context* ctx = data;
+    if (k_sem_count_get(&ctx->running) == 0) {
         shell_print(sh, "actuate_pwm running, stop it first");
         return -1;
     }
-    for (int i = 0; i < NUM_ACTUATORS; i++) {
-        actuator_pwm_t pwm = g_actuator_pwms[i];
+    for (int i = 0; i < ctx->num_actuators; i++) {
+        actuator_pwm_t pwm = ctx->actuator_pwms[i];
         int err = 0;
         if (pwm.use_nano_seconds) {
             err = pwm_set_pulse_dt(&pwm.device, PWM_NSEC(pulse));
@@ -261,42 +227,85 @@ static int actuate_pwm_cmd_handler(const struct shell* sh,
     struct context* ctx = data;
 
     if (strcmp(argv[0], "start") == 0) {
-        if (k_sem_count_get(&g_ctx.running) == 0) {
+        if (k_sem_count_get(&ctx->running) == 0) {
             shell_print(sh, "already running");
         } else {
             start(ctx);
         }
     } else if (strcmp(argv[0], "stop") == 0) {
-        if (k_sem_count_get(&g_ctx.running) == 0) {
-            k_sem_give(&g_ctx.running);
+        if (k_sem_count_get(&ctx->running) == 0) {
+            k_sem_give(&ctx->running);
         } else {
             shell_print(sh, "not running");
         }
     } else if (strcmp(argv[0], "status") == 0) {
-        shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
+        shell_print(sh, "running: %d", (int)k_sem_count_get(&ctx->running) == 0);
     }
     return 0;
 }
 
-SHELL_SUBCMD_DICT_SET_CREATE(sub_actuate_pwm, actuate_pwm_cmd_handler,
-    (start, &g_ctx, "start"),
-    (stop, &g_ctx, "stop"),
-    (status, &g_ctx, "status"));
-
-SHELL_STATIC_SUBCMD_SET_CREATE(sub_actuate_pwm_test,
-    SHELL_CMD_ARG(set, NULL, "set the pwm", pwm_test_set_handler, 2, 0),
-    SHELL_SUBCMD_SET_END);
-
-SHELL_CMD_REGISTER(actuate_pwm, &sub_actuate_pwm, "actuate_pwm commands", NULL);
-SHELL_CMD_REGISTER(actuate_pwm_test, &sub_actuate_pwm_test, "acutate_ pwm_test", NULL);
-
-//#endif
-
-static int actuate_pwm_sys_init(void)
+static int actuate_pwm_device_init(const struct device* dev)
 {
-    return start(&g_ctx);
-};
+    // const struct blink_gpio_led_config *config = dev->config;
+    struct context* data = dev->data;
+    start(data);
+    return 0;
+}
 
-SYS_INIT(actuate_pwm_sys_init, APPLICATION, 1);
+#define PWM_ACTUATOR_SHELL(inst)                                                                   \
+    SHELL_SUBCMD_DICT_SET_CREATE(sub_actuate_pwm_##inst, actuate_pwm_cmd_handler,                  \
+        (start, &data_##inst, "start"),                                                            \
+        (stop, &data_##inst, "stop"),                                                              \
+        (status, &data_##inst, "status"));                                                         \
+    SHELL_STATIC_SUBCMD_SET_CREATE(sub_actuate_pwm_test_##inst,                                    \
+        SHELL_CMD_ARG(set, NULL, "set the pwm", pwm_test_set_handler, 2, 0),                       \
+        SHELL_SUBCMD_SET_END);                                                                     \
+    SHELL_CMD_REGISTER(actuate_pwm_##inst, &sub_actuate_pwm_##inst, "actuate_pwm commands", NULL); \
+    SHELL_CMD_REGISTER(actuate_pwm_test_##inst, &sub_actuate_pwm_test_##inst, "acutate_ pwm_test", NULL);
 
-/* vi: ts=4 sw=4 et */
+#define PWM_ACTUATOR_DEFINE(node_id)                                              \
+    {                                                                             \
+        .label = DT_NODE_FULL_NAME(node_id),                                      \
+        .device = PWM_DT_SPEC_GET_BY_IDX(node_id, 0),                             \
+        .disarmed = DT_PROP(node_id, disarmed_ms),                                \
+        .min = DT_PROP(node_id, min_ms),                                          \
+        .max = DT_PROP(node_id, max_ms),                                          \
+        .center = DT_PROP(node_id, center_ms),                                    \
+        .use_nano_seconds = DT_PROP(node_id, use_nano_seconds),                   \
+        .scale = ((double)DT_PROP(node_id, scale)) / DT_PROP(node_id, scale_div), \
+        .index = DT_NODE_CHILD_IDX(node_id),                                      \
+        .type = DT_ENUM_IDX(node_id, input_type),                                 \
+    },
+
+#define PWM_ACTUATORS_DEFINE(inst)                                                  \
+    static const actuator_pwm_t g_actuator_pwms_##inst[] = {                        \
+        DT_FOREACH_CHILD(DT_INST(inst, cerebri_pwm_actuators), PWM_ACTUATOR_DEFINE) \
+    };                                                                              \
+    static K_THREAD_STACK_DEFINE(g_my_stack_area_##inst, MY_STACK_SIZE);            \
+    static struct context data_##inst = {                                           \
+        .actuators = synapse_pb_Actuators_init_default,                             \
+        .status = synapse_pb_Status_init_default,                                   \
+        .pwm = {                                                                    \
+            .has_timestamp = true,                                                  \
+            .channel = {},                                                          \
+            .channel_count = DT_CHILD_NUM(DT_INST(inst, cerebri_pwm_actuators)),    \
+        },                                                                          \
+        .node = {},                                                                 \
+        .sub_status = {},                                                           \
+        .sub_actuators = {},                                                        \
+        .pub_pwm = {},                                                              \
+        .running = Z_SEM_INITIALIZER(data_##inst.running, 1, 1),                    \
+        .stack_size = MY_STACK_SIZE,                                                \
+        .stack_area = g_my_stack_area_##inst,                                       \
+        .thread_data = {},                                                          \
+        .test_pulse = 0,                                                            \
+        .actuator_pwms = g_actuator_pwms_##inst,                                    \
+        .num_actuators = DT_CHILD_NUM(DT_INST(inst, cerebri_pwm_actuators)),        \
+    };                                                                              \
+    PWM_ACTUATOR_SHELL(inst);                                                       \
+    DEVICE_DT_INST_DEFINE(inst, actuate_pwm_device_init, NULL, &data_##inst,        \
+        NULL, POST_KERNEL,                                                          \
+        CONFIG_PWM_ACTUATORS_INIT_PRIORITY,                                         \
+        NULL);
+
+DT_INST_FOREACH_STATUS_OKAY(PWM_ACTUATORS_DEFINE)

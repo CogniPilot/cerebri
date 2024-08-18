@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <cerebri/core/perf_counter.h>
 #include <stdio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>
@@ -12,18 +13,6 @@ LOG_MODULE_DECLARE(core_common);
 sys_slist_t g_perf_counter_list = {
     .head = NULL,
     .tail = NULL
-};
-
-struct perf_counter {
-    sys_snode_t node;
-    const char* name;
-    uint32_t deadline_cyc;
-    uint32_t min_period_cyc;
-    uint32_t max_period_cyc;
-    uint64_t misses;
-    int64_t last_cyc;
-    uint64_t delta_cyc_sum;
-    uint64_t count;
 };
 
 void perf_counter_init(struct perf_counter* counter, const char* name, double deadline_sec)

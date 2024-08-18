@@ -26,6 +26,7 @@ execute_process(
 	)
 
 add_subdirectory(lib)
+add_subdirectory(drivers)
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/../install)
 

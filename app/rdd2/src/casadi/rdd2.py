@@ -276,9 +276,9 @@ def derive_attitude_rate_control():
     f_attitude_rate_control = ca.Function(
         "attitude_rate_control",
         [kp, ki, kd, f_cut, i_max, omega, omega_r, i0, e0, de0, dt],
-        [M, i1, e1, de1],
+        [M, i1, e1, de1, alpha],
         ["kp", "ki", "kd", "f_cut", "i_max", "omega", "omega_r", "i0", "e0", "de0", "dt"],
-        ["M", "i1", "e1", "de1"])
+        ["M", "i1", "e1", "de1", "alpha"])
 
     return {
         "attitude_rate_control": f_attitude_rate_control

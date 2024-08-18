@@ -31,7 +31,7 @@ typedef enum pwm_type_t {
 } pwm_type_t;
 
 typedef struct actuator_pwm_t {
-    const char * label;
+    const char* label;
     struct pwm_dt_spec device;
     uint32_t disarmed;
     uint32_t min;
@@ -43,19 +43,19 @@ typedef struct actuator_pwm_t {
     pwm_type_t type;
 } actuator_pwm_t;
 
-#define PWM_ACTUATOR_DEFINE(node_id) \
-{ \
-    .label = DT_NODE_FULL_NAME(node_id), \
-    .device = PWM_DT_SPEC_GET_BY_IDX(node_id, 0), \
-    .disarmed = DT_PROP(node_id, disarmed_ms), \
-    .min = DT_PROP(node_id, min_ms), \
-    .max = DT_PROP(node_id, max_ms), \
-    .center = DT_PROP(node_id, center_ms), \
-    .use_nano_seconds = DT_PROP(node_id, use_nano_seconds), \
-    .scale = ((double) DT_PROP(node_id, scale)) / DT_PROP(node_id, scale_div), \
-    .index =  DT_NODE_CHILD_IDX(node_id), \
-    .type = DT_ENUM_IDX(node_id, input_type), \
-},
+#define PWM_ACTUATOR_DEFINE(node_id)                                              \
+    {                                                                             \
+        .label = DT_NODE_FULL_NAME(node_id),                                      \
+        .device = PWM_DT_SPEC_GET_BY_IDX(node_id, 0),                             \
+        .disarmed = DT_PROP(node_id, disarmed_ms),                                \
+        .min = DT_PROP(node_id, min_ms),                                          \
+        .max = DT_PROP(node_id, max_ms),                                          \
+        .center = DT_PROP(node_id, center_ms),                                    \
+        .use_nano_seconds = DT_PROP(node_id, use_nano_seconds),                   \
+        .scale = ((double)DT_PROP(node_id, scale)) / DT_PROP(node_id, scale_div), \
+        .index = DT_NODE_CHILD_IDX(node_id),                                      \
+        .type = DT_ENUM_IDX(node_id, input_type),                                 \
+    },
 
 const actuator_pwm_t g_actuator_pwms[] = {
     DT_FOREACH_CHILD(DT_NODELABEL(pwm_actuators), PWM_ACTUATOR_DEFINE)
@@ -298,7 +298,5 @@ static int actuate_pwm_sys_init(void)
 };
 
 SYS_INIT(actuate_pwm_sys_init, APPLICATION, 1);
-
-
 
 /* vi: ts=4 sw=4 et */

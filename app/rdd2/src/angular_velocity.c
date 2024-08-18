@@ -100,6 +100,8 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
 
     // angular velocity integrator states
     double omega_i[3] = { 0, 0, 0 };
+    double omega_e[3] = { 0, 0, 0 };
+    double domega_e[3] = { 0, 0, 0 };
 
     while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
         // wait for estimator odometry, publish at 10 Hz regardless
@@ -137,8 +139,8 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
         double M[3];
         {
             /* attitude_rate_control:(
-             * kp[3],ki[3],i_max[3],
-             * omega[3],omega_r[3],i0[3],dt)->(M[3],i1[3]) */
+             * kp[3],ki[3],kd[3],alpha,i_max[3],
+             * omega[3],omega_r[3],i0[3],e0[3],de0[3],dt)->(M[3],i1[3],e1[3],de1[3]) */
             CASADI_FUNC_ARGS(attitude_rate_control);
             double omega[3] = {
                 ctx->odometry_estimator.twist.angular.x,
@@ -151,29 +153,41 @@ static void rdd2_angular_velocity_run(void* p0, void* p1, void* p2)
                 ctx->angular_velocity_sp.z
             };
             const double kp[3] = {
-                CONFIG_CEREBRI_RDD2_ROLLRATE_KP * 1e-3,
-                CONFIG_CEREBRI_RDD2_PITCHRATE_KP * 1e-3,
-                CONFIG_CEREBRI_RDD2_YAWRATE_KP * 1e-3,
+                CONFIG_CEREBRI_RDD2_ROLLRATE_KP * 1e-6,
+                CONFIG_CEREBRI_RDD2_PITCHRATE_KP * 1e-6,
+                CONFIG_CEREBRI_RDD2_YAWRATE_KP * 1e-6,
             };
             const double ki[3] = {
-                CONFIG_CEREBRI_RDD2_ROLLRATE_KI * 1e-3,
-                CONFIG_CEREBRI_RDD2_PITCHRATE_KI * 1e-3,
-                CONFIG_CEREBRI_RDD2_YAWRATE_KI * 1e-3,
+                CONFIG_CEREBRI_RDD2_ROLLRATE_KI * 1e-6,
+                CONFIG_CEREBRI_RDD2_PITCHRATE_KI * 1e-6,
+                CONFIG_CEREBRI_RDD2_YAWRATE_KI * 1e-6,
+            };
+            const double kd[3] = {
+                CONFIG_CEREBRI_RDD2_ROLLRATE_KD * 1e-6,
+                CONFIG_CEREBRI_RDD2_PITCHRATE_KD * 1e-6,
+                CONFIG_CEREBRI_RDD2_YAWRATE_KD * 1e-6,
             };
             const double i_max[3] = {
-                CONFIG_CEREBRI_RDD2_ROLLRATE_IMAX * 1e-3,
-                CONFIG_CEREBRI_RDD2_PITCHRATE_IMAX * 1e-3,
-                CONFIG_CEREBRI_RDD2_YAWRATE_IMAX * 1e-3,
+                CONFIG_CEREBRI_RDD2_ROLLRATE_IMAX * 1e-6,
+                CONFIG_CEREBRI_RDD2_PITCHRATE_IMAX * 1e-6,
+                CONFIG_CEREBRI_RDD2_YAWRATE_IMAX * 1e-6,
             };
+            const double f_cut = CONFIG_CEREBRI_RDD2_ATTITUDE_RATE_FCUT * 1e-3;
             args[0] = kp;
             args[1] = ki;
-            args[2] = i_max;
-            args[3] = omega;
-            args[4] = omega_r;
-            args[5] = omega_i;
-            args[6] = &dt;
+            args[2] = kd;
+            args[3] = &f_cut;
+            args[4] = i_max;
+            args[5] = omega;
+            args[6] = omega_r;
+            args[7] = omega_i;
+            args[8] = omega_e;
+            args[9] = domega_e;
+            args[10] = &dt;
             res[0] = M;
             res[1] = omega_i;
+            res[2] = omega_e;
+            res[3] = domega_e;
             CASADI_FUNC_CALL(attitude_rate_control);
         }
 

@@ -139,7 +139,6 @@ void imu_read(context_t* ctx)
                         LOG_ERR("accel saturating: %d, %d: %10.4f", i, j, ctx->accel_raw[i][j]);
                         continue;
                     }
-
                 }
 
                 LOG_DBG("accel %d: %d.%06d %d.%06d %d.%06d", i,
@@ -164,7 +163,6 @@ void imu_read(context_t* ctx)
                         LOG_ERR("gyro saturating: %d, %d: %10.4f", i, j, ctx->gyro_raw[i][j]);
                         continue;
                     }
-
                 }
 
                 LOG_DBG("gyro %d: %d.%06d %d.%06d %d.%06d", i,

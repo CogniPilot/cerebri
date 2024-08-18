@@ -135,76 +135,100 @@ config CEREBRI_RDD2_MOTOR_CT
     moment thrust coefficient * 1e9
 
 config CEREBRI_RDD2_ROLL_KP
-  int "roll kp * 1e3"
-  default 2000
+  int "roll kp * 1e6"
+  default 2000000
   help
-    roll kp * 1e3
+    roll kp * 1e6
 
 config CEREBRI_RDD2_PITCH_KP
-  int "pitch kp * 1e3"
-  default 2000
+  int "pitch kp * 1e6"
+  default 2000000
   help
-    pitch kp * 1e3
+    pitch kp * 1e6
 
 config CEREBRI_RDD2_YAW_KP
-  int "yaw kp * 1e3"
-  default 1000
+  int "yaw kp * 1e6"
+  default 1000000
   help
-    yaw kp * 1e3
+    yaw kp * 1e6
 
 config CEREBRI_RDD2_ROLLRATE_KP
-  int "rollrate kp * 1e3"
-  default 300
+  int "rollrate kp * 1e6"
+  default 300000
   help
-    rollrate kp * 1e3
+    rollrate kp * 1e6
 
 config CEREBRI_RDD2_PITCHRATE_KP
-  int "pitchrate kp * 1e3"
-  default 300
+  int "pitchrate kp * 1e6"
+  default 300000
   help
-    pitchrate kp * 1e3
+    pitchrate kp * 1e6
 
 config CEREBRI_RDD2_YAWRATE_KP
-  int "yawrate kp * 1e3"
-  default 300
+  int "yawrate kp * 1e6"
+  default 300000
   help
-    yawrate kp * 1e3
+    yawrate kp * 1e6
 
 config CEREBRI_RDD2_ROLLRATE_KI
-  int "rollrate ki * 1e3"
-  default 50
+  int "rollrate ki * 1e6"
+  default 50000
   help
-    rollrate ki * 1e3
+    rollrate ki * 1e6
 
 config CEREBRI_RDD2_PITCHRATE_KI
-  int "pitchrate ki * 1e3"
-  default 50
+  int "pitchrate ki * 1e6"
+  default 50000
   help
-    pitchrate ki * 1e3
+    pitchrate ki * 1e6
 
 config CEREBRI_RDD2_YAWRATE_KI
-  int "yawrate ki * 1e3"
-  default 50
+  int "yawrate ki * 1e6"
+  default 50000
   help
-    yawrate ki * 1e3
+    yawrate ki * 1e6
+
+config CEREBRI_RDD2_ROLLRATE_KD
+  int "rollrate kd * 1e6"
+  default 0
+  help
+    rollrate kd * 1e6
+
+config CEREBRI_RDD2_PITCHRATE_KD
+  int "pitchrate kd * 1e6"
+  default 0
+  help
+    pitchrate kd * 1e6
+
+config CEREBRI_RDD2_YAWRATE_KD
+  int "yawrate kd * 1e6"
+  default 0
+  help
+    yawrate kd * 1e6
+
+config CEREBRI_RDD2_ATTITUDE_RATE_FCUT
+  int "fcut [hz] * 1e3"
+  default 20000
+  help
+    attitude_rate cut frequency * 1e3
 
 config CEREBRI_RDD2_ROLLRATE_IMAX
   int "rollrate imax * 1e3"
-  default 20
+  default 20000
   help
-    rollrate imax * 1e3
+    rollrate imax * 1e6
 
 config CEREBRI_RDD2_PITCHRATE_IMAX
   int "pitchate imax * 1e3"
-  default 20
+  default 20000
   help
-    pitchrate imax * 1e3
+    pitchrate imax * 1e6
 
 config CEREBRI_RDD2_YAWRATE_IMAX
-  int "yawrate imax * 1e3"
-  default 20
+  int "yawrate imax * 1e6"
+  default 20000
   help
-    yawrate imax * 1e3
+    yawrate imax * 1e6
 
 config CEREBRI_RDD2_THRUST_TRIM
   int "thrust_trim * 1e3 [N}"

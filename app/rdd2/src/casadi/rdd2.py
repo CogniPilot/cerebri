@@ -244,34 +244,41 @@ def derive_attitude_rate_control():
     # -------------------------------
     kp = ca.SX.sym('kp', 3)
     ki = ca.SX.sym('ki', 3)
+    kd = ca.SX.sym('kd', 3)
     i_max = ca.SX.sym('i_max', 3)
+    f_cut = ca.SX.sym('f_cut')
 
     # VARIABLES
     # -------------------------------
     omega = ca.SX.sym('omega', 3)
     omega_r = ca.SX.sym('omega_r', 3)
     i0 = ca.SX.sym('i0', 3)
+    e0 = ca.SX.sym('e0', 3)
+    de0 = ca.SX.sym('de0', 3)
     dt = ca.SX.sym('dt')
 
     # CALC
     # -------------------------------
 
     # actual attitude, expressed as quaternion
-    e = omega_r - omega
+    e1 = omega_r - omega
+    alpha = 2*ca.pi*dt*f_cut/(2*ca.pi*dt*f_cut + 1)
+    de1 = alpha * ((e1 - e0) / dt) + (1 - alpha) * de0
+    # first order deriv approx, with low pass filter
 
     # integral action helps balance distrubance moments (e.g. center of gravity offset)
-    i1 = saturatem(i0 + e * dt, -i_max, i_max)
+    i1 = saturatem(i0 + e1 * dt, -i_max, i_max)
 
-    M = kp * e + ki * i1
+    M = kp * e1 + ki * i1 + kd * de1
 
     # FUNCTION
     # -------------------------------
     f_attitude_rate_control = ca.Function(
         "attitude_rate_control",
-        [kp, ki, i_max, omega, omega_r, i0, dt],
-        [M, i1],
-        ["kp", "ki", "i_max", "omega", "omega_r", "i0", "dt"],
-        ["M", "i1"])
+        [kp, ki, kd, f_cut, i_max, omega, omega_r, i0, e0, de0, dt],
+        [M, i1, e1, de1],
+        ["kp", "ki", "kd", "f_cut", "i_max", "omega", "omega_r", "i0", "e0", "de0", "dt"],
+        ["M", "i1", "e1", "de1"])
 
     return {
         "attitude_rate_control": f_attitude_rate_control

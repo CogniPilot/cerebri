@@ -48,10 +48,10 @@ struct context {
     struct sensor_stream_trigger stream_trigger;
     struct sensor_read_config stream_config;
     struct perf_counter perf;
-    q31_t filter_coeffs[5*FILTER_NUM_STAGES];
-    q31_t accel_filter_state[3][4*FILTER_NUM_STAGES];
+    q31_t filter_coeffs[5 * FILTER_NUM_STAGES];
+    q31_t accel_filter_state[3][4 * FILTER_NUM_STAGES];
     arm_biquad_casd_df1_inst_q31 accel_filter[3];
-    q31_t gyro_filter_state[3][4*FILTER_NUM_STAGES];
+    q31_t gyro_filter_state[3][4 * FILTER_NUM_STAGES];
     arm_biquad_casd_df1_inst_q31 gyro_filter[3];
 };
 
@@ -84,11 +84,8 @@ static struct context g_ctx = {
         .max = 1,
     },
     // y[n] / x[n] = (b0 z^2 + b1 * z + b2 )  / (z^2  - a1 * z - a2 )
-    .filter_coeffs = {
-        // b0         b1           b2        a1               a2
-       1151,         575,         575,  1056341497,           0,
-       1073748887,           0,  1073741824,  2129800210, -1056342648
-    },
+    .filter_coeffs = { // b0         b1           b2        a1               a2
+        1151, 575, 575, 1056341497, 0, 1073748887, 0, 1073741824, 2129800210, -1056342648 },
     .accel_filter_state = {},
     .accel_filter = {},
     .gyro_filter_state = {},
@@ -107,14 +104,14 @@ static int sense_accel_init(struct context* ctx)
     zros_pub_init(&ctx->pub_imu_q31_array, &ctx->node, &topic_imu_q31_array, &ctx->imu_q31_array);
     perf_counter_init(&ctx->perf, "sense_accel", 1.0 / 100);
 
-    for (int i=0; i<3; i++) {
+    for (int i = 0; i < 3; i++) {
         LOG_INF("initializing channel: %d", i);
         arm_biquad_cascade_df1_init_q31(
-                &ctx->accel_filter[i], FILTER_NUM_STAGES,
-                ctx->filter_coeffs, ctx->accel_filter_state[i], FILTER_SHIFT);
+            &ctx->accel_filter[i], FILTER_NUM_STAGES,
+            ctx->filter_coeffs, ctx->accel_filter_state[i], FILTER_SHIFT);
         arm_biquad_cascade_df1_init_q31(
-                &ctx->gyro_filter[i], FILTER_NUM_STAGES,
-                ctx->filter_coeffs, ctx->gyro_filter_state[i], FILTER_SHIFT);
+            &ctx->gyro_filter[i], FILTER_NUM_STAGES,
+            ctx->filter_coeffs, ctx->gyro_filter_state[i], FILTER_SHIFT);
     }
 
     ctx->stream_config.count = 1;
@@ -266,9 +263,9 @@ static void accel_processing_callback(int result, uint8_t* buf, uint32_t buf_len
             }
         }
 
-        //double x = q31_to_double(accumulator_buffer.values[0] / accumulator_buffer.count, accumulator_buffer.shift);
-        //double y = q31_to_double(accumulator_buffer.values[1] / accumulator_buffer.count, accumulator_buffer.shift);
-        //double z = q31_to_double(accumulator_buffer.values[2] / accumulator_buffer.count, accumulator_buffer.shift);
+        // double x = q31_to_double(accumulator_buffer.values[0] / accumulator_buffer.count, accumulator_buffer.shift);
+        // double y = q31_to_double(accumulator_buffer.values[1] / accumulator_buffer.count, accumulator_buffer.shift);
+        // double z = q31_to_double(accumulator_buffer.values[2] / accumulator_buffer.count, accumulator_buffer.shift);
         synapse_pb_Timestamp stamp;
         synapse_pb_Duration delta;
         stamp.seconds = accumulator_buffer.base_timestamp_ns / 1e9;
@@ -279,16 +276,16 @@ static void accel_processing_callback(int result, uint8_t* buf, uint32_t buf_len
         if (ch.chan_type == SENSOR_CHAN_GYRO_XYZ) {
             // LOG_INF("gyro %10.4f %10.4f %10.4f", x, y, z);
             ctx->imu_q31_array.stamp = stamp;
-            //ctx->imu.angular_velocity.x = x;
-            //ctx->imu.angular_velocity.y = y;
-            //ctx->imu.angular_velocity.z = z;
+            // ctx->imu.angular_velocity.x = x;
+            // ctx->imu.angular_velocity.y = y;
+            // ctx->imu.angular_velocity.z = z;
             ctx->imu.stamp = stamp;
             gyro_updated = true;
         } else if (ch.chan_type == SENSOR_CHAN_ACCEL_XYZ) {
             ctx->imu_q31_array.stamp = stamp;
-            //ctx->imu.linear_acceleration.x = x;
-            //ctx->imu.linear_acceleration.y = y;
-            //ctx->imu.linear_acceleration.z = z;
+            // ctx->imu.linear_acceleration.x = x;
+            // ctx->imu.linear_acceleration.y = y;
+            // ctx->imu.linear_acceleration.z = z;
             ctx->imu.stamp = stamp;
             accel_updated = true;
         }
@@ -299,14 +296,14 @@ static void accel_processing_callback(int result, uint8_t* buf, uint32_t buf_len
     q31_t accel_in[3] = {};
     q31_t gyro_in[3] = {};
 
-    for (int i=0; i<ctx->imu_q31_array.frame_count; i++) {
+    for (int i = 0; i < ctx->imu_q31_array.frame_count; i++) {
         accel_in[0] = ctx->imu_q31_array.frame[i].accel_x;
         accel_in[1] = ctx->imu_q31_array.frame[i].accel_y;
         accel_in[2] = ctx->imu_q31_array.frame[i].accel_z;
         gyro_in[0] = ctx->imu_q31_array.frame[i].gyro_x;
         gyro_in[1] = ctx->imu_q31_array.frame[i].gyro_y;
         gyro_in[2] = ctx->imu_q31_array.frame[i].gyro_z;
-        for (int j=0; j<3; j++) {
+        for (int j = 0; j < 3; j++) {
             arm_biquad_cascade_df1_fast_q31(&ctx->accel_filter[j], &accel_in[j], &accel_out[j], FILTER_BLOCK_SIZE);
             arm_biquad_cascade_df1_fast_q31(&ctx->gyro_filter[j], &gyro_in[j], &gyro_out[j], FILTER_BLOCK_SIZE);
         }

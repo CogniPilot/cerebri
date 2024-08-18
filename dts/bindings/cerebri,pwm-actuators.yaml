@@ -8,12 +8,6 @@ description: PWM actuators parent node
 
 compatible: "cerebri,pwm-actuators"
 
-properties:
-  topic:
-    type: string
-    required: true
-    description : zros topic
-
 child-binding:
   description: PWM actuators node
   properties:

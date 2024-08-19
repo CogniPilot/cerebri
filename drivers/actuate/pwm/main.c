@@ -58,8 +58,8 @@ struct context {
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
     uint32_t test_pulse;
-    const actuator_pwm_t* actuator_pwms;
     uint8_t num_actuators;
+    const actuator_pwm_t* actuator_pwms;
 };
 
 static int actuate_pwm_init(struct context* ctx)
@@ -185,6 +185,7 @@ static void actuate_pwm_run(void* p0, void* p1, void* p2)
 
 static int start(struct context* ctx)
 {
+    __ASSERT_NO_MSG(ctx != NULL);
     k_tid_t tid = k_thread_create(&ctx->thread_data, ctx->stack_area,
         ctx->stack_size,
         actuate_pwm_run,
@@ -195,16 +196,8 @@ static int start(struct context* ctx)
     return 0;
 }
 
-static int pwm_test_set_handler(const struct shell* sh,
-    size_t argc, char** argv, void* data)
+static int set_pulse_all(struct context* ctx, uint32_t pulse)
 {
-    uint32_t pulse = atoi(argv[1]);
-    LOG_INF("sending pwm %d", pulse);
-    struct context* ctx = data;
-    if (k_sem_count_get(&ctx->running) == 0) {
-        shell_print(sh, "actuate_pwm running, stop it first");
-        return -1;
-    }
     for (int i = 0; i < ctx->num_actuators; i++) {
         actuator_pwm_t pwm = ctx->actuator_pwms[i];
         int err = 0;
@@ -225,6 +218,7 @@ static int actuate_pwm_cmd_handler(const struct shell* sh,
 {
     ARG_UNUSED(argc);
     struct context* ctx = data;
+    __ASSERT_NO_MSG(data != NULL);
 
     if (strcmp(argv[0], "start") == 0) {
         if (k_sem_count_get(&ctx->running) == 0) {
@@ -238,8 +232,28 @@ static int actuate_pwm_cmd_handler(const struct shell* sh,
         } else {
             shell_print(sh, "not running");
         }
+    } else if (strcmp(argv[0], "set_all_1000") == 0) {
+        if (k_sem_count_get(&ctx->running) == 0) {
+            shell_print(sh, "must stop before using set");
+        } else {
+            set_pulse_all(ctx, 1000);
+        }
+    } else if (strcmp(argv[0], "set_all_1500") == 0) {
+        if (k_sem_count_get(&ctx->running) == 0) {
+            shell_print(sh, "must stop before using set");
+        } else {
+            set_pulse_all(ctx, 1500);
+        }
+    } else if (strcmp(argv[0], "set_all_2000") == 0) {
+        if (k_sem_count_get(&ctx->running) == 0) {
+            shell_print(sh, "must stop before using set");
+        } else {
+            set_pulse_all(ctx, 2000);
+        }
     } else if (strcmp(argv[0], "status") == 0) {
         shell_print(sh, "running: %d", (int)k_sem_count_get(&ctx->running) == 0);
+    } else {
+        shell_print(sh, "unknown command");
     }
     return 0;
 }
@@ -252,16 +266,15 @@ static int actuate_pwm_device_init(const struct device* dev)
     return 0;
 }
 
-#define PWM_ACTUATOR_SHELL(inst)                                                                   \
-    SHELL_SUBCMD_DICT_SET_CREATE(sub_actuate_pwm_##inst, actuate_pwm_cmd_handler,                  \
-        (start, &data_##inst, "start"),                                                            \
-        (stop, &data_##inst, "stop"),                                                              \
-        (status, &data_##inst, "status"));                                                         \
-    SHELL_STATIC_SUBCMD_SET_CREATE(sub_actuate_pwm_test_##inst,                                    \
-        SHELL_CMD_ARG(set, NULL, "set the pwm", pwm_test_set_handler, 2, 0),                       \
-        SHELL_SUBCMD_SET_END);                                                                     \
-    SHELL_CMD_REGISTER(actuate_pwm_##inst, &sub_actuate_pwm_##inst, "actuate_pwm commands", NULL); \
-    SHELL_CMD_REGISTER(actuate_pwm_test_##inst, &sub_actuate_pwm_test_##inst, "acutate_ pwm_test", NULL);
+#define PWM_ACTUATOR_SHELL(inst)                                                  \
+    SHELL_SUBCMD_DICT_SET_CREATE(sub_actuate_pwm_##inst, actuate_pwm_cmd_handler, \
+        (start, &data_##inst, "start"),                                           \
+        (stop, &data_##inst, "stop"),                                             \
+        (status, &data_##inst, "status"),                                         \
+        (set_all_1000, &data_##inst, "set_all_1000"),                             \
+        (set_all_1500, &data_##inst, "set_all_1500"),                             \
+        (set_all_2000, &data_##inst, "set_all_2000"));                            \
+    SHELL_CMD_REGISTER(actuate_pwm_##inst, &sub_actuate_pwm_##inst, "actuate_pwm commands", NULL);
 
 #define PWM_ACTUATOR_DEFINE(node_id)                                              \
     {                                                                             \

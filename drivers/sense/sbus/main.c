@@ -32,7 +32,6 @@ struct context {
     k_thread_stack_t* stack_area;
     struct k_thread thread_data;
     int last_event;
-    int counter;
 };
 
 static struct context g_ctx = {
@@ -47,7 +46,6 @@ static struct context g_ctx = {
     .stack_area = g_my_stack_area,
     .thread_data = {},
     .last_event = 0,
-    .counter = 0
 };
 
 static void sense_sbus_init(struct context* ctx)
@@ -55,7 +53,6 @@ static void sense_sbus_init(struct context* ctx)
     zros_node_init(&ctx->node, "sense_sbus");
     zros_pub_init(&ctx->pub_input, &ctx->node, &topic_input_sbus, &ctx->input);
     ctx->last_event = 0;
-    ctx->counter = 0;
     k_sem_take(&ctx->running, K_FOREVER);
     LOG_INF("init");
 }
@@ -113,12 +110,9 @@ static void input_cb(struct input_event* evt, void* userdata)
         LOG_DBG("unhandled event: %d %d %d %d", evt->code, evt->sync, evt->type, evt->value);
     }
 
-    if (evt->code < ctx->last_event) {
-        if (ctx->counter++ > 10) {
-            stamp_msg(&ctx->input.timestamp, k_uptime_ticks());
-            zros_pub_update(&ctx->pub_input);
-            ctx->counter = 0;
-        }
+    if (evt->sync == true) {
+        stamp_msg(&ctx->input.timestamp, k_uptime_ticks());
+        zros_pub_update(&ctx->pub_input);
     }
     ctx->last_event = evt->code;
 }

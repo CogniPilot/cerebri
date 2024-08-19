@@ -10,6 +10,7 @@
 
 //#include <cerebri/core/casadi.h>
 #include <cerebri/core/common.h>
+#include <cerebri/core/perf_duration.h>
 
 #include <synapse_topic_list.h>
 
@@ -22,12 +23,14 @@
 
 LOG_MODULE_REGISTER(sense_imu, CONFIG_CEREBRI_SENSE_IMU_LOG_LEVEL);
 
+
 #define THREAD_STACK_SIZE 1024
 #define THREAD_PRIORITY 6
 
 static const double g_accel = 9.8;
 static const int g_calibration_count = 100;
 
+extern struct perf_duration control_latency;
 extern struct k_work_q g_high_priority_work_q;
 static void imu_work_handler(struct k_work* work);
 static void imu_timer_handler(struct k_timer* dummy);
@@ -279,6 +282,7 @@ void imu_work_handler(struct k_work* work)
         return;
     }
 
+    perf_duration_start(&control_latency);
     imu_read(ctx);
     imu_publish(ctx);
 }

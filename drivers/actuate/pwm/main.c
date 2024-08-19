@@ -20,12 +20,15 @@
 #include <zros/zros_sub.h>
 
 #include <synapse_topic_list.h>
+#include <cerebri/core/perf_duration.h>
 
 LOG_MODULE_REGISTER(actuate_pwm, CONFIG_CEREBRI_ACTUATE_PWM_LOG_LEVEL);
 
 #define CONFIG_PWM_ACTUATORS_INIT_PRIORITY 50
 #define MY_STACK_SIZE 4096
 #define MY_PRIORITY 4
+
+extern struct perf_duration control_latency;
 
 typedef enum pwm_type_t {
     PWM_TYPE_normalized = 0,
@@ -130,6 +133,7 @@ static void pwm_update(struct context* ctx)
         } else {
             err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pulse));
         }
+	perf_duration_stop(&control_latency);
 
         if (err) {
             LOG_ERR("failed to set pulse %d on %d (err %d)", pwm.index, pulse, err);

@@ -103,8 +103,8 @@ static struct context g_ctx = {
 static void rdd2_command_init(struct context* ctx)
 {
     zros_node_init(&ctx->node, "rdd2_command");
-    zros_sub_init(&ctx->sub_input_ethernet, &ctx->node, &topic_input_ethernet, &ctx->input, 10);
-    zros_sub_init(&ctx->sub_input_sbus, &ctx->node, &topic_input_sbus, &ctx->input, 10);
+    zros_sub_init(&ctx->sub_input_ethernet, &ctx->node, &topic_input_ethernet, &ctx->input, 200);
+    zros_sub_init(&ctx->sub_input_sbus, &ctx->node, &topic_input_sbus, &ctx->input, 200);
     zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
     zros_sub_init(&ctx->sub_bezier_trajectory_ethernet,
         &ctx->node, &topic_bezier_trajectory_ethernet, &ctx->bezier_trajectory, 10);

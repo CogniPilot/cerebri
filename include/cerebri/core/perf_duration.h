@@ -3,7 +3,6 @@
 
 #include <zephyr/kernel.h>
 
-
 struct perf_duration {
     sys_snode_t node;
     bool started;

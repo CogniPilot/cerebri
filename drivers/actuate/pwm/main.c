@@ -19,8 +19,8 @@
 #include <zros/zros_pub.h>
 #include <zros/zros_sub.h>
 
-#include <synapse_topic_list.h>
 #include <cerebri/core/perf_duration.h>
+#include <synapse_topic_list.h>
 
 LOG_MODULE_REGISTER(actuate_pwm, CONFIG_CEREBRI_ACTUATE_PWM_LOG_LEVEL);
 
@@ -133,7 +133,7 @@ static void pwm_update(struct context* ctx)
         } else {
             err = pwm_set_pulse_dt(&pwm.device, PWM_USEC(pulse));
         }
-	perf_duration_stop(&control_latency);
+        perf_duration_stop(&control_latency);
 
         if (err) {
             LOG_ERR("failed to set pulse %d on %d (err %d)", pwm.index, pulse, err);

@@ -108,6 +108,4 @@ static int perf_duration_sys_init(void)
 
 SYS_INIT(perf_duration_sys_init, POST_KERNEL, 1);
 
-
-
 // vi: ts=4 sw=4 et

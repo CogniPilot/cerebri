@@ -8,41 +8,45 @@
 		compatible = "cerebri,pwm-actuators";
 		aux0 {
 			input-type = "velocity";
+			input-index = <0>;
 			pwms = <&flexpwm1_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-			disarmed-ms = <1000>;
-			min-ms = <1250>;
-			max-ms = <1900>;
-			center-ms = <1000>;
+			disarmed = <1000>;
+			min = <1250>;
+			max = <1900>;
+			center = <1000>;
 			scale = <1028>;
 			scale-div = <1000>;
 		};
 		aux1 {
 			input-type = "velocity";
+			input-index = <1>;
 			pwms = <&flexpwm1_pwm1 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-			disarmed-ms = <1000>;
-			min-ms = <1250>;
-			max-ms = <1900>;
-			center-ms = <1000>;
+			disarmed = <1000>;
+			min = <1250>;
+			max = <1900>;
+			center = <1000>;
 			scale = <1028>;
 			scale-div = <1000>;
 		};
 		aux2 {
 			input-type = "velocity";
+			input-index = <2>;
 			pwms = <&flexpwm1_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-			disarmed-ms = <1000>;
-			min-ms = <1250>;
-			max-ms = <1900>;
-			center-ms = <1000>;
+			disarmed = <1000>;
+			min = <1250>;
+			max = <1900>;
+			center = <1000>;
 			scale = <1028>;
 			scale-div = <1000>;
 		};
 		aux3 {
 			input-type = "velocity";
+			input-index = <3>;
 			pwms = <&flexpwm2_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-			disarmed-ms = <1000>;
-			min-ms = <1250>;
-			max-ms = <1900>;
-			center-ms = <1000>;
+			disarmed = <1000>;
+			min = <1250>;
+			max = <1900>;
+			center = <1000>;
 			scale = <1028>;
 			scale-div = <1000>;
 		};
@@ -113,20 +117,14 @@
 
 &flexcan1 {
 	status = "okay";
-	bus-speed = <1000000>;
-	bus-speed-data = <4000000>;
 };
 
 &flexcan2 {
 	status = "okay";
-	bus-speed = <1000000>;
-	bus-speed-data = <4000000>;
 };
 
 &flexcan3 {
 	status = "okay";
-	bus-speed = <1000000>;
-	bus-speed-data = <4000000>;
 };
 
 &lpi2c1 {
@@ -288,4 +286,78 @@ uart1: &lpuart5 {
 			zephyr,code = <16>;
 		};
 	};
+};
+
+/* DSHOT */
+
+&pinctrl {
+	
+	pinmux_dshot_vmu: pinmux_dshot_vmu {
+		group0 {
+			pinmux = <&iomuxc_gpio_emc_b1_23_flexio1_flexio23>,
+				<&iomuxc_gpio_emc_b1_25_flexio1_flexio25>,
+				<&iomuxc_gpio_emc_b1_27_flexio1_flexio27>,
+				<&iomuxc_gpio_emc_b1_06_flexio1_flexio06>,
+				<&iomuxc_gpio_emc_b1_08_flexio1_flexio08>,
+				<&iomuxc_gpio_emc_b1_10_flexio1_flexio10>,
+				<&iomuxc_gpio_emc_b1_19_flexio1_flexio19>,
+				<&iomuxc_gpio_emc_b1_29_flexio1_flexio29>;
+			slew-rate = "fast";
+			bias-pull-up;
+			input-enable;
+		};
+	};
+};
+
+&flexio1 {
+	status = "okay";
+
+	flexio1_dshot: dshot {
+		compatible = "nxp,flexio-dshot";
+		pinctrl-0 = <&pinmux_dshot_vmu>;
+		pinctrl-names = "default";
+		status = "disabled";
+		speed = <600>;
+
+		ch1 {
+			pin-id = <23>;
+			bidirectional-dshot;
+		};
+
+		ch2 {
+			pin-id = <25>;
+			bidirectional-dshot;
+		};
+
+		ch3 {
+			pin-id = <27>;
+			bidirectional-dshot;
+		};
+
+		ch4 {
+			pin-id = <6>;
+			bidirectional-dshot;
+		};
+
+		ch5 {
+			pin-id = <8>;
+			bidirectional-dshot;
+		};
+
+		ch6 {
+			pin-id = <10>;
+			bidirectional-dshot;
+		};
+
+		ch7 {
+			pin-id = <19>;
+			bidirectional-dshot;
+		};
+
+		ch8 {
+			pin-id = <29>;
+			bidirectional-dshot;
+		};
+	};
+
 };

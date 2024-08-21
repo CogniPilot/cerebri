@@ -7,10 +7,8 @@
 
 void b3rb_set_actuators(synapse_pb_Actuators* msg, double turn_angle, double omega_fwd, bool armed)
 {
-    msg->has_header = true;
-    stamp_header(&msg->header, k_uptime_ticks());
-    msg->header.seq++;
-    strncpy(msg->header.frame_id, "odom", sizeof(msg->header.frame_id) - 1);
+    msg->has_stamp = true;
+    stamp_msg(&msg->stamp, k_uptime_ticks());
 
     if (!armed) {
         // stop if not armed

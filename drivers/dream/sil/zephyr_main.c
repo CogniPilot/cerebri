@@ -39,11 +39,8 @@ struct context {
     int sock;
     pthread_t thread;
     synapse_pb_Frame tx_frame, rx_frame;
+    synapse_pb_ClockOffset clock_offset;
     bool clock_initialized;
-    synapse_pb_SimClock sim_clock;
-    synapse_pb_Time clock_offset_ethernet;
-    synapse_pb_Actuators actuators;
-    synapse_pb_LEDArray led_array;
     uint64_t uptime_last;
 };
 
@@ -72,31 +69,19 @@ struct context g_ctx = {
     .thread = 0,
     .tx_frame = synapse_pb_Frame_init_default,
     .rx_frame = synapse_pb_Frame_init_default,
+    .clock_offset = synapse_pb_ClockOffset_init_default,
     .clock_initialized = false,
-    .sim_clock = synapse_pb_SimClock_init_default,
-    .clock_offset_ethernet = synapse_pb_Time_init_default,
-    .actuators = synapse_pb_Actuators_init_default,
-    .led_array = synapse_pb_LEDArray_init_default,
     .uptime_last = 0
 };
 
 static K_THREAD_STACK_DEFINE(my_stack_area, MY_STACK_SIZE);
 static struct k_thread my_thread_data;
 
-static void send_frame(struct context* ctx, synapse_pb_Topic topic)
+static void send_frame(struct context* ctx)
 {
-    synapse_pb_Frame* frame = &ctx->tx_frame;
-    frame->topic = topic;
-    if (topic == synapse_pb_Topic_TOPIC_ACTUATORS) {
-        frame->msg.actuators = ctx->actuators;
-        frame->which_msg = synapse_pb_Frame_actuators_tag;
-    } else if (topic == synapse_pb_Topic_TOPIC_LED_ARRAY) {
-        frame->msg.led_array = ctx->led_array;
-        frame->which_msg = synapse_pb_Frame_led_array_tag;
-    }
     static uint8_t tx_buf[TX_BUF_SIZE];
     pb_ostream_t stream = pb_ostream_from_buffer(tx_buf, sizeof(tx_buf));
-    if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, frame, PB_ENCODE_DELIMITED)) {
+    if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, &ctx->tx_frame, PB_ENCODE_DELIMITED)) {
         LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
     } else {
         write_sim(tx_buf, stream.bytes_written);
@@ -107,72 +92,59 @@ static void handle_frame(struct context* ctx)
 {
     synapse_pb_Frame* frame = &ctx->rx_frame;
     if (frame->which_msg == synapse_pb_Frame_sim_clock_tag) {
-        if (frame->topic == synapse_pb_Topic_TOPIC_SIM_CLOCK) {
-            struct context* ctx = &g_ctx;
-            ctx->sim_clock = frame->msg.sim_clock;
-            if (!ctx->clock_initialized) {
-                ctx->clock_initialized = true;
-                LOG_INF("sim clock received sec: %lld nsec: %d",
-                    ctx->sim_clock.sim.sec, ctx->sim_clock.sim.nanosec);
-                ctx->clock_offset_ethernet.sec = ctx->sim_clock.sim.sec;
-                ctx->clock_offset_ethernet.nanosec = ctx->sim_clock.sim.nanosec;
-                zros_topic_publish(&topic_clock_offset_ethernet, &ctx->clock_offset_ethernet);
-            }
+        synapse_pb_SimClock* sim_clock = &frame->msg.sim_clock;
+        synapse_pb_ClockOffset* clock_offset = &ctx->clock_offset;
+        if (!ctx->clock_initialized) {
+            ctx->clock_initialized = true;
+            LOG_INF("sim clock received sec: %lld nsec: %d",
+                sim_clock->sim.seconds, sim_clock->sim.nanos);
+            clock_offset->has_stamp = true;
+            stamp_msg(&clock_offset->stamp, k_uptime_ticks());
+            clock_offset->offset.seconds = sim_clock->sim.seconds;
+            clock_offset->offset.nanos = sim_clock->sim.nanos;
+            zros_topic_publish(&topic_clock_offset_ethernet, clock_offset);
+        }
 
-            // compute board time
-            uint64_t uptime = k_uptime_get();
-            int uptime_delta = uptime - ctx->uptime_last;
-            if (uptime_delta != 4 && uptime_delta != 0) {
-                LOG_WRN("uptime delta: %d\n", uptime_delta);
-            }
-            ctx->uptime_last = uptime;
-            struct timespec ts_board;
-            ts_board.tv_sec = uptime / 1.0e3;
-            ts_board.tv_nsec = (uptime - ts_board.tv_sec * 1e3) * 1e6;
-            ts_board.tv_sec += ctx->clock_offset_ethernet.sec;
-            ts_board.tv_nsec += ctx->clock_offset_ethernet.nanosec;
+        // compute board time
+        uint64_t uptime = k_uptime_get();
+        int uptime_delta = uptime - ctx->uptime_last;
+        if (uptime_delta != 4 && uptime_delta != 0) {
+            LOG_WRN("uptime delta: %d\n", uptime_delta);
+        }
+        ctx->uptime_last = uptime;
+        struct timespec ts_board;
+        ts_board.tv_sec = uptime / 1.0e3;
+        ts_board.tv_nsec = (uptime - ts_board.tv_sec * 1e3) * 1e6;
+        ts_board.tv_sec += ctx->clock_offset.offset.seconds;
+        ts_board.tv_nsec += ctx->clock_offset.offset.nanos;
 
-            // compute time delta from sim
-            int64_t delta_sec = ctx->sim_clock.sim.sec - ts_board.tv_sec;
-            int32_t delta_nsec = ctx->sim_clock.sim.nanosec - ts_board.tv_nsec;
-            int64_t wait_usec = delta_sec * 1e6 + delta_nsec * 1e-3;
+        // compute time delta from sim
+        int64_t delta_sec = sim_clock->sim.seconds - ts_board.tv_sec;
+        int32_t delta_nsec = sim_clock->sim.nanos - ts_board.tv_nsec;
+        int64_t wait_usec = delta_sec * 1e6 + delta_nsec * 1e-3;
 
-            LOG_DBG("\nsim: sec %lld nsec %d",
-                ctx->sim_clock.sim.sec, ctx->sim_clock.sim.nanosec);
-            LOG_DBG("board: sec %ld nsec %ld",
-                ts_board.tv_sec, ts_board.tv_nsec);
-            LOG_DBG("wait: usec %lld", wait_usec);
+        LOG_DBG("\nsim: sec %lld nsec %d",
+            sim_clock->sim.seconds, sim_clock->sim.nanos);
+        LOG_DBG("board: sec %ld nsec %ld",
+            ts_board.tv_sec, ts_board.tv_nsec);
+        LOG_DBG("wait: usec %lld", wait_usec);
 
-            // sleep to match clocks
-            if (wait_usec > 0) {
-                k_usleep(wait_usec);
-            }
+        // sleep to match clocks
+        if (wait_usec > 0) {
+            k_usleep(wait_usec);
         }
     } else if (frame->which_msg == synapse_pb_Frame_nav_sat_fix_tag) {
-        if (frame->topic == synapse_pb_Topic_TOPIC_NAV_SAT_FIX) {
-            zros_topic_publish(&topic_nav_sat_fix, &frame->msg.nav_sat_fix);
-        }
+        zros_topic_publish(&topic_nav_sat_fix, &frame->msg.nav_sat_fix);
     } else if (frame->which_msg == synapse_pb_Frame_imu_tag) {
-        if (frame->topic == synapse_pb_Topic_TOPIC_IMU) {
-            zros_topic_publish(&topic_imu, &frame->msg.imu);
-        }
+        zros_topic_publish(&topic_imu, &frame->msg.imu);
     } else if (frame->which_msg == synapse_pb_Frame_magnetic_field_tag) {
-        if (frame->topic == synapse_pb_Topic_TOPIC_MAGNETIC_FIELD) {
-            zros_topic_publish(&topic_magnetic_field, &frame->msg.magnetic_field);
-        }
+        zros_topic_publish(&topic_magnetic_field, &frame->msg.magnetic_field);
     } else if (frame->which_msg == synapse_pb_Frame_battery_state_tag) {
-        if (frame->topic == synapse_pb_Topic_TOPIC_BATTERY_STATE) {
-            zros_topic_publish(&topic_battery_state, &frame->msg.battery_state);
-        }
+        zros_topic_publish(&topic_battery_state, &frame->msg.battery_state);
     } else if (frame->which_msg == synapse_pb_Frame_wheel_odometry_tag) {
-        if (frame->topic == synapse_pb_Topic_TOPIC_WHEEL_ODOMETRY) {
-            zros_topic_publish(&topic_wheel_odometry, &frame->msg.wheel_odometry);
-        }
+        zros_topic_publish(&topic_wheel_odometry, &frame->msg.wheel_odometry);
     } else if (frame->which_msg == synapse_pb_Frame_odometry_tag) {
-        if (frame->topic == synapse_pb_Topic_TOPIC_ODOMETRY) {
-            zros_topic_publish(&topic_odometry_ethernet, &frame->msg.odometry);
-            ;
-        }
+        zros_topic_publish(&topic_odometry_ethernet, &frame->msg.odometry);
     }
 }
 
@@ -188,8 +160,8 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
     struct zros_sub sub_actuators, sub_led_array;
 
     zros_node_init(&node, "dream_sil");
-    zros_sub_init(&sub_actuators, &node, &topic_actuators, &ctx->actuators, 10);
-    zros_sub_init(&sub_led_array, &node, &topic_led_array, &ctx->led_array, 10);
+    zros_sub_init(&sub_actuators, &node, &topic_actuators, &ctx->tx_frame, 10);
+    zros_sub_init(&sub_led_array, &node, &topic_led_array, &ctx->tx_frame, 10);
 
     static uint8_t buf[RX_BUF_SIZE];
     pb_istream_t stream;
@@ -211,13 +183,14 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
             // send actuators if subscription updated
             if (zros_sub_update_available(&sub_actuators)) {
                 zros_sub_update(&sub_actuators);
-                send_frame(ctx, synapse_pb_Topic_TOPIC_ACTUATORS);
+                LOG_INF("sending actuators");
+                send_frame(ctx);
             }
 
             // send led_array if subscription updated
             if (zros_sub_update_available(&sub_led_array)) {
                 zros_sub_update(&sub_led_array);
-                send_frame(ctx, synapse_pb_Topic_TOPIC_LED_ARRAY);
+                send_frame(ctx);
             }
         }
 

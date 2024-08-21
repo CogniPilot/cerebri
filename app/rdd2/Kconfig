@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 mainmenu "CogniPilot - Cerebri - RDD2"
+menu "Zephyr"
 source "Kconfig.zephyr"
+endmenu
 
+menu "RDD2"
 config CEREBRI_RDD2_ESTIMATE
   bool "enable estimate"
   depends on CEREBRI_RDD2_CASADI
@@ -255,3 +258,4 @@ config CEREBRI_RDD2_LOG_LINEAR_POSITION
 module = CEREBRI_RDD2
 module-str = cerebri_rdd2
 source "subsys/logging/Kconfig.template.log_config"
+endmenu

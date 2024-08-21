@@ -1,0 +1,42 @@
+# Copyright 2024 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+description: NXP Flexio DSHOT controller.
+  Each flexio timer can be used for generating one dshot pulse.
+  The two DSHOT modes supported by flexio are chosen based on the selected polarity -
+  Dual 8-bit counters DSHOT mode and Dual 8-bit counters DSHOT Low mode.
+
+compatible: "nxp,flexio-dshot"
+
+include: [pinctrl-device.yaml, base.yaml]
+
+properties:
+  pinctrl-0:
+    required: true
+
+  pinctrl-names:
+    required: true
+
+  speed:
+    type: int
+    default: 600
+    description: |
+      bitrate of the dshot signal in kbit/s
+
+child-binding:
+  description: |
+    Flexio DSHOT channel configuration.
+
+  properties:
+    pin-id:
+      type: int
+      required: true
+      description: |
+        pin-id should be populated with number 'n' specified in the
+        FXIO_D<n> data pin of your board's schematic.
+    bidirectional-dshot:
+      type: boolean
+      description: | 
+        Enables inverted dshot, where signal level is inverted
+        When inverted an DSHOT esc will send back telemetry over 
+        the same single wire

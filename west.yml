@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 42b738eeb754e1201781577a5864685dc9843d62 # pr-vmu-sensor-update 08/10/24
+      revision: 962f4d4c332ac9577836ff113ea056fdf4005df5 # pr-vmu-sensor-update 08/15/24
       import:
         - name-allowlist:
           - nanopb
@@ -40,7 +40,7 @@ manifest:
       path: modules/lib/cyecca
     - name: synapse_pb
       remote: cognipilot
-      revision: 3109c41ea35b5aacb30b6d2a37ab626d9ae24d05 # pr-fifo 8/11/24
+      revision: d42a927bed38a470a23c64866e6d44bb25fabb2b # main 8/20/24
       path: modules/lib/synapse_pb
     - name: ubxlib
       remote: cognipilot
@@ -48,5 +48,5 @@ manifest:
       revision: brave
     - name: hal_nxp
       remote: cognipilot
-      revision: master
+      revision: e400b5dba27d9abe1403fc799d48b58fa1b1daee # master 8/21/24
       path: modules/hal/nxp

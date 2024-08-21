@@ -35,3 +35,5 @@ zephyr_library_sources(
   src/perf_duration.c
   ${CASADI_FILES}
   )
+
+add_dependencies(app cerebri_core_common)

@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 mainmenu "CogniPilot - Cerebri - B3RB"
+menu "Zephyr"
 source "Kconfig.zephyr"
+endmenu
 
+menu "B3RB"
 config CEREBRI_B3RB_ESTIMATE
   bool "enable estimate"
   depends on CEREBRI_B3RB_CASADI
@@ -112,3 +115,4 @@ config CEREBRI_B3RB_WHEEL_BASE_MM
 module = CEREBRI_B3RB
 module-str = cerebri_b3rb
 source "subsys/logging/Kconfig.template.log_config"
+endmenu

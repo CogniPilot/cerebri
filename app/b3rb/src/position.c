@@ -32,7 +32,7 @@ struct context {
     struct zros_node node;
     synapse_pb_Status status;
     synapse_pb_BezierTrajectory bezier_trajectory_ethernet;
-    synapse_pb_Time clock_offset_ethernet;
+    synapse_pb_ClockOffset clock_offset_ethernet;
     synapse_pb_Odometry odometry_estimator;
     synapse_pb_Twist cmd_vel;
     struct zros_sub sub_status, sub_clock_offset_ethernet, sub_odometry_estimator, sub_bezier_trajectory_ethernet;
@@ -50,7 +50,7 @@ struct context {
 static struct context g_ctx = {
     .status = synapse_pb_Status_init_default,
     .bezier_trajectory_ethernet = synapse_pb_BezierTrajectory_init_default,
-    .clock_offset_ethernet = synapse_pb_Time_init_default,
+    .clock_offset_ethernet = synapse_pb_ClockOffset_init_default,
     .odometry_estimator = synapse_pb_Odometry_init_default,
     .cmd_vel = {
         .has_angular = true,
@@ -107,11 +107,13 @@ static void b3rb_position_stop(struct context* ctx)
 static void bezier_position_mode(struct context* ctx)
 {
     // goal -> given position goal, find cmd_vel
-    uint64_t time_start_nsec = ctx->bezier_trajectory_ethernet.time_start;
+    uint64_t time_start_nsec = ctx->bezier_trajectory_ethernet.time_start.seconds * 1e9 + ctx->bezier_trajectory_ethernet.time_start.nanos;
     uint64_t time_stop_nsec = time_start_nsec;
 
     // get current time
-    uint64_t time_nsec = k_uptime_get() * 1e6 + ctx->clock_offset_ethernet.sec * 1e9 + ctx->clock_offset_ethernet.nanosec;
+    uint64_t time_nsec = k_uptime_get() * 1e6
+        + ctx->clock_offset_ethernet.offset.seconds * 1e9
+        + ctx->clock_offset_ethernet.offset.nanos;
 
     if (time_nsec < time_start_nsec) {
         LOG_WRN("time current: %" PRIu64
@@ -126,11 +128,17 @@ static void bezier_position_mode(struct context* ctx)
     int curve_index = 0;
     while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 
+        synapse_pb_BezierTrajectory* traj = &ctx->bezier_trajectory_ethernet;
+        synapse_pb_Timestamp* time_stop_leg = &traj->curves[curve_index].time_stop;
+
+        uint64_t time_stop_leg_nsec = time_stop_leg->seconds * 1e9 + time_stop_leg->nanos;
+
         // check if time handled by current trajectory
-        if (time_nsec < ctx->bezier_trajectory_ethernet.curves[curve_index].time_stop) {
-            time_stop_nsec = ctx->bezier_trajectory_ethernet.curves[curve_index].time_stop;
+        if (time_nsec < time_stop_leg_nsec) {
+            time_stop_nsec = time_stop_leg_nsec;
             if (curve_index > 0) {
-                time_start_nsec = ctx->bezier_trajectory_ethernet.curves[curve_index - 1].time_stop;
+                synapse_pb_Timestamp* time_start_leg = &traj->curves[curve_index - 1].time_stop;
+                time_start_nsec = time_start_leg->seconds * 1e9 + time_start_leg->nanos;
             }
             break;
         }
@@ -177,9 +185,9 @@ static void bezier_position_mode(struct context* ctx)
         double p[3], r[3];
 
         // vehicle position
-        p[0] = ctx->odometry_estimator.pose.pose.position.x;
-        p[1] = ctx->odometry_estimator.pose.pose.position.y;
-        p[2] = 2 * atan2(ctx->odometry_estimator.pose.pose.orientation.z, ctx->odometry_estimator.pose.pose.orientation.w);
+        p[0] = ctx->odometry_estimator.pose.position.x;
+        p[1] = ctx->odometry_estimator.pose.position.y;
+        p[2] = 2 * atan2(ctx->odometry_estimator.pose.orientation.z, ctx->odometry_estimator.pose.orientation.w);
 
         // reference position
         r[0] = x;

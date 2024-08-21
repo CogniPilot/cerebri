@@ -58,12 +58,11 @@ static struct context g_ctx = {
     .imu = synapse_pb_Imu_init_default,
     .odometry = {
         .child_frame_id = "base_link",
-        .has_header = true,
-        .header.frame_id = "odom",
+        .has_stamp = true,
+        .frame_id = "odom",
         .has_pose = true,
-        .pose.has_pose = true,
-        .pose.pose.has_position = true,
-        .pose.pose.has_orientation = true,
+        .pose.has_position = true,
+        .pose.has_orientation = true,
     },
     .sub_wheel_odometry = {},
     .sub_imu = {},
@@ -132,7 +131,6 @@ static void b3rb_estimate_run(void* p0, void* p1, void* p2)
     b3rb_estimate_init(ctx);
 
     // variables
-    int32_t seq = 0;
     double rotation_last = 0;
 
     struct k_poll_event events[1] = {};
@@ -223,19 +221,18 @@ static void b3rb_estimate_run(void* p0, void* p1, void* p2)
 
         // publish odometry
         {
-            stamp_header(&ctx->odometry.header, k_uptime_ticks());
-            ctx->odometry.header.seq = seq++;
+            stamp_msg(&ctx->odometry.stamp, k_uptime_ticks());
 
             double theta = ctx->x[2];
-            ctx->odometry.pose.pose.position.x = ctx->x[0];
-            ctx->odometry.pose.pose.position.y = ctx->x[1];
-            ctx->odometry.pose.pose.position.z = 0;
-            ctx->odometry.pose.pose.orientation.x = 0;
-            ctx->odometry.pose.pose.orientation.y = 0;
-            ctx->odometry.pose.pose.orientation.z = sin(theta / 2);
-            ctx->odometry.pose.pose.orientation.w = cos(theta / 2);
-            ctx->odometry.twist.twist.angular.z = omega;
-            ctx->odometry.twist.twist.linear.x = u;
+            ctx->odometry.pose.position.x = ctx->x[0];
+            ctx->odometry.pose.position.y = ctx->x[1];
+            ctx->odometry.pose.position.z = 0;
+            ctx->odometry.pose.orientation.x = 0;
+            ctx->odometry.pose.orientation.y = 0;
+            ctx->odometry.pose.orientation.z = sin(theta / 2);
+            ctx->odometry.pose.orientation.w = cos(theta / 2);
+            ctx->odometry.twist.angular.z = omega;
+            ctx->odometry.twist.linear.x = u;
             zros_pub_update(&ctx->pub_odometry);
         }
     }

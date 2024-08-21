@@ -136,7 +136,7 @@ static void pwm_update(struct context* ctx)
         perf_duration_stop(&control_latency);
 
         if (err) {
-            LOG_ERR("failed to set pulse %d on %d (err %d)", pwm.index, pulse, err);
+            LOG_ERR("Failed to set pulse %d on %d (err %d)", pulse, pwm.index, err);
         }
     }
 
@@ -284,13 +284,13 @@ static int actuate_pwm_device_init(const struct device* dev)
     {                                                                             \
         .label = DT_NODE_FULL_NAME(node_id),                                      \
         .device = PWM_DT_SPEC_GET_BY_IDX(node_id, 0),                             \
-        .disarmed = DT_PROP(node_id, disarmed_ms),                                \
-        .min = DT_PROP(node_id, min_ms),                                          \
-        .max = DT_PROP(node_id, max_ms),                                          \
-        .center = DT_PROP(node_id, center_ms),                                    \
+        .disarmed = DT_PROP(node_id, disarmed),                                   \
+        .min = DT_PROP(node_id, min),                                             \
+        .max = DT_PROP(node_id, max),                                             \
+        .center = DT_PROP(node_id, center),                                       \
         .use_nano_seconds = DT_PROP(node_id, use_nano_seconds),                   \
         .scale = ((double)DT_PROP(node_id, scale)) / DT_PROP(node_id, scale_div), \
-        .index = DT_NODE_CHILD_IDX(node_id),                                      \
+        .index = DT_PROP(node_id, input_index),                                   \
         .type = DT_ENUM_IDX(node_id, input_type),                                 \
     },
 

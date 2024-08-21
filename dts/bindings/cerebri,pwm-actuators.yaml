@@ -20,20 +20,20 @@ child-binding:
       type: phandle-array
       description: Reference to a PWM instance.
 
-    disarmed-ms:
+    disarmed:
       default: 1000
       type: int
-      description: pwm signal in ms to send when disarmed
+      description: pwm defaults to signal in ms to send when disarmed
 
-    min-ms:
-      default: 1200
+    min:
+      default: 1100
       type: int
-      description: Minimum pwm signal in ms to send
+      description: Minimum pwm defaults to signal in ms to send
 
-    center-ms:
+    center:
       required: true
       type: int
-      description: Center pwm signal in ms to send (maps 0 input to pwm)
+      description: Center pwm defaults to signal in ms to send (maps 0 input to pwm)
 
     scale:
       required: true
@@ -45,17 +45,22 @@ child-binding:
       type: int
       description: A divisor for the scale
 
-    max-ms:
-      default: 1800
+    max:
+      default: 1900
       type: int
-      description: Maximum pwm signal in ms to send
+      description: Maximum pwm defaults to signal in ms to send
 
     use-nano-seconds:
       type: boolean
       description: Use nanoseconds for pwm signal
 
+    input-index:
+      required: true
+      type: int
+      description: Index of actuator field specified by actuator input-type.
+
     input-type:
-      default: "normalized"
+      required: true
       type: string
       description: What type of input singal to actuators
       enum:

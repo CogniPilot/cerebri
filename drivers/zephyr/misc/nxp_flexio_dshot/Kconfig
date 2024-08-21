@@ -1,0 +1,25 @@
+# Copyright 2023 NXP
+# SPDX-License-Identifier: Apache-2.0
+
+config NXP_FLEXIO_DSHOT
+	bool "NXP FlexIO DShot protocol"
+	depends on DT_HAS_NXP_FLEXIO_ENABLED
+	depends on CLOCK_CONTROL
+	depends on DT_HAS_NXP_FLEXIO_DSHOT_ENABLED
+	select MCUX_FLEXIO
+	help
+	  Enable drivers for DShot using NXP FlexIO
+
+if NXP_FLEXIO_DSHOT
+
+module = NXP_FLEXIO_DSHOT
+module-str = NXP FlexIO DShot
+source "subsys/logging/Kconfig.template.log_config"
+
+config NXP_FLEXIO_DSHOT_INIT_PRIORITY
+	int "NXP FlexIO DShot priority"
+	default KERNEL_INIT_PRIORITY_DEVICE
+	help
+	  System initialization priority for NXP FlexIO DShot driver.
+
+endif

@@ -34,6 +34,7 @@ pthread_mutex_t g_lock_tx;
 
 RING_BUF_DECLARE(g_rx_buf, TX_BUF_SIZE);
 pthread_mutex_t g_lock_rx;
+static uint8_t g_pb_tx_buf[TX_BUF_SIZE];
 
 struct context {
     int sock;
@@ -77,14 +78,13 @@ struct context g_ctx = {
 static K_THREAD_STACK_DEFINE(my_stack_area, MY_STACK_SIZE);
 static struct k_thread my_thread_data;
 
-static void send_frame(struct context* ctx)
+static void send_frame(synapse_pb_Frame* frame)
 {
-    static uint8_t tx_buf[TX_BUF_SIZE];
-    pb_ostream_t stream = pb_ostream_from_buffer(tx_buf, sizeof(tx_buf));
-    if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, &ctx->tx_frame, PB_ENCODE_DELIMITED)) {
+    pb_ostream_t stream = pb_ostream_from_buffer(g_pb_tx_buf, ARRAY_SIZE(g_pb_tx_buf));
+    if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, frame, PB_ENCODE_DELIMITED)) {
         LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
     } else {
-        write_sim(tx_buf, stream.bytes_written);
+        write_sim(g_pb_tx_buf, stream.bytes_written);
     }
 }
 
@@ -160,8 +160,8 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
     struct zros_sub sub_actuators, sub_led_array;
 
     zros_node_init(&node, "dream_sil");
-    zros_sub_init(&sub_actuators, &node, &topic_actuators, &ctx->tx_frame, 10);
-    zros_sub_init(&sub_led_array, &node, &topic_led_array, &ctx->tx_frame, 10);
+    zros_sub_init(&sub_actuators, &node, &topic_actuators, &ctx->tx_frame.msg.actuators, 10);
+    zros_sub_init(&sub_led_array, &node, &topic_led_array, &ctx->tx_frame.msg.led_array, 10);
 
     static uint8_t buf[RX_BUF_SIZE];
     pb_istream_t stream;
@@ -183,14 +183,15 @@ static void zephyr_sim_entry_point(void* p0, void* p1, void* p2)
             // send actuators if subscription updated
             if (zros_sub_update_available(&sub_actuators)) {
                 zros_sub_update(&sub_actuators);
-                LOG_INF("sending actuators");
-                send_frame(ctx);
+                ctx->tx_frame.which_msg = synapse_pb_Frame_actuators_tag;
+                send_frame(&ctx->tx_frame);
             }
 
             // send led_array if subscription updated
             if (zros_sub_update_available(&sub_led_array)) {
                 zros_sub_update(&sub_led_array);
-                send_frame(ctx);
+                ctx->tx_frame.which_msg = synapse_pb_Frame_led_array_tag;
+                send_frame(&ctx->tx_frame);
             }
         }
 

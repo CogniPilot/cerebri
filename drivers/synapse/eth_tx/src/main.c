@@ -82,9 +82,10 @@ static void send_frame(struct context* ctx, pb_size_t which_msg)
         int64_t ticks = k_uptime_ticks();
         int64_t sec = ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
         int32_t nanosec = (ticks - sec * CONFIG_SYS_CLOCK_TICKS_PER_SEC) * 1e9 / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
-        snprintf(frame->topic, ARRAY_SIZE(frame->topic), "uptime");
-        frame->msg.duration.seconds = sec;
-        frame->msg.duration.nanos = nanosec;
+        frame->msg.clock_offset.has_stamp = false;
+        frame->msg.clock_offset.has_offset = true;
+        frame->msg.clock_offset.offset.seconds = sec;
+        frame->msg.clock_offset.offset.nanos = nanosec;
     }
     static uint8_t tx_buf[TX_BUF_SIZE];
     pb_ostream_t stream = pb_ostream_from_buffer(tx_buf, sizeof(tx_buf));

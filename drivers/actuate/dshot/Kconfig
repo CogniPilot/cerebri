@@ -4,6 +4,7 @@
 menuconfig CEREBRI_ACTUATE_DSHOT
   bool "DShot"
   depends on ZROS
+  default y if DT_HAS_CEREBRI_DSHOT_ACTUATORS_ENABLED
   help
     This option enables dshot actuators
 

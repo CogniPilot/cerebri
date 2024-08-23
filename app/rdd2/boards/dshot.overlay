@@ -1,0 +1,39 @@
+/ {
+	/delete-node/ pwm_actuators;
+
+	dshot_actuators: dshot_actuators {
+		compatible = "cerebri,dshot-actuators";
+		aux0 {
+			input-type = "velocity";
+			input-index = <0>;
+			center = <1000>;
+			scale = <1028>;
+			scale-div = <1000>;
+		};
+		aux1 {
+			input-type = "velocity";
+			input-index = <1>;
+			center = <1000>;
+			scale = <1028>;
+			scale-div = <1000>;
+		};
+		aux2 {
+			input-type = "velocity";
+			input-index = <2>;
+			center = <1000>;
+			scale = <1028>;
+			scale-div = <1000>;
+		};
+		aux3 {
+			input-type = "velocity";
+			input-index = <3>;
+			center = <1000>;
+			scale = <1028>;
+			scale-div = <1000>;
+		};
+	};
+};
+
+&dshot {
+	status = "okay";
+};

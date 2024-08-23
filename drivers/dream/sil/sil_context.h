@@ -22,15 +22,15 @@
 #define TX_BUF_SIZE 4096
 
 typedef struct context_s {
-    const char* module_name;
-    int sock;
-    pthread_t thread;
-    bool clock_initialized;
-    volatile sig_atomic_t shutdown;
-    synapse_pb_SimClock sim_clock;
-    synapse_pb_Time clock_offset;
-    synapse_pb_Actuators actuators;
-    synapse_pb_LEDArray led_array;
+	const char *module_name;
+	int sock;
+	pthread_t thread;
+	bool clock_initialized;
+	volatile sig_atomic_t shutdown;
+	synapse_pb_SimClock sim_clock;
+	synapse_pb_Time clock_offset;
+	synapse_pb_Actuators actuators;
+	synapse_pb_LEDArray led_array;
 } sil_context_t;
 
 #endif // CEREBRI_DREAM_SIL_H

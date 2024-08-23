@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    container: ghcr.io/zephyrproject-rtos/ci:v0.26.6
+    container: ghcr.io/zephyrproject-rtos/ci:v0.26.14
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
@@ -22,7 +22,8 @@ jobs:
       - name: Install Dependencies
         run: |
           apt update
-          apt install clang-format-14 curl pipx -y
+          apt install curl pipx -y
+          pipx install clang-format==18.1.8
           pipx install poetry==1.8.3
           poetry config --list
 

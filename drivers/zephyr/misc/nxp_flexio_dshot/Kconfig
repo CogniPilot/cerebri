@@ -7,6 +7,7 @@ config NXP_FLEXIO_DSHOT
 	depends on CLOCK_CONTROL
 	depends on DT_HAS_NXP_FLEXIO_DSHOT_ENABLED
 	select MCUX_FLEXIO
+	default y if DT_HAS_NXP_FLEXIO_DSHOT_ENABLED
 	help
 	  Enable drivers for DShot using NXP FlexIO
 

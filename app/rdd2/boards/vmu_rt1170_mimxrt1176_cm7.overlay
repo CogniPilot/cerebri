@@ -312,7 +312,7 @@ uart1: &lpuart5 {
 &flexio1 {
 	status = "okay";
 
-	flexio1_dshot: dshot {
+	dshot: dshot {
 		compatible = "nxp,flexio-dshot";
 		pinctrl-0 = <&pinmux_dshot_vmu>;
 		pinctrl-names = "default";

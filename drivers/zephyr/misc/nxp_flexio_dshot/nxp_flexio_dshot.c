@@ -292,6 +292,13 @@ void nxp_flexio_dshot_trigger(const struct device* dev)
     FLEXIO_EnableTimerStatusInterrupts(flexio_base, data->dshot_timer_mask);
 }
 
+uint8_t nxp_flexio_dshot_channel_count(const struct device* dev)
+{
+    const struct nxp_flexio_dshot_config* config = dev->config;
+    
+    return config->channel->dshot_channel_count;
+}
+
 /* Expand packet from 16 bits 48 to get T0H and T1H timing */
 uint64_t nxp_flexio_dshot_expand_data(uint16_t packet)
 {

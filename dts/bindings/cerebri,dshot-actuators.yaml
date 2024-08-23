@@ -1,0 +1,44 @@
+# Copyright CogniPilot Foundation 2024
+# SPDX-License-Identifier: Apache-2.0
+
+description: DSHOT actuators parent node
+
+  A generic binding for DSHOT actuators. Note that this binding
+  has no vendor prefix, as it does not target a specific device or vendor.
+
+compatible: "cerebri,dshot-actuators"
+
+child-binding:
+  description: DSHOT actuators node
+  properties:
+    label:
+      type: string
+      description : user label
+
+    center:
+      required: true
+      type: int
+      description: Center dshot defaults to signal in ms to send (maps 0 input to dshot)
+
+    scale:
+      required: true
+      type: int
+      description: The scale in dshot per unit of input
+
+    scale-div:
+      default: 1
+      type: int
+      description: A divisor for the scale
+
+    input-index:
+      required: true
+      type: int
+      description: Index of actuator field specified by actuator input-type.
+
+    input-type:
+      required: true
+      type: string
+      description: What type of input singal to actuators
+      enum:
+        - "normalized"
+        - "velocity"

@@ -29,15 +29,15 @@
 /********************************************************************
  * helper
  ********************************************************************/
-void stamp_msg(synapse_pb_Timestamp* hdr, int64_t ticks);
-const char* mode_str(synapse_pb_Status_Mode mode);
-const char* input_source_str(synapse_pb_Status_InputSource src);
-const char* topic_source_str(synapse_pb_Status_TopicSource src);
-const char* armed_str(synapse_pb_Status_Arming arming);
-const char* safety_str(synapse_pb_Safety_Status safety);
-const char* fuel_str(synapse_pb_Status_Fuel fuel);
-const char* status_safety_str(synapse_pb_Status_Safety safety);
-const char* link_status_str(synapse_pb_Status_LinkStatus status);
+void stamp_msg(synapse_pb_Timestamp *hdr, int64_t ticks);
+const char *mode_str(synapse_pb_Status_Mode mode);
+const char *input_source_str(synapse_pb_Status_InputSource src);
+const char *topic_source_str(synapse_pb_Status_TopicSource src);
+const char *armed_str(synapse_pb_Status_Arming arming);
+const char *safety_str(synapse_pb_Safety_Status safety);
+const char *fuel_str(synapse_pb_Status_Fuel fuel);
+const char *status_safety_str(synapse_pb_Status_Safety safety);
+const char *link_status_str(synapse_pb_Status_LinkStatus status);
 
 /********************************************************************
  * topics

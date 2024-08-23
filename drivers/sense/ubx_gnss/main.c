@@ -21,141 +21,136 @@
 
 uDeviceCfg_t gDeviceCfg;
 
-uNetworkCfgGnss_t gNetworkCfg = {
-    .type = U_NETWORK_TYPE_GNSS
-};
+uNetworkCfgGnss_t gNetworkCfg = {.type = U_NETWORK_TYPE_GNSS};
 
 LOG_MODULE_REGISTER(ubx_gnss, CONFIG_CEREBRI_SENSE_UBX_GNSS_LOG_LEVEL);
 
 #define MY_STACK_SIZE 4096
-#define MY_PRIORITY 6
+#define MY_PRIORITY   6
 
 typedef struct context {
-    struct zros_node node;
-    struct zros_pub pub;
-    synapse_pb_NavSatFix data;
-    int32_t gMeasurementPeriodMs;
-    bool running;
-    bool isAlive;
+	struct zros_node node;
+	struct zros_pub pub;
+	synapse_pb_NavSatFix data;
+	int32_t gMeasurementPeriodMs;
+	bool running;
+	bool isAlive;
 } context_t;
 
 static context_t g_ctx = {
-    .node = {},
-    .pub = {},
-    .data = {
-        .has_stamp = true,
-        .stamp = synapse_pb_Timestamp_init_default,
-        .altitude = 0,
-        .latitude = 0,
-        .longitude = 0,
-        .position_covariance = synapse_pb_Covariance3_init_default,
-        .position_covariance_type = synapse_pb_NavSatFix_CovarianceType_UNKNOWN,
-        .status = { .service = 0, .status = 0 } },
-    .gMeasurementPeriodMs = 100,
-    .running = false,
-    .isAlive = false,
+	.node = {},
+	.pub = {},
+	.data = {.has_stamp = true,
+		 .stamp = synapse_pb_Timestamp_init_default,
+		 .altitude = 0,
+		 .latitude = 0,
+		 .longitude = 0,
+		 .position_covariance = synapse_pb_Covariance3_init_default,
+		 .position_covariance_type = synapse_pb_NavSatFix_CovarianceType_UNKNOWN,
+		 .status = {.service = 0, .status = 0}},
+	.gMeasurementPeriodMs = 100,
+	.running = false,
+	.isAlive = false,
 };
 
-void publish_gnss_data(uDeviceHandle_t devHandle,
-    int32_t errorCode,
-    const uLocation_t* pLocation)
+void publish_gnss_data(uDeviceHandle_t devHandle, int32_t errorCode, const uLocation_t *pLocation)
 {
-    context_t* ctx = &g_ctx;
-    ctx->isAlive = true;
+	context_t *ctx = &g_ctx;
+	ctx->isAlive = true;
 
-    if (errorCode == 0) {
-        synapse_pb_NavSatFix msg = synapse_pb_NavSatFix_init_default;
+	if (errorCode == 0) {
+		synapse_pb_NavSatFix msg = synapse_pb_NavSatFix_init_default;
 
-        ctx->data.latitude = pLocation->latitudeX1e7 / 1e7;
-        ctx->data.longitude = pLocation->longitudeX1e7 / 1e7;
-        ctx->data.altitude = pLocation->altitudeMillimetres / 1e3;
-        stamp_msg(&ctx->data.stamp, k_uptime_ticks());
+		ctx->data.latitude = pLocation->latitudeX1e7 / 1e7;
+		ctx->data.longitude = pLocation->longitudeX1e7 / 1e7;
+		ctx->data.altitude = pLocation->altitudeMillimetres / 1e3;
+		stamp_msg(&ctx->data.stamp, k_uptime_ticks());
 
-        // TODO Covariance
-        zros_pub_update(&ctx->pub);
-        LOG_DBG("lat %f long %f\n", msg.latitude, msg.longitude);
-    } else if (errorCode == U_ERROR_COMMON_TIMEOUT) {
-        // LOG_ERR("Tiemout error");
-    } else {
-        LOG_ERR("GNSS error %i", errorCode);
-        g_ctx.running = false;
-    }
+		// TODO Covariance
+		zros_pub_update(&ctx->pub);
+		LOG_DBG("lat %f long %f\n", msg.latitude, msg.longitude);
+	} else if (errorCode == U_ERROR_COMMON_TIMEOUT) {
+		// LOG_ERR("Tiemout error");
+	} else {
+		LOG_ERR("GNSS error %i", errorCode);
+		g_ctx.running = false;
+	}
 }
 
-void sense_ubx_gnss_entry_point(context_t* ctx)
+void sense_ubx_gnss_entry_point(context_t *ctx)
 {
-    LOG_INF("init");
-    zros_node_init(&ctx->node, "sense_ubx_gnss");
-    zros_pub_init(&ctx->pub, &ctx->node, &topic_nav_sat_fix, &ctx->data);
-    int32_t errorCode;
+	LOG_INF("init");
+	zros_node_init(&ctx->node, "sense_ubx_gnss");
+	zros_pub_init(&ctx->pub, &ctx->node, &topic_nav_sat_fix, &ctx->data);
+	int32_t errorCode;
 
-    // Remove the line below if you want the log printouts from ubxlib
-    uPortLogOff();
-    // Initiate ubxlib
-    // And the U-blox GNSS module
-    uDeviceHandle_t deviceHandle;
+	// Remove the line below if you want the log printouts from ubxlib
+	uPortLogOff();
+	// Initiate ubxlib
+	// And the U-blox GNSS module
+	uDeviceHandle_t deviceHandle;
 
-    while (true) {
-        uPortInit();
-        uDeviceInit();
+	while (true) {
+		uPortInit();
+		uDeviceInit();
 
-        uDeviceGetDefaults(U_DEVICE_TYPE_GNSS, &gDeviceCfg);
+		uDeviceGetDefaults(U_DEVICE_TYPE_GNSS, &gDeviceCfg);
 
-        gDeviceCfg.transportCfg.cfgUart.uart = 0;
-        gDeviceCfg.transportCfg.cfgUart.baudRate = CONFIG_CEREBRI_SENSE_UBX_GNSS_BAUD;
+		gDeviceCfg.transportCfg.cfgUart.uart = 0;
+		gDeviceCfg.transportCfg.cfgUart.baudRate = CONFIG_CEREBRI_SENSE_UBX_GNSS_BAUD;
 #ifdef CONFIG_CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M8
-        gDeviceCfg.deviceCfg.cfgGnss.moduleType = U_GNSS_MODULE_TYPE_M8;
+		gDeviceCfg.deviceCfg.cfgGnss.moduleType = U_GNSS_MODULE_TYPE_M8;
 #endif
 #ifdef CONFIG_CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M9
-        gDeviceCfg.deviceCfg.cfgGnss.moduleType = U_GNSS_MODULE_TYPE_M9;
+		gDeviceCfg.deviceCfg.cfgGnss.moduleType = U_GNSS_MODULE_TYPE_M9;
 #endif
 #ifdef CONFIG_CEREBRI_SENSE_UBX_GNSS_MODULE_TYPE_M10
-        gDeviceCfg.deviceCfg.cfgGnss.moduleType = U_GNSS_MODULE_TYPE_M10;
+		gDeviceCfg.deviceCfg.cfgGnss.moduleType = U_GNSS_MODULE_TYPE_M10;
 #endif
-        errorCode = uDeviceOpen(&gDeviceCfg, &deviceHandle);
-        LOG_DBG("Opened the GNSS device %i\n", errorCode);
-        if (errorCode == 0) {
-            // Bring up the GNSS
-            if (uNetworkInterfaceUp(deviceHandle, U_NETWORK_TYPE_GNSS, &gNetworkCfg) == 0) {
-                LOG_DBG("Starting continuous location.\n");
-                uLocationGetContinuousStart(deviceHandle,
-                    ctx->gMeasurementPeriodMs,
-                    U_LOCATION_TYPE_GNSS,
-                    NULL, NULL, publish_gnss_data);
+		errorCode = uDeviceOpen(&gDeviceCfg, &deviceHandle);
+		LOG_DBG("Opened the GNSS device %i\n", errorCode);
+		if (errorCode == 0) {
+			// Bring up the GNSS
+			if (uNetworkInterfaceUp(deviceHandle, U_NETWORK_TYPE_GNSS, &gNetworkCfg) ==
+			    0) {
+				LOG_DBG("Starting continuous location.\n");
+				uLocationGetContinuousStart(deviceHandle, ctx->gMeasurementPeriodMs,
+							    U_LOCATION_TYPE_GNSS, NULL, NULL,
+							    publish_gnss_data);
 
-                ctx->running = true;
+				ctx->running = true;
 
-                while (ctx->running) {
-                    uPortTaskBlock(1000);
-                    /* If cb didnt set isAlive to true hw is malfunctioning reset */
-                    if (!ctx->isAlive) {
-                        break;
-                    }
-                    /* Challange cb to set alive to ture */
-                    ctx->isAlive = false;
-                }
+				while (ctx->running) {
+					uPortTaskBlock(1000);
+					/* If cb didnt set isAlive to true hw is malfunctioning
+					 * reset */
+					if (!ctx->isAlive) {
+						break;
+					}
+					/* Challange cb to set alive to ture */
+					ctx->isAlive = false;
+				}
 
-                uLocationGetStop(deviceHandle);
+				uLocationGetStop(deviceHandle);
 
-                LOG_DBG("Taking down GNSS...\n");
-                uNetworkInterfaceDown(deviceHandle, U_NETWORK_TYPE_GNSS);
-                uDeviceClose(deviceHandle, false);
-            } else {
-                LOG_ERR("Unable to bring up GNSS!\n");
-            }
+				LOG_DBG("Taking down GNSS...\n");
+				uNetworkInterfaceDown(deviceHandle, U_NETWORK_TYPE_GNSS);
+				uDeviceClose(deviceHandle, false);
+			} else {
+				LOG_ERR("Unable to bring up GNSS!\n");
+			}
 
-        } else {
-            LOG_ERR("Failed to initiate the module: %d", errorCode);
-            uPortTaskBlock(1000);
-        }
+		} else {
+			LOG_ERR("Failed to initiate the module: %d", errorCode);
+			uPortTaskBlock(1000);
+		}
 
-        uDeviceDeinit();
-        uPortDeinit();
-    }
+		uDeviceDeinit();
+		uPortDeinit();
+	}
 }
 
-K_THREAD_DEFINE(ubx_gnss, MY_STACK_SIZE,
-    sense_ubx_gnss_entry_point, &g_ctx, NULL, NULL,
-    MY_PRIORITY, 0, 100);
+K_THREAD_DEFINE(ubx_gnss, MY_STACK_SIZE, sense_ubx_gnss_entry_point, &g_ctx, NULL, NULL,
+		MY_PRIORITY, 0, 100);
 
 // vi: ts=4 sw=4 et

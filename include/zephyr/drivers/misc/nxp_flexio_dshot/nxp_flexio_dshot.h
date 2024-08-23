@@ -20,13 +20,13 @@
 extern "C" {
 #endif
 
-#define DSHOT_DISARMED 0
-#define DSHOT_CMD_BEEP1 1
+#define DSHOT_DISARMED             0
+#define DSHOT_CMD_BEEP1            1
 #define DSHOT_CMD_SPIN_DIRECTION_1 7
 #define DSHOT_CMD_SPIN_DIRECTION_2 8
-#define DSHOT_CMD_SAVE_SETTINGS 12
-#define DSHOT_MIN 48
-#define DSHOT_MAX 2047
+#define DSHOT_CMD_SAVE_SETTINGS    12
+#define DSHOT_MIN                  48
+#define DSHOT_MAX                  2047
 
 /**
  * @brief FlexIO Dshot driver public APIs
@@ -35,8 +35,8 @@ extern "C" {
  * @{
  */
 
-void nxp_flexio_dshot_data_set(const struct device *dev, unsigned channel,
-                               uint16_t throttle, bool telemetry);
+void nxp_flexio_dshot_data_set(const struct device *dev, unsigned channel, uint16_t throttle,
+			       bool telemetry);
 
 void nxp_flexio_dshot_trigger(const struct device *dev);
 

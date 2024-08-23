@@ -1,0 +1,21 @@
+# Copyright (c) 2024, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig CEREBRI_ACTUATE_DSHOT
+  bool "DShot"
+  depends on ZROS
+  help
+    This option enables dshot actuators
+
+if CEREBRI_ACTUATE_DSHOT
+
+config CEREBRI_ACTUATE_DSHOT_SHELL
+  bool "Enable shell"
+  help
+    Enable shell
+
+module = CEREBRI_ACTUATE_DSHOT
+module-str = actuate_dshot
+source "subsys/logging/Kconfig.template.log_config"
+
+endif #CEREBRI_ACTUATE_DSHOT

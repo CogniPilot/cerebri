@@ -1,12 +1,8 @@
-# Copyright (c) 2023 CogniPilot Foundation
+# Copyright (c) 2024 CogniPilot Foundation
 # SPDX-License-Identifier: Apache-2.0
 
 menu "Actuate"
 
-rsource "pwm/Kconfig"
-rsource "vesc_can/Kconfig"
-rsource "status_led/Kconfig"
-rsource "led_array/Kconfig"
-rsource "sound/Kconfig"
+rsource "*/Kconfig"
 
 endmenu

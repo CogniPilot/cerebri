@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
+add_subdirectory_ifdef(CONFIG_CEREBRI_ACTUATE_DSHOT dshot)
 add_subdirectory_ifdef(CONFIG_CEREBRI_ACTUATE_PWM pwm)
 add_subdirectory_ifdef(CONFIG_CEREBRI_ACTUATE_VESC_CAN vesc_can)
 add_subdirectory_ifdef(CONFIG_CEREBRI_ACTUATE_STATUS_LED status_led)

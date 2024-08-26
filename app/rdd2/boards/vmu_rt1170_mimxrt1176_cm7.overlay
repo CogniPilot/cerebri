@@ -321,43 +321,20 @@ uart1: &lpuart5 {
 
 		ch1 {
 			pin-id = <23>;
-			bidirectional-dshot;
 		};
 
 		ch2 {
 			pin-id = <25>;
-			bidirectional-dshot;
 		};
 
 		ch3 {
 			pin-id = <27>;
-			bidirectional-dshot;
 		};
 
 		ch4 {
 			pin-id = <6>;
-			bidirectional-dshot;
 		};
 
-		ch5 {
-			pin-id = <8>;
-			bidirectional-dshot;
-		};
-
-		ch6 {
-			pin-id = <10>;
-			bidirectional-dshot;
-		};
-
-		ch7 {
-			pin-id = <19>;
-			bidirectional-dshot;
-		};
-
-		ch8 {
-			pin-id = <29>;
-			bidirectional-dshot;
-		};
 	};
 
 };

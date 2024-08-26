@@ -6,32 +6,64 @@
 		aux0 {
 			input-type = "velocity";
 			input-index = <0>;
-			center = <1000>;
-			scale = <1028>;
+			center = <200>;
+			scale = <1500>;
 			scale-div = <1000>;
 		};
 		aux1 {
 			input-type = "velocity";
 			input-index = <1>;
-			center = <1000>;
-			scale = <1028>;
+			center = <200>;
+			scale = <1500>;
 			scale-div = <1000>;
 		};
 		aux2 {
 			input-type = "velocity";
 			input-index = <2>;
-			center = <1000>;
-			scale = <1028>;
+			center = <200>;
+			scale = <1500>;
 			scale-div = <1000>;
 		};
 		aux3 {
 			input-type = "velocity";
 			input-index = <3>;
-			center = <1000>;
-			scale = <1028>;
+			center = <200>;
+			scale = <1500>;
 			scale-div = <1000>;
 		};
 	};
+};
+
+&flexpwm1_pwm0 {
+	status = "disabled";
+};
+
+&flexpwm1_pwm1 {
+	status = "disabled";
+};
+
+&flexpwm1_pwm2	{
+	status = "disabled";
+};
+
+&flexpwm2_pwm0	{
+	status = "disabled";
+};
+
+&flexpwm2_pwm1	{
+	status = "disabled";
+};
+
+&flexpwm2_pwm2	{
+	status = "disabled";
+};
+
+&flexpwm2_pwm3	{
+	status = "disabled";
+};
+
+&flexpwm3_pwm0	{
+	status = "disabled";
 };
 
 &dshot {

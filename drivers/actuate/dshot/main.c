@@ -102,7 +102,7 @@ static void dshot_update(struct context *ctx)
 			}
 		}
 
-		nxp_flexio_dshot_data_set(ctx->dev, 0, (uint16_t)throttle, false);
+		nxp_flexio_dshot_data_set(ctx->dev, i, (uint16_t)throttle, false);
 
 		perf_duration_stop(&control_latency);
 	}

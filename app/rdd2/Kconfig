@@ -139,19 +139,19 @@ config CEREBRI_RDD2_MOTOR_CT
 
 config CEREBRI_RDD2_ROLL_KP
   int "roll kp * 1e6"
-  default 200000
+  default 2000000
   help
     roll kp * 1e6
 
 config CEREBRI_RDD2_PITCH_KP
   int "pitch kp * 1e6"
-  default 200000
+  default 2000000
   help
     pitch kp * 1e6
 
 config CEREBRI_RDD2_YAW_KP
   int "yaw kp * 1e6"
-  default 100000
+  default 1000000
   help
     yaw kp * 1e6
 

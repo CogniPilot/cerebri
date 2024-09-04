@@ -26,7 +26,7 @@ yaw_rate_max = 60 # deg/s
 rollpitch_max = 30 # deg
 
 # position loop
-kp_pos = 0.5 # position proportional gain
+kp_pos = 1.0 # position proportional gain
 kp_vel = 2.0 # velocity proportional gain
 #pos_sp_dist_max = 2 # position setpoint max distance
 #vel_max = 2.0 # max velocity command

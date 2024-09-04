@@ -195,9 +195,9 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 
 #if defined(CONFIG_CEREBRI_RDD2_LOG_LINEAR_POSITION)
 			const double kp[3] = {
-				CONFIG_CEREBRI_RDD2_ROLL_KP * 1e-3,
-				CONFIG_CEREBRI_RDD2_PITCH_KP * 1e-3,
-				CONFIG_CEREBRI_RDD2_YAW_KP * 1e-3,
+				CONFIG_CEREBRI_RDD2_ROLL_KP * 1e-6,
+				CONFIG_CEREBRI_RDD2_PITCH_KP * 1e-6,
+				CONFIG_CEREBRI_RDD2_YAW_KP * 1e-6,
 			};
 
 			double zeta[9];

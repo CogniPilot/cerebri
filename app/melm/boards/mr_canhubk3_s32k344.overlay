@@ -1,0 +1,391 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2023 CogniPilot Foundation */
+#include <freq.h>
+#include <zephyr/dt-bindings/gpio/nxp-s32-gpio.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/sensor/ina230.h>
+#include <zephyr/dt-bindings/sensor/icm42688.h>
+
+/ {
+	pwm_actuators: pwm_actuators {
+		compatible = "cerebri,pwm-actuators";
+		aux0 {
+			input-type = "position";
+			input-index = <0>;
+			pwms = <&emios0_pwm 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+			disarmed = <1500>;
+			min = <1100>;
+			max = <1900>;
+			center = <1500>;
+			scale = <800>;
+			scale-div = <1>;
+
+		};
+		aux1 {
+			input-type = "velocity";
+			input-index = <0>;
+			pwms = <&emios0_pwm 2 PWM_HZ(20000) PWM_POLARITY_NORMAL>;
+			disarmed = <25000>;
+			min = <0>;
+			max = <50000>;
+			center = <25000>;
+			scale = <717>;
+			scale-div = <1>;
+			use-nano-seconds;
+		};
+		aux2 {
+			input-type = "normalized";
+			input-index = <0>;
+			pwms = <&emios0_pwm 1 PWM_HZ(20000) PWM_POLARITY_NORMAL>;
+			disarmed = <0>;
+			min = <0>;
+			max = <50000>;
+			center = <0>;
+			scale = <50000>;
+			scale-div = <1>;
+			use-nano-seconds;
+		};
+	};
+
+	chosen {
+		zephyr,canbus = &flexcan3;
+	};
+
+	aliases {
+		can0 = &flexcan0;
+		can1 = &flexcan1;
+		can2 = &flexcan2;
+		can3 = &flexcan3;
+		can4 = &flexcan4;
+		can5 = &flexcan5;
+		accel0 = &icm42688_mr_canhubk3_adap;
+		gyro0 = &icm42688_mr_canhubk3_adap;
+		mag0 = &bmm150_mr_canhubk3_adap;
+		mag1 = &ist8310_mr_canhubk3_adap;
+		led0 = &gps_led_mr_canhubk3_adap;
+		buzzer = &gps_buzzer_mr_canhubk3_adap;
+		power0 = &ina230;
+		wheel-odometry0 = &qdec0;
+		sbus = &sbus0;
+		safety-button = &safety_button_mr_canhubk3_adap;
+	};
+	cfg-device-gnss {
+		status = "okay";
+		compatible = "u-blox,ubxlib-device-gnss";
+		transport-type = "uart0";
+		uart-baud-rate = <115200>;
+		module-type = "U_GNSS_MODULE_TYPE_M10";
+	};
+	leds {
+		gps_led_mr_canhubk3_adap: gps_led {
+			label = "GPS_LED";
+			gpios = <&gpioe_h 10 GPIO_ACTIVE_LOW>;
+		};
+	};
+	pwmbuzzers {
+		compatible = "pwm-leds";
+
+		gps_buzzer_mr_canhubk3_adap: gps_buzzer {
+			label = "GPS_BUZZER";
+			pwms = <&emios2_pwm 6 PWM_KHZ(1) PWM_POLARITY_NORMAL>;
+		};
+	};
+	gpio_keys {
+		compatible = "gpio-keys";
+		safety_button_mr_canhubk3_adap: button_0 {
+			label = "Arming Switch";
+			gpios = <&gpioa_l 11 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			zephyr,code = <INPUT_KEY_0>;
+		};
+	};
+};
+
+&eirq0_default {
+    group2 {
+        pinmux = <PTA11_EIRQ19>;
+        input-enable;
+    };
+};
+
+&gpioa_l {
+	status = "okay";
+};
+
+&emios0_pwm {
+	pwm_0 {
+		/delete-property/ period;
+		/delete-property/ prescaler;
+		master-bus = <&emios0_bus_a>;
+		pwm-mode = "OPWMB";
+		phase-shift = <100>;
+		duty-cycle = <0>;
+	};
+	pwm_1 {
+		prescaler = <1>;
+		duty-cycle = <0>;
+	};
+	pwm_2 {
+		prescaler = <1>;
+	};
+};
+
+&flexcan0 {
+	status = "okay";
+};
+
+&flexcan1 {
+	status = "okay";
+};
+
+&flexcan2 {
+	status = "okay";
+};
+
+&flexcan3 {
+	status = "okay";
+};
+
+&flexcan4 {
+	status = "okay";
+};
+
+&flexcan5 {
+	status = "okay";
+};
+
+&lpspi2 {
+	status = "okay";
+	apa102: apa102@0 {
+		compatible = "apa,apa102";
+		reg = <0>;
+		spi-max-frequency = <30000>;
+		status = "okay";
+		chain-length = <12>;
+		color-mapping = <>;
+	};
+};
+
+&lpi2c1 {
+	status = "okay";
+	pinctrl-0 = <&lpi2c1_default>;
+	pinctrl-names = "default";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+
+	ina230: ina230@40 {
+		compatible = "ti,ina230";
+		reg = <0x40>;
+		current-lsb-microamps = <10000>;
+		rshunt-micro-ohms = <2000>;
+	};
+};
+
+&lpuart4 {
+	status = "okay";
+	pinctrl-0 = <&lpuart4_mr_canhubk3_adap>;
+	pinctrl-names = "default";
+	current-speed = <100000>;
+	single-wire;
+	rx-invert;
+
+	sbus0: sbus {
+		compatible = "futaba,sbus";
+		chan_1 {
+			channel = <1>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <1>;
+		};
+		chan_2 {
+			channel = <2>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <2>;
+		};
+		chan_3 {
+			channel = <3>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <3>;
+		};
+		chan_4 {
+			channel = <4>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <4>;
+		};
+		chan_5 {
+			channel = <5>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <5>;
+		};
+		chan_6 {
+			channel = <6>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <6>;
+		};
+		chan_7 {
+			channel = <7>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <7>;
+		};
+		chan_8 {
+			channel = <8>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <8>;
+		};
+		chan_9 {
+			channel = <9>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <9>;
+		};
+		chan_10 {
+			channel = <10>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <10>;
+		};
+		chan_11 {
+			channel = <11>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <11>;
+		};
+		chan_12 {
+			channel = <12>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <12>;
+		};
+		chan_13 {
+			channel = <13>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <13>;
+		};
+		chan_14 {
+			channel = <14>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <14>;
+		};
+		chan_15 {
+			channel = <15>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <15>;
+		};
+		chan_16 {
+			channel = <16>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <16>;
+		};
+	};
+};
+
+&emios2 {
+	clock-divider = <160>;
+	status = "okay";
+
+	master_bus {
+		/* Internal counter's clock = 160 MHz (eMIOS1 clk) / 160 / 1 = 1 MHz */
+		emios2_bus_b {
+			mode = "MCB_UP_COUNTER";
+			prescaler = <1>;
+			period = <DT_FREQ_K(2)>;
+			status = "okay";
+		};
+	};
+
+	emios2_pwm: pwm {
+		pinctrl-0 = <&emios2_mr_canhubk3_adap>;
+		pinctrl-names = "default";
+		status = "okay";
+
+		pwm_gps_buzzer {
+			channel = <6>;
+			duty-cycle = <0>;
+			master-bus = <&emios2_bus_b>;
+			pwm-mode = "OPWMB";
+			polarity = "ACTIVE_HIGH";
+		};
+	};
+};
+
+&lpi2c0 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST>;
+
+	bmm150_mr_canhubk3_adap: bmm150@12  {
+		compatible = "bosch,bmm150";
+		status = "okay";
+		reg = <0x12>;
+	};
+
+	ist8310_mr_canhubk3_adap: ist8310@e {
+		compatible = "isentek,ist8310";
+		status = "okay";
+		reg = <0xe>;
+	};
+};
+
+&wkpu {
+	status = "okay";
+};
+
+&pinctrl {
+	lpspi4_mr_canhubk3_adap: lpspi4_mr_canhubk3_adap {
+		group1 {
+			pinmux = <PTB10_LPSPI4_SCK_O>, <PTB11_LPSPI4_SIN_O>;
+			output-enable;
+		};
+		group2 {
+			pinmux = <PTB9_LPSPI4_SOUT_I>;
+			input-enable;
+		};
+	};
+
+	emios2_mr_canhubk3_adap: emios2_mr_canhubk3_adap {
+		group1 {
+			pinmux = <PTE26_EMIOS_2_CH6_H_O>;
+			output-enable;
+		};
+	};
+
+	lpuart4_mr_canhubk3_adap: lpuart4_mr_canhubk3_adap {
+		group1 {
+			pinmux = <PTE11_LPUART4_TX_I>;
+			input-enable;
+		};
+	};
+
+	lpuart7_mr_canhubk3_adap: lpuart7_mr_canhubk3_adap {
+		group1 {
+			pinmux = <PTE1_LPUART7_TX_O>;
+			output-enable;
+		};
+		group2 {
+			pinmux = <PTE0_LPUART7_RX>;
+			input-enable;
+		};
+	};
+};
+
+/* GNSS 1 */
+uart0: &lpuart7 {
+	status = "okay";
+	pinctrl-0 = <&lpuart7_mr_canhubk3_adap>;
+	pinctrl-names = "default";
+	current-speed = <115200>;
+};
+
+&lpspi4 {
+	status = "okay";
+	pinctrl-0 = <&lpspi4_mr_canhubk3_adap>;
+	pinctrl-names = "default";
+	cs-gpios = <&gpiob_l 8 GPIO_ACTIVE_LOW>;
+
+	icm42688_mr_canhubk3_adap: icm42688p0@0 {
+		fifo-hires;
+		compatible = "invensense,icm42688";
+		reg = <0>;
+		int-gpios = <&gpioe_h 5 NXP_S32_GPIO_INT_WKPU>;
+		spi-max-frequency = <15000000>;
+		accel-pwr-mode = <ICM42688_DT_ACCEL_LN>;
+		accel-odr = <ICM42688_DT_ACCEL_ODR_200>;
+		accel-fs = <ICM42688_DT_ACCEL_FS_16>;
+		gyro-pwr-mode = <ICM42688_DT_GYRO_LN>;
+		gyro-odr = <ICM42688_DT_GYRO_ODR_200>;
+		gyro-fs = <ICM42688_DT_GYRO_FS_2000>;
+	};
+};

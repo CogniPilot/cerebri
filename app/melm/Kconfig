@@ -1,0 +1,118 @@
+# Copyright (c) 2023, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+mainmenu "CogniPilot - Cerebri - MELM"
+menu "Zephyr"
+source "Kconfig.zephyr"
+endmenu
+
+menu "MELM"
+config CEREBRI_MELM_ESTIMATE
+  bool "enable estimate"
+  depends on CEREBRI_MELM_CASADI
+  help
+    Enable estimator
+
+config CEREBRI_MELM_FSM
+  bool "enable finite state machine"
+  help
+    Enable fintie state machine
+
+config CEREBRI_MELM_LIGHTING
+  bool "enable lighting"
+  help
+    Enable lighting
+
+config CEREBRI_MELM_COMMAND
+  bool "enable command"
+  depends on CEREBRI_MELM_MIXING
+  help
+    Enable command
+
+config CEREBRI_MELM_MIXING
+  bool "enable mixing"
+  help
+    Enable mixing
+
+config CEREBRI_MELM_POSITION
+  bool "enable position"
+  depends on CEREBRI_MELM_CASADI
+  help
+    Enable position
+
+config CEREBRI_MELM_VELOCITY
+  bool "enable velocity"
+  depends on CEREBRI_MELM_MIXING
+  depends on CEREBRI_MELM_CASADI
+  help
+    Enable velocity
+
+config CEREBRI_MELM_CASADI
+  bool "enable casadi code"
+  help
+    Enable Casadi generated code
+
+config CEREBRI_MELM_BATTERY_MIN_MILLIVOLT
+  int "min battery voltage in milli volts before shut off"
+  default 10000
+  help
+    Minimum battery voltage in mV before auto-disarm
+
+config CEREBRI_MELM_BATTERY_LOW_MILLIVOLT
+  int "low battery voltage in milli volts before warning"
+  default 10500
+  help
+    Low battery voltage in mV before warning
+
+config CEREBRI_MELM_BATTERY_MAX_MILLIVOLT
+  int "max battery voltage in milli volts"
+  default 12600
+  help
+    Maximum battery voltage
+
+config CEREBRI_MELM_GAIN_HEADING
+  int "heading gain"
+  default 100
+  help
+    Steering = Heading error * GAIN_/ 1000
+
+config CEREBRI_MELM_GAIN_CROSS_TRACK
+  int "cross track gain"
+  default 100
+  help
+    Steering = Cross track error * GAIN / 1000
+
+config CEREBRI_MELM_GAIN_ALONG_TRACK
+  int "along track gain"
+  default 100
+  help
+    Steering = Along track error * GAIN / 1000
+
+config CEREBRI_MELM_MAX_TURN_ANGLE_MRAD
+  int "max turn angle mrad"
+  default 400
+  help
+    Max turn angle in milli-radians
+
+config CEREBRI_MELM_MAX_VELOCITY_MM_S
+  int "max velocity, mm/s"
+  default 1000
+  help
+    Max velocity in mm/s
+
+config CEREBRI_MELM_WHEEL_RADIUS_MM
+  int "wheel radius, mm"
+  default 37
+  help
+    Wheel radius in mm
+
+config CEREBRI_MELM_WHEEL_BASE_MM
+  int "wheel base, mm"
+  default 226
+  help
+    Wheel radius in mm
+
+module = CEREBRI_MELM
+module-str = cerebri_melm
+source "subsys/logging/Kconfig.template.log_config"
+endmenu

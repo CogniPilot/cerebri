@@ -18,6 +18,10 @@
 #include <zros/zros_pub.h>
 #include <zros/zros_sub.h>
 
+#include <zephyr/net/socket.h>
+#include <zephyr/net/socketcan.h>
+#include <zephyr/net/socketcan_utils.h>
+
 #include <cerebri/core/perf_duration.h>
 #include <synapse_topic_list.h>
 
@@ -43,7 +47,7 @@ typedef struct actuator_vesc_can_t {
 	uint8_t pole_pair;
 	uint8_t bus_id;
 	const struct device * device;
-	bool disarmed;
+	bool ready;
 	vesc_can_type_t type;
 } actuator_vesc_can_t;
 
@@ -60,9 +64,84 @@ struct context {
 	const actuator_vesc_can_t *actuator_vesc_cans;
 };
 
+static int can_actuator_stop(actuator_vesc_can_t *act)
+{
+	int err = can_stop(act->device);
+	if (err != 0) {
+		LOG_ERR("can%d - failed to stop (%d)\n", act->bus_id, err);
+		act->ready = false;
+		return err;
+	}
+	return err;
+}
+
+static int can_actuator_start(actuator_vesc_can_t *act)
+{
+	enum can_state state;
+	struct can_bus_err_cnt err_cnt;
+	int err = 0;
+
+	if (act->ready) {
+		return 0;
+	}
+
+	// check if device ready
+	if (!device_is_ready(act->device)) {
+		LOG_ERR("can%d - device not ready\n", act->bus_id);
+		act->ready = false;
+		return -1;
+	} // check state
+	err = can_get_state(act->device, &state, &err_cnt);
+	if (err != 0) {
+		LOG_ERR("can%d - failed to get CAN controller state (%d)\n",
+			act->bus_id, err);
+		act->ready = false;
+		return err;
+	}
+
+	// set device mode
+	if (act->fd) {
+		if (state != CAN_STATE_STOPPED) {
+			can_actuator_stop(act);
+		}
+		err = can_set_mode(act->device, CAN_MODE_FD);
+		if (err != 0) {
+			LOG_ERR("can%d - set mode FD failed (%d)\n", act->bus_id, err);
+			can_actuator_stop(act);
+			return err;
+		}
+	}
+
+	// start device
+	if ((state == CAN_STATE_STOPPED) || (state == CAN_STATE_BUS_OFF)) {
+
+		err = can_start(act->device);
+		if (err != 0) {
+			LOG_ERR("can%d - start failed\n", act->bus_id);
+			can_actuator_stop(act);
+			return err;
+		}
+	}
+
+	act->ready = true;
+	LOG_DBG("can%d - connected and properly initialized.\n", act->bus_id);
+	return 0;
+}
+
 static int actuate_vesc_can_init(struct context *ctx)
 {
 	LOG_INF("init");
+	int err = 0;
+
+	for (int i = 0; i < ctx->num_actuators; i++) {
+		actuator_vesc_can_t act = ctx->actuator_vesc_cans[i];
+		k_usleep(1e6 / 1);
+		err =  can_actuator_start(&act);
+		if (err != 0) {
+			return err;
+		}
+	}
+
 	zros_node_init(&ctx->node, "actuate_vesc_can");
 	zros_sub_init(&ctx->sub_actuators, &ctx->node, &topic_actuators, &ctx->actuators, 1000);
 	zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
@@ -70,13 +149,19 @@ static int actuate_vesc_can_init(struct context *ctx)
 	return 0;
 }
 
-static void actuate_vesc_can_fini(struct context *ctx)
+static int actuate_vesc_can_fini(struct context *ctx)
 {
 	LOG_INF("fini");
+
+	for (int i = 0; i < ctx->num_actuators; i++) {
+		actuator_vesc_can_t act = ctx->actuator_vesc_cans[i];
+		can_actuator_stop(&act);
+	}
 	zros_sub_fini(&ctx->sub_actuators);
 	zros_sub_fini(&ctx->sub_status);
 	zros_node_fini(&ctx->node);
 	k_sem_give(&ctx->running);
+	return 0;
 }
 
 static void vesc_can_update(struct context *ctx)
@@ -87,7 +172,7 @@ static void vesc_can_update(struct context *ctx)
 	for (int i = 0; i < ctx->num_actuators; i++) {
 		actuator_vesc_can_t vesc_can = ctx->actuator_vesc_cans[i];
 
-		uint32_t pulse = vesc_can.disarmed;
+		uint32_t pulse = 0; //= vesc_can.disarmed;
 		double input = 0;
 
 		if (vesc_can.type == VESC_CAN_TYPE_NORMALIZED) {
@@ -213,7 +298,7 @@ static int actuate_vesc_can_device_init(const struct device *dev)
 		.bus_id = DT_PROP(node_id, bus_id),                                                \
 		.device = DEVICE_DT_GET(DT_PROP(node_id, device)),                                 \
 		.type = DT_ENUM_IDX(node_id, input_type),                                          \
-		.disarmed = true,                                                                  \
+		.ready = true,                                                                     \
 	},
 
 #define VESC_CAN_ACTUATORS_DEFINE(inst)                                                            \

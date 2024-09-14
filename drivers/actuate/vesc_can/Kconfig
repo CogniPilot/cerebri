@@ -2,15 +2,22 @@
 # SPDX-License-Identifier: Apache-2.0
 
 menuconfig CEREBRI_ACTUATE_VESC_CAN
-  bool "Acuate Vesc CAN"
-  depends on CEREBRI_SYNAPSE_VESC_CAN
+  bool "VESC_CAN"
+  depends on CAN
+  depends on ZROS
+  default y if DT_HAS_CEREBRI_VESC_CAN_ACTUATORS_ENABLED
   help
-    This option enables vesc can
+    This option enables vesc_can actuators
 
 if CEREBRI_ACTUATE_VESC_CAN
+
+config CEREBRI_ACTUATE_VESC_CAN_SHELL
+  bool "Enable shell"
+  help
+    Enable shell
 
 module = CEREBRI_ACTUATE_VESC_CAN
 module-str = actuate_vesc_can
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # CEREBRI_ACTUATE_VESC_CAN
+endif #CEREBRI_ACTUATE_VESC_CAN

@@ -9,7 +9,6 @@ zephyr_include_directories()
 
 zephyr_library_sources(
   main.c
-  actuator_vesc_can.c
   )
 
 add_dependencies(cerebri_actuate_vesc_can synapse_pb)

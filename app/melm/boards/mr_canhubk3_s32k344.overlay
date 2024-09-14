@@ -8,43 +8,14 @@
 #include <zephyr/dt-bindings/sensor/icm42688.h>
 
 / {
-	pwm_actuators: pwm_actuators {
-		compatible = "cerebri,pwm-actuators";
+	vesc_can_actuators: vesc_can_actuators {
+		compatible = "cerebri,vesc_can-actuators";
 		aux0 {
-			input-type = "position";
-			input-index = <0>;
-			pwms = <&emios0_pwm 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-			disarmed = <1500>;
-			min = <1100>;
-			max = <1900>;
-			center = <1500>;
-			scale = <800>;
-			scale-div = <1>;
-
-		};
-		aux1 {
+			device = <&flexcan0>;
+			bus-id = <0>;
 			input-type = "velocity";
 			input-index = <0>;
-			pwms = <&emios0_pwm 2 PWM_HZ(20000) PWM_POLARITY_NORMAL>;
-			disarmed = <25000>;
-			min = <0>;
-			max = <50000>;
-			center = <25000>;
-			scale = <717>;
-			scale-div = <1>;
-			use-nano-seconds;
-		};
-		aux2 {
-			input-type = "normalized";
-			input-index = <0>;
-			pwms = <&emios0_pwm 1 PWM_HZ(20000) PWM_POLARITY_NORMAL>;
-			disarmed = <0>;
-			min = <0>;
-			max = <50000>;
-			center = <0>;
-			scale = <50000>;
-			scale-div = <1>;
-			use-nano-seconds;
+			pole-pair = <15>;
 		};
 	};
 
@@ -53,12 +24,6 @@
 	};
 
 	aliases {
-		can0 = &flexcan0;
-		can1 = &flexcan1;
-		can2 = &flexcan2;
-		can3 = &flexcan3;
-		can4 = &flexcan4;
-		can5 = &flexcan5;
 		accel0 = &icm42688_mr_canhubk3_adap;
 		gyro0 = &icm42688_mr_canhubk3_adap;
 		mag0 = &bmm150_mr_canhubk3_adap;
@@ -388,4 +353,8 @@ uart0: &lpuart7 {
 		gyro-odr = <ICM42688_DT_GYRO_ODR_200>;
 		gyro-fs = <ICM42688_DT_GYRO_FS_2000>;
 	};
+};
+
+&vesc_can_actuators {
+	status = "okay";
 };

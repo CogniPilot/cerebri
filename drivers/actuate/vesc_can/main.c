@@ -146,6 +146,7 @@ static int actuate_vesc_can_init(struct context *ctx)
 	// add receive callback
 	for (int i = 0; i < ctx->num_actuators; i++) {
 		struct actuator_vesc_can *act = &ctx->actuator_vesc_cans[i];
+		act->ctx = ctx;
 		act->rx_filter.flags = CAN_FILTER_IDE;
 		act->rx_filter.id = CAN_STATUS_ID_BASE + act->vesc_id;
 		act->rx_filter.mask = CAN_EXT_ID_MASK;
@@ -339,12 +340,12 @@ static int actuate_vesc_can_device_init(const struct device *dev)
 		.vesc_id = DT_PROP(node_id, vesc_id),                                              \
 		.type = DT_ENUM_IDX(node_id, input_type),                                          \
 		.rx_filter = {},                                                                   \
-		.ctx = &data_##inst,                                                               \
-		.position = {},                                                                    \
+		.ctx = NULL,                                                                       \
+		.position = 0,                                                                     \
 	},
 
 #define VESC_CAN_ACTUATORS_DEFINE(inst)                                                            \
-	static actuator_vesc_can_t g_actuator_vesc_cans_##inst[] = {                               \
+	static struct actuator_vesc_can g_actuator_vesc_cans_##inst[] = {                          \
 		DT_FOREACH_CHILD(DT_DRV_INST(inst), VESC_CAN_ACTUATOR_DEFINE)};                    \
 	static K_THREAD_STACK_DEFINE(g_my_stack_area_##inst, MY_STACK_SIZE);                       \
 	static struct context data_##inst = {                                                      \

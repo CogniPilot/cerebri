@@ -115,11 +115,7 @@ def derive_rover():
     psi = ca.arctan2(vy, vx)
     V = ca.sqrt(vx**2 + vy**2)
     omega = (vx*ay - vy*ax)/V**2
-
-    # ackermann steering
     omega_in = ca.SX.sym('omega')
-    V_in = ca.SX.sym('V')
-    delta = ca.atan(L*omega_in/V_in)
 
     # differential drive
     h = ca.sqrt(L**2 + w**2)/2  # hypontenuse
@@ -131,9 +127,6 @@ def derive_rover():
         ca.Function(
             'bezier6_rover', [t, T, PX, PY], [x, y, psi, V, omega],
             ['t', 'T', 'PX', 'PY'], ['x', 'y', 'psi', 'V', 'omega']),
-        ca.Function(
-            'ackermann_steering', [L, omega_in, V_in], [delta],
-            ['L', 'omega', 'V'], ['delta']),
         ca.Function(
             'differential_steering', [L, omega_in, w], [Vw],
             ['L', 'omega', 'w'], ['Vw'])

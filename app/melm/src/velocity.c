@@ -82,27 +82,24 @@ static void melm_velocity_fini(struct context *ctx)
 // computes actuators from cmd_vel
 static void melm_velocity_update(struct context *ctx)
 {
-	double turn_angle = 0;
-	double omega_fwd = 0;
 	double V = ctx->cmd_vel.linear.x;
 	double omega = ctx->cmd_vel.angular.z;
-	double delta = 0;
+	double width = 0.5; // width
+	double Vw = 0; // differential wheel velocity
 
-	CASADI_FUNC_ARGS(ackermann_steering);
+	CASADI_FUNC_ARGS(differential_steering);
 	args[0] = &ctx->wheel_base;
 	args[1] = &omega;
-	args[2] = &V;
-	res[0] = &delta;
-	CASADI_FUNC_CALL(ackermann_steering);
+	args[2] = &width;
+	res[0] = &Vw;
+	CASADI_FUNC_CALL(differential_steering);
 
-	omega_fwd = V / ctx->wheel_radius;
-	if (fabs(V) > 0.01) {
-		turn_angle = delta;
-	}
+	double omega_left = (V - Vw) / ctx->wheel_radius;;
+	double omega_right = (V + Vw) / ctx->wheel_radius;;
 
 	bool armed = ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED;
 
-	melm_set_actuators(&ctx->actuators, turn_angle, omega_fwd, armed);
+	melm_set_actuators(&ctx->actuators, omega_left, omega_right, armed);
 
 	// publish
 	zros_pub_update(&ctx->pub_actuators);

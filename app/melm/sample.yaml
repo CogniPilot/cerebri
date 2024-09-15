@@ -1,0 +1,16 @@
+sample:
+  description: MELM
+  name: MELM
+common:
+  build_only: true
+tests:
+  melm.posix:
+    tags:
+      - melm
+    integration_platforms:
+      - native_sim
+  melm.mr_canhubk3/s32k344:
+    tags:
+      - melm
+    integration_platforms:
+      - mr_canhubk3

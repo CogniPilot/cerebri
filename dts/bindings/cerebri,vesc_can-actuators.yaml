@@ -1,0 +1,47 @@
+# Copyright CogniPilot Foundation 2024
+# SPDX-License-Identifier: Apache-2.0
+
+description: VESC_CAN actuators parent node
+
+  A generic binding for VESC_CAN actuators. Note that this binding
+  has no vendor prefix, as it does not target a specific device or vendor.
+
+compatible: "cerebri,vesc_can-actuators"
+
+properties:
+  device:
+    required: true
+    type: phandle
+    description: Reference to a VESC_CAN instance.
+
+  fd:
+    type: boolean
+    description: enable CAN FD mode
+
+child-binding:
+  description: VESC_CAN actuators node
+  properties:
+
+    vesc-id:
+      required: true
+      type: int
+      description: vesc can bus id
+
+    pole-pair:
+      required: true
+      type: int
+      description: number of pole pairs
+
+    input-index:
+      required: true
+      type: int
+      description: Index of actuator field specified by actuator input-type.
+
+    input-type:
+      required: true
+      type: string
+      description: What type of input singal to actuators
+      enum:
+        - "normalized"
+        - "position"
+        - "velocity"

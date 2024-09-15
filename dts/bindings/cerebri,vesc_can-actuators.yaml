@@ -8,26 +8,24 @@ description: VESC_CAN actuators parent node
 
 compatible: "cerebri,vesc_can-actuators"
 
+properties:
+  device:
+    required: true
+    type: phandle
+    description: Reference to a VESC_CAN instance.
+
+  fd:
+    type: boolean
+    description: enable CAN FD mode
+
 child-binding:
   description: VESC_CAN actuators node
   properties:
-    label:
-      type: string
-      description : user label
 
-    device:
-      required: true
-      type: phandle
-      description: Reference to a VESC_CAN instance.
-
-    fd:
-      type: boolean
-      description: enable fd
-
-    bus-id:
+    vesc-id:
       required: true
       type: int
-      description: can bus id
+      description: vesc can bus id
 
     pole-pair:
       required: true

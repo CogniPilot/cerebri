@@ -10,11 +10,17 @@
 / {
 	vesc_can_actuators: vesc_can_actuators {
 		compatible = "cerebri,vesc_can-actuators";
-		aux0 {
-			device = <&flexcan0>;
-			bus-id = <0>;
+		device = <&flexcan0>;
+		motor0 {
+			vesc-id = <60>;
 			input-type = "velocity";
 			input-index = <0>;
+			pole-pair = <15>;
+		};
+		motor1 {
+			vesc-id = <61>;
+			input-type = "velocity";
+			input-index = <1>;
 			pole-pair = <15>;
 		};
 	};
@@ -97,26 +103,38 @@
 
 &flexcan0 {
 	status = "okay";
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &flexcan1 {
 	status = "okay";
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &flexcan2 {
 	status = "okay";
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &flexcan3 {
 	status = "okay";
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &flexcan4 {
 	status = "okay";
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &flexcan5 {
 	status = "okay";
+	bitrate = <1000000>;
+	bitrate-data = <4000000>;
 };
 
 &lpspi2 {

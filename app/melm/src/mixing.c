@@ -5,7 +5,8 @@
 
 #include "mixing.h"
 
-void melm_set_actuators(synapse_pb_Actuators *msg, double omega_left, double omega_right, bool armed)
+void melm_set_actuators(synapse_pb_Actuators *msg, double omega_left, double omega_right,
+			bool armed)
 {
 	msg->has_stamp = true;
 	stamp_msg(&msg->stamp, k_uptime_ticks());

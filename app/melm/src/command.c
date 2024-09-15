@@ -35,7 +35,6 @@ struct context {
 	struct zros_sub sub_status, sub_cmd_vel, sub_input;
 	struct zros_pub pub_actuators;
 	const double wheel_radius;
-	const double max_turn_angle;
 	const double max_velocity;
 	struct k_sem running;
 	size_t stack_size;
@@ -53,7 +52,6 @@ static struct context g_ctx = {
 	.sub_cmd_vel = {},
 	.pub_actuators = {},
 	.wheel_radius = CONFIG_CEREBRI_MELM_WHEEL_RADIUS_MM / 1000.0,
-	.max_turn_angle = CONFIG_CEREBRI_MELM_MAX_TURN_ANGLE_MRAD / 1000.0,
 	.max_velocity = CONFIG_CEREBRI_MELM_MAX_VELOCITY_MM_S / 1000.0,
 	.running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
 	.stack_size = MY_STACK_SIZE,
@@ -151,15 +149,19 @@ static void melm_command_run(void *p0, void *p1, void *p2)
 
 		if (ctx->status.mode == synapse_pb_Status_Mode_MODE_ACTUATORS) {
 
-			double turn_angle = -ctx->max_turn_angle *
-					    (double)ctx->input.channel[CH_RIGHT_STICK_RIGHT];
 			double omega_fwd = ctx->max_velocity *
 					   (double)ctx->input.channel[CH_LEFT_STICK_UP] /
 					   ctx->wheel_radius;
+			double omega_diff = -ctx->max_velocity *
+					    (double)ctx->input.channel[CH_RIGHT_STICK_RIGHT] /
+					    ctx->wheel_radius;
+
+			double omega_left = omega_fwd - omega_diff;
+			double omega_right = omega_fwd + omega_diff;
 
 			bool armed = ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED;
 
-			melm_set_actuators(&ctx->actuators, turn_angle, omega_fwd, armed);
+			melm_set_actuators(&ctx->actuators, omega_left, omega_right, armed);
 			zros_pub_update(&ctx->pub_actuators);
 		}
 	}

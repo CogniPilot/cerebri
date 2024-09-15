@@ -54,19 +54,19 @@ config CEREBRI_MELM_CASADI
 
 config CEREBRI_MELM_BATTERY_MIN_MILLIVOLT
   int "min battery voltage in milli volts before shut off"
-  default 10000
+  default 16500
   help
     Minimum battery voltage in mV before auto-disarm
 
 config CEREBRI_MELM_BATTERY_LOW_MILLIVOLT
   int "low battery voltage in milli volts before warning"
-  default 10500
+  default 17250
   help
     Low battery voltage in mV before warning
 
 config CEREBRI_MELM_BATTERY_MAX_MILLIVOLT
   int "max battery voltage in milli volts"
-  default 12600
+  default 21900
   help
     Maximum battery voltage
 
@@ -88,27 +88,27 @@ config CEREBRI_MELM_GAIN_ALONG_TRACK
   help
     Steering = Along track error * GAIN / 1000
 
-config CEREBRI_MELM_MAX_TURN_ANGLE_MRAD
-  int "max turn angle mrad"
-  default 400
-  help
-    Max turn angle in milli-radians
-
 config CEREBRI_MELM_MAX_VELOCITY_MM_S
   int "max velocity, mm/s"
-  default 1000
+  default 2000
   help
     Max velocity in mm/s
 
 config CEREBRI_MELM_WHEEL_RADIUS_MM
   int "wheel radius, mm"
-  default 37
+  default 108
+  help
+    Wheel radius in mm
+
+config CEREBRI_MELM_WHEEL_SEPARATION_MM
+  int "wheel separation, mm"
+  default 408
   help
     Wheel radius in mm
 
 config CEREBRI_MELM_WHEEL_BASE_MM
   int "wheel base, mm"
-  default 226
+  default 280
   help
     Wheel radius in mm
 

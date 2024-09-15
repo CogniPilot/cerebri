@@ -37,6 +37,7 @@ struct context {
 	struct zros_pub pub_actuators;
 	const double wheel_radius;
 	const double wheel_base;
+	const double wheel_separation;
 	struct k_sem running;
 	size_t stack_size;
 	k_thread_stack_t *stack_area;
@@ -53,6 +54,7 @@ static struct context g_ctx = {
 	.pub_actuators = {},
 	.wheel_radius = CONFIG_CEREBRI_MELM_WHEEL_RADIUS_MM / 1000.0,
 	.wheel_base = CONFIG_CEREBRI_MELM_WHEEL_BASE_MM / 1000.0,
+	.wheel_separation = CONFIG_CEREBRI_MELM_WHEEL_SEPARATION_MM / 1000.0,
 	.running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
 	.stack_size = MY_STACK_SIZE,
 	.stack_area = g_my_stack_area,
@@ -84,18 +86,19 @@ static void melm_velocity_update(struct context *ctx)
 {
 	double V = ctx->cmd_vel.linear.x;
 	double omega = ctx->cmd_vel.angular.z;
-	double width = 0.5; // width
 	double Vw = 0; // differential wheel velocity
 
 	CASADI_FUNC_ARGS(differential_steering);
 	args[0] = &ctx->wheel_base;
 	args[1] = &omega;
-	args[2] = &width;
+	args[2] = &ctx->wheel_separation;
 	res[0] = &Vw;
 	CASADI_FUNC_CALL(differential_steering);
 
-	double omega_left = (V - Vw) / ctx->wheel_radius;;
-	double omega_right = (V + Vw) / ctx->wheel_radius;;
+	double omega_left = (V - Vw) / ctx->wheel_radius;
+	;
+	double omega_right = (V + Vw) / ctx->wheel_radius;
+	;
 
 	bool armed = ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED;
 

@@ -8,7 +8,8 @@
 
 #include <synapse_topic_list.h>
 
-void melm_set_actuators(synapse_pb_Actuators *msg, double omega_left, double omega_right, bool armed);
+void melm_set_actuators(synapse_pb_Actuators *msg, double omega_left, double omega_right,
+			bool armed);
 
 #endif // CEREBRI_MELM_MIXING_H
 /* vi: ts=4 sw=4 et */

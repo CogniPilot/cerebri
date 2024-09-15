@@ -11,6 +11,8 @@
 	vesc_can_actuators: vesc_can_actuators {
 		compatible = "cerebri,vesc_can-actuators";
 		device = <&flexcan0>;
+		pub-wheel-odometry;
+		status-rate = <50>;
 		motor0 {
 			vesc-id = <60>;
 			input-type = "velocity";

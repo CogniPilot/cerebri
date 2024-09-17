@@ -59,7 +59,7 @@ struct actuator_vesc_can {
 	vesc_can_type_t type;
 	struct can_filter rx_filter;
 	struct context *ctx;
-	double position;
+	double rotation;
 };
 
 struct context {
@@ -79,16 +79,32 @@ struct context {
 	bool ready;
 	bool fd;
 	const char *label;
+	uint16_t status_rate;
+	bool enable_pub_wheel_odom;
 };
 
 static int actuate_vesc_can_stop(struct context *ctx)
-{
+{	
+	int err = 0;
+	struct can_bus_err_cnt err_cnt;
+	enum can_state state;
 	ctx->ready = false;
-	int err = can_stop(ctx->device);
+	err = can_get_state(ctx->device, &state, &err_cnt);
 	if (err != 0) {
-		LOG_ERR("%s - failed to stop (%d)\n", ctx->label, err);
+		LOG_ERR("%s - failed to get CAN controller state (%d)\n", ctx->label, err);
+		ctx->ready = false;
 		return err;
 	}
+
+	// make sure stopped
+	if (state != CAN_STATE_STOPPED) {
+		err = can_stop(ctx->device);
+		if (err != 0) {
+			LOG_ERR("%s - failed to stop (%d)\n", ctx->label, err);
+			return err;
+		}
+	}
+
 	return err;
 }
 
@@ -101,9 +117,6 @@ static int actuate_vesc_can_init(struct context *ctx)
 	zros_pub_init(&ctx->pub_wheel_odometry, &ctx->node, &topic_wheel_odometry,
 		      &ctx->wheel_odometry);
 
-	enum can_state state;
-	struct can_bus_err_cnt err_cnt;
-
 	if (ctx->ready) {
 		LOG_ERR("%s - already initialized", ctx->label);
 		return 0;
@@ -114,19 +127,12 @@ static int actuate_vesc_can_init(struct context *ctx)
 		LOG_ERR("%s - device not ready\n", ctx->label);
 		ctx->ready = false;
 		return -1;
-	} // check state
-	err = can_get_state(ctx->device, &state, &err_cnt);
-	if (err != 0) {
-		LOG_ERR("%s - failed to get CAN controller state (%d)\n", ctx->label, err);
-		ctx->ready = false;
-		return err;
 	}
+
+	actuate_vesc_can_stop(ctx);
 
 	// set device mode
 	if (ctx->fd) {
-		if (state != CAN_STATE_STOPPED) {
-			actuate_vesc_can_stop(ctx);
-		}
 		err = can_set_mode(ctx->device, CAN_MODE_FD);
 		if (err != 0) {
 			LOG_ERR("%s - set mode FD failed (%d)\n", ctx->label, err);
@@ -135,12 +141,10 @@ static int actuate_vesc_can_init(struct context *ctx)
 	}
 
 	// start device
-	if ((state == CAN_STATE_STOPPED) || (state == CAN_STATE_BUS_OFF)) {
-		err = can_start(ctx->device);
-		if (err != 0) {
-			LOG_ERR("%s - start failed\n", ctx->label);
-			return err;
-		}
+	err = can_start(ctx->device);
+	if (err != 0) {
+		LOG_ERR("%s - start failed\n", ctx->label);
+		return err;
 	}
 
 	// add receive callback
@@ -152,8 +156,8 @@ static int actuate_vesc_can_init(struct context *ctx)
 		act->rx_filter.mask = CAN_EXT_ID_MASK;
 		err = can_add_rx_filter(ctx->device, actuate_vesc_can_rx_callback, act,
 					&act->rx_filter);
-		if (err != 0) {
-			LOG_ERR("%s - callback setup failed\n", ctx->label);
+		if (err < 0) {
+			LOG_ERR("%s - callback setup failed (%d)\n", ctx->label, err);
 			return err;
 		}
 	}
@@ -181,20 +185,20 @@ static void actuate_vesc_can_rx_callback(const struct device *dev, struct can_fr
 					 void *user_data)
 {
 	struct actuator_vesc_can *act = (struct actuator_vesc_can *)user_data;
-	const double dt = 1.0 / 50;
-	int64_t data = *(frame->data);
-	act->position += dt * data / act->pole_pair;
 	struct context *ctx = act->ctx;
-	if (act->id == ctx->actuator_vesc_cans[ctx->num_actuators].id) {
-		double mean_position = 0;
+	int64_t data = (frame->data[0] << 24) + (frame->data[1] << 16) + (frame->data[2] << 8) + frame->data[3];
+	act->rotation +=  2 * M_PI * data / (act->pole_pair * ctx->status_rate * 60);
+	//LOG_INF("Data: %ld", data);
+	//LOG_INF("Angular: %f", act->rotation);
+	if (act->id == ctx->actuator_vesc_cans[0].id) {
+		double mean_rotation = 0;
 		for (int i = 0; i < ctx->num_actuators; i++) {
-			mean_position += ctx->actuator_vesc_cans[i].position;
+			mean_rotation += ctx->actuator_vesc_cans[i].rotation;
 		}
-		mean_position /= ctx->num_actuators;
+		mean_rotation /= ctx->num_actuators;
 		ctx->wheel_odometry.has_stamp = true;
 		stamp_msg(&ctx->wheel_odometry.stamp, k_uptime_ticks());
-		ctx->wheel_odometry.rotation = mean_position;
-		zros_pub_update(&ctx->pub_wheel_odometry);
+		ctx->wheel_odometry.rotation = mean_rotation;
 	}
 }
 
@@ -273,6 +277,8 @@ static void actuate_vesc_can_run(void *p0, void *p1, void *p2)
 			zros_sub_update(&ctx->sub_actuators);
 		}
 
+		zros_pub_update(&ctx->pub_wheel_odometry);
+
 		// update vesc_can
 		actuate_vesc_can_update(ctx);
 	}
@@ -341,7 +347,7 @@ static int actuate_vesc_can_device_init(const struct device *dev)
 		.type = DT_ENUM_IDX(node_id, input_type),                                          \
 		.rx_filter = {},                                                                   \
 		.ctx = NULL,                                                                       \
-		.position = 0,                                                                     \
+		.rotation = 0,                                                                     \
 	},
 
 #define VESC_CAN_ACTUATORS_DEFINE(inst)                                                            \
@@ -363,6 +369,8 @@ static int actuate_vesc_can_device_init(const struct device *dev)
 		.device = DEVICE_DT_GET(DT_INST_PROP(inst, device)),                               \
 		.ready = false,                                                                    \
 		.fd = DT_INST_PROP(inst, fd),                                                      \
+		.status_rate = DT_INST_PROP(inst, status_rate),                                    \
+		.enable_pub_wheel_odom = DT_INST_PROP(inst, pub_wheel_odometry),                   \
 		.label = DT_NODE_FULL_NAME(DT_DRV_INST(inst)),                                     \
 	};                                                                                         \
 	VESC_CAN_ACTUATOR_SHELL(inst);                                                             \

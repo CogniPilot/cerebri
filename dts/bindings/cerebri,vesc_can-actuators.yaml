@@ -18,6 +18,15 @@ properties:
     type: boolean
     description: enable CAN FD mode
 
+  pub-wheel-odometry:
+    type: boolean
+    description: Publishes wheel odometry on the average of all wheels
+
+  status-rate:
+    required: true
+    type: int
+    description: vesc can status publication rate in Hz. If status-rate <0> disables.
+
 child-binding:
   description: VESC_CAN actuators node
   properties:

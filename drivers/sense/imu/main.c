@@ -249,12 +249,15 @@ void imu_publish(context_t *ctx)
 {
 	// update message
 	stamp_msg(&ctx->imu.stamp, k_uptime_ticks());
-	ctx->imu.angular_velocity.x = ctx->gyro_raw[0];
-	ctx->imu.angular_velocity.y = ctx->gyro_raw[1];
-	ctx->imu.angular_velocity.z = ctx->gyro_raw[2];
-	ctx->imu.linear_acceleration.x = ctx->accel_raw[0] / ctx->accel_scale;
-	ctx->imu.linear_acceleration.y = ctx->accel_raw[1] / ctx->accel_scale;
-	ctx->imu.linear_acceleration.z = ctx->accel_raw[2] / ctx->accel_scale;
+	ctx->imu.angular_velocity.x = ctx->gyro_raw[0] - ctx->gyro_bias[0];
+	ctx->imu.angular_velocity.y = ctx->gyro_raw[1] - ctx->gyro_bias[1];
+	ctx->imu.angular_velocity.z = ctx->gyro_raw[2] - ctx->gyro_bias[2];
+	ctx->imu.linear_acceleration.x =
+		(ctx->accel_raw[0] - ctx->accel_bias[0]) / ctx->accel_scale;
+	ctx->imu.linear_acceleration.y =
+		(ctx->accel_raw[1] - ctx->accel_bias[1]) / ctx->accel_scale;
+	ctx->imu.linear_acceleration.z =
+		(ctx->accel_raw[2] - ctx->accel_bias[2]) / ctx->accel_scale;
 
 	// publish message
 	zros_pub_update(&ctx->pub_imu);

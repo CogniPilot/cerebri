@@ -90,13 +90,13 @@ config CEREBRI_MELM_GAIN_ALONG_TRACK
 
 config CEREBRI_MELM_MAX_VELOCITY_MM_S
   int "max velocity, mm/s"
-  default 2000
+  default 200
   help
     Max velocity in mm/s
 
 config CEREBRI_MELM_WHEEL_RADIUS_MM
   int "wheel radius, mm"
-  default 108
+  default 104
   help
     Wheel radius in mm
 

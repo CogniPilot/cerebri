@@ -21,8 +21,11 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          wget -O- https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+          add-apt-repository --no-update --yes "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"
           apt update
-          apt install curl python3-poetry clang-format-18 -y
+          apt install pipx curl clang-format-18 -y
+          pipx install poetry==1.8.3
           poetry config --list
 
       - name: Checkout

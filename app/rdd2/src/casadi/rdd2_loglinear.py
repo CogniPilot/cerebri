@@ -7,8 +7,14 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import casadi as ca
 import cyecca.lie as lie
-from cyecca.lie.group_so3 import so3, SO3Quat, SO3EulerB321
-from cyecca.lie.group_se23 import SE23Quat, se23, SE23LieGroupElement, SE23LieAlgebraElement
+from cyecca.lie.group_so3 import so3, SO3Quat, SO3EulerB321, SO3Dcm
+from cyecca.models.bezier import derive_dcm_to_quat
+from cyecca.lie.group_se23 import (
+    SE23Quat,
+    se23,
+    SE23LieGroupElement,
+    SE23LieAlgebraElement,
+)
 from cyecca.symbolic import SERIES
 
 print('python: ', sys.executable)
@@ -65,7 +71,6 @@ def derive_se23_error():
     # actual attitude, expressed as quaternion
     q_wb = ca.SX.sym('q_wb', 4)
     R_wb = SO3Quat.elem(q_wb).to_Matrix()
-    p_b = R_wb.T @ p_w
     v_w = R_wb @ v_b
     X = SE23Quat.elem(ca.vertcat(p_w, v_w, q_wb))
     
@@ -100,12 +105,12 @@ def derive_so3_attitude_control():
 
     # INPUT CONSTANTS
     # -------------------------------
-    kp = ca.SX.sym('kp', 3)
+    kp = ca.SX.sym("kp", 3)
 
     # INPUT VARIABLES
     # -------------------------------
-    q = ca.SX.sym('q', 4) # actual quat
-    q_r = ca.SX.sym('q_r', 4) # quat setpoint
+    q = ca.SX.sym("q", 4)  # actual quat
+    q_r = ca.SX.sym("q_r", 4)  # quat setpoint
 
     # CALC
     # -------------------------------
@@ -115,20 +120,15 @@ def derive_so3_attitude_control():
     # Lie algebra
     e = (X.inverse() * X_r).log()  # angular velocity to get to desired att in 1 sec
 
-    omega = so3.elem(e.param).left_jacobian() @ ca.diag(kp) @ e.param # elementwise
+    omega = so3.elem(e.param).left_jacobian() @ ca.diag(kp) @ e.param  # elementwise
 
     # FUNCTION
     # -------------------------------
     f_attitude_control = ca.Function(
-        "so3_attitude_control",
-        [kp, q, q_r],
-        [omega],
-        ["kp", "q", "q_r"],
-        ["omega"])
+        "so3_attitude_control", [kp, q, q_r], [omega], ["kp", "q", "q_r"], ["omega"]
+    )
 
-    return {
-        "so3_attitude_control": f_attitude_control
-    }
+    return {"so3_attitude_control": f_attitude_control}
 
 
 def derive_outerloop_control():
@@ -150,7 +150,6 @@ def derive_outerloop_control():
     #outputs: thrust force, angular errors
     zeta = ca.SX.sym('zeta', 9)
     at_w = ca.SX.sym('at_w', 3)
-    qc_wb = SO3Quat.elem(ca.SX.sym('qc_wb', 4)) # camera orientation
     q_wb = SO3Quat.elem(ca.SX.sym('q_wb', 4))
     z_i = ca.SX.sym('z_i') # z velocity error integral
     dt = ca.SX.sym('dt') # time step
@@ -158,11 +157,19 @@ def derive_outerloop_control():
     # CALC
     # -------------------------------
     # get control input
-    K_se23 = ca.diag(ca.vertcat(kp_pos, kp_pos, kp_pos, kp_vel, kp_vel, kp_vel, kp))
+    K_se23 = ca.DM([[-2.77504, 0, 0, 0.42856, 0, 0, 0, 0.339818, 0], 
+                    [0, -2.77504, 0, 0, 0.42856, 0, -0.339818, 0, 0], 
+                    [0, 0, -2.78649, 0, 0, 0.485281, 0, 0, 0], 
+                    [0.42856, 0, 0, -1.95071, 0, 0, 0, -2.2064, 0], 
+                    [0, 0.42856, 0, 0, -1.95071, 0, 2.2064, 0, 0], 
+                    [0, 0, 0.485281, 0, 0, -2.95551, 0, 0, 0], 
+                    [0, -0.339818, 0, 0, 2.2064, 0, -6.8016, 0, 0], 
+                    [0.339818, 0, 0, -2.2064, 0, 0, 0, -6.8016, 0], 
+                    [0, 0, 0, 0, 0, 0, 0, 0, -2.82843]])
     u_zeta = se23.elem(zeta).left_jacobian()@K_se23@zeta
     
     # attitude control
-    u_omega = u_zeta[6:]
+    u_omega = -u_zeta[6:]
     
     # position control
     u_v = u_zeta[0:3]
@@ -178,7 +185,7 @@ def derive_outerloop_control():
 
     # normalized thrust vector
     p_norm_max = 0.3*m*g
-    p_term = u_v + u_a + m * at_w
+    p_term = q_wb @ u_v + q_wb @ u_a + m * at_w
     p_norm = ca.norm_2(p_term)
     p_term = ca.if_else(p_norm > p_norm_max, p_norm_max*p_term/p_norm, p_term)
 
@@ -192,17 +199,17 @@ def derive_outerloop_control():
 
     # thrust
     nT = ca.norm_2(T)
-    
+
     # body up is aligned with thrust
-    zB = ca.if_else(nT > 1e-3, T/nT, zW)
+    zB = ca.if_else(nT > 1e-3, T / nT, zW)
 
     # point y using desired camera direction
-    ec = SO3EulerB321.from_Quat(qc_wb)
-    yt = ec.param[0]
-    xC = ca.vertcat(ca.cos(yt), ca.sin(yt), 0)
+    # ec = SO3EulerB321.from_Quat(qc_wb)
+    # yt = ec.param[0]
+    xC = ca.vertcat(1, 0, 0)
     yB = ca.cross(zB, xC)
     nyB = ca.norm_2(yB)
-    yB = ca.if_else(nyB > 1e-3, yB/nyB, xW)
+    yB = ca.if_else(nyB > 1e-3, yB / nyB, xW)
 
     # point x using cross product of unit vectors
     xB = ca.cross(yB, zB)
@@ -216,27 +223,25 @@ def derive_outerloop_control():
     # deisred euler angles
     # note using euler angles as set point is not problematic
     # using Lie group approach for control
-    qr_wb = SO3Quat.from_Matrix(Rd_wb)
+    q_sp = SO3Quat.from_Matrix(Rd_wb)
 
     # FUNCTION
     # -------------------------------
     f_get_u = ca.Function(
-        "se23_position_control",
-        [thrust_trim, kp, zeta, at_w, qc_wb.param, q_wb.param, z_i, dt], [nT, qr_wb.param, z_i_2], 
-
-        ['thrust_trim', 'kp', 'zeta', 'at_w', 'qc_wb', 'q_wb', 'z_i', 'dt'], 
-        ['nT', 'qr_wb', 'z_i_2'])
+        "se23_control",
+        [thrust_trim, kp, zeta, at_w, q_wb.param, z_i, dt],
+        [nT, z_i_2, u_omega, q_sp.param],
+        ["thrust_trim", "kp", "zeta", "at_w", "q_wb", "z_i", "dt"],
+        ["nT", "z_i_2", "u_omega", "q_sp"],
+    )
 
     f_se23_attitude_control = ca.Function(
-        "se23_attitude_control",
-        [kp, zeta],
-        [u_omega],
-        ['kp', "zeta"],
-        ["omega"])
-    
+        "se23_attitude_control", [kp, zeta], [u_omega], ["kp", "zeta"], ["omega"]
+    )
+
     return {
-        "se23_position_control" : f_get_u,
-        "se23_attitude_control" : f_se23_attitude_control
+        "se23_control": f_get_u,
+        "se23_attitude_control": f_se23_attitude_control,
     }
 
 def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
@@ -268,7 +273,7 @@ def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('dest_dir')
+    parser.add_argument("dest_dir")
     args = parser.parse_args()
 
     print("generating casadi equations in {:s}".format(args.dest_dir))
@@ -278,7 +283,7 @@ if __name__ == "__main__":
     eqs.update(derive_se23_error())
 
     for name, eq in eqs.items():
-        print('eq: ', name)
+        print("eq: ", name)
 
     generate_code(eqs, filename="rdd2_loglinear.c", dest_dir=args.dest_dir)
     print("complete")

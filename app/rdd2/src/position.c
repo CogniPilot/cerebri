@@ -18,6 +18,7 @@
 #include <zephyr/shell/shell.h>
 
 #if defined(CONFIG_CEREBRI_RDD2_LOG_LINEAR_POSITION)
+#include "app/rdd2/casadi/rdd2.h"
 #include "app/rdd2/casadi/rdd2_loglinear.h"
 #else
 #include "app/rdd2/casadi/rdd2.h"
@@ -202,34 +203,50 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 
 			double zeta[9];
 			{
+				// position_control:(thrust_trim,pt_w[3],vt_w[3],at_w[3],qc_wb[4],
+				// p_w[3],v_b[3],q_wb[4],z_i,dt)->(nT,qr_wb[4],z_i_2)
+				CASADI_FUNC_ARGS(position_control)
+				args[0] = &thrust_trim;
+				args[1] = p_rw;
+				args[2] = v_rw;
+				args[3] = at_w;
+				args[4] = qc_wb;
+				args[5] = p_w;
+				args[6] = v_b;
+				args[7] = q_wb;
+				args[8] = &z_i;
+				args[9] = &dt;
+				res[1] = qr_wb;
+				CASADI_FUNC_CALL(position_control)
+				// LOG_INF("z_i: %10.4f", z_i);
+			}
+			{
 				/* se23_error:(p_w[3],v_b[3],q_wb[4],p_rw[3],v_rw[3],q_r[4])->(zeta[9])*/
-				CASADI_FUNC_ARGS(se23_error);
-				args[0] = p_w;
-				args[1] = v_b;
-				args[2] = q_wb;
-				args[3] = p_rw;
-				args[4] = v_rw;
-				args[5] = qr_wb;
+				CASADI_FUNC_ARGS(se23_error)
+				args[0] = p_rw;
+				args[1] = v_rw;
+				args[2] = qr_wb;
+				args[3] = p_w;
+				args[4] = v_b;
+				args[5] = q_wb;
 				res[0] = zeta;
-				CASADI_FUNC_CALL(se23_error);
+				CASADI_FUNC_CALL(se23_error)
 			}
 
 			// se23_position_control:(thrust_trim,kp[3],zeta[9],at_w[3],qc_wb[4],q_wb[4],z_i,dt)
 			// ->(nT,qr_wb[4],z_i_2)
 			{
-				CASADI_FUNC_ARGS(se23_position_control)
+				CASADI_FUNC_ARGS(se23_control)
 				args[0] = &thrust_trim;
 				args[1] = kp;
 				args[2] = zeta;
 				args[3] = at_w;
-				args[4] = qc_wb;
-				args[5] = q_wb;
-				args[6] = &z_i;
-				args[7] = &dt;
+				args[4] = q_wb;
+				args[5] = &z_i;
+				args[6] = &dt;
 				res[0] = &nT;
-				res[1] = qr_wb;
-				res[2] = &z_i;
-				CASADI_FUNC_CALL(se23_position_control)
+				res[1] = &z_i;
+				CASADI_FUNC_CALL(se23_control)
 			}
 #else
 			{

@@ -29,6 +29,8 @@ int three_position_switch(float val);
 struct input_request {
 	bool arm;
 	bool disarm;
+	bool input_source_radio_control;
+	bool input_source_ethernet;
 	bool topic_source_input;
 	bool topic_source_ethernet;
 	bool mode_actuators;

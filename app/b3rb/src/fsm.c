@@ -372,6 +372,27 @@ static void fsm_update(synapse_pb_Status *status, const struct status_input *inp
 		   // guards
 		   1, input->topic_status_loss, "no topic data");
 
+	// input source transitions
+	transition(&status->input_source,                                    // state
+		   input->req.input_source_radio_control,                    // request
+		   "request input source radio control",                     // label
+		   STATE_ANY,                                                // pre
+		   synapse_pb_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL, // post
+		   status->status_message, sizeof(status->status_message),   // status
+		   &status->request_seq, &status->request_rejected,          // request
+		   // guards
+		   1, input->input_status_loss, "no RC input data");
+
+	transition(&status->input_source,                                  // state
+		   input->req.input_source_ethernet,                       // request
+		   "request input source ethernet",                        // label
+		   STATE_ANY,                                              // pre
+		   synapse_pb_Status_InputSource_INPUT_SOURCE_ETHERNET,    // post
+		   status->status_message, sizeof(status->status_message), // status
+		   &status->request_seq, &status->request_rejected,        // request
+		   // guards
+		   1, input->input_status_loss, "no enet input data");
+
 	// set timestamp
 	stamp_msg(&status->stamp, k_uptime_ticks());
 }

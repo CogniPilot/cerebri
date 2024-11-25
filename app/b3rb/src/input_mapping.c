@@ -51,4 +51,16 @@ void input_request_compute(struct input_request *req, const synapse_pb_Input *in
 		LOG_INF("request lights off");
 		req->lights_on = false;
 	}
+	if (input->channel[CH_VRB_CCW] > 0.5f && !req->input_source_radio_control) {
+		req->input_source_radio_control = true;
+		req->input_source_ethernet = false;
+		LOG_INF("request rc input");
+	} else if (input->channel[CH_VRB_CCW] < -0.5f && !req->input_source_ethernet) {
+		LOG_INF("request ethernet input");
+		req->input_source_ethernet = true;
+		req->input_source_radio_control = false;
+	} else {
+		req->input_source_ethernet = false;
+		req->input_source_radio_control = false;
+	}
 }

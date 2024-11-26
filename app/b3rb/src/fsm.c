@@ -95,6 +95,7 @@ struct status_input {
 	bool input_source_ethernet;
 	bool input_source_radio_control;
 	bool topic_timeout;
+	bool cmd_vel_timeout;
 	bool topic_status_loss;
 
 	// derived booleans
@@ -126,6 +127,8 @@ struct context {
 	struct k_thread thread_data;
 	int64_t now_ticks;
 	int64_t input_last_ticks;
+	int64_t cmd_vel_last_ticks;
+	const int64_t cmd_vel_loss_ticks;
 	const int64_t input_loss_ticks;
 	int64_t topic_last_ticks;
 	const int64_t topic_loss_ticks;
@@ -167,6 +170,8 @@ static struct context g_ctx = {
 	.now_ticks = 0,
 	.input_last_ticks = 0,
 	.topic_last_ticks = 0,
+	.cmd_vel_last_ticks = 0,
+	.cmd_vel_loss_ticks = 1.0 * CONFIG_SYS_CLOCK_TICKS_PER_SEC,
 	.input_loss_ticks = 1.0 * CONFIG_SYS_CLOCK_TICKS_PER_SEC,
 	.topic_loss_ticks = 1.0 * CONFIG_SYS_CLOCK_TICKS_PER_SEC,
 };
@@ -244,6 +249,8 @@ static void fsm_compute_input(struct status_input *input, struct context *ctx)
 	input->topic_source_input =
 		ctx->status.topic_source == synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT;
 	input->input_timeout = (ctx->now_ticks - ctx->input_last_ticks) > ctx->input_loss_ticks;
+	input->cmd_vel_timeout =
+		(ctx->now_ticks - ctx->cmd_vel_last_ticks) > ctx->cmd_vel_loss_ticks;
 	input->input_status_loss =
 		ctx->status.input_status == synapse_pb_Status_LinkStatus_STATUS_LOSS;
 	input->input_source_ethernet =
@@ -328,6 +335,15 @@ static void fsm_update(synapse_pb_Status *status, const struct status_input *inp
 		   "request mode velocity",                                // label
 		   STATE_ANY,                                              // pre
 		   synapse_pb_Status_Mode_MODE_VELOCITY,                   // post
+		   status->status_message, sizeof(status->status_message), // status
+		   &status->request_seq, &status->request_rejected,        // request
+		   1, input->cmd_vel_timeout, "cmd_vel not received");     // guards
+
+	transition(&status->mode,                                          // state
+		   input->cmd_vel_timeout,                                 // request
+		   "actuator fallback, cmd_vel not received",              // label
+		   synapse_pb_Status_Mode_MODE_VELOCITY,                   // pre
+		   synapse_pb_Status_Mode_MODE_ACTUATORS,                  // post
 		   status->status_message, sizeof(status->status_message), // status
 		   &status->request_seq, &status->request_rejected,        // request
 		   0);                                                     // guards
@@ -480,6 +496,7 @@ static void b3rb_fsm_run(void *p0, void *p1, void *p2)
 
 		if (in->update_cmd_vel_ethernet) {
 			zros_sub_update(&ctx->sub_cmd_vel_ethernet);
+			ctx->cmd_vel_last_ticks = ctx->now_ticks;
 		}
 
 		// update input from correct source

@@ -370,7 +370,7 @@ static void fsm_update(synapse_pb_Status *status, const struct status_input *inp
 		   status->status_message, sizeof(status->status_message), // status
 		   &status->request_seq, &status->request_rejected,        // request
 		   // guards
-		   1, input->topic_status_loss, "no topic data");
+		   1, input->input_status_loss, "no topic data");
 
 	// input source transitions
 	transition(&status->input_source,                                    // state

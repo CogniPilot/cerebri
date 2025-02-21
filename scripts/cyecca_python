@@ -7,11 +7,15 @@ CYECCA_PATH=$SCRIPT_DIR/../../modules/lib/cyecca
 # disable virtual env if running (west venv)
 PYTHON_PATH=`dirname -- "$(which python)"`
 if [ -f $PYTHON_PATH/activate ]; then
-	source $PYTHON_PATH/activate
-	deactivate
+    source $PYTHON_PATH/activate
+    deactivate
 fi
 
+unset PYTHONPATH
 source ${CYECCA_PATH}/.venv/bin/activate
+echo python path: $PYTHONPATH
 echo python3 `which python3`
 
 python3 $@
+
+# vi: ts=4 sw=4 et

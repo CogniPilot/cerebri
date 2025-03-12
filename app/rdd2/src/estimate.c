@@ -43,7 +43,7 @@ struct context {
 	synapse_pb_Odometry odometry_ethernet;
 	synapse_pb_Imu imu;
 	synapse_pb_Odometry odometry;
-	struct zros_sub sub_odometry_ethernet, sub_imu;
+	struct zros_sub sub_odometry_ethernet, sub_imu, sub_mag;
 	struct zros_pub pub_odometry;
 	double x[3];
 	struct k_sem running;
@@ -51,6 +51,7 @@ struct context {
 	k_thread_stack_t *stack_area;
 	struct k_thread thread_data;
 	struct perf_counter perf;
+	synapse_pb_MagneticField mag;
 };
 
 // private initialization
@@ -73,6 +74,7 @@ static struct context g_ctx = {
 		},
 	.sub_odometry_ethernet = {},
 	.sub_imu = {},
+	.sub_mag = {},
 	.pub_odometry = {},
 	.x = {},
 	.running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
@@ -80,12 +82,14 @@ static struct context g_ctx = {
 	.stack_area = g_my_stack_area,
 	.thread_data = {},
 	.perf = {},
+	.mag = {},
 };
 
 static void rdd2_estimate_init(struct context *ctx)
 {
 	zros_node_init(&ctx->node, "rdd2_estimate");
 	zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->imu, 300);
+	zros_sub_init(&ctx->sub_mag, &ctx->node, &topic_magnetic_field, &ctx->mag, 300);
 	zros_sub_init(&ctx->sub_odometry_ethernet, &ctx->node, &topic_odometry_ethernet,
 		      &ctx->odometry_ethernet, 10);
 	zros_pub_init(&ctx->pub_odometry, &ctx->node, &topic_odometry_estimator, &ctx->odometry);
@@ -97,6 +101,7 @@ static void rdd2_estimate_init(struct context *ctx)
 static void rdd2_estimate_fini(struct context *ctx)
 {
 	zros_sub_fini(&ctx->sub_imu);
+	zros_sub_fini(&ctx->sub_mag);
 	zros_sub_fini(&ctx->sub_odometry_ethernet);
 	zros_pub_fini(&ctx->pub_odometry);
 	zros_node_fini(&ctx->node);
@@ -135,10 +140,18 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 
 	// estimator states
 	double x[10] = {0, 0, 0, 0, 0, 0, 1, 0, 0, 0};
+	double q[4] = {1,0,0,0};
+
+	// estimator covariance
+	double P[36] = {1e-2,0,0,0,0,0,
+					0,1e-2,0,0,0,0,
+					0,0,1e-2,0,0,0,
+				    0,0,0,1e-2,0,0,
+					0,0,0,0,1e-2,0,
+					0,0,0,0,0,1e-2};
 
 	// poll on imu
 	events[0] = *zros_sub_get_event(&ctx->sub_imu);
-
 	// int j = 0;
 
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
@@ -231,6 +244,62 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			res[0] = x;
 			CASADI_FUNC_CALL(strapdown_ins_propagate)
 		}
+
+		{
+		   	CASADI_FUNC_ARGS(position_correction)
+
+		  	double gps[3] = {ctx->odometry_ethernet.pose.position.x,
+		  		ctx->odometry_ethernet.pose.position.y,
+		  		ctx->odometry_ethernet.pose.position.z};
+			
+		   	args[0] = x;
+		   	args[1] = gps;
+		   	args[2] = &dt;
+		   	args[3] = P;
+
+		   	res[0] = x;
+		   	res[1] = P;
+
+		   	CASADI_FUNC_CALL(position_correction)
+		}
+
+		/*
+		f_att_estimator = ca.Function(
+        "attitude_estimator",
+        [q0, mag, mag_decl, gyro, accel, dt],
+        [q1.param],
+        ["q", "mag", "mag_decl", "gyro", "accel", "dt"],
+        ["q1"],
+    	)*/
+		{
+		 	CASADI_FUNC_ARGS(attitude_estimator)
+			
+		 	double a_b[3] = {ctx->imu.linear_acceleration.x,
+		 		ctx->imu.linear_acceleration.y,
+		 		ctx->imu.linear_acceleration.z};
+		 	double omega_b[3] = {ctx->imu.angular_velocity.x,
+		 		ctx->imu.angular_velocity.y,
+		 		ctx->imu.angular_velocity.z};
+
+		 	double mag[3] = {ctx->mag.magnetic_field.x, ctx->mag.magnetic_field.y, ctx->mag.magnetic_field.z};
+		 	const double decl_WL = -6.66;
+		 	args[0] = q;
+		 	args[1] = mag;
+		 	args[2] = &decl_WL;
+		 	args[3] = omega_b;
+		 	args[4] = a_b;
+		 	args[5] = &dt;
+		 	res[0] = q;
+
+		 	CASADI_FUNC_CALL(attitude_estimator)
+
+		 	x[6] = q[0];
+		 	x[7] = q[1];
+		 	x[8] = q[2];
+		 	x[9] = q[3];
+		}
+
+
 
 		bool data_ok = true;
 		for (int i = 0; i < 10; i++) {

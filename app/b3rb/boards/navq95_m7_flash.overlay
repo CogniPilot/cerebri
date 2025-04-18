@@ -6,6 +6,7 @@
 #include <zephyr/dt-bindings/led/led.h>
 #include <zephyr/dt-bindings/sensor/ina230.h>
 #include <zephyr/dt-bindings/sensor/icm42688.h>
+#include <zephyr/dt-bindings/memory-attr/memory-attr-arm.h>
 
 / {
 	pwm_actuators: pwm_actuators {
@@ -49,6 +50,14 @@
 
 	chosen {
 		zephyr,canbus = &flexcan5;
+	};
+
+	ddr: ddr@90000000 {
+		compatible = "zephyr,memory-region", "mmio-sram";
+		device_type = "memory";
+		reg = <0x90000000 DT_SIZE_M(4)>;
+		zephyr,memory-region = "DDR";
+		zephyr,memory-attr = <( DT_MEM_ARM(ATTR_MPU_RAM) )>;
 	};
 
 	aliases {

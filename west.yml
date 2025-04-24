@@ -22,7 +22,7 @@ manifest:
       remote: nxphovergames
       repo-path: Zephyr-Private
       west-commands: scripts/west-commands.yml
-      revision: ea4e08eeae0ac4bcfdb3f3441ff9d6a1b7dd60b7
+      revision: 0a17ae4f2f435e4bddcc3fb3febd90c019ede315
       import:
         - name-allowlist:
           - nanopb

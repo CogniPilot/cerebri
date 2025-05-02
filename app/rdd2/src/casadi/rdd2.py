@@ -39,9 +39,10 @@ z_integral_max = 0 # 5.0
 ki_z = 0.05 # velocity z integral gain
 
 # estimator params
-att_w_acc =0.2
-att_w_gyro_bias = 0.1
+att_w_acc = 0.8
+att_w_gyro_bias = 0
 param_att_w_mag = 0.2
+
 
 def derive_control_allocation(
 ):
@@ -474,19 +475,17 @@ def derive_attitude_estimator():
     mag = ca.SX.sym("mag", 3)
     mag_decl = ca.SX.sym("mag_decl", 1)
     gyro = ca.SX.sym("gyro", 3)
+    gyro_used = -gyro
     accel = ca.SX.sym("accel", 3)
     dt = ca.SX.sym("dt", 1)
-
-    # Convert magnetometer to quat
-    mag1 = SO3Quat.elem(ca.vertcat(0, mag))
 
     # correction angular velocity vector
     correction = ca.SX.zeros(3, 1)
 
     # Convert vector to world frame and extract xy component
-    spin_rate = ca.norm_2(gyro)
-    mag_earth = (q.inverse() * mag1 * q).param[1:]
+    spin_rate = ca.norm_2(gyro_used)
 
+    mag_earth = q.inverse() @ mag
     mag_err = (
         ca.fmod(ca.atan2(mag_earth[1], mag_earth[0]) - mag_decl + ca.pi, 2 * ca.pi)
         - ca.pi
@@ -498,9 +497,8 @@ def derive_attitude_estimator():
 
     # Move magnetometer correction in body frame
     correction += (
-        (q.inverse() * SO3Quat.elem(ca.vertcat(0, 0, 0, mag_err)) * q).param[1:]
-        * param_att_w_mag
-        * gain_mult
+        q@ca.vertcat(0,0,mag_err)
+        * param_att_w_mag * gain_mult
     )
 
     # Correction from accelerometer
@@ -519,23 +517,25 @@ def derive_attitude_estimator():
     )
 
     ## TODO add gyro bias stuff
-
     # Add gyro to correction
-    correction += gyro
+    correction += gyro_used
 
     # Make the correction
     q1 = q * so3.elem(correction * dt).exp(SO3Quat)
+    debug = ca.atan2(mag_earth[1], mag_earth[0]) - mag_decl
 
     # Return estimator
     f_att_estimator = ca.Function(
         "attitude_estimator",
         [q0, mag, mag_decl, gyro, accel, dt],
-        [q1.param],
+        [q1.param, debug],
         ["q", "mag", "mag_decl", "gyro", "accel", "dt"],
-        ["q1"],
+        ["q1", "debug"],
     )
 
     return {"attitude_estimator": f_att_estimator}
+
+
 
 def derive_position_correction():
     ## Initilaizing measurments

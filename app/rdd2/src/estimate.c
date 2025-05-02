@@ -166,6 +166,10 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			perf_counter_update(&ctx->perf);
 		}
 
+		if (zros_sub_update_available(&ctx->sub_mag)) {
+			zros_sub_update(&ctx->sub_mag);
+		}
+
 		/*
 		if (j % 100 == 0) {
 		    int offset = 0;
@@ -241,23 +245,23 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			CASADI_FUNC_CALL(strapdown_ins_propagate)
 		}
 
-		{
-			CASADI_FUNC_ARGS(position_correction)
+		// {
+		// 	CASADI_FUNC_ARGS(position_correction)
 
-			double gps[3] = {ctx->odometry_ethernet.pose.position.x,
-					 ctx->odometry_ethernet.pose.position.y,
-					 ctx->odometry_ethernet.pose.position.z};
+		// 	double gps[3] = {ctx->odometry_ethernet.pose.position.x,
+		// 			 ctx->odometry_ethernet.pose.position.y,
+		// 			 ctx->odometry_ethernet.pose.position.z};
 
-			args[0] = x;
-			args[1] = gps;
-			args[2] = &dt;
-			args[3] = P;
+		// 	args[0] = x;
+		// 	args[1] = gps;
+		// 	args[2] = &dt;
+		// 	args[3] = P;
 
-			res[0] = x;
-			res[1] = P;
+		// 	res[0] = x;
+		// 	res[1] = P;
 
-			CASADI_FUNC_CALL(position_correction)
-		}
+		// 	CASADI_FUNC_CALL(position_correction)
+		// }
 
 		/*
 		f_att_estimator = ca.Function(
@@ -279,21 +283,40 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 
 			double mag[3] = {ctx->mag.magnetic_field.x, ctx->mag.magnetic_field.y,
 					 ctx->mag.magnetic_field.z};
-			const double decl_WL = -6.66;
+			const double decl_WL = -6.66/180 * M_PI + 0.12;
+			double debug[1];
+			double q_temp[4] = {1,0,0,0};
+			// q[0] = x[6];
+			// q[1] = x[7];
+			// q[2] = x[8];
+			// q[3] = x[9];
+
 			args[0] = q;
 			args[1] = mag;
 			args[2] = &decl_WL;
 			args[3] = omega_b;
 			args[4] = a_b;
 			args[5] = &dt;
-			res[0] = q;
+			res[0] = q_temp;
+			res[1] = debug;
 
 			CASADI_FUNC_CALL(attitude_estimator)
+		
+
+			LOG_ERR("mag_err: {%.2f}", debug[0]);
+			//LOG_ERR("mag: x {%.2f} y, {%.2f} z {%.2f}", mag[0], mag[1], mag[2]);
+
+			q[0] = q_temp[0];
+			q[1] = q_temp[1];
+			q[2] = q_temp[2];
+			q[3] = q_temp[3];
 
 			x[6] = q[0];
 			x[7] = q[1];
 			x[8] = q[2];
 			x[9] = q[3];
+			// q[0] = 1;
+			P[0] = P[0];
 		}
 
 		bool data_ok = true;

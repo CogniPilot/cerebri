@@ -129,29 +129,17 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 			continue;
 		}
 
-		if (zros_sub_update_available(&ctx->sub_status)) {
-			zros_sub_update(&ctx->sub_status);
-		}
+		zros_sub_update(&ctx->sub_status);
 
-		if (zros_sub_update_available(&ctx->sub_position_sp)) {
-			zros_sub_update(&ctx->sub_position_sp);
-		}
+		zros_sub_update(&ctx->sub_position_sp);
 
-		if (zros_sub_update_available(&ctx->sub_velocity_sp)) {
-			zros_sub_update(&ctx->sub_velocity_sp);
-		}
+	        zros_sub_update(&ctx->sub_velocity_sp);
 
-		if (zros_sub_update_available(&ctx->sub_accel_ff)) {
-			zros_sub_update(&ctx->sub_accel_ff);
-		}
+		zros_sub_update(&ctx->sub_accel_ff);
 
-		if (zros_sub_update_available(&ctx->sub_orientation_sp)) {
-			zros_sub_update(&ctx->sub_orientation_sp);
-		}
+	        zros_sub_update(&ctx->sub_orientation_sp);
 
-		if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
-			zros_sub_update(&ctx->sub_odometry_estimator);
-		}
+	        zros_sub_update(&ctx->sub_odometry_estimator);
 
 		// calculate dt
 		int64_t ticks_now = k_uptime_ticks();

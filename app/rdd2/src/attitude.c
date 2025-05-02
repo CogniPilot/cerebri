@@ -114,33 +114,12 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 		int rc = 0;
 		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
-		if (rc != 0) {
-			LOG_DBG("not receiving odometry_estimator");
-		}
-
-		if (zros_sub_update_available(&ctx->sub_status)) {
-			zros_sub_update(&ctx->sub_status);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
-			zros_sub_update(&ctx->sub_odometry_estimator);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_position_sp)) {
-			zros_sub_update(&ctx->sub_position_sp);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_velocity_sp)) {
-			zros_sub_update(&ctx->sub_velocity_sp);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_attitude_sp)) {
-			zros_sub_update(&ctx->sub_attitude_sp);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_angular_velocity_ff)) {
-			zros_sub_update(&ctx->sub_angular_velocity_ff);
-		}
+		zros_sub_update(&ctx->sub_status);
+		zros_sub_update(&ctx->sub_odometry_estimator);
+		zros_sub_update(&ctx->sub_position_sp);
+		zros_sub_update(&ctx->sub_velocity_sp);
+		zros_sub_update(&ctx->sub_attitude_sp);
+		zros_sub_update(&ctx->sub_angular_velocity_ff);
 
 		if (ctx->status.mode != synapse_pb_Status_Mode_MODE_ATTITUDE_RATE) {
 			double q_wb[4] = {ctx->odometry_estimator.pose.orientation.w,

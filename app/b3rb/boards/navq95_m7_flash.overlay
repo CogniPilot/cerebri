@@ -201,3 +201,7 @@
 &mu7 {
 	status = "okay";
 };
+
+&tpm4 {
+	counts-per-revolution = <685>;
+};

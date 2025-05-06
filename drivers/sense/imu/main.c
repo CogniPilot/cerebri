@@ -124,6 +124,11 @@ void imu_read(context_t *ctx)
 				continue;
 			}
 		}
+
+		// HACK rotation needed for NavQ95 B3RB
+		ctx->accel_raw[0] = -1 * ctx->accel_raw[0];
+		ctx->accel_raw[1] = 1 * ctx->accel_raw[1];
+		ctx->accel_raw[2] = -1 * ctx->accel_raw[2];
 	}
 
 	// get gyro if device present
@@ -141,6 +146,11 @@ void imu_read(context_t *ctx)
 				continue;
 			}
 		}
+
+		// HACK rotation needed for NavQ95 B3RB
+		ctx->gyro_raw[0] = -1 * ctx->gyro_raw[0];
+		ctx->gyro_raw[1] = 1 * ctx->gyro_raw[1];
+		ctx->gyro_raw[2] = -1 * ctx->gyro_raw[2];
 	}
 }
 

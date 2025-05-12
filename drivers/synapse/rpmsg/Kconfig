@@ -1,0 +1,6 @@
+config CEREBRI_SYNAPSE_RPMSG
+  bool "Enable synapse rpmsg"
+  default n
+  depends on OPENAMP
+  help
+    This option enables rpmsg for synapse

@@ -32,6 +32,8 @@ manifest:
           - cmsis-dsp
           - ubxlib
           - fatfs
+          - open-amp
+          - libmetal
           - segger
     - name: zros
       remote: cognipilot

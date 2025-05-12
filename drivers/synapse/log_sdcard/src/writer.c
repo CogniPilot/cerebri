@@ -10,21 +10,21 @@
 
 #include <cerebri/core/perf_counter.h>
 
-#include <ff.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>
 
 #define FS_RET_OK     FR_OK
-#define MY_STACK_SIZE 8192
+#define MY_STACK_SIZE 2048
 #define MY_PRIORITY   1
 #define BUF_SIZE      131072
 
 extern struct ring_buf rb_sdcard;
 
+#ifndef CONFIG_FILE_SYSTEM_RPMSGFS
 static FATFS fat_fs;
+#endif
 static struct fs_mount_t mp = {
 	.type = FS_FATFS,
-	.fs_data = &fat_fs,
 };
 
 LOG_MODULE_DECLARE(log_sdcard, LOG_LEVEL_DBG);
@@ -53,46 +53,44 @@ static const char *disk_mount_pt = "/SD:";
 
 static int mount_sd_card(void)
 {
-	/* raw disk i/o */
-	static const char *disk_pdrv = "SD";
-	uint64_t memory_size_mb;
-	uint32_t block_count;
-	uint32_t block_size;
+	struct fs_statvfs stat;
+	int res;
 
-	if (disk_access_init(disk_pdrv) != 0) {
-		LOG_ERR("Storage init ERROR!");
-		return -1;
-	}
+	res = fs_statvfs(disk_mount_pt, &stat);
+	if (res == -ENOENT) {
 
-	if (disk_access_ioctl(disk_pdrv, DISK_IOCTL_GET_SECTOR_COUNT, &block_count)) {
-		LOG_ERR("Unable to get sector count");
-		return -1;
-	}
-	LOG_INF("Block count %u", block_count);
+		mp.mnt_point = disk_mount_pt;
 
-	if (disk_access_ioctl(disk_pdrv, DISK_IOCTL_GET_SECTOR_SIZE, &block_size)) {
-		LOG_ERR("Unable to get sector size");
-		return -1;
-	}
-	LOG_INF("Sector size %u", block_size);
+#ifndef CONFIG_FILE_SYSTEM_RPMSGFS
+		mp.fs_data = &fat_fs;
+#else
+		mp.fs_data = "/cerebri";
+		mp.type = FS_RPMSGFS;
+#endif
 
-	memory_size_mb = (uint64_t)block_count * block_size;
-	LOG_INF("Memory Size(MB) %u", (uint32_t)(memory_size_mb >> 20));
-
-	mp.mnt_point = disk_mount_pt;
-
-	int res = fs_mount(&mp);
-
-	if (res == FR_OK) {
-		LOG_INF("Disk mounted.");
-	} else {
-		LOG_INF("Failed to mount disk - trying one more time");
 		res = fs_mount(&mp);
-		if (res != FR_OK) {
-			LOG_INF("Error mounting disk.");
-			return -1;
+
+		if (res == 0) {
+			LOG_INF("Disk mounted.");
+		} else {
+			LOG_INF("Failed to mount disk - trying one more time");
+			res = fs_mount(&mp);
+			if (res != 0) {
+				LOG_ERR("Error mounting disk.");
+				return -1;
+			}
 		}
+
+		res = fs_statvfs(disk_mount_pt, &stat);
 	}
+
+	if (res < 0) {
+		return -1;
+	}
+
+	LOG_INF("Sector size %lu", stat.f_blocks);
+	LOG_INF("Memory Size(MB) %u", (uint32_t)((stat.f_bsize * stat.f_blocks) >> 20));
+
 	return 0;
 }
 
@@ -148,6 +146,14 @@ static void log_sdcard_writer_run(void *p0, void *p1, void *p2)
 
 	int ret = 0;
 
+#ifdef CONFIG_FILE_SYSTEM_RPMSGFS
+	/* Wait for remote to mount its filesystem */
+	/* TODO: for some reason k_msleep(5000) freezes zephyr at startup :S */
+	for (int i = 0; i < 5000; i++) {
+		k_msleep(1);
+	}
+#endif
+
 	// constructor
 	ret = log_sdcard_writer_init(ctx);
 	if (ret < 0) {
@@ -165,7 +171,7 @@ static void log_sdcard_writer_run(void *p0, void *p1, void *p2)
 		k_msleep(1);
 		size = ring_buf_get_claim(&rb_sdcard, &data, BUF_SIZE);
 		if (size > 0) {
-			// LOG_INF("writing: %d bytes to sdcard", size);
+			LOG_INF("writing: %d bytes to sdcard", size);
 			size_written = fs_write(&ctx->file, data, size);
 			ctx->total_size_written += size_written;
 			ring_buf_get_finish(&rb_sdcard, size);

@@ -19,14 +19,16 @@
 
 #include <synapse_topic_list.h>
 
-#define MY_STACK_SIZE 8192
+#define MY_STACK_SIZE 4096
 #define MY_PRIORITY   1
 #define BUF_SIZE      131072
 #define TOPIC_RATE_HZ 10000
 
-RING_BUF_DECLARE(rb_sdcard, BUF_SIZE);
+BUILD_ASSERT(BUF_SIZE <= RING_BUFFER_MAX_SIZE, RING_BUFFER_SIZE_ASSERT_MSG);
+static uint8_t _ring_buffer_data_rb_sdcard[BUF_SIZE] __attribute__((__section__(".log_sdcard")));
+struct ring_buf rb_sdcard = RING_BUF_INIT(_ring_buffer_data_rb_sdcard, BUF_SIZE);
 
-LOG_MODULE_REGISTER(log_sdcard, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(log_sdcard, LOG_LEVEL_WRN);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
@@ -134,9 +136,14 @@ static void log_sdcard_write_frame(struct context *ctx)
 				LOG_INF("partial write: %d/%d", size_written, stream.bytes_written);
 				return;
 			}
-			// LOG_INF("writing %d", stream.bytes_written);
+			LOG_INF("writing %d", stream.bytes_written);
 		}
 	}
+}
+
+static void harden_pb_frame(synapse_pb_Frame *frame)
+{
+	memset(&frame->cb_msg, 0, sizeof(frame->cb_msg));
 }
 
 static void log_sdcard_run(void *p0, void *p1, void *p2)
@@ -173,6 +180,7 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 
 		if (zros_sub_update_available(&ctx->sub_imu)) {
 			zros_sub_update(&ctx->sub_imu);
+			harden_pb_frame(&ctx->frame);
 			ctx->frame.which_msg = synapse_pb_Frame_imu_tag;
 			snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), "imu");
 			log_sdcard_write_frame(ctx);
@@ -180,6 +188,7 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 
 		if (zros_sub_update_available(&ctx->sub_imu_q31_array)) {
 			zros_sub_update(&ctx->sub_imu_q31_array);
+			harden_pb_frame(&ctx->frame);
 			ctx->frame.which_msg = synapse_pb_Frame_imu_q31_array_tag;
 			snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), "imu_q31_array");
 			log_sdcard_write_frame(ctx);
@@ -187,6 +196,7 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 
 		if (zros_sub_update_available(&ctx->sub_input)) {
 			zros_sub_update(&ctx->sub_input);
+			harden_pb_frame(&ctx->frame);
 			ctx->frame.which_msg = synapse_pb_Frame_input_tag;
 			snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), "input");
 			log_sdcard_write_frame(ctx);
@@ -194,6 +204,7 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 
 		if (zros_sub_update_available(&ctx->sub_pwm)) {
 			zros_sub_update(&ctx->sub_pwm);
+			harden_pb_frame(&ctx->frame);
 			ctx->frame.which_msg = synapse_pb_Frame_pwm_tag;
 			snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), "pwm");
 			log_sdcard_write_frame(ctx);

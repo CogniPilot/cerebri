@@ -11,13 +11,18 @@
 #include <zros/zros_node.h>
 #include <zros/zros_sub.h>
 
-#include "proto/udp_rx.h"
 #include <synapse_topic_list.h>
 #include <cerebri/core/log_utils.h>
 
+#ifndef CONFIG_CEREBRI_SYNAPSE_RPMSG
+#include "proto/udp_rx.h"
+#else
+#include <synapse_rpmsg.h>
+#endif
+
 #include <pb_decode.h>
 
-#define MY_STACK_SIZE 8192
+#define MY_STACK_SIZE 4096
 #define MY_PRIORITY   1
 
 CEREBRI_NODE_LOG_INIT(eth_rx, LOG_LEVEL_WRN);
@@ -27,7 +32,9 @@ static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 struct context {
 	struct zros_node node;
 	synapse_pb_Frame rx_frame;
+#ifndef CONFIG_CEREBRI_SYNAPSE_RPMSG
 	struct udp_rx udp;
+#endif
 	struct k_sem running;
 	size_t stack_size;
 	k_thread_stack_t *stack_area;
@@ -37,16 +44,17 @@ struct context {
 static struct context g_ctx = {
 	.node = {},
 	.rx_frame = synapse_pb_Frame_init_default,
+#ifndef CONFIG_CEREBRI_SYNAPSE_RPMSG
 	.udp = {},
+#endif
 	.running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
 	.stack_size = MY_STACK_SIZE,
 	.stack_area = g_my_stack_area,
 	.thread_data = {},
 };
 
-static void handle_frame(struct context *ctx)
+static void handle_frame(synapse_pb_Frame *frame)
 {
-	synapse_pb_Frame *frame = &ctx->rx_frame;
 	void *msg = NULL;
 	struct zros_topic *topic = NULL;
 
@@ -101,12 +109,14 @@ static int eth_rx_init(struct context *ctx)
 	// setup zros node
 	zros_node_init(&ctx->node, "eth_rx");
 
+#ifndef CONFIG_CEREBRI_SYNAPSE_RPMSG
 	// setup udp connection
 	ret = udp_rx_init(&ctx->udp);
 	if (ret < 0) {
 		LOG_ERR("udp rx init failed: %d", ret);
 		return ret;
 	}
+#endif
 
 	k_sem_take(&ctx->running, K_FOREVER);
 	LOG_INF("started");
@@ -116,8 +126,11 @@ static int eth_rx_init(struct context *ctx)
 static int eth_rx_fini(struct context *ctx)
 {
 	int ret = 0;
+
+#ifndef CONFIG_CEREBRI_SYNAPSE_RPMSG
 	// close udp socket
 	ret = udp_rx_fini(&ctx->udp);
+#endif
 
 	// close subscriptions
 	zros_node_fini(&ctx->node);
@@ -144,6 +157,7 @@ static void eth_rx_run(void *p0, void *p1, void *p2)
 	LOG_INF("running");
 	pb_istream_t stream;
 
+#ifndef CONFIG_CEREBRI_SYNAPSE_RPMSG
 	// while running
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 		// poll sockets and receive data
@@ -158,11 +172,33 @@ static void eth_rx_run(void *p0, void *p1, void *p2)
 					LOG_ERR("failed to decode msg: %s\n",
 						PB_GET_ERROR(&stream));
 				} else {
-					handle_frame(ctx);
+					handle_frame(&ctx->rx_frame);
 				}
 			}
 		}
 	}
+#else
+
+	uint8_t buf[500];
+
+	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
+
+		size_t size = rpmsg_synapse_receive(buf, sizeof(buf));
+
+		if ((size == 1) && (buf[0] == 0xaa)) {
+			LOG_INF("connected to ros");
+			continue;
+		}
+
+		stream = pb_istream_from_buffer(buf, size);
+		if (!pb_decode_ex(&stream, synapse_pb_Frame_fields, &ctx->rx_frame,
+				  PB_DECODE_DELIMITED)) {
+			LOG_ERR("failed to decode msg: %s\n", PB_GET_ERROR(&stream));
+		} else {
+			handle_frame(&ctx->rx_frame);
+		}
+	}
+#endif
 
 	// deconstructor
 	ret = eth_rx_fini(ctx);

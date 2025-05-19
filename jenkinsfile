@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Clean workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('Init repos') {
+            steps {
+                sh '''#!/bin/bash
+                    source ~/zephyrproject/.venv/bin/activate
+                    west init -m git@github.com:NXPHoverGames/cerebri-private.git --mr ${GIT_BRANCH} cerebri-workspace
+                '''
+            }
+        }
+        stage('Update repos') {
+            steps {
+                sh '''#!/bin/bash
+                    source ~/zephyrproject/.venv/bin/activate
+                    cd cerebri-workspace
+                    west update
+                '''
+            }
+        }
+        stage('Build') {
+            steps {
+                sh '''#!/bin/bash
+                    source ~/zephyrproject/.venv/bin/activate
+                    cd cerebri-workspace/cerebri-private.git
+                    west build -p always -b navq95/mimx9596/m7/flash app/b3rb/
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'cerebri-workspace/cerebri-private.git/build/zephyr/zephyr.bin', fingerprint: true
+                    archiveArtifacts artifacts: 'cerebri-workspace/cerebri-private.git/build/zephyr/zephyr.elf', fingerprint: true
+                }
+            }
+        }
+        stage('Check') {
+            steps {
+                echo 'checking logs from previous stages...'
+                logParser failBuildOnError: true, unstableOnWarning: true, parsingRulesPath: '/mnt/data/jenkins/log-parsing-rules.txt', useProjectRule: false, projectRulePath: ''
+            }
+        }
+    }
+}

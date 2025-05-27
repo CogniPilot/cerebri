@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 806b37ff02adcb8265f4e1713cec7d2f5f623fc0 # zephyr_3.7.0.1 08/21/24
+      revision: main # zephyr_3.7.0.1 08/21/24
       import:
         - name-allowlist:
           - nanopb
@@ -48,5 +48,5 @@ manifest:
       revision: brave
     - name: hal_nxp
       remote: cognipilot
-      revision: e400b5dba27d9abe1403fc799d48b58fa1b1daee # master 8/21/24
+      revision: master # master 8/21/24
       path: modules/hal/nxp

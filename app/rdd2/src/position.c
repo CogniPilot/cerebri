@@ -213,9 +213,9 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				args[4] = qc_wb;
 				args[5] = p_w;
 				args[6] = v_b;
-				args[7] = q_wb;
-				args[8] = &z_i;
-				args[9] = &dt;
+				//args[7] = q_wb;
+				args[7] = &z_i;
+				args[8] = &dt;
 				res[1] = qr_wb;
 				CASADI_FUNC_CALL(position_control)
 				// LOG_INF("z_i: %10.4f", z_i);

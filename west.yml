@@ -19,13 +19,14 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: main # zephyr_3.7.0.1 08/21/24
+      revision: pr-icm42688-filters # zephyr_3.7.0.1 08/21/24
       import:
         - name-allowlist:
           - nanopb
           - mbedtls
           - hal_nxp
           - cmsis
+          - cmsis_6
           - cmsis-dsp
           - ubxlib
           - fatfs

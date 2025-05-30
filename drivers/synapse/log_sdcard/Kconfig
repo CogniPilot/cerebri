@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 config CEREBRI_SYNAPSE_LOG_SDCARD
-  bool "log sdcard"	
+  bool "log sdcard"
   default y
+  select RING_BUFFER_LARGE
   depends on ZROS
   help
     This option enables the sdcard logger

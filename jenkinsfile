@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'mr-agent-zephyr' }
 
     stages {
         stage('Clean workspace') {

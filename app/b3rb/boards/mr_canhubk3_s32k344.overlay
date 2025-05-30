@@ -114,16 +114,13 @@
 
 &emios0_pwm {
 	pwm_0 {
-		/delete-property/ period;
 		/delete-property/ prescaler;
 		master-bus = <&emios0_bus_a>;
 		pwm-mode = "OPWMB";
 		phase-shift = <100>;
-		duty-cycle = <0>;
 	};
 	pwm_1 {
 		prescaler = <1>;
-		duty-cycle = <0>;
 	};
 	pwm_2 {
 		prescaler = <1>;
@@ -282,7 +279,6 @@
 		emios2_bus_b {
 			mode = "MCB_UP_COUNTER";
 			prescaler = <1>;
-			period = <DT_FREQ_K(2)>;
 			status = "okay";
 		};
 	};
@@ -294,10 +290,8 @@
 
 		pwm_gps_buzzer {
 			channel = <6>;
-			duty-cycle = <0>;
 			master-bus = <&emios2_bus_b>;
 			pwm-mode = "OPWMB";
-			polarity = "ACTIVE_HIGH";
 		};
 	};
 };

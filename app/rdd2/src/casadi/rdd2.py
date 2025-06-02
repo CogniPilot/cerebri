@@ -29,8 +29,8 @@ yaw_rate_max = 60  # deg/s
 rollpitch_max = 30  # deg
 
 # position loop
-kp_pos = 1.0  # position proportional gain
-kp_vel = 2.0  # velocity proportional gain
+kp_pos = 1.0 # position proportional gain
+kp_vel = 2 # velocity proportional gain
 # pos_sp_dist_max = 2 # position setpoint max distance
 # vel_max = 2.0 # max velocity command
 z_integral_max = 0  # 5.0
@@ -138,7 +138,7 @@ def saturate(x, x_min, x_max):
 
 def derive_input_acro():
     """
-    Acro mode manual input:
+    Acro mode manual :
 
     Given input, find roll rate and thrust setpoints
     """

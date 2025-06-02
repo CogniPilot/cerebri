@@ -61,7 +61,7 @@ struct context {
 	size_t stack_size;
 	k_thread_stack_t *stack_area;
 	struct k_thread thread_data;
-	double camera_yaw;
+	double psi_sp; // yaw setpoint for input_velocity function
 };
 
 static struct context g_ctx = {
@@ -99,7 +99,7 @@ static struct context g_ctx = {
 	.stack_size = MY_STACK_SIZE,
 	.stack_area = g_my_stack_area,
 	.thread_data = {},
-	.camera_yaw = 0,
+	.psi_sp = 0,
 };
 
 static void rdd2_command_init(struct context *ctx)
@@ -254,7 +254,6 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				args[0] = &thrust_trim;
 				args[1] = &thrust_delta;
 				args[2] = input_aetr;
-				args[3] = q;
 
 				res[0] = omega;
 				res[1] = &thrust;
@@ -341,115 +340,98 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				(ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) &&
 				(ctx->last_status.arming != synapse_pb_Status_Arming_ARMING_ARMED);
 
-			double yaw, pitch, roll;
-			{
-				/* quat_to_eulerB321:(q[4])->(yaw, pitch, roll) */
-				CASADI_FUNC_ARGS(quat_to_eulerB321);
-
-				args[0] = q;
-
-				res[0] = &yaw;
-				res[1] = &pitch;
-				res[2] = &roll;
-
-				CASADI_FUNC_CALL(quat_to_eulerB321);
-			}
-
-			// reset position setpoint if now auto or now armed
+			// reset position setpoint and yaw if now velocity mode or now armed
 			if (now_vel || now_armed) {
-				LOG_INF("position_sp, camera_yaw reset");
+				LOG_INF("position_sp, psi_sp reset");
 				ctx->position_sp.x = ctx->odometry_estimator.pose.position.x;
 				ctx->position_sp.y = ctx->odometry_estimator.pose.position.y;
 				ctx->position_sp.z = ctx->odometry_estimator.pose.position.z;
-				ctx->camera_yaw = yaw;
+				
+				// Get current yaw from quaternion for reset
+				double yaw, pitch, roll;
+				{
+					CASADI_FUNC_ARGS(quat_to_eulerB321);
+					args[0] = q;
+					res[0] = &yaw;
+					res[1] = &pitch;
+					res[2] = &roll;
+					CASADI_FUNC_CALL(quat_to_eulerB321);
+				}
+				ctx->psi_sp = yaw;
 			}
 
-			double yaw_rate = 0;
-			double vb[3] = {0, 0, 0};
-
+			// Input setup
+			double input_aetr[4];
 			if (ctx->status.topic_source ==
 			    synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT) {
-				yaw_rate = 60 * deg2rad * input_yaw;
-				vb[0] = 2.0 * input_pitch;
-				vb[1] = -2.0 * input_roll; // positive roll is negative y
-				vb[2] = input_thrust;
-				// LOG_INF("onboard yawrate: %10.4f vbx: %10.4f %10.4f %10.4f",
-				// yaw_rate, vbx, vby, vbz);
+				input_aetr[0] = input_roll;  // aileron
+				input_aetr[1] = input_pitch; // elevator 
+				input_aetr[2] = input_thrust; // thrust
+				input_aetr[3] = input_yaw;   // rudder
 			} else if (ctx->status.topic_source ==
 				   synapse_pb_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
-				yaw_rate = ctx->cmd_vel.angular.z;
-				vb[0] = ctx->cmd_vel.linear.x;
-				vb[1] = ctx->cmd_vel.linear.y;
-				vb[2] = input_thrust;
-				// LOG_INF("offboard yawrate: %10.4f vbx: %10.4f %10.4f %10.4f",
-				// yaw_rate, vbx, vby, vbz);
+				input_aetr[0] = -ctx->cmd_vel.linear.y / 2.0; // aileron (converted from linear.y)
+				input_aetr[1] = ctx->cmd_vel.linear.x / 2.0;  // elevator (converted from linear.x)
+				input_aetr[2] = input_thrust; // thrust (keep from joystick)
+				input_aetr[3] = ctx->cmd_vel.angular.z / (60 * deg2rad); // rudder (converted from angular.z)
 			}
 
-			double vw[3] = {vb[0] * cos(yaw) - vb[1] * sin(yaw),
-					vb[0] * sin(yaw) + vb[1] * cos(yaw), vb[2]};
+			// Current position
+			double pw[3] = {ctx->odometry_estimator.pose.position.x,
+					ctx->odometry_estimator.pose.position.y,
+					ctx->odometry_estimator.pose.position.z};
 
-			// position
-			ctx->position_sp.x += dt * vw[0];
-			ctx->position_sp.y += dt * vw[1];
-			ctx->position_sp.z += dt * vw[2];
+			// Current position setpoint  
+			double pw_sp[3] = {ctx->position_sp.x, ctx->position_sp.y, ctx->position_sp.z};
 
-			double e[3] = {ctx->position_sp.x - ctx->odometry_estimator.pose.position.x,
-				       ctx->position_sp.y - ctx->odometry_estimator.pose.position.y,
-				       ctx->position_sp.z -
-					       ctx->odometry_estimator.pose.position.z};
+			// Call input_velocity CasADi function
+			double psi_sp1, psi_vel_sp;
+			double pw_sp1[3], vw_sp[3], aw_sp[3], q_sp[4];
+			double reset_position = (now_vel || now_armed) ? 1.0 : 0.0;
 
-			double norm_e = sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]);
-
-			const double pos_error_max = 2.0;
-
-			// saturate position setpoint distance from vehicle
-			if (norm_e > pos_error_max) {
-				ctx->position_sp.x = ctx->odometry_estimator.pose.position.x +
-						     e[0] * pos_error_max / norm_e;
-				ctx->position_sp.y = ctx->odometry_estimator.pose.position.y +
-						     e[1] * pos_error_max / norm_e;
-				ctx->position_sp.z = ctx->odometry_estimator.pose.position.z +
-						     e[2] * pos_error_max / norm_e;
-			}
-
-			// desired camera direction
-			ctx->camera_yaw += dt * yaw_rate;
-
-			// LOG_INF("camera yaw: %10.4f", ctx->camera_yaw);
-
-			double qc[4];
 			{
-				/* eulerB321_to_quat:(yaw, pitch, roll)->(q[4]) */
-				CASADI_FUNC_ARGS(eulerB321_to_quat);
-				double pitch_r = 0;
-				double roll_r = 0;
-				args[0] = &ctx->camera_yaw;
-				args[1] = &pitch_r;
-				args[2] = &roll_r;
-				res[0] = qc;
-				CASADI_FUNC_CALL(eulerB321_to_quat);
+				CASADI_FUNC_ARGS(input_velocity);
+				args[0] = &dt;
+				args[1] = &ctx->psi_sp;
+				args[2] = pw_sp;
+				args[3] = pw;
+				args[4] = input_aetr;
+				args[5] = &reset_position;
+				res[0] = &psi_sp1;
+				res[1] = &psi_vel_sp;
+				res[2] = pw_sp1;
+				res[3] = vw_sp;
+				res[4] = aw_sp;
+				res[5] = q_sp;
+				CASADI_FUNC_CALL(input_velocity);
 			}
 
-			// position setpoint
+			// Update state
+			ctx->psi_sp = psi_sp1;
+			ctx->position_sp.x = pw_sp1[0];
+			ctx->position_sp.y = pw_sp1[1];
+			ctx->position_sp.z = pw_sp1[2];
+
+			// Publish setpoints
 			zros_pub_update(&ctx->pub_position_sp);
 
 			// velocity setpoint
-			ctx->velocity_sp.x = vw[0];
-			ctx->velocity_sp.y = vw[1];
-			ctx->velocity_sp.z = vw[2];
+			ctx->velocity_sp.x = vw_sp[0];
+			ctx->velocity_sp.y = vw_sp[1];
+			ctx->velocity_sp.z = vw_sp[2];
 			zros_pub_update(&ctx->pub_velocity_sp);
 
-			// orientation setpoint
-			ctx->orientation_sp.w = qc[0];
-			ctx->orientation_sp.x = qc[1];
-			ctx->orientation_sp.y = qc[2];
-			ctx->orientation_sp.z = qc[3];
+			// orientation setpoint (from input_velocity function)
+			ctx->orientation_sp.w = q_sp[0];
+			ctx->orientation_sp.x = q_sp[1];
+			ctx->orientation_sp.y = q_sp[2];
+			ctx->orientation_sp.z = q_sp[3];
 			zros_pub_update(&ctx->pub_orientation_sp);
 
 			// acceleration setpoint
-			ctx->accel_ff.x = 0;
-			ctx->accel_ff.y = 0;
-			ctx->accel_ff.z = 0;
+			ctx->accel_ff.x = aw_sp[0];
+			ctx->accel_ff.y = aw_sp[1];
+			ctx->accel_ff.z = aw_sp[2];
 			zros_pub_update(&ctx->pub_accel_ff);
 
 		} else if (ctx->status.mode == synapse_pb_Status_Mode_MODE_BEZIER) {

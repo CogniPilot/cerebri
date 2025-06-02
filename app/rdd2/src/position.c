@@ -181,10 +181,10 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 			double v_rw[3] = {ctx->velocity_sp.x, ctx->velocity_sp.y,
 					  ctx->velocity_sp.z};
 
-			double q_wb[4] = {ctx->odometry_estimator.pose.orientation.w,
-					  ctx->odometry_estimator.pose.orientation.x,
-					  ctx->odometry_estimator.pose.orientation.y,
-					  ctx->odometry_estimator.pose.orientation.z};
+			//double q_wb[4] = {ctx->odometry_estimator.pose.orientation.w,
+			//			  ctx->odometry_estimator.pose.orientation.x,
+			//			  ctx->odometry_estimator.pose.orientation.y,
+			//			  ctx->odometry_estimator.pose.orientation.z};
 
 			double qc_wb[4] = {ctx->orientation_sp.w, ctx->orientation_sp.x,
 					   ctx->orientation_sp.y, ctx->orientation_sp.z};
@@ -213,12 +213,13 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				args[4] = qc_wb;
 				args[5] = p_w;
 				args[6] = v_b;
-				//args[7] = q_wb;
 				args[7] = &z_i;
-				args[8] = &dt;
+				args[8] = &dt;			
+				res[0] = &nT;
 				res[1] = qr_wb;
+				res[2] = &z_i;
 				CASADI_FUNC_CALL(position_control)
-				// LOG_INF("z_i: %10.4f", z_i);
+				//LOG_INF("z_i: %10.4f", z_i);
 			}
 			{
 				/* se23_error:(p_w[3],v_b[3],q_wb[4],p_rw[3],v_rw[3],q_r[4])->(zeta[9])*/
@@ -260,14 +261,13 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				args[4] = qc_wb;
 				args[5] = p_w;
 				args[6] = v_b;
-				args[7] = q_wb;
-				args[8] = &z_i;
-				args[9] = &dt;
+				args[7] = &z_i;
+				args[8] = &dt;
 				res[0] = &nT;
 				res[1] = qr_wb;
 				res[2] = &z_i;
 				CASADI_FUNC_CALL(position_control)
-				// LOG_INF("z_i: %10.4f", z_i);
+				//LOG_INF("z_i: %10.4f", z_i);
 			}
 #endif
 

@@ -207,6 +207,7 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 				args[2] = q_r;
 				res[0] = omega;
 				CASADI_FUNC_CALL(attitude_control);
+				//LOG_INF("omega: %10.4f %10.4f %10.4f", omega[0], omega[1], omega[2]);
 			}
 #endif
 

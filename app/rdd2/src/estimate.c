@@ -301,11 +301,13 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			//res[1] = debug;
 
 			CASADI_FUNC_CALL(attitude_estimator)
+
+		}
 		
 
 			//LOG_ERR("mag_err: {%.2f}", debug[0]);
-			//LOG_ERR("mag: x {%.2f} y, {%.2f} z {%.2f}", mag[0], mag[1], mag[2]);
-
+			//LOG_INF("mag: x {%.2f} y, {%.2f} z {%.2f}", mag[0], mag[1], mag[2]);
+			//LOG_INF("q: {%.2f} {%.2f} {%.2f} {%.2f}", q[0], q[1], q[2], q[3]);
 			x[6] = q[0];
 			x[7] = q[1];
 			x[8] = q[2];
@@ -313,7 +315,6 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 
 			P[0] = P[0]; // temp line
 
-		}
 
 		bool data_ok = true;
 		for (int i = 0; i < 10; i++) {

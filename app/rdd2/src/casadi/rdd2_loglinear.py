@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import casadi as ca
 import cyecca.lie as lie
-from cyecca.lie.group_so3 import so3, SO3Quat, SO3EulerB321, SO3Dcm
-from cyecca.models.bezier import derive_dcm_to_quat
+from cyecca.lie.group_so3 import so3, SO3Quat, SO3EulerB321
 from cyecca.lie.group_se23 import (
     SE23Quat,
     se23,
@@ -17,39 +16,40 @@ from cyecca.lie.group_se23 import (
 )
 from cyecca.symbolic import SERIES
 
-print('python: ', sys.executable)
+print("python: ", sys.executable)
 
 # parameters
-g = 9.8 # grav accel m/s^2
-m = 2.24 # mass of vehicle
-#thrust_delta = 0.9*m*g # thrust delta from trim
-#thrust_trim = m*g # thrust trim
-deg2rad = np.pi/180 # degree to radian
+g = 9.8  # grav accel m/s^2
+m = 2.24  # mass of vehicle
+# thrust_delta = 0.9*m*g # thrust delta from trim
+# thrust_trim = m*g # thrust trim
+deg2rad = np.pi / 180  # degree to radian
 
 # attitude rate loop
-rollpitch_rate_max = 30 # deg/s
-yaw_rate_max = 60 # deg/s
+rollpitch_rate_max = 30  # deg/s
+yaw_rate_max = 60  # deg/s
 
-#done kp_rollpitch_rate = 0.3
-#done ki_rollpitch_rate = 0.05
-#done rollpitch_rate_integral_max = 1.0
+# done kp_rollpitch_rate = 0.3
+# done ki_rollpitch_rate = 0.05
+# done rollpitch_rate_integral_max = 1.0
 
 # done kp_yaw_rate = 0.3
 # done ki_yaw_rate = 0.05
 # done yaw_rate_integral_max = 1.0
 
 # attitude loop
-rollpitch_max = 20 # deg
-#kp_rollpitch = 2
-#kp_yaw = 1
+rollpitch_max = 20  # deg
+# kp_rollpitch = 2
+# kp_yaw = 1
 
 # position loop
-kp_pos = 0.5 # position proportional gain
-kp_vel = 2.0 # velocity proportional gain
-#pos_sp_dist_max = 2 # position setpoint max distance
-#vel_max = 2.0 # max velocity command
-z_integral_max = 0 # 5.0
-ki_z = 0.05 # velocity z integral gain
+kp_pos = 0.5  # position proportional gain
+kp_vel = 2.0  # velocity proportional gain
+# pos_sp_dist_max = 2 # position setpoint max distance
+# vel_max = 2.0 # max velocity command
+z_integral_max = 0  # 5.0
+ki_z = 0.05  # velocity z integral gain
+
 
 def saturate(x, x_min, x_max):
     """
@@ -57,44 +57,44 @@ def saturate(x, x_min, x_max):
     """
     y = x
     for i in range(x.shape[0]):
-        y[i] =  ca.if_else(x[i] > x_max[i], x_max[i], ca.if_else(x[i] < x_min[i], x_min[i], x[i]))
+        y[i] = ca.if_else(
+            x[i] > x_max[i], x_max[i], ca.if_else(x[i] < x_min[i], x_min[i], x[i])
+        )
     return y
 
+
 def derive_se23_error():
-    
     """
     SE2(3) Error
     """
     # actual pos and vel
-    p_w = ca.SX.sym('p_w',3)
-    v_b = ca.SX.sym('v_b',3)
+    p_w = ca.SX.sym("p_w", 3)
+    v_w = ca.SX.sym("v_w", 3)
     # actual attitude, expressed as quaternion
-    q_wb = ca.SX.sym('q_wb', 4)
-    R_wb = SO3Quat.elem(q_wb).to_Matrix()
-    v_w = R_wb @ v_b
+    q_wb = ca.SX.sym("q_wb", 4)
     X = SE23Quat.elem(ca.vertcat(p_w, v_w, q_wb))
-    
+
     # reference input
-    p_rw = ca.SX.sym('p_rw', 3)
-    v_rw = ca.SX.sym('v_rw', 3)
-    q_r = ca.SX.sym('q_r', 4)
+    p_rw = ca.SX.sym("p_rw", 3)
+    v_rw = ca.SX.sym("v_rw", 3)
+    q_r = ca.SX.sym("q_r", 4)
     X_r = SE23Quat.elem(ca.vertcat(p_rw, v_rw, q_r))
 
     #  Left invariant error in Lie group and Lie algebra
     eta = X.inverse() * X_r
     zeta = eta.log()
-    
+
     f_se23_error = ca.Function(
         "se23_error",
-        [p_w, v_b, q_wb, p_rw, v_rw, q_r],
+        [p_w, v_w, q_wb, p_rw, v_rw, q_r],
         [zeta.param],
-        ["p_w", "v_b", "q_wb", "p_rw", "v_rw", "q_r"],
-        ["zeta"])
-    
-    eqs = {
-            "se23_error": f_se23_error
-            }
+        ["p_w", "v_w", "q_wb", "p_rw", "v_rw", "q_r"],
+        ["zeta"],
+    )
+
+    eqs = {"se23_error": f_se23_error}
     return eqs
+
 
 def derive_so3_attitude_control():
     """
@@ -139,38 +139,30 @@ def derive_outerloop_control():
 
     # INPUT CONSTANTS
     # -------------------------------
-    thrust_trim = ca.SX.sym('thrust_trim')
-    kp = ca.SX.sym('kp', 3)
+    thrust_trim = ca.SX.sym("thrust_trim")
+    kp = ca.SX.sym("kp", 3)
 
     # INPUT VARIABLES
     # -------------------------------
 
-    #inputs: position trajectory, velocity trajectory, desired Yaw vel, dt
-    #state inputs: position, orientation, velocity, and angular velocity
-    #outputs: thrust force, angular errors
-    zeta = ca.SX.sym('zeta', 9)
-    at_w = ca.SX.sym('at_w', 3)
-    q_wb = SO3Quat.elem(ca.SX.sym('q_wb', 4))
-    z_i = ca.SX.sym('z_i') # z velocity error integral
-    dt = ca.SX.sym('dt') # time step
+    # inputs: position trajectory, velocity trajectory, desired Yaw vel, dt
+    # state inputs: position, orientation, velocity, and angular velocity
+    # outputs: thrust force, angular errors
+    zeta = ca.SX.sym("zeta", 9)
+    at_w = ca.SX.sym("at_w", 3)
+    qc_wb = SO3Quat.elem(ca.SX.sym("qc_wb", 4))  # camera orientation
+    z_i = ca.SX.sym("z_i")  # z velocity error integral
+    dt = ca.SX.sym("dt")  # time step
 
     # CALC
     # -------------------------------
     # get control input
-    K_se23 = ca.DM([[-2.77504, 0, 0, 0.42856, 0, 0, 0, 0.339818, 0], 
-                    [0, -2.77504, 0, 0, 0.42856, 0, -0.339818, 0, 0], 
-                    [0, 0, -2.78649, 0, 0, 0.485281, 0, 0, 0], 
-                    [0.42856, 0, 0, -1.95071, 0, 0, 0, -2.2064, 0], 
-                    [0, 0.42856, 0, 0, -1.95071, 0, 2.2064, 0, 0], 
-                    [0, 0, 0.485281, 0, 0, -2.95551, 0, 0, 0], 
-                    [0, -0.339818, 0, 0, 2.2064, 0, -6.8016, 0, 0], 
-                    [0.339818, 0, 0, -2.2064, 0, 0, 0, -6.8016, 0], 
-                    [0, 0, 0, 0, 0, 0, 0, 0, -2.82843]])
-    u_zeta = se23.elem(zeta).left_jacobian()@K_se23@zeta
-    
+    K_se23 = ca.diag(ca.vertcat(kp_pos, kp_pos, kp_pos, kp_vel, kp_vel, kp_vel, kp))
+    u_zeta = se23.elem(zeta).left_jacobian() @ K_se23 @ zeta
+
     # attitude control
-    u_omega = -u_zeta[6:]
-    
+    u_omega = u_zeta[6:]
+
     # position control
     u_v = u_zeta[0:3]
     u_a = u_zeta[3:6]
@@ -184,15 +176,14 @@ def derive_outerloop_control():
     # Force is normalized by the weight (mg)
 
     # normalized thrust vector
-    p_norm_max = 0.3*m*g
-    p_term = q_wb @ u_v + q_wb @ u_a + m * at_w
+    p_norm_max = 0.3 * m * g
+    p_term = u_v + u_a + m * at_w
     p_norm = ca.norm_2(p_term)
-    p_term = ca.if_else(p_norm > p_norm_max, p_norm_max*p_term/p_norm, p_term)
+    p_term = ca.if_else(p_norm > p_norm_max, p_norm_max * p_term / p_norm, p_term)
 
     # throttle integral
-    z_i_2 = z_i - zeta[2] * dt
-    z_i_2 = saturate(z_i_2,
-            -ca.vertcat(z_integral_max), ca.vertcat(z_integral_max))
+    z_i_2 = z_i + zeta[2] * dt
+    z_i_2 = saturate(z_i_2, -ca.vertcat(z_integral_max), ca.vertcat(z_integral_max))
 
     # trim throttle
     T = p_term + thrust_trim * zW + ki_z * z_i * zW
@@ -204,9 +195,9 @@ def derive_outerloop_control():
     zB = ca.if_else(nT > 1e-3, T / nT, zW)
 
     # point y using desired camera direction
-    # ec = SO3EulerB321.from_Quat(qc_wb)
-    # yt = ec.param[0]
-    xC = ca.vertcat(1, 0, 0)
+    ec = SO3EulerB321.from_Quat(qc_wb)
+    yt = ec.param[0]
+    xC = ca.vertcat(ca.cos(yt), ca.sin(yt), 0)
     yB = ca.cross(zB, xC)
     nyB = ca.norm_2(yB)
     yB = ca.if_else(nyB > 1e-3, yB / nyB, xW)
@@ -223,16 +214,16 @@ def derive_outerloop_control():
     # deisred euler angles
     # note using euler angles as set point is not problematic
     # using Lie group approach for control
-    q_sp = SO3Quat.from_Matrix(Rd_wb)
+    qr_wb = SO3Quat.from_Matrix(Rd_wb)
 
     # FUNCTION
     # -------------------------------
     f_get_u = ca.Function(
-        "se23_control",
-        [thrust_trim, kp, zeta, at_w, q_wb.param, z_i, dt],
-        [nT, z_i_2, u_omega, q_sp.param],
-        ["thrust_trim", "kp", "zeta", "at_w", "q_wb", "z_i", "dt"],
-        ["nT", "z_i_2", "u_omega", "q_sp"],
+        "se23_position_control",
+        [thrust_trim, kp, zeta, at_w, qc_wb.param, z_i, dt],
+        [nT, qr_wb.param, z_i_2],
+        ["thrust_trim", "kp", "zeta", "at_w", "qc_wb", "z_i", "dt"],
+        ["nT", "qr_wb", "z_i_2"],
     )
 
     f_se23_attitude_control = ca.Function(
@@ -240,9 +231,10 @@ def derive_outerloop_control():
     )
 
     return {
-        "se23_control": f_get_u,
+        "se23_position_control": f_get_u,
         "se23_attitude_control": f_se23_attitude_control,
     }
+
 
 def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
     """
@@ -270,6 +262,7 @@ def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
     for name, eq in eqs.items():
         gen.add(eq)
     gen.generate(str(dest_dir) + os.sep)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

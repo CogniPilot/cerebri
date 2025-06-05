@@ -388,7 +388,7 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 			double psi_sp1, psi_vel_sp;
 			double pw_sp1[3], vw_sp[3], aw_sp[3], q_sp[4];
 			double reset_position = (now_vel || now_armed) ? 1.0 : 0.0;
-
+			//double debug;
 			{
 				CASADI_FUNC_ARGS(input_velocity);
 				args[0] = &dt;
@@ -405,6 +405,8 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				res[5] = q_sp;
 				CASADI_FUNC_CALL(input_velocity);
 			}
+			LOG_INF("q_sp: %10.4f %10.4f %10.4f %10.4f", q_sp[0], q_sp[1], q_sp[2], q_sp[3]);
+			//LOG_INF("psi_sp1: %10.4f", psi_sp1);
 
 			// Update state
 			ctx->psi_sp = psi_sp1;

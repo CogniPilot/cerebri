@@ -268,6 +268,8 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				res[2] = &z_i;
 				CASADI_FUNC_CALL(position_control)
 				//LOG_INF("z_i: %10.4f", z_i);
+				// LOG_INF("q_r: %10.4f %10.4f %10.4f %10.4f", qr_wb[0], qr_wb[1], qr_wb[2], qr_wb[3]);
+				//LOG_INF("qc_wb: %10.4f %10.4f %10.4f %10.4f", qc_wb[0], qc_wb[1], qc_wb[2], qc_wb[3]);
 			}
 #endif
 

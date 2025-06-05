@@ -319,11 +319,12 @@ def derive_attitude_control():
     e = (X.inverse() * X_r).log()  # angular velocity to get to desired att in 1 sec
 
     omega = kp * e.param  # elementwise
+    debug = e.param
 
     # FUNCTION
     # -------------------------------
     f_attitude_control = ca.Function(
-        "attitude_control", [kp, q, q_r], [omega], ["kp", "q", "q_r"], ["omega"]
+        "attitude_control", [kp, q, q_r], [omega, debug], ["kp", "q", "q_r"], ["omega", "debug"]
     )
 
     return {"attitude_control": f_attitude_control}

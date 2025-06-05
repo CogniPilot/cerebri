@@ -210,10 +210,10 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			x[5] = ctx->odometry_ethernet.twist.linear.z;
 
 			// use offboard odometry to reset orientation
-			x[6] = ctx->odometry_ethernet.pose.orientation.w;
-			x[7] = ctx->odometry_ethernet.pose.orientation.x;
-			x[8] = ctx->odometry_ethernet.pose.orientation.y;
-			x[9] = ctx->odometry_ethernet.pose.orientation.z;
+			//x[6] = ctx->odometry_ethernet.pose.orientation.w;
+			//x[7] = ctx->odometry_ethernet.pose.orientation.x;
+			//x[8] = ctx->odometry_ethernet.pose.orientation.y;
+			//x[9] = ctx->odometry_ethernet.pose.orientation.z;
 #endif
 		}
 
@@ -281,8 +281,8 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 					     ctx->imu.angular_velocity.y,
 					     ctx->imu.angular_velocity.z};
  
-			double mag[3] = {ctx->mag.magnetic_field.x, ctx->mag.magnetic_field.y,
-					 ctx->mag.magnetic_field.z};
+			double mag[3] = {ctx->mag.magnetic_field.x, -ctx->mag.magnetic_field.y,
+					 -ctx->mag.magnetic_field.z};
 			//const double decl_WL = -6.66/180 * M_PI + 0.12;
 			const double decl_WL = 0;
 			//double debug[1];
@@ -304,8 +304,8 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		
 
 			//LOG_ERR("mag_err: {%.2f}", debug[0]);
-			//LOG_ERR("mag: x {%.2f} y, {%.2f} z {%.2f}", mag[0], mag[1], mag[2]);
-
+			LOG_ERR("mag: x {%.2f} y, {%.2f} z {%.2f}", mag[0], mag[1], mag[2]);
+			//LOG_INF("q: {%.2f} {%.2f} {%.2f} {%.2f}", q[0], q[1], q[2], q[3]);
 			x[6] = q[0];
 			x[7] = q[1];
 			x[8] = q[2];

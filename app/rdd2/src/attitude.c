@@ -200,14 +200,14 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 			}
 #else
 			{
-				double debug[3];
+				//double debug[3];
 				// attitude_control:(kp[3],q[4],q_r[4])->(omega[3])
 				CASADI_FUNC_ARGS(attitude_control);
 				args[0] = kp;
 				args[1] = q_wb;
 				args[2] = q_r;
 				res[0] = omega;
-				res[1] = debug;
+				//res[1] = debug;
 				CASADI_FUNC_CALL(attitude_control);
 				//LOG_INF("omega: %10.4f %10.4f %10.4f", omega[0], omega[1], omega[2]);
 				//LOG_INF("q_r: %10.4f %10.4f %10.4f %10.4f", q_r[0], q_r[1], q_r[2], q_r[3]);

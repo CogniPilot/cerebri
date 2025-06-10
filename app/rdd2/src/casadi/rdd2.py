@@ -30,7 +30,7 @@ rollpitch_max = 30  # deg
 
 # position loop
 kp_pos = 1.0 # position proportional gain
-kp_vel = 2 # velocity proportional gain
+kp_vel = 2.0  # velocity proportional gain
 # pos_sp_dist_max = 2 # position setpoint max distance
 # vel_max = 2.0 # max velocity command
 z_integral_max = 0  # 5.0
@@ -39,7 +39,7 @@ ki_z = 0.05  # velocity z integral gain
 # estimator params
 att_w_acc = 0.4
 att_w_gyro_bias = 0
-param_att_w_mag = 0.2
+param_att_w_mag = 0.4
 
 
 def derive_control_allocation():
@@ -319,12 +319,11 @@ def derive_attitude_control():
     e = (X.inverse() * X_r).log()  # angular velocity to get to desired att in 1 sec
 
     omega = kp * e.param  # elementwise
-    debug = e.param
 
     # FUNCTION
     # -------------------------------
     f_attitude_control = ca.Function(
-        "attitude_control", [kp, q, q_r], [omega, debug], ["kp", "q", "q_r"], ["omega", "debug"]
+        "attitude_control", [kp, q, q_r], [omega], ["kp", "q", "q_r"], ["omega"]
     )
 
     return {"attitude_control": f_attitude_control}
@@ -599,7 +598,17 @@ def derive_attitude_estimator():
     # Convert vector to world frame and extract xy component
     spin_rate = ca.norm_2(gyro)
 
-    mag_earth = q.inverse() @ mag
+    # Magnetometer frame transformation: flip y and z axes
+    # Original frame: x=forward, y=right, z=dowm
+    # Desired frame: x=forward, y=left, z=up
+    mag_frame_transform = ca.vertcat(
+        ca.horzcat(1, 0, 0),    # x stays the same
+        ca.horzcat(0, -1, 0),   # y flipped (right -> left)
+        ca.horzcat(0, 0, -1)    # z flipped (down -> up)
+    )
+
+
+    mag_earth = q.inverse() @ (mag_frame_transform @ mag)
     mag_err = (
         ca.fmod(ca.atan2(mag_earth[1], mag_earth[0]) - mag_decl + ca.pi, 2 * ca.pi)
         - ca.pi

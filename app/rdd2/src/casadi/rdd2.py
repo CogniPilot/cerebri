@@ -29,7 +29,7 @@ yaw_rate_max = 60  # deg/s
 rollpitch_max = 30  # deg
 
 # position loop
-kp_pos = 1.0 # position proportional gain
+kp_pos = 1.0  # position proportional gain
 kp_vel = 2.0  # velocity proportional gain
 # pos_sp_dist_max = 2 # position setpoint max distance
 # vel_max = 2.0 # max velocity command
@@ -37,9 +37,9 @@ z_integral_max = 0  # 5.0
 ki_z = 0.05  # velocity z integral gain
 
 # estimator params
-att_w_acc = 0.4
-att_w_gyro_bias = 0
-param_att_w_mag = 0.4
+att_w_acc = 0.2
+att_w_gyro_bias = 0.1
+param_att_w_mag = 0.2
 
 
 def derive_control_allocation():
@@ -136,9 +136,74 @@ def saturate(x, x_min, x_max):
     return ca.if_else(x > x_max, x_max, ca.if_else(x < x_min, x_min, x))
 
 
+def derive_velocity_control():
+
+    # INPUT VARIABLES
+    # -------------------------------
+    dt = ca.SX.sym("dt")
+    psi_sp = ca.SX.sym("psi_sp")
+    pw_sp = ca.SX.sym("pw_sp", 3)
+    pw = ca.SX.sym("pw", 3)
+    vb = ca.SX.sym("vb", 3)
+    psi_vel_sp = ca.SX.sym("psi_vel_sp")
+    reset_position = ca.SX.sym("reset_position")
+
+    # CALC
+    # -------------------------------
+    psi_sp1 = psi_sp + psi_vel_sp * dt
+    psi_sp1 = ca.remainder(psi_sp1, 2 * ca.pi)
+
+    cos_yaw = ca.cos(psi_sp1)
+    sin_yaw = ca.sin(psi_sp1)
+
+    vw_sp = ca.vertcat(
+        vb[0] * cos_yaw - vb[1] * sin_yaw, vb[0] * sin_yaw + vb[1] * cos_yaw, vb[2]
+    )
+
+    pw_sp1 = ca.if_else(reset_position, pw, pw_sp + vw_sp * dt)
+
+    e = pw_sp1 - pw
+    e_max = 2
+    e_norm = ca.norm_2(e)
+    e = ca.if_else(e_norm > e_max, 2 * e / e_norm, e)
+
+    q_sp = SO3Quat.from_Euler(SO3EulerB321.elem(ca.vertcat(psi_sp1, 0, 0))).param
+
+    pw_sp1 = pw + e
+
+    aw_sp = ca.vertcat(0, 0, 0)
+
+    # FUNCTION
+    # -------------------------------
+    f_velocity_control = ca.Function(
+        "velocity_control",
+        [
+            dt,
+            psi_sp,
+            pw_sp,
+            pw,
+            vb,
+            psi_vel_sp,
+            reset_position,
+        ],
+        [psi_sp1, pw_sp1, vw_sp, aw_sp, q_sp],
+        [
+            "dt",
+            "psi_sp",
+            "pw_sp",
+            "pw",
+            "vb",
+            "psi_vel_sp",
+            "reset_position",
+        ],
+        ["psi_sp1", "pw_sp1", "vw_sp", "aw_sp", "q_sp"],
+    )
+    return {"velocity_control": f_velocity_control}
+
+
 def derive_input_acro():
     """
-    Acro mode manual :
+    Acro mode manual input:
 
     Given input, find roll rate and thrust setpoints
     """
@@ -176,69 +241,6 @@ def derive_input_acro():
     )
 
     return {"input_acro": f_input_acro}
-
-
-def derive_input_velocity():
-    # INPUT VARIABLES
-    # -------------------------------
-    dt = ca.SX.sym("dt")
-    psi_sp = ca.SX.sym("psi_sp")
-    psi_vel_sp = ca.SX.sym("psi_vel_sp")
-    psi_acc_sp = ca.SX.sym("psi_acc_sp")
-
-    pw_sp = ca.SX.sym("pw_sp", 3)
-    pw = ca.SX.sym("pw", 3)
-
-    input_aetr = ca.SX.sym("input_aetr", 4)
-
-    reset_position = ca.SX.sym("reset_position")
-
-    psi_vel_sp = 60 * deg2rad * input_aetr[3]
-    psi_sp1 = psi_sp + psi_vel_sp * dt
-    psi_sp1 = ca.remainder(psi_sp1, 2 * ca.pi)
-
-    cos_yaw = ca.cos(psi_sp1)
-    sin_yaw = ca.sin(psi_sp1)
-
-    vb = ca.vertcat(2 * input_aetr[1], -2 * input_aetr[0], input_aetr[2])
-    vw_sp = ca.vertcat(
-        vb[0] * cos_yaw - vb[1] * sin_yaw, vb[0] * sin_yaw + vb[1] * cos_yaw, vb[2]
-    )
-
-    pw_sp1 = ca.if_else(reset_position, pw, pw_sp + vw_sp * dt)
-
-    e = pw_sp1 - pw
-    e_max = 2
-    e_norm = ca.norm_2(e)
-    e = ca.if_else(e_norm > e_max, 2 * e / e_norm, e)
-
-    q_sp = SO3Quat.from_Euler(SO3EulerB321.elem(ca.vertcat(psi_sp1, 0, 0))).param
-
-    pw_sp1 = pw + e
-
-    aw_sp = ca.vertcat(0, 0, 0)
-    f_input_velocity = ca.Function(
-        "input_velocity",
-        [
-            dt,
-            psi_sp,
-            pw_sp,
-            pw,
-            input_aetr,
-            reset_position,
-        ],
-        [psi_sp1, psi_vel_sp, pw_sp1, vw_sp, aw_sp, q_sp],
-        [
-            "dt",
-            "psi_sp",
-            "pw_sp",
-            "pw",
-            "input_aetr",
-            "reset_position",
-        ],
-        ["psi_sp1", "psi_vel_sp", "pw_sp1", "vw_sp", "aw_sp", "q_sp"],
-    )
-    return {"input_velocity": f_input_velocity}
 
 
 def derive_input_auto_level():
@@ -292,6 +294,32 @@ def derive_input_auto_level():
     )
 
     return {"input_auto_level": f_input_auto_level}
+
+
+def derive_input_velocity():
+    # INPUT VARIABLES
+    # -------------------------------
+    input_aetr = ca.SX.sym("input_aetr", 4)
+
+    # CALC
+    # -------------------------------
+    psi_vel_sp = 60 * deg2rad * input_aetr[3]
+    vb = ca.vertcat(2 * input_aetr[1], -2 * input_aetr[0], input_aetr[2])
+
+    # FUNCTION
+    # -------------------------------
+    f_input_velocity = ca.Function(
+        "input_velocity",
+        [
+            input_aetr,
+        ],
+        [vb, psi_vel_sp],
+        [
+            "input_aetr",
+        ],
+        ["vb", "psi_vel_sp"],
+    )
+    return {"input_velocity": f_input_velocity}
 
 
 def derive_attitude_control():
@@ -493,10 +521,10 @@ def derive_common():
     vb0 = q.inverse() @ vw0
     vw1 = q @ vb1
     f_rotate_vector_w_to_b = ca.Function(
-        "rotate_vector_w_to_b", [q.param, vw0], [vb0], ["q", "vw0"], ["vb0"]
+        "rotate_vector_w_to_b", [q.param, vw0], [vb0], ["q", "v_w"], ["v_b"]
     )
     f_rotate_vector_b_to_w = ca.Function(
-        "rotate_vector_wbto_w", [q.param, vb1], [vw1], ["q", "vb1"], ["vw1"]
+        "rotate_vector_b_to_w", [q.param, vb1], [vw1], ["q", "v_b"], ["v_w"]
     )
     return {
         "rotate_vector_w_to_b": f_rotate_vector_w_to_b,
@@ -597,20 +625,10 @@ def derive_attitude_estimator():
 
     # Convert vector to world frame and extract xy component
     spin_rate = ca.norm_2(gyro)
+    mag_earth = (q.inverse() * mag1 * q).param[1:]
 
-    # Magnetometer frame transformation: flip y and z axes
-    # Original frame: x=forward, y=right, z=dowm
-    # Desired frame: x=forward, y=left, z=up
-    mag_frame_transform = ca.vertcat(
-        ca.horzcat(1, 0, 0),    # x stays the same
-        ca.horzcat(0, -1, 0),   # y flipped (right -> left)
-        ca.horzcat(0, 0, -1)    # z flipped (down -> up)
-    )
-
-
-    mag_earth = q.inverse() @ (mag_frame_transform @ mag)
     mag_err = (
-        ca.fmod(ca.atan2(mag_earth[1], mag_earth[0]) - mag_decl + ca.pi, 2 * ca.pi)
+        ca.fmod(ca.atan2(mag_earth[1], mag_earth[0] - mag_decl) + ca.pi, 2 * ca.pi)
         - ca.pi
     )
 
@@ -620,7 +638,7 @@ def derive_attitude_estimator():
 
     # Move magnetometer correction in body frame
     correction += (
-        q@ca.vertcat(0,0,mag_err)
+        (q.inverse() * SO3Quat.elem(ca.vertcat(0, 0, 0, mag_err)) * q).param[1:]
         * param_att_w_mag
         * gain_mult
     )
@@ -643,7 +661,7 @@ def derive_attitude_estimator():
     ## TODO add gyro bias stuff
 
     # Add gyro to correction
-    # correction += gyro
+    #correction += gyro
 
     # Make the correction
     q1 = q * so3.elem(correction * dt).exp(SO3Quat)
@@ -697,6 +715,7 @@ if __name__ == "__main__":
     eqs = {}
     eqs.update(derive_attitude_rate_control())
     eqs.update(derive_attitude_control())
+    eqs.update(derive_velocity_control())
     eqs.update(derive_position_control())
     eqs.update(derive_input_acro())
     eqs.update(derive_input_auto_level())

@@ -104,17 +104,9 @@ static void rdd2_lighting_run(void *p0, void *p1, void *p2)
 		k_msleep(33);
 
 		// update subscriptions
-		if (zros_sub_update_available(&ctx->sub_status)) {
-			zros_sub_update(&ctx->sub_status);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_safety)) {
-			zros_sub_update(&ctx->sub_safety);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_battery_state)) {
-			zros_sub_update(&ctx->sub_battery_state);
-		}
+		zros_sub_update(&ctx->sub_status);
+		zros_sub_update(&ctx->sub_safety);
+		zros_sub_update(&ctx->sub_battery_state);
 
 		// timing
 		double t = k_uptime_ticks() / ((double)CONFIG_SYS_CLOCK_TICKS_PER_SEC);

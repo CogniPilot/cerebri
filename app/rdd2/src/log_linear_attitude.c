@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "app/rdd2/casadi/rdd2_loglinear.h"
+
 #include <math.h>
 
 #include <zephyr/logging/log.h>
@@ -19,8 +21,6 @@
 
 #include <synapse_topic_list.h>
 
-#include "app/rdd2/casadi/rdd2.h"
-
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY   4
 
@@ -33,9 +33,9 @@ struct context {
 	synapse_pb_Status status;
 	synapse_pb_Odometry odometry_estimator;
 	synapse_pb_Quaternion attitude_sp;
-	synapse_pb_Vector3 angular_velocity_sp, angular_velocity_ff;
-	struct zros_sub sub_status, sub_attitude_sp, sub_odometry_estimator,
-		sub_angular_velocity_ff;
+	synapse_pb_Vector3 position_sp, velocity_sp, angular_velocity_sp, angular_velocity_ff;
+	struct zros_sub sub_status, sub_position_sp, sub_velocity_sp, sub_attitude_sp,
+		sub_odometry_estimator, sub_angular_velocity_ff;
 	struct zros_pub pub_angular_velocity_sp;
 	struct k_sem running;
 	size_t stack_size;
@@ -47,10 +47,14 @@ static struct context g_ctx = {
 	.node = {},
 	.status = synapse_pb_Status_init_default,
 	.attitude_sp = synapse_pb_Quaternion_init_default,
+	.position_sp = synapse_pb_Vector3_init_default,
+	.velocity_sp = synapse_pb_Vector3_init_default,
 	.angular_velocity_sp = synapse_pb_Vector3_init_default,
 	.angular_velocity_ff = synapse_pb_Vector3_init_default,
 	.odometry_estimator = synapse_pb_Odometry_init_default,
 	.sub_status = {},
+	.sub_position_sp = {},
+	.sub_velocity_sp = {},
 	.sub_attitude_sp = {},
 	.sub_odometry_estimator = {},
 	.pub_angular_velocity_sp = {},
@@ -62,8 +66,10 @@ static struct context g_ctx = {
 
 static void rdd2_attitude_init(struct context *ctx)
 {
-	zros_node_init(&ctx->node, "rdd2_attitude");
+	zros_node_init(&ctx->node, "rdd2_attiude");
 	zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
+	zros_sub_init(&ctx->sub_position_sp, &ctx->node, &topic_position_sp, &ctx->position_sp, 50);
+	zros_sub_init(&ctx->sub_velocity_sp, &ctx->node, &topic_velocity_sp, &ctx->velocity_sp, 50);
 	zros_sub_init(&ctx->sub_attitude_sp, &ctx->node, &topic_attitude_sp, &ctx->attitude_sp, 50);
 	zros_sub_init(&ctx->sub_odometry_estimator, &ctx->node, &topic_odometry_estimator,
 		      &ctx->odometry_estimator, 50);
@@ -78,6 +84,8 @@ static void rdd2_attitude_init(struct context *ctx)
 static void rdd2_attitude_fini(struct context *ctx)
 {
 	zros_sub_fini(&ctx->sub_status);
+	zros_sub_fini(&ctx->sub_position_sp);
+	zros_sub_fini(&ctx->sub_velocity_sp);
 	zros_sub_fini(&ctx->sub_attitude_sp);
 	zros_sub_fini(&ctx->sub_odometry_estimator);
 	zros_sub_fini(&ctx->sub_angular_velocity_ff);
@@ -109,6 +117,8 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 		// update subscriptions
 		zros_sub_update(&ctx->sub_status);
 		zros_sub_update(&ctx->sub_odometry_estimator);
+		zros_sub_update(&ctx->sub_position_sp);
+		zros_sub_update(&ctx->sub_velocity_sp);
 		zros_sub_update(&ctx->sub_attitude_sp);
 		zros_sub_update(&ctx->sub_angular_velocity_ff);
 
@@ -129,14 +139,43 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 
 			double omega[3];
 
+			double zeta[9];
+			double p_w[3] = {ctx->odometry_estimator.pose.position.x,
+					 ctx->odometry_estimator.pose.position.y,
+					 ctx->odometry_estimator.pose.position.z};
+
+			double v_b[3] = {ctx->odometry_estimator.twist.linear.x,
+					 ctx->odometry_estimator.twist.linear.y,
+					 ctx->odometry_estimator.twist.linear.z};
+
+			double p_rw[3] = {ctx->position_sp.x, ctx->position_sp.y,
+					  ctx->position_sp.z};
+
+			double v_rw[3] = {ctx->velocity_sp.x, ctx->velocity_sp.y,
+					  ctx->velocity_sp.z};
+
+			// se23_error:(p_w[3],v_b[3],q_wb[4],p_rw[3],v_rw[3],q_r[4])->(zeta[9])
+
 			{
-				// attitude_control:(kp[3],q[4],q_r[4])->(omega[3])
-				CASADI_FUNC_ARGS(attitude_control);
+				CASADI_FUNC_ARGS(se23_error);
+				args[0] = p_w;
+				args[1] = v_b;
+				args[2] = q_wb;
+				args[3] = p_rw;
+				args[4] = v_rw;
+				args[5] = q_r;
+				res[0] = zeta;
+				CASADI_FUNC_CALL(se23_error);
+			}
+
+			// se23_attitude_control:(kp[3],zeta[9])->(omega[3])
+			{
+				CASADI_FUNC_ARGS(so3_attitude_control);
 				args[0] = kp;
 				args[1] = q_wb;
 				args[2] = q_r;
 				res[0] = omega;
-				CASADI_FUNC_CALL(attitude_control);
+				CASADI_FUNC_CALL(so3_attitude_control);
 			}
 
 			// publish

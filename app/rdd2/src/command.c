@@ -36,7 +36,6 @@
 LOG_MODULE_REGISTER(rdd2_command, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
-static const double deg2rad = M_PI / 180.0;
 static const double thrust_trim = CONFIG_CEREBRI_RDD2_THRUST_TRIM * 1e-3;
 static const double thrust_delta = CONFIG_CEREBRI_RDD2_THRUST_DELTA * 1e-3;
 
@@ -209,17 +208,9 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				synapse_pb_Status_InputSource_INPUT_SOURCE_ETHERNET;
 		}
 
-		if (zros_sub_update_available(&ctx->sub_bezier_trajectory_ethernet)) {
-			zros_sub_update(&ctx->sub_bezier_trajectory_ethernet);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
-			zros_sub_update(&ctx->sub_odometry_estimator);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_cmd_vel_ethernet)) {
-			zros_sub_update(&ctx->sub_cmd_vel_ethernet);
-		}
+		zros_sub_update(&ctx->sub_bezier_trajectory_ethernet);
+		zros_sub_update(&ctx->sub_odometry_estimator);
+		zros_sub_update(&ctx->sub_cmd_vel_ethernet);
 
 		// calculate dt
 		int64_t ticks_now = k_uptime_ticks();
@@ -231,10 +222,12 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 		}
 
 		// input data
-		double input_roll = (double)ctx->input.channel[CH_RIGHT_STICK_RIGHT];
-		double input_pitch = (double)ctx->input.channel[CH_RIGHT_STICK_UP];
-		double input_yaw = -(double)ctx->input.channel[CH_LEFT_STICK_RIGHT];
-		double input_thrust = (double)ctx->input.channel[CH_LEFT_STICK_UP];
+		double input_aetr[4] = {
+			ctx->input.channel[CH_RIGHT_STICK_RIGHT],
+			ctx->input.channel[CH_RIGHT_STICK_UP],
+			ctx->input.channel[CH_LEFT_STICK_UP],
+			-ctx->input.channel[CH_LEFT_STICK_RIGHT],
+		};
 
 		// estimated attitude quaternion
 		double q[4] = {ctx->odometry_estimator.pose.orientation.w,
@@ -248,16 +241,18 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 			double thrust;
 			double input_aetr[4] = {input_roll, input_pitch, input_thrust, input_yaw};
 			{
-				// joy_acro:(thrust_trim,thrust_delta,joy_roll,joy_pitch,joy_yaw,joy_thrust)->(omega[3],thrust)
+				// input_acro:(thrust_trim,thrust_delta,input_aetr[4])->(omega[3],thrust)
 				CASADI_FUNC_ARGS(input_acro);
-				
+
 				args[0] = &thrust_trim;
 				args[1] = &thrust_delta;
+				args[2] = input_aetr;
 				args[2] = input_aetr;
 
 				res[0] = omega;
 				res[1] = &thrust;
 
+				CASADI_FUNC_CALL(input_acro);
 				CASADI_FUNC_CALL(input_acro);
 			}
 
@@ -291,17 +286,21 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 			double thrust;
 			double input_aetr[4] = {input_roll, input_pitch, input_thrust, input_yaw};
 			{
-				// joy_auto_level:(thrust_trim,thrust_delta,joy_roll,joy_pitch,joy_yaw,joy_thrust,q[4])->(q_r[4],thrust)
+				/* input_auto_level:(thrust_trim,thrust_delta,input_aetr[4],q[4])->(q_r[4],thrust)
+				 */
 				CASADI_FUNC_ARGS(input_auto_level);
 
 				args[0] = &thrust_trim;
 				args[1] = &thrust_delta;
 				args[2] = input_aetr;
 				args[3] = q;
+				args[2] = input_aetr;
+				args[3] = q;
 
 				res[0] = qr;
 				res[1] = &thrust;
 
+				CASADI_FUNC_CALL(input_auto_level);
 				CASADI_FUNC_CALL(input_auto_level);
 			}
 
@@ -360,64 +359,75 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				ctx->psi_sp = yaw;
 			}
 
-			// Input setup
-			double input_aetr[4];
+			double yaw_rate = 0;
+			double vt_b[3];
+
 			if (ctx->status.topic_source ==
 			    synapse_pb_Status_TopicSource_TOPIC_SOURCE_INPUT) {
-				input_aetr[0] = input_roll;  // aileron
-				input_aetr[1] = input_pitch; // elevator 
-				input_aetr[2] = input_thrust; // thrust
-				input_aetr[3] = input_yaw;   // rudder
+
+				{
+					// input_velocity:(input_aetr[4])->(vb[3],psi_vel_sp)
+					CASADI_FUNC_ARGS(input_velocity);
+					args[0] = input_aetr;
+					res[0] = vt_b;
+					res[1] = &yaw_rate;
+					CASADI_FUNC_CALL(input_velocity);
+					// LOG_INF("input velocity: %10.4f %10.4f %10.4f", vt_b[0],
+					// vt_b[1], vt_b[2]);
+				}
 			} else if (ctx->status.topic_source ==
 				   synapse_pb_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
-				input_aetr[0] = -ctx->cmd_vel.linear.y / 2.0; // aileron (converted from linear.y)
-				input_aetr[1] = ctx->cmd_vel.linear.x / 2.0;  // elevator (converted from linear.x)
-				input_aetr[2] = input_thrust; // thrust (keep from joystick)
-				input_aetr[3] = ctx->cmd_vel.angular.z / (60 * deg2rad); // rudder (converted from angular.z)
+				yaw_rate = ctx->cmd_vel.angular.z;
+				vt_b[0] = ctx->cmd_vel.linear.x;
+				vt_b[1] = ctx->cmd_vel.linear.y;
+				vt_b[2] = ctx->cmd_vel.linear.z;
+				// LOG_INF("offboard yawrate: %10.4f vbx: %10.4f %10.4f %10.4f",
+				// yaw_rate, vbx, vby, vbz);
+				// LOG_INF("input velocity eth: %10.4f %10.4f %10.4f", vt_b[0],
+				// vt_b[1], vt_b[2]);
 			}
 
-			// Current position
 			double pw[3] = {ctx->odometry_estimator.pose.position.x,
 					ctx->odometry_estimator.pose.position.y,
 					ctx->odometry_estimator.pose.position.z};
-
-			// Current position setpoint  
-			double pw_sp[3] = {ctx->position_sp.x, ctx->position_sp.y, ctx->position_sp.z};
-
-			// Call input_velocity CasADi function
-			double psi_sp1, psi_vel_sp;
-			double pw_sp1[3], vw_sp[3], aw_sp[3], q_sp[4];
-			double reset_position = (now_vel || now_armed) ? 1.0 : 0.0;
-			//double debug;
+			double pw_sp[3] = {
+				ctx->position_sp.x,
+				ctx->position_sp.y,
+				ctx->position_sp.z,
+			};
+			double vw_sp[3], aw_sp[3];
+			double reset_position = 0;
+			double qc[4];
 			{
-				CASADI_FUNC_ARGS(input_velocity);
+				// velocity_control:(dt,psi_sp,pw_sp[3],
+				//   pw[3],vb[3],psi_vel_sp,reset_position)
+				//   ->(psi_sp1,pw_sp1[3],vw_sp[3],aw_sp[3],q_sp[4])
+				CASADI_FUNC_ARGS(velocity_control);
 				args[0] = &dt;
-				args[1] = &ctx->psi_sp;
+				args[1] = &ctx->camera_yaw;
 				args[2] = pw_sp;
 				args[3] = pw;
-				args[4] = input_aetr;
-				args[5] = &reset_position;
-				res[0] = &psi_sp1;
-				res[1] = &psi_vel_sp;
-				res[2] = pw_sp1;
-				res[3] = vw_sp;
-				res[4] = aw_sp;
-				res[5] = q_sp;
-				CASADI_FUNC_CALL(input_velocity);
+				args[4] = vt_b;
+				args[5] = &yaw_rate;
+				args[6] = &reset_position;
+				res[0] = &ctx->camera_yaw;
+				res[1] = pw_sp;
+				res[2] = vw_sp;
+				res[3] = aw_sp;
+				res[4] = qc;
+				CASADI_FUNC_CALL(velocity_control);
 			}
-			LOG_INF("q_sp: %10.4f %10.4f %10.4f %10.4f", q_sp[0], q_sp[1], q_sp[2], q_sp[3]);
-			//LOG_INF("psi_sp1: %10.4f", psi_sp1);
 
-			// Update state
-			ctx->psi_sp = psi_sp1;
-			ctx->position_sp.x = pw_sp1[0];
-			ctx->position_sp.y = pw_sp1[1];
-			ctx->position_sp.z = pw_sp1[2];
-
-			// Publish setpoints
+			// position setpoint
+			ctx->position_sp.x = pw_sp[0];
+			ctx->position_sp.y = pw_sp[1];
+			ctx->position_sp.z = pw_sp[2];
 			zros_pub_update(&ctx->pub_position_sp);
 
 			// velocity setpoint
+			ctx->velocity_sp.x = vw_sp[0];
+			ctx->velocity_sp.y = vw_sp[1];
+			ctx->velocity_sp.z = vw_sp[2];
 			ctx->velocity_sp.x = vw_sp[0];
 			ctx->velocity_sp.y = vw_sp[1];
 			ctx->velocity_sp.z = vw_sp[2];
@@ -431,6 +441,9 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 			zros_pub_update(&ctx->pub_orientation_sp);
 
 			// acceleration setpoint
+			ctx->accel_ff.x = aw_sp[0];
+			ctx->accel_ff.y = aw_sp[1];
+			ctx->accel_ff.z = aw_sp[2];
 			ctx->accel_ff.x = aw_sp[0];
 			ctx->accel_ff.y = aw_sp[1];
 			ctx->accel_ff.z = aw_sp[2];

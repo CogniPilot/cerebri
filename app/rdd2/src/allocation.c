@@ -116,17 +116,10 @@ static void rdd2_allocation_run(void *p0, void *p1, void *p2)
 			LOG_DBG("not receiving moment_sp");
 		}
 
-		if (zros_sub_update_available(&ctx->sub_status)) {
-			zros_sub_update(&ctx->sub_status);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_force_sp)) {
-			zros_sub_update(&ctx->sub_force_sp);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_moment_sp)) {
-			zros_sub_update(&ctx->sub_moment_sp);
-		}
+		// update subscriptions
+		zros_sub_update(&ctx->sub_status);
+		zros_sub_update(&ctx->sub_force_sp);
+		zros_sub_update(&ctx->sub_moment_sp);
 
 		if (rc < 0) {
 			stop(ctx);
@@ -135,7 +128,7 @@ static void rdd2_allocation_run(void *p0, void *p1, void *p2)
 			stop(ctx);
 			LOG_DBG("not armed, stopped");
 		} else {
-			static double const F_max = 40.0;
+			static double const F_max = 20.0;
 			static double const l = CONFIG_CEREBRI_RDD2_MOTOR_L_MM * 1e-3;
 			static double const Cm = CONFIG_CEREBRI_RDD2_MOTOR_CM * 1e-6;
 			static double const Ct = CONFIG_CEREBRI_RDD2_MOTOR_CT * 1e-9;

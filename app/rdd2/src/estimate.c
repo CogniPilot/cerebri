@@ -131,9 +131,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		LOG_DBG("did not receive imu");
 		return;
 	}
-	if (zros_sub_update_available(&ctx->sub_imu)) {
-		zros_sub_update(&ctx->sub_imu);
-	}
+	zros_sub_update(&ctx->sub_imu);
 
 	double dt = 0;
 	int64_t ticks_last = k_uptime_ticks();

@@ -71,6 +71,9 @@ endif()
 if (CONFIG_CEREBRI_RDD2_POSITION)
   list(APPEND SOURCE_FILES
     src/position.c)
+elseif (CONFIG_CEREBRI_RDD2_LOGLINEAR_POSITION)
+  list(APPEND SOURCE_FILES
+    src/log_linear_position.c)
 endif()
 
 if (CONFIG_CEREBRI_RDD2_ANGULAR_VELOCITY)
@@ -81,6 +84,9 @@ endif()
 if (CONFIG_CEREBRI_RDD2_ATTITUDE)
   list(APPEND SOURCE_FILES
     src/attitude.c)
+elseif (CONFIG_CEREBRI_RDD2_LOGLINEAR_ATTITUDE)
+  list(APPEND SOURCE_FILES
+    src/log_linear_attitude.c)
 endif()
 
 set(CASADI_DEST_DIR ${CMAKE_BINARY_DIR}/app/rdd2/casadi)

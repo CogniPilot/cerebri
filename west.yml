@@ -32,11 +32,11 @@ manifest:
           - segger
     - name: zros
       remote: cognipilot
-      revision: 93de4213e5c6c1a3cf1f879ed1e6e4e0b7cb2ae5 # main 8/07/24
+      revision: 843348bca3a15e914914b90057369b9616302e20 # main 6/11/25
       path: modules/lib/zros
     - name: cyecca
       remote: cognipilot
-      revision: 45f92d1107e350504ed8dad4e526aedf0843490b # main 12/1/24
+      revision: 0acc0882eee8ab146371eca71bcb30157b76b250 # main 6/11/25
       path: modules/lib/cyecca
     - name: synapse_pb
       remote: cognipilot

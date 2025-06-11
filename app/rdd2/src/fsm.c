@@ -351,13 +351,8 @@ static void rdd2_fsm_run(void *p0, void *p1, void *p2)
 			LOG_DBG("fsm input/battery polling timeout");
 		}
 
-		if (zros_sub_update_available(&ctx->sub_battery_state)) {
-			zros_sub_update(&ctx->sub_battery_state);
-		}
-
-		if (zros_sub_update_available(&ctx->sub_safety)) {
-			zros_sub_update(&ctx->sub_safety);
-		}
+		zros_sub_update(&ctx->sub_battery_state);
+		zros_sub_update(&ctx->sub_safety);
 
 		// prioritize onboard input
 		if (zros_sub_update_available(&ctx->sub_input)) {

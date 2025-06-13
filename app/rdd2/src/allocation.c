@@ -135,18 +135,20 @@ static void rdd2_allocation_run(void *p0, void *p1, void *p2)
 			double omega[4];
 			double moment[3] = {ctx->moment_sp.x, ctx->moment_sp.y, ctx->moment_sp.z};
 
-			// LOG_INF("thrust: %10.4f", ctx->force_sp.z);
-
 			// control_allocation:(F_max,l,Cm,Ct,T,M[3])->(omega[4])
 			CASADI_FUNC_ARGS(control_allocation)
+
 			args[0] = &F_max;
 			args[1] = &l;
 			args[2] = &Cm;
 			args[3] = &Ct;
 			args[4] = &ctx->force_sp.z;
 			args[5] = moment;
+
 			res[0] = omega;
+
 			CASADI_FUNC_CALL(control_allocation)
+
 			for (int i = 0; i < 4; i++) {
 				if (!isfinite(omega[i])) {
 					LOG_WRN("omega is not finite: %10.4f", omega[i]);

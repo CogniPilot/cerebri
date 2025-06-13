@@ -144,9 +144,35 @@ def derive_bezier3():
 
     functions = [
         ca.Function(
-            "bezier3_solve", [wp_0, wp_1, T], [P_sol], ["wp_0", "wp_1", "T"], ["P"]
+            "bezier3_solve",
+            [
+                wp_0,
+                wp_1,
+                T,
+            ],
+            [P_sol],
+            [
+                "wp_0",
+                "wp_1",
+                "T",
+            ],
+            ["P"],
         ),
-        ca.Function("bezier3_traj", [t, T, P], [r], ["t", "T", "P"], ["r"]),
+        ca.Function(
+            "bezier3_traj",
+            [
+                t,
+                T,
+                P,
+            ],
+            [r],
+            [
+                "t",
+                "T",
+                "P",
+            ],
+            ["r"],
+        ),
     ]
 
     return {f.name(): f for f in functions}
@@ -156,7 +182,18 @@ def derive_dcm_to_quat():
     R = SO3Dcm.elem(ca.SX.sym("R", 9))
     q = SO3Quat.from_Dcm(R)
 
-    functions = [ca.Function("dcm_to_quat", [R.param], [q.param], ["R"], ["q"])]
+    functions = [ca.Function(
+        "dcm_to_quat",
+        [
+            R.param,
+        ],
+        [q.param],
+        [
+            "R",
+        ],
+        ["q"],
+        )
+    ]
 
     return {f.name(): f for f in functions}
 
@@ -286,22 +323,29 @@ def derive_ref():
     # Code Generation
 
     v_b = C_eb @ v_e
-    functions = [
-        ca.Function(
-            "f_ref",
-            [psi, psi_dot, psi_ddot, v_e, a_e, j_e, s_e],
-            [v_b, quat, omega_eb_b, omega_dot_eb_b, M_b, T],
-            [
-                "psi",
-                "psi_dot",
-                "psi_ddot",
-                "v_e",
-                "a_e",
-                "j_e",
-                "s_e",
-            ],
+    functions = [ca.Function(
+        "f_ref",
+        [
+            psi,
+            psi_dot,
+            psi_ddot,
+            v_e,
+            a_e,
+            j_e,
+            s_e,
+        ],
+        [v_b, quat, omega_eb_b, omega_dot_eb_b, M_b, T],
+        [
+            "psi",
+            "psi_dot",
+            "psi_ddot",
+            "v_e",
+            "a_e",
+            "j_e",
+            "s_e",
+        ],
             ["v_b", "quat", "omega_eb_b", "omega_dot_eb_b", "M_b", "T"],
-        )
+        ),
     ]
     return {f.name(): f for f in functions}
 
@@ -358,14 +402,27 @@ def derive_multirotor():
     j = ca.vertcat(jx, jy, jz)
     s = ca.vertcat(sx, sy, sz)
 
-    functions = [
-        ca.Function(
-            "bezier_multirotor",
-            [t, T, PX, PY, PZ, Ppsi],
-            [x, y, z, psi, dpsi, ddpsi, v, a, j, s],
-            ["t", "T", "PX", "PY", "PZ", "Ppsi"],
-            ["x", "y", "z", "psi", "psidot", "psiddot", "v", "a", "j", "s"],
-        ),
+    functions = [ca.Function(
+        "bezier_multirotor",
+        [
+            t,
+            T,
+            PX,
+            PY,
+            PZ,
+            Ppsi,
+        ],
+        [x, y, z, psi, dpsi, ddpsi, v, a, j, s],
+        [
+            "t",
+            "T",
+            "PX",
+            "PY",
+            "PZ",
+            "Ppsi",
+        ],
+        ["x", "y", "z", "psi", "psidot", "psiddot", "v", "a", "j", "s"],
+    )
     ]
 
     return {f.name(): f for f in functions}
@@ -388,9 +445,17 @@ def derive_eulerB321_to_quat():
     # -------------------------------
     f_eulerB321_to_quat = ca.Function(
         "eulerB321_to_quat",
-        [e.param[0], e.param[1], e.param[2]],
+        [
+            e.param[0],
+            e.param[1],
+            e.param[2],
+        ],
         [X.param],
-        ["yaw", "pitch", "roll"],
+        [
+            "yaw",
+            "pitch",
+            "roll",
+        ],
         ["q"],
     )
 

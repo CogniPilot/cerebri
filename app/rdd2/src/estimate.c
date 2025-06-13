@@ -143,8 +143,6 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 	// estimator states
 	double x[10] = {0, 0, 0, 0, 0, 0, 1, 0, 0, 0};
 	double q[4] = {1, 0, 0, 0};
-	double v_b[3]; // velocity in body frame
-	double v_w[3]; // velocity in world frame
 
 	// estimator covariance
 	double P[36] = {1e-2, 0, 0, 0, 0, 0,
@@ -319,6 +317,9 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		x[8] = q[2];
 		x[9] = q[3];
 
+		double v_b[3]; // velocity in body frame
+		double v_w[3]; // velocity in world frame
+
 		// Update velocity in world frame
 		v_w[0] = x[3];
 		v_w[1] = x[4];
@@ -328,9 +329,12 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		{
 			// rotate_vector_w_to_b:(q[4],v_w[3])->(v_b[3])
 			CASADI_FUNC_ARGS(rotate_vector_w_to_b)
+
 			args[0] = q;
 			args[1] = v_w;
+
 			res[0] = v_b;
+
 			CASADI_FUNC_CALL(rotate_vector_w_to_b)
 		}
 

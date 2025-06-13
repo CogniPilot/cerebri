@@ -231,9 +231,9 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 
 		// estimated attitude quaternion
 		double q[4] = {ctx->odometry_estimator.pose.orientation.w,
-			       ctx->odometry_estimator.pose.orientation.x,
-			       ctx->odometry_estimator.pose.orientation.y,
-			       ctx->odometry_estimator.pose.orientation.z};
+			    	   ctx->odometry_estimator.pose.orientation.x,
+			       	   ctx->odometry_estimator.pose.orientation.y,
+			       	   ctx->odometry_estimator.pose.orientation.z};
 
 		// handle joy based on mode
 		if (ctx->status.mode == synapse_pb_Status_Mode_MODE_ATTITUDE_RATE) {

@@ -125,7 +125,19 @@ def derive_so3_attitude_control():
     # FUNCTION
     # -------------------------------
     f_attitude_control = ca.Function(
-        "so3_attitude_control", [kp, q, q_r], [omega], ["kp", "q", "q_r"], ["omega"]
+        "so3_attitude_control",
+        [
+            kp,
+            q,
+            q_r,
+        ],
+        [omega],
+        [
+            "kp",
+            "q",
+            "q_r",
+        ],
+        ["omega"],
     )
 
     return {"so3_attitude_control": f_attitude_control}
@@ -220,14 +232,40 @@ def derive_outerloop_control():
     # -------------------------------
     f_get_u = ca.Function(
         "se23_position_control",
-        [thrust_trim, kp, zeta, at_w, qc_wb.param, z_i, dt],
+        [
+            thrust_trim,
+            kp,
+            zeta,
+            at_w,
+            qc_wb.param,
+            z_i,
+            dt,
+        ],
         [nT, qr_wb.param, z_i_2],
-        ["thrust_trim", "kp", "zeta", "at_w", "qc_wb", "z_i", "dt"],
+        [
+            "thrust_trim",
+            "kp",
+            "zeta",
+            "at_w",
+            "qc_wb",
+            "z_i",
+            "dt",
+        ],
         ["nT", "qr_wb", "z_i_2"],
     )
 
     f_se23_attitude_control = ca.Function(
-        "se23_attitude_control", [kp, zeta], [u_omega], ["kp", "zeta"], ["omega"]
+        "se23_attitude_control",
+        [
+            kp,
+            zeta,
+        ],
+        [u_omega],
+        [
+            "kp",
+            "zeta",
+        ],
+        ["omega"],
     )
 
     return {

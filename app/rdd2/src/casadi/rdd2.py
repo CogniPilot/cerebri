@@ -186,9 +186,23 @@ def derive_control_allocation():
 
     f_alloc = ca.Function(
         "control_allocation",
-        [F_max, l, Cm, Ct, T, M],
+        [
+            F_max,
+            l,
+            Cm,
+            Ct,
+            T,
+            M,
+        ],
         [omega, Fp_sum, F_moment, F_thrust, M_sat],
-        ["F_max", "l", "Cm", "Ct", "T", "M"],
+        [
+            "F_max",
+            "l",
+            "Cm",
+            "Ct",
+            "T",
+            "M",
+        ],
         ["omega", "Fp_sum", "F_moment", "F_thrust", "M_sat"],
     )
     return {"f_alloc": f_alloc}
@@ -315,7 +329,11 @@ def derive_input_acro():
     # -------------------------------
     f_input_acro = ca.Function(
         "input_acro",
-        [thrust_trim, thrust_delta, input_aetr],
+        [
+            thrust_trim,
+            thrust_delta,
+            input_aetr
+        ],
         [w, thrust],
         [
             "thrust_trim",
@@ -381,7 +399,12 @@ def derive_input_auto_level():
     # -------------------------------
     f_input_auto_level = ca.Function(
         "input_auto_level",
-        [thrust_trim, thrust_delta, input_aetr, q.param],
+        [
+            thrust_trim,
+            thrust_delta,
+            input_aetr,
+            q.param
+        ],
         [q_r.param, thrust],
         [
             "thrust_trim",
@@ -466,7 +489,19 @@ def derive_attitude_control():
     # FUNCTION
     # -------------------------------
     f_attitude_control = ca.Function(
-        "attitude_control", [kp, q, q_r], [omega], ["kp", "q", "q_r"], ["omega"]
+        "attitude_control", 
+        [
+            kp,
+            q, 
+            q_r
+        ], 
+        [omega],
+        [
+            "kp",
+            "q",
+            "q_r"
+        ],
+        ["omega"]
     )
         "attitude_control", [kp, q, q_r], [omega], ["kp", "q", "q_r"], ["omega"]
     )
@@ -530,7 +565,19 @@ def derive_attitude_rate_control():
     # -------------------------------
     f_attitude_rate_control = ca.Function(
         "attitude_rate_control",
-        [kp, ki, kd, f_cut, i_max, omega, omega_r, i0, e0, de0, dt],
+        [
+            kp,
+            ki,
+            kd,
+            f_cut,
+            i_max,
+            omega,
+            omega_r,
+            i0,
+            e0,
+            de0,
+            dt,
+        ],
         [M, i1, e1, de1, alpha],
         [
             "kp",
@@ -669,9 +716,29 @@ def derive_position_control():
     # -------------------------------
     f_get_u = ca.Function(
         "position_control",
-        [thrust_trim, pt_w, vt_w, at_w, qc_wb.param, p_w, v_w, z_i, dt],
+        [
+            thrust_trim,
+            pt_w,
+            vt_w,
+            at_w,
+            qc_wb.param,
+            p_w,
+            v_w,
+            z_i,
+            dt,
+        ],
         [nT, qr_wb.param, z_i_2],
-        ["thrust_trim", "pt_w", "vt_w", "at_w", "qc_wb", "p_w", "v_w", "z_i", "dt"],
+        [
+            "thrust_trim",
+            "pt_w",
+            "vt_w",
+            "at_w",
+            "qc_wb",
+            "p_w",
+            "v_w",
+            "z_i",
+            "dt",
+        ],
         ["nT", "qr_wb", "z_i_2"],
     )
 
@@ -717,9 +784,21 @@ def derive_strapdown_ins_propagation():
     f_ins = ca.Function(
     f_ins = ca.Function(
         "strapdown_ins_propagate",
-        [X0.param, a_b, omega_b, g, dt],
+        [   
+            X0.param,
+            a_b,
+            omega_b,
+            g,
+            dt
+        ],
         [X1.param],
-        ["x0", "a_b", "omega_b", "g", "dt"],
+        [
+            "x0",
+            "a_b",
+            "omega_b",
+            "g",
+            "dt",
+        ],
         ["x1"],
     )
     eqs = {"strapdown_ins_propagate": f_ins}
@@ -769,9 +848,19 @@ def derive_position_correction():
 
     f_pos_estimator = ca.Function(
         "position_correction",
-        [est_x, z, dt, P],
+        [
+            est_x,
+            z,
+            dt,
+            P,
+        ],
         [x_new, P_new],
-        ["est_x", "gps", "dt", "P"],
+        [
+            "est_x",
+            "gps",
+            "dt",
+            "P",
+        ],
         ["x_new", "P_new"],
     )
     return {"position_correction": f_pos_estimator}
@@ -804,7 +893,7 @@ def derive_attitude_estimator():
     # Transform magnetometer to world frame
     mag_earth = q @ (mag_transform @ mag)
 
-    # Magnetometer error. 
+    # Magnetometer error calculation
     # Negative sign because yaw is opposite to positive angle in body frame???
     mag_err = -(ca.fmod(ca.atan2(mag_earth[1], mag_earth[0])
                          + mag_decl + ca.pi, 2 * ca.pi) - ca.pi)
@@ -839,15 +928,28 @@ def derive_attitude_estimator():
 
     # Make the correction
     q1 = q * so3.elem(correction * dt).exp(SO3Quat)
-    debug = mag_earth
 
     # Return estimator
     f_att_estimator = ca.Function(
         "attitude_estimator",
-        [q0, mag, mag_decl, gyro, accel, dt],
-        [q1.param, debug],
-        ["q", "mag", "mag_decl", "gyro", "accel", "dt"],
-        ["q1", "debug"],
+        [
+            q0,
+            mag,
+            mag_decl,
+            gyro,
+            accel,
+            dt,
+        ],
+        [q1.param],
+        [
+            "q",
+            "mag",
+            "mag_decl",
+            "gyro",
+            "accel",
+            "dt",
+        ],
+        ["q1"],
     )
 
     return {"attitude_estimator": f_att_estimator}

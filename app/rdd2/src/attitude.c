@@ -99,6 +99,14 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 		*zros_sub_get_event(&ctx->sub_odometry_estimator),
 	};
 
+	// Constants
+	static const double kp[3] = {
+		CONFIG_CEREBRI_RDD2_ROLL_KP * 1e-6,
+		CONFIG_CEREBRI_RDD2_PITCH_KP * 1e-6,
+		CONFIG_CEREBRI_RDD2_YAW_KP * 1e-6,
+	};
+
+
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 		int rc = 0;
 		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
@@ -114,34 +122,27 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 
 		if (ctx->status.mode != synapse_pb_Status_Mode_MODE_ATTITUDE_RATE) {
 			double q_wb[4] = {ctx->odometry_estimator.pose.orientation.w,
-					  ctx->odometry_estimator.pose.orientation.x,
-					  ctx->odometry_estimator.pose.orientation.y,
-					  ctx->odometry_estimator.pose.orientation.z};
+					  		  ctx->odometry_estimator.pose.orientation.x,
+					  		  ctx->odometry_estimator.pose.orientation.y,
+					  		  ctx->odometry_estimator.pose.orientation.z};
 
-			double q_r[4] = {ctx->attitude_sp.w, ctx->attitude_sp.x, ctx->attitude_sp.y,
-					 ctx->attitude_sp.z};
-
-			const double kp[3] = {
-				CONFIG_CEREBRI_RDD2_ROLL_KP * 1e-6,
-				CONFIG_CEREBRI_RDD2_PITCH_KP * 1e-6,
-				CONFIG_CEREBRI_RDD2_YAW_KP * 1e-6,
-			};
-
+			double q_r[4] = {ctx->attitude_sp.w,
+					 		 ctx->attitude_sp.x,
+						     ctx->attitude_sp.y,
+						     ctx->attitude_sp.z};
 			double omega[3];
 
 			{
-				//double debug[3];
 				// attitude_control:(kp[3],q[4],q_r[4])->(omega[3])
 				CASADI_FUNC_ARGS(attitude_control);
+
 				args[0] = kp;
 				args[1] = q_wb;
 				args[2] = q_r;
+
 				res[0] = omega;
-				//res[1] = debug;
+				
 				CASADI_FUNC_CALL(attitude_control);
-				//LOG_INF("omega: %10.4f %10.4f %10.4f", omega[0], omega[1], omega[2]);
-				//LOG_INF("q_r: %10.4f %10.4f %10.4f %10.4f", q_r[0], q_r[1], q_r[2], q_r[3]);
-				//LOG_INF("debug: %10.4f %10.4f %10.4f", debug[0], debug[1], debug[2]);
 			}
 
 			// publish

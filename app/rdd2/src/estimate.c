@@ -136,13 +136,23 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 	double dt = 0;
 	int64_t ticks_last = k_uptime_ticks();
 
+	// Constants
+	static const double decl_WL = -4.494167/180 * M_PI + 0.25; // magnetic declination for WL, IN
+	static const double g = 9.8; // gravity
+
 	// estimator states
 	double x[10] = {0, 0, 0, 0, 0, 0, 1, 0, 0, 0};
 	double q[4] = {1, 0, 0, 0};
+	double v_b[3]; // velocity in body frame
+	double v_w[3]; // velocity in world frame
 
 	// estimator covariance
-	double P[36] = {1e-2, 0, 0, 0,    0, 0, 0, 1e-2, 0, 0, 0,    0, 0, 0, 1e-2, 0, 0, 0,
-			0,    0, 0, 1e-2, 0, 0, 0, 0,    0, 0, 1e-2, 0, 0, 0, 0,    0, 0, 1e-2};
+	double P[36] = {1e-2, 0, 0, 0, 0, 0,
+	        		0, 1e-2, 0, 0, 0, 0,
+					0, 0, 1e-2, 0, 0, 0,
+					0, 0, 0, 1e-2, 0, 0, 
+					0, 0, 0, 0, 1e-2, 0, 
+					0, 0, 0, 0, 0, 1e-2};
 
 	// poll on imu
 	events[0] = *zros_sub_get_event(&ctx->sub_imu);
@@ -185,7 +195,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			// LOG_INF("correct offboard odometry");
 			zros_sub_update(&ctx->sub_odometry_ethernet);
 
-#if defined(CONFIG_CEREBRI_RDD2_ESTIMATE_ODOMETRY_ETHERNET)
+		#if defined(CONFIG_CEREBRI_RDD2_ESTIMATE_ODOMETRY_ETHERNET)
 			__ASSERT(fabs((ctx->odometry_ethernet.pose.orientation.w *
 					       ctx->odometry_ethernet.pose.orientation.w +
 				       ctx->odometry_ethernet.pose.orientation.x *
@@ -212,7 +222,8 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			x[7] = ctx->odometry_ethernet.pose.orientation.x;
 			x[8] = ctx->odometry_ethernet.pose.orientation.y;
 			x[9] = ctx->odometry_ethernet.pose.orientation.z;
-#endif
+						
+		#endif
 		}
 
 		// calculate dt
@@ -227,67 +238,68 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		{
 			CASADI_FUNC_ARGS(strapdown_ins_propagate)
 			/* strapdown_ins_propagate:(x0[10],a_b[3],omega_b[3],g,dt)->(x1[10]) */
-			const double g = 9.8;
+
 			double a_b[3] = {ctx->imu.linear_acceleration.x,
-					 ctx->imu.linear_acceleration.y,
-					 ctx->imu.linear_acceleration.z};
+					 		 ctx->imu.linear_acceleration.y,
+					 		 ctx->imu.linear_acceleration.z};
 			double omega_b[3] = {ctx->imu.angular_velocity.x,
-					     ctx->imu.angular_velocity.y,
-					     ctx->imu.angular_velocity.z};
+					     		 ctx->imu.angular_velocity.y,
+					     		 ctx->imu.angular_velocity.z};
 			args[0] = x;
 			args[1] = a_b;
 			args[2] = omega_b;
 			args[3] = &g;
 			args[4] = &dt;
+
 			res[0] = x;
+
 			CASADI_FUNC_CALL(strapdown_ins_propagate)
 		}
 
-		// {
-		// 	CASADI_FUNC_ARGS(position_correction)
+		// Update quaternion
+		q[0] = x[6];
+		q[1] = x[7];
+		q[2] = x[8];
+		q[3] = x[9];
 
-		// 	double gps[3] = {ctx->odometry_ethernet.pose.position.x,
-		// 			 ctx->odometry_ethernet.pose.position.y,
-		// 			 ctx->odometry_ethernet.pose.position.z};
+		{
+			CASADI_FUNC_ARGS(position_correction)
 
-		// 	args[0] = x;
-		// 	args[1] = gps;
-		// 	args[2] = &dt;
-		// 	args[3] = P;
+			double gps[3] = {ctx->odometry_ethernet.pose.position.x,
+					 		 ctx->odometry_ethernet.pose.position.y,
+					 		 ctx->odometry_ethernet.pose.position.z};
 
-		// 	res[0] = x;
-		// 	res[1] = P;
+			args[0] = x;
+			args[1] = gps;
+			args[2] = &dt;
+			args[3] = P;
 
-		// 	CASADI_FUNC_CALL(position_correction)
-		// }
+			res[0] = x;
+			res[1] = P;
+
+			CASADI_FUNC_CALL(position_correction)
+		}
 
 		/*
 		f_att_estimator = ca.Function(
-	"attitude_estimator",
-	[q0, mag, mag_decl, gyro, accel, dt],
-	[q1.param],
-	["q", "mag", "mag_decl", "gyro", "accel", "dt"],
-	["q1"],
-	)*/
+		"attitude_estimator",
+		[q0, mag, mag_decl, gyro, accel, dt],
+		[q1.param],
+		["q", "mag", "mag_decl", "gyro", "accel", "dt"],
+		["q1"],
+		)*/
 		{
 			CASADI_FUNC_ARGS(attitude_estimator)
 
 			double a_b[3] = {ctx->imu.linear_acceleration.x,
-					 ctx->imu.linear_acceleration.y,
-					 ctx->imu.linear_acceleration.z};
+					 		 ctx->imu.linear_acceleration.y,
+					 		 ctx->imu.linear_acceleration.z};
 			double omega_b[3] = {ctx->imu.angular_velocity.x,
-					     ctx->imu.angular_velocity.y,
-					     ctx->imu.angular_velocity.z};
- 
-			double mag[3] = {ctx->mag.magnetic_field.x, ctx->mag.magnetic_field.y,
-					 ctx->mag.magnetic_field.z};
-			//const double decl_WL = -6.66/180 * M_PI + 0.12;
-			const double decl_WL = 0;
-			//double debug[1];
-			q[0] = x[6];
-			q[1] = x[7];
-			q[2] = x[8];
-			q[3] = x[9];
+					     		 ctx->imu.angular_velocity.y,
+					     		 ctx->imu.angular_velocity.z};
+			double mag[3] = {ctx->mag.magnetic_field.x, 
+							 ctx->mag.magnetic_field.y,
+					 		 ctx->mag.magnetic_field.z};
 
 			args[0] = q;
 			args[1] = mag;
@@ -295,24 +307,32 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			args[3] = omega_b;
 			args[4] = a_b;
 			args[5] = &dt;
+
 			res[0] = q;
-			//res[1] = debug;
 
 			CASADI_FUNC_CALL(attitude_estimator)
-
 		}
-		
 
-			//LOG_ERR("mag_err: {%.2f}", debug[0]);
-			//LOG_INF("mag: x {%.2f} y, {%.2f} z {%.2f}", mag[0], mag[1], mag[2]);
-			//LOG_INF("q: {%.2f} {%.2f} {%.2f} {%.2f}", q[0], q[1], q[2], q[3]);
-			x[6] = q[0];
-			x[7] = q[1];
-			x[8] = q[2];
-			x[9] = q[3];
+		// Put quaternion back into state vector
+		x[6] = q[0];
+		x[7] = q[1];
+		x[8] = q[2];
+		x[9] = q[3];
 
-			P[0] = P[0]; // temp line
+		// Update velocity in world frame
+		v_w[0] = x[3];
+		v_w[1] = x[4];
+		v_w[2] = x[5];
 
+		// Rotate velocity from world frame to body frame
+		{
+			// rotate_vector_w_to_b:(q[4],v_w[3])->(v_b[3])
+			CASADI_FUNC_ARGS(rotate_vector_w_to_b)
+			args[0] = q;
+			args[1] = v_w;
+			res[0] = v_b;
+			CASADI_FUNC_CALL(rotate_vector_w_to_b)
+		}
 
 		bool data_ok = true;
 		for (int i = 0; i < 10; i++) {
@@ -331,9 +351,9 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			ctx->odometry.pose.position.x = x[0];
 			ctx->odometry.pose.position.y = x[1];
 			ctx->odometry.pose.position.z = x[2];
-			ctx->odometry.twist.linear.x = x[3];
-			ctx->odometry.twist.linear.y = x[4];
-			ctx->odometry.twist.linear.z = x[5];
+			ctx->odometry.twist.linear.x = v_b[0];
+			ctx->odometry.twist.linear.y = v_b[1];
+			ctx->odometry.twist.linear.z = v_b[2];
 			ctx->odometry.pose.orientation.w = x[6];
 			ctx->odometry.pose.orientation.x = x[7];
 			ctx->odometry.pose.orientation.y = x[8];

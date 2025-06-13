@@ -29,7 +29,7 @@ yaw_rate_max = 60  # deg/s
 rollpitch_max = 30  # deg
 
 # position loop
-kp_pos = 1.0  # position proportional gain
+kp_pos = 1.0 # position proportional gain
 kp_vel = 2.0  # velocity proportional gain
 # pos_sp_dist_max = 2 # position setpoint max distance
 # vel_max = 2.0 # max velocity command
@@ -37,9 +37,9 @@ z_integral_max = 0  # 5.0
 ki_z = 0.05  # velocity z integral gain
 
 # estimator params
-att_w_acc = 0.2
-att_w_gyro_bias = 0.1
-param_att_w_mag = 0.2
+att_w_acc = 0.4
+att_w_gyro_bias = 0
+param_att_w_mag = 0.4
 
 
 def derive_control_allocation():
@@ -203,7 +203,7 @@ def derive_velocity_control():
 
 def derive_input_acro():
     """
-    Acro mode manual input:
+    Acro mode manual :
 
     Given input, find roll rate and thrust setpoints
     """
@@ -617,20 +617,27 @@ def derive_attitude_estimator():
     accel = ca.SX.sym("accel", 3)
     dt = ca.SX.sym("dt", 1)
 
-    # Convert magnetometer to quat
-    mag1 = SO3Quat.elem(ca.vertcat(0, mag))
-
     # correction angular velocity vector
     correction = ca.SX.zeros(3, 1)
 
-    # Convert vector to world frame and extract xy component
     spin_rate = ca.norm_2(gyro)
-    mag_earth = (q.inverse() * mag1 * q).param[1:]
 
-    mag_err = (
-        ca.fmod(ca.atan2(mag_earth[1], mag_earth[0] - mag_decl) + ca.pi, 2 * ca.pi)
-        - ca.pi
+    # Magnetometer frame is x - forward, y - left, z - down
+    # Converting to match body and world frame definition
+    # x - forward, y - left, z - up
+    mag_transform = ca.vertcat(
+        ca.horzcat(1, 0, 0),    
+        ca.horzcat(0, 1, 0),  
+        ca.horzcat(0, 0, -1)    
     )
+
+    # Transform magnetometer to world frame
+    mag_earth = q @ (mag_transform @ mag)
+
+    # Magnetometer error. 
+    # Negative sign because yaw is opposite to positive angle in body frame???
+    mag_err = -(ca.fmod(ca.atan2(mag_earth[1], mag_earth[0])
+                         + mag_decl + ca.pi, 2 * ca.pi) - ca.pi)
 
     # Change gain if spin rate is large
     fifty_dps = 0.873
@@ -638,7 +645,7 @@ def derive_attitude_estimator():
 
     # Move magnetometer correction in body frame
     correction += (
-        (q.inverse() * SO3Quat.elem(ca.vertcat(0, 0, 0, mag_err)) * q).param[1:]
+        q.inverse() @ ca.vertcat(0,0,mag_err)
         * param_att_w_mag
         * gain_mult
     )
@@ -660,22 +667,21 @@ def derive_attitude_estimator():
 
     ## TODO add gyro bias stuff
 
-    # Add gyro to correction
-    #correction += gyro
-
     # Make the correction
     q1 = q * so3.elem(correction * dt).exp(SO3Quat)
+    debug = mag_earth
 
     # Return estimator
     f_att_estimator = ca.Function(
         "attitude_estimator",
         [q0, mag, mag_decl, gyro, accel, dt],
-        [q1.param],
+        [q1.param, debug],
         ["q", "mag", "mag_decl", "gyro", "accel", "dt"],
-        ["q1"],
+        ["q1", "debug"],
     )
 
     return {"attitude_estimator": f_att_estimator}
+
 
 
 def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):

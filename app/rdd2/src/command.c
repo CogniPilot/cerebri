@@ -397,26 +397,28 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 			};
 			double vw_sp[3], aw_sp[3];
 			double reset_position = 0;
-			double qc[4];
+			double q_sp[4];
 			{
 				// velocity_control:(dt,psi_sp,pw_sp[3],
 				//   pw[3],vb[3],psi_vel_sp,reset_position)
 				//   ->(psi_sp1,pw_sp1[3],vw_sp[3],aw_sp[3],q_sp[4])
 				CASADI_FUNC_ARGS(velocity_control);
 				args[0] = &dt;
-				args[1] = &ctx->camera_yaw;
+				args[1] = &ctx->psi_sp;
 				args[2] = pw_sp;
 				args[3] = pw;
 				args[4] = vt_b;
 				args[5] = &yaw_rate;
 				args[6] = &reset_position;
-				res[0] = &ctx->camera_yaw;
+				res[0] = &ctx->psi_sp;
 				res[1] = pw_sp;
 				res[2] = vw_sp;
 				res[3] = aw_sp;
-				res[4] = qc;
+				res[4] = q_sp;
 				CASADI_FUNC_CALL(velocity_control);
 			}
+			
+			//LOG_INF("psi_sp1: %10.4f", psi_sp1);
 
 			// position setpoint
 			ctx->position_sp.x = pw_sp[0];

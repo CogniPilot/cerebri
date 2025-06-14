@@ -715,8 +715,8 @@ def derive_attitude_estimator():
     # Converting to match body and world frame definition
     # x - forward, y - left, z - up
     mag_transform = ca.vertcat(
-        ca.horzcat(1, 0, 0),    
-        ca.horzcat(0, 1, 0),  
+        ca.horzcat(-1, 0, 0),    
+        ca.horzcat(0, -1, 0),  
         ca.horzcat(0, 0, -1)    
     )
 

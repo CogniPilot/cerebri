@@ -206,20 +206,20 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 				 "quaternion normal error");
 
 			// use offboard odometry to reset position
-			x[0] = ctx->odometry_ethernet.pose.position.x;
-			x[1] = ctx->odometry_ethernet.pose.position.y;
-			x[2] = ctx->odometry_ethernet.pose.position.z;
+			// x[0] = ctx->odometry_ethernet.pose.position.x;
+			// x[1] = ctx->odometry_ethernet.pose.position.y;
+			// x[2] = ctx->odometry_ethernet.pose.position.z;
 
-			// use offboard odometry to reset velocity
-			x[3] = ctx->odometry_ethernet.twist.linear.x;
-			x[4] = ctx->odometry_ethernet.twist.linear.y;
-			x[5] = ctx->odometry_ethernet.twist.linear.z;
+			// // use offboard odometry to reset velocity
+			// x[3] = ctx->odometry_ethernet.twist.linear.x;
+			// x[4] = ctx->odometry_ethernet.twist.linear.y;
+			// x[5] = ctx->odometry_ethernet.twist.linear.z;
 
-			// use offboard odometry to reset orientation
-			x[6] = ctx->odometry_ethernet.pose.orientation.w;
-			x[7] = ctx->odometry_ethernet.pose.orientation.x;
-			x[8] = ctx->odometry_ethernet.pose.orientation.y;
-			x[9] = ctx->odometry_ethernet.pose.orientation.z;
+			// // use offboard odometry to reset orientation
+			// x[6] = ctx->odometry_ethernet.pose.orientation.w;
+			// x[7] = ctx->odometry_ethernet.pose.orientation.x;
+			// x[8] = ctx->odometry_ethernet.pose.orientation.y;
+			// x[9] = ctx->odometry_ethernet.pose.orientation.z;
 						
 		#endif
 		}

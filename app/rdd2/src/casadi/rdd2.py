@@ -715,8 +715,8 @@ def derive_attitude_estimator():
     # Converting to match body and world frame definition
     # x - forward, y - left, z - up
     mag_transform = ca.vertcat(
-        ca.horzcat(-1, 0, 0),    
-        ca.horzcat(0, -1, 0),  
+        ca.horzcat(1, 0, 0),    
+        ca.horzcat(0, 1, 0),  
         ca.horzcat(0, 0, -1)    
     )
 
@@ -724,7 +724,6 @@ def derive_attitude_estimator():
     mag_earth = q @ (mag_transform @ mag)
 
     # Magnetometer error calculation
-    # Negative sign because yaw is opposite to positive angle in body frame???
     mag_err = -(ca.fmod(ca.atan2(mag_earth[1], mag_earth[0])
                          + mag_decl + ca.pi, 2 * ca.pi) - ca.pi)
 
@@ -744,13 +743,13 @@ def derive_attitude_estimator():
 
     # Correct accelerometer only if g between
     higher_lim_check = ca.if_else(accel_norm_sq < ((g * 1.1) ** 2), 1, 0)
-    lower_lim_check = ca.if_else(accel_norm_sq > ((g * 0.9) ** 2), 1, 0)
+    lower_lim_check = ca.if_else(accel_norm_sq > ((g * 0.90) ** 2), 1, 0)
+    accel_norm_check = higher_lim_check * lower_lim_check
 
     # Correct gravity as z
-    correction += (
-        lower_lim_check
-        * higher_lim_check
-        * ca.cross(np.array([[0], [0], [-1]]), accel / ca.norm_2(accel))
+    correction -= (
+        accel_norm_check
+        * ca.cross(q.inverse() @ ca.vertcat(0,0,1), accel / ca.norm_2(accel))
         * att_w_acc
     )
 

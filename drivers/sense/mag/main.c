@@ -68,35 +68,35 @@ void mag_work_handler(struct k_work *work)
 	}
 
 	// select first mag for data for now: TODO implement voting
-	double mag[3] = {mag_data_array[0][0], mag_data_array[0][1], mag_data_array[0][2]};
+	double mag[3] = {mag_data_array[0][1], -mag_data_array[0][0], -mag_data_array[0][2]};
 
-	// // Define calibration parameters
-	// double A[3][3] = {
-    // 	{0.9859, 0.0100, 0.1043},
-    // 	{0.0100, 0.9874, -0.0395},
-    // 	{0.1043, -0.0395, 1.0400}
-	// };
+	//Define calibration parameters
+	double A[3][3] = {
+		{1.9764, -0.0530, 0.1704},
+		{0.0000, 1.9618, 0.4309},
+		{0.0000, 0.0000, 2.0169}
+	};
 
-	// double b[3] = {-0.0137, -0.0178, 0.0209};
+	double b[3] = {-0.0162, 0.0179, -0.0233};
 
-	// double temp[3];
+	double temp[3];
 
-	// // Subtract bias
-    // for (int i = 0; i < 3; i++){
-	// 	mag[i] -= b[i];
-	// }
+	// Subtract bias
+    for (int i = 0; i < 3; i++){
+		mag[i] -= b[i];
+	}
 
-    // // Apply calibration matrix
-    // for (int i = 0; i < 3; i++) {
-    //     temp[i] = 0;
-    //     for (int j = 0; j < 3; j++)
-    //         temp[i] += A[i][j] * mag[j];
-    // }
+    // Apply calibration matrix
+    for (int i = 0; i < 3; i++) {
+        temp[i] = 0;
+        for (int j = 0; j < 3; j++)
+            temp[i] += A[i][j] * mag[j];
+    }
 
-    // // Copy calibrated data back
-    // for (int i = 0; i < 3; i++){
-	// 	mag[i] = temp[i];
-	// }
+    // Copy calibrated data back
+    for (int i = 0; i < 3; i++){
+		mag[i] = temp[i];
+	}
 
 	// publish
 	stamp_msg(&ctx->data.stamp, k_uptime_ticks());

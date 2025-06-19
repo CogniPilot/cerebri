@@ -137,7 +137,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 	int64_t ticks_last = k_uptime_ticks();
 
 	// Constants
-	static const double decl_WL = -4.494167/180 * M_PI + 0.25; // magnetic declination for WL, IN
+	static const double decl_WL = -4.494167/180 * M_PI; // magnetic declination for WL, IN
 	static const double g = 9.8; // gravity
 
 	// estimator states
@@ -306,7 +306,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			args[3] = omega_b;
 			args[4] = a_b;
 			args[5] = &dt;
-
+			
 			res[0] = q;
 
 			CASADI_FUNC_CALL(attitude_estimator)

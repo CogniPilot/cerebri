@@ -39,7 +39,7 @@ ki_z = 0.05  # velocity z integral gain
 # estimator params
 att_w_acc = 0.4
 att_w_gyro_bias = 0
-param_att_w_mag = 0.4
+param_att_w_mag = 0.2
 
 
 def derive_control_allocation():
@@ -699,83 +699,77 @@ def derive_position_correction():
 def derive_attitude_estimator():
     # Define Casadi variables
     q0 = ca.SX.sym("q", 4)
-    q = SO3Quat.elem(param=q0)
-    mag = ca.SX.sym("mag", 3)
+    q_wb = SO3Quat.elem(param=q0)
+    mag_b = ca.SX.sym("mag", 3)
     mag_decl = ca.SX.sym("mag_decl", 1)
-    gyro = ca.SX.sym("gyro", 3)
-    accel = ca.SX.sym("accel", 3)
+    gyro_b = ca.SX.sym("gyro", 3)
+    accel_b = ca.SX.sym("accel", 3)
     dt = ca.SX.sym("dt", 1)
 
-    # correction angular velocity vector
-    correction = ca.SX.zeros(3, 1)
+    # Correction angular velocity vector
+    correction_w = ca.SX.zeros(3, 1)
 
-    spin_rate = ca.norm_2(gyro)
-
-    # Magnetometer frame is x - forward, y - left, z - down
-    # Converting to match body and world frame definition
-    # x - forward, y - left, z - up
-    mag_transform = ca.vertcat(
-        ca.horzcat(1, 0, 0),    
-        ca.horzcat(0, 1, 0),  
-        ca.horzcat(0, 0, -1)    
-    )
+    # --- Correction from magnetometer (yaw) ---
 
     # Transform magnetometer to world frame
-    mag_earth = q @ (mag_transform @ mag)
+    mag_earth = q_wb @ mag_b
 
     # Magnetometer error calculation
     mag_err = -(ca.fmod(ca.atan2(mag_earth[1], mag_earth[0])
                          + mag_decl + ca.pi, 2 * ca.pi) - ca.pi)
 
-    # Change gain if spin rate is large
-    fifty_dps = 0.873
-    gain_mult = ca.if_else(spin_rate > fifty_dps, ca.fmin(spin_rate / fifty_dps, 10), 1)
-
     # Move magnetometer correction in body frame
-    correction += (
-        q.inverse() @ ca.vertcat(0,0,mag_err)
+    correction_w += (
+        ca.vertcat(0,0,mag_err)
         * param_att_w_mag
-        * gain_mult
     )
 
-    # Correction from accelerometer
-    accel_norm_sq = ca.norm_2(accel) ** 2
+    # --- Correction from accelerometer (roll/pitch) ---
+
+    # Transform acceleration in world frame
+    accel_w = q_wb @ accel_b 
+    accel_norm = ca.norm_2(accel_w)
 
     # Correct accelerometer only if g between
-    higher_lim_check = ca.if_else(accel_norm_sq < ((g * 1.1) ** 2), 1, 0)
-    lower_lim_check = ca.if_else(accel_norm_sq > ((g * 0.90) ** 2), 1, 0)
+    higher_lim_check = ca.if_else(accel_w[2] < g * 1.10, 1, 0)
+    lower_lim_check = ca.if_else(accel_w[2] > g * 0.90, 1, 0)
     accel_norm_check = higher_lim_check * lower_lim_check
 
+    # Acceleration gain
+    # If the drone is accelerating, we shouldn't trust the accelerometer
+    accel_gain = 1 - ca.fabs(((accel_norm - g) / accel_norm))
+
     # Correct gravity as z
-    correction -= (
+    correction_w -= (
         accel_norm_check
-        * ca.cross(q.inverse() @ ca.vertcat(0,0,1), accel / ca.norm_2(accel))
+        * ca.cross(ca.vertcat(0,0,1), ca.vertcat(0,0,accel_w[2]))
         * att_w_acc
+        * accel_gain
     )
 
     ## TODO add gyro bias stuff
 
     # Make the correction
-    q1 = q * so3.elem(correction * dt).exp(SO3Quat)
+    q1 = so3.elem(correction_w * dt).exp(SO3Quat) * q_wb
 
     # Return estimator
     f_att_estimator = ca.Function(
         "attitude_estimator",
         [
             q0,
-            mag,
+            mag_b,
             mag_decl,
-            gyro,
-            accel,
+            gyro_b,
+            accel_b,
             dt,
         ],
         [q1.param],
         [
             "q",
-            "mag",
+            "mag_b",
             "mag_decl",
-            "gyro",
-            "accel",
+            "gyro_b",
+            "accel_b",
             "dt",
         ],
         ["q1"],

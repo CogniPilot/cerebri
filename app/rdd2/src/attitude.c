@@ -106,7 +106,6 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 		CONFIG_CEREBRI_RDD2_YAW_KP * 1e-6,
 	};
 
-
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 		int rc = 0;
 		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));

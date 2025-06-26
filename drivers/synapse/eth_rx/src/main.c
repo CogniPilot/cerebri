@@ -62,6 +62,9 @@ static void handle_frame(struct context *ctx)
 	} else if (frame->which_msg == synapse_pb_Frame_twist_tag) {
 		msg = &frame->msg.twist;
 		topic = &topic_cmd_vel_ethernet;
+	} else if (frame->which_msg == synapse_pb_Frame_odometry_tag) {
+		msg = &frame->msg.odometry;
+		topic = &topic_odometry_ethernet;
 #ifdef CONFIG_CEREBRI_DREAM_HIL
 	} else if (frame->which_msg == synapse_pb_Frame_battery_state_tag) {
 		msg = &frame->msg.battery_state;

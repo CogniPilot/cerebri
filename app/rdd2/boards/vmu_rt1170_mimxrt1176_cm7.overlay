@@ -4,50 +4,34 @@
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 
 / {
-	pwm_actuators: pwm_actuators {
-		compatible = "cerebri,pwm-actuators";
+	dshot_actuators: dshot_actuators {
+		compatible = "cerebri,dshot-actuators";
 		aux0 {
 			input-type = "velocity";
 			input-index = <0>;
-			pwms = <&flexpwm1_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-			disarmed = <1000>;
-			min = <1250>;
-			max = <1900>;
-			center = <1000>;
-			scale = <1028>;
+			center = <200>;
+			scale = <1500>;
 			scale-div = <1000>;
 		};
 		aux1 {
 			input-type = "velocity";
 			input-index = <1>;
-			pwms = <&flexpwm1_pwm1 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-			disarmed = <1000>;
-			min = <1250>;
-			max = <1900>;
-			center = <1000>;
-			scale = <1028>;
+			center = <200>;
+			scale = <1500>;
 			scale-div = <1000>;
 		};
 		aux2 {
 			input-type = "velocity";
 			input-index = <2>;
-			pwms = <&flexpwm1_pwm2 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-			disarmed = <1000>;
-			min = <1250>;
-			max = <1900>;
-			center = <1000>;
-			scale = <1028>;
+			center = <200>;
+			scale = <1500>;
 			scale-div = <1000>;
 		};
 		aux3 {
 			input-type = "velocity";
 			input-index = <3>;
-			pwms = <&flexpwm2_pwm0 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
-			disarmed = <1000>;
-			min = <1250>;
-			max = <1900>;
-			center = <1000>;
-			scale = <1028>;
+			center = <200>;
+			scale = <1500>;
 			scale-div = <1000>;
 		};
 	};
@@ -84,36 +68,37 @@
 };
 
 &flexpwm1_pwm0 {
-	nxp,prescaler = <64>;
+	status = "disabled";
 };
 
 &flexpwm1_pwm1 {
-	nxp,prescaler = <64>;
+	status = "disabled";
 };
 
-&flexpwm1_pwm2 {
-	nxp,prescaler = <64>;
+&flexpwm1_pwm2	{
+	status = "disabled";
 };
 
-&flexpwm2_pwm0 {
-	nxp,prescaler = <64>;
+&flexpwm2_pwm0	{
+	status = "disabled";
 };
 
-&flexpwm2_pwm1 {
-	nxp,prescaler = <64>;
+&flexpwm2_pwm1	{
+	status = "disabled";
 };
 
-&flexpwm2_pwm2 {
-	nxp,prescaler = <64>;
+&flexpwm2_pwm2	{
+	status = "disabled";
 };
 
-&flexpwm2_pwm3 {
-	nxp,prescaler = <64>;
+&flexpwm2_pwm3	{
+	status = "disabled";
 };
 
-&flexpwm3_pwm0 {
-	nxp,prescaler = <64>;
+&flexpwm3_pwm0	{
+	status = "disabled";
 };
+
 
 &flexcan1 {
 	status = "okay";
@@ -316,7 +301,7 @@ uart1: &lpuart5 {
 		compatible = "nxp,flexio-dshot";
 		pinctrl-0 = <&pinmux_dshot_vmu>;
 		pinctrl-names = "default";
-		status = "disabled";
+		status = "okay";
 		speed = <600>;
 
 		ch1 {

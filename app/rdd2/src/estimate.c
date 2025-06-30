@@ -140,9 +140,43 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 	static const double decl_WL = -4.494167/180 * M_PI; // magnetic declination for WL, IN
 	static const double g = 9.8; // gravity
 
-	// estimator states
-	double x[10] = {0, 0, 0, 0, 0, 0, 1, 0, 0, 0};
+	// Initialize attitude from accelerometer and magnetometer
 	double q[4] = {1, 0, 0, 0};
+	
+	// Wait for both IMU and magnetometer data
+	if (zros_sub_update_available(&ctx->sub_imu)) {
+		LOG_INF("waiting for magnetometer");
+		k_sleep(K_MSEC(100));
+	}
+	zros_sub_update(&ctx->sub_imu);
+	while(!zros_sub_update_available(&ctx->sub_mag)) {
+		LOG_INF("waiting for magnetometer");
+		k_sleep(K_MSEC(100));
+	}
+	zros_sub_update(&ctx->sub_mag);
+	
+	{	
+		// attitude_init_from_mag:(mag_b[3],accel_b[3],mag_decl)->(q_init[4]w)
+		CASADI_FUNC_ARGS(attitude_init_from_mag)
+		
+		double mag[3] = {ctx->mag.magnetic_field.x,
+						 ctx->mag.magnetic_field.y,
+						 ctx->mag.magnetic_field.z};
+		double accel[3] = {ctx->imu.linear_acceleration.x,
+						   ctx->imu.linear_acceleration.y,
+						   ctx->imu.linear_acceleration.z};
+		
+		args[0] = mag;
+		args[1] = accel;
+		args[2] = &decl_WL;
+		
+		res[0] = q;
+		
+		CASADI_FUNC_CALL(attitude_init_from_mag)
+	}
+
+	// estimator states
+	double x[10] = {0, 0, 0, 0, 0, 0, q[0], q[1], q[2], q[3]};
 
 	// estimator covariance
 	double P[36] = {1e-2, 0, 0, 0, 0, 0,
@@ -205,7 +239,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 				      1) < 1e-2,
 				 "quaternion normal error");
 
-			use offboard odometry to reset position
+			// use offboard odometry to reset position
 			x[0] = ctx->odometry_ethernet.pose.position.x;
 			x[1] = ctx->odometry_ethernet.pose.position.y;
 			x[2] = ctx->odometry_ethernet.pose.position.z;
@@ -299,7 +333,6 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			double mag[3] = {ctx->mag.magnetic_field.x, 
 							 ctx->mag.magnetic_field.y,
 					 		 ctx->mag.magnetic_field.z};
-
 			args[0] = q;
 			args[1] = mag;
 			args[2] = &decl_WL;

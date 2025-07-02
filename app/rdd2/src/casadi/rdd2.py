@@ -707,20 +707,21 @@ def derive_attitude_init_from_mag():
     mag_decl = ca.SX.sym("mag_decl", 1)
     
     # Step 1: Calculate pitch and roll from accelerometer
-    # Assuming gravity vector is [0, 0, -g] in world frame
-    # In body frame: x=forward, y=left, z=down
+    # Assuming gravity vector is [0, 0, g] in world frame
+    # In body frame: x=forward, y=left, z=up
     
     # Normalize accelerometer reading
     accel_norm = ca.norm_2(accel_b)
     accel_n = accel_b / accel_norm
     
     # Calculate pitch (rotation about y-axis)
-    # pitch = atan2(-accel_x, sqrt(accel_y^2 + accel_z^2))
-    pitch = ca.atan2(-accel_n[0], ca.sqrt(accel_n[1]**2 + accel_n[2]**2))
+    # pitch = atan2(accel_x, sqrt(accel_y^2 + accel_z^2))
+    pitch = ca.atan2(accel_n[0], ca.sqrt(accel_n[1]**2 + accel_n[2]**2))
     
     # Calculate roll (rotation about x-axis)  
-    # roll = atan2(accel_y, accel_z)
+    # roll = atan2(accel_z, accel_y)
     roll = ca.atan2(accel_n[1], accel_n[2])
+    debug = accel_n[2]
     
     # Step 2: Create partial rotation matrix from pitch and roll only
     # This represents R_y(pitch) * R_x(roll) - rotation about pitch then roll
@@ -762,13 +763,13 @@ def derive_attitude_init_from_mag():
             accel_b,
             mag_decl,
         ],
-        [q_init.param],
+        [q_init.param, pitch, roll, yaw, debug],
         [
             "mag_b",
             "accel_b", 
             "mag_decl",
         ],
-        ["q_init"],
+        ["q_init", "pitch", "roll", "yaw", "debug"],
     )
     
     return {"attitude_init_from_mag": f_attitude_init}

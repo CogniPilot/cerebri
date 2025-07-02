@@ -142,19 +142,47 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 
 	// Initialize attitude from accelerometer and magnetometer
 	double q[4] = {1, 0, 0, 0};
-	
+	double pitch = 0;
+	double roll = 0;	
+	double yaw = 0;
+	double debug = 0;
 	// Wait for both IMU and magnetometer data
-	if (zros_sub_update_available(&ctx->sub_imu)) {
+	// magnetometer waiting
+	while (!zros_sub_update_available(&ctx->sub_mag)) {
 		LOG_INF("waiting for magnetometer");
-		k_sleep(K_MSEC(100));
-	}
-	zros_sub_update(&ctx->sub_imu);
-	while(!zros_sub_update_available(&ctx->sub_mag)) {
-		LOG_INF("waiting for magnetometer");
-		k_sleep(K_MSEC(100));
+		k_sleep(K_MSEC(50));
 	}
 	zros_sub_update(&ctx->sub_mag);
-	
+	double mag_norm = ctx->mag.magnetic_field.x * ctx->mag.magnetic_field.x +
+			ctx->mag.magnetic_field.y * ctx->mag.magnetic_field.y +
+			ctx->mag.magnetic_field.z * ctx->mag.magnetic_field.z;
+	// wait for magnetometer to be valid
+	while (mag_norm < 1e-4) {
+		mag_norm = ctx->mag.magnetic_field.x * ctx->mag.magnetic_field.x +
+			ctx->mag.magnetic_field.y * ctx->mag.magnetic_field.y +
+			ctx->mag.magnetic_field.z * ctx->mag.magnetic_field.z;
+		LOG_INF("magnetometer is not valid, waiting for valid data: %f", mag_norm);
+		k_sleep(K_MSEC(50));
+	}
+	// IMU waiting
+	while (!zros_sub_update_available(&ctx->sub_imu)) {
+		LOG_INF("waiting for IMU");
+		k_sleep(K_MSEC(50));
+	}
+	zros_sub_update(&ctx->sub_imu);
+	double accel_norm = ctx->imu.linear_acceleration.x * ctx->imu.linear_acceleration.x +
+			ctx->imu.linear_acceleration.y * ctx->imu.linear_acceleration.y +
+			ctx->imu.linear_acceleration.z * ctx->imu.linear_acceleration.z;
+	// wait for IMU to be valid
+	while (accel_norm < 0.8*9.8*9.8 || accel_norm > 1.2*9.8*9.8) {
+		zros_sub_update(&ctx->sub_imu);
+		accel_norm = ctx->imu.linear_acceleration.x * ctx->imu.linear_acceleration.x +
+			ctx->imu.linear_acceleration.y * ctx->imu.linear_acceleration.y +
+			ctx->imu.linear_acceleration.z * ctx->imu.linear_acceleration.z;
+		LOG_INF("IMU is not valid, waiting for valid data: %f", accel_norm);
+		k_sleep(K_MSEC(50));
+	}
+
 	{	
 		// attitude_init_from_mag:(mag_b[3],accel_b[3],mag_decl)->(q_init[4]w)
 		CASADI_FUNC_ARGS(attitude_init_from_mag)
@@ -171,8 +199,15 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		args[2] = &decl_WL;
 		
 		res[0] = q;
+		res[1] = &pitch;
+		res[2] = &roll;
+		res[3] = &yaw;
+		res[4] = &debug;
 		
 		CASADI_FUNC_CALL(attitude_init_from_mag)
+
+		LOG_INF("pitch: %f, roll: %f, yaw: %f, debug: %f", pitch, roll, yaw, debug);
+		LOG_INF("accel: %f, %f, %f", accel[0], accel[1], accel[2]);
 	}
 
 	// estimator states

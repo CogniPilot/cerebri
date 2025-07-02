@@ -1,9 +1,6 @@
 import argparse
 import os
-import sys
-import math
 import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
 import casadi as ca
 import cyecca.lie as lie
@@ -41,6 +38,16 @@ att_w_acc = 0.4
 att_w_gyro_bias = 0
 param_att_w_mag = 0.2
 
+def angle_wrap(angle):
+    """
+    Wrap angle to [-pi, pi]
+    """
+    # First ensure we're in [0, 2*pi) range, then shift to [-pi, pi]
+    wrapped = ca.fmod(angle, 2 * ca.pi)
+    # Handle negative angles
+    wrapped = ca.if_else(wrapped < 0, wrapped + 2 * ca.pi, wrapped)
+    # Shift to [-pi, pi] range
+    return ca.if_else(wrapped > ca.pi, wrapped - 2 * ca.pi, wrapped)
 
 def derive_control_allocation():
     """
@@ -119,7 +126,7 @@ def derive_control_allocation():
             T,
             M,
         ],
-        [omega, Fp_sum, F_moment, F_thrust, M_sat],
+        [omega],
         [
             "F_max",
             "l",
@@ -128,7 +135,7 @@ def derive_control_allocation():
             "T",
             "M",
         ],
-        ["omega", "Fp_sum", "F_moment", "F_thrust", "M_sat"],
+        ["omega"],
     )
     return {"f_alloc": f_alloc}
 
@@ -716,12 +723,13 @@ def derive_attitude_init_from_mag():
     
     # Calculate pitch (rotation about y-axis)
     # pitch = atan2(accel_x, sqrt(accel_y^2 + accel_z^2))
-    pitch = ca.atan2(accel_n[0], ca.sqrt(accel_n[1]**2 + accel_n[2]**2))
+    pitch = angle_wrap(ca.atan2(ca.sqrt(accel_n[1]**2 + accel_n[2]**2), accel_n[0]) - ca.pi / 2)
+
+    debug = ca.atan2(ca.sqrt(accel_n[1]**2 + accel_n[2]**2), accel_n[0]) - ca.pi / 2
     
     # Calculate roll (rotation about x-axis)  
     # roll = atan2(accel_z, accel_y)
-    roll = ca.atan2(accel_n[1], accel_n[2])
-    debug = accel_n[2]
+    roll = -angle_wrap(ca.atan2(accel_n[2], accel_n[1]) - ca.pi / 2)
     
     # Step 2: Create partial rotation matrix from pitch and roll only
     # This represents R_y(pitch) * R_x(roll) - rotation about pitch then roll
@@ -746,11 +754,10 @@ def derive_attitude_init_from_mag():
     # In level frame: x=east, y=north, z=up (but rotated by unknown yaw)
     # The magnetometer now points in the correct direction relative to magnetic north
     # Magnetic declination correction: true_north = mag_north + declination
-    yaw = ca.atan2(mag_level[1], mag_level[0]) + mag_decl - ca.pi / 2
-    
-    # Wrap yaw to [-pi, pi]
-    yaw = -(ca.remainder(yaw + ca.pi, 2 * ca.pi) - ca.pi)
-    
+    yaw = -angle_wrap(ca.atan2(mag_level[1], mag_level[0]) + mag_decl - ca.pi / 2)
+
+    debug  = ca.atan2(mag_level[1], mag_level[0]) + mag_decl - ca.pi / 2 + ca.pi
+
     # Step 5: Create final quaternion from roll, pitch, yaw
     euler = SO3EulerB321.elem(ca.vertcat(yaw, pitch, roll))
     q_init = SO3Quat.from_Euler(euler)
@@ -799,8 +806,7 @@ def derive_attitude_estimator():
     mag_earth = q_wb @ mag_b
 
     # Magnetometer error calculation
-    mag_err = -(ca.fmod(ca.atan2(mag_earth[1], mag_earth[0])
-                         + mag_decl - ca.pi / 2 + ca.pi, 2 * ca.pi) - ca.pi) # the magnetic north is at (90 degrees - mag_decl) yaw
+    mag_err = -angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2) # the magnetic north is at (90 degrees - mag_decl) yaw
 
     # Move magnetometer correction in body frame
     correction_w += (

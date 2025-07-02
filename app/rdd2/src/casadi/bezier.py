@@ -334,7 +334,7 @@ def derive_ref():
             j_e,
             s_e,
         ],
-        [v_b, quat, omega_eb_b, omega_dot_eb_b, M_b, T],
+        [quat, omega_eb_b, M_b],
         [
             "psi",
             "psi_dot",
@@ -344,7 +344,7 @@ def derive_ref():
             "j_e",
             "s_e",
         ],
-            ["v_b", "quat", "omega_eb_b", "omega_dot_eb_b", "M_b", "T"],
+            ["quat", "omega_eb_b", "M_b"],
         ),
     ]
     return {f.name(): f for f in functions}

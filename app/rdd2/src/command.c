@@ -403,6 +403,7 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				//   pw[3],vb[3],psi_vel_sp,reset_position)
 				//   ->(psi_sp1,pw_sp1[3],vw_sp[3],aw_sp[3],q_sp[4])
 				CASADI_FUNC_ARGS(velocity_control);
+
 				args[0] = &dt;
 				args[1] = &ctx->psi_sp;
 				args[2] = pw_sp;
@@ -410,11 +411,13 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				args[4] = vt_b;
 				args[5] = &yaw_rate;
 				args[6] = &reset_position;
+
 				res[0] = &ctx->psi_sp;
 				res[1] = pw_sp;
 				res[2] = vw_sp;
 				res[3] = aw_sp;
 				res[4] = q_sp;
+
 				CASADI_FUNC_CALL(velocity_control);
 			}
 			
@@ -527,12 +530,14 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				// ->(x,y,z,psi,dpsi,ddpsi,V,a,j,s)
 				{
 					CASADI_FUNC_ARGS(bezier_multirotor);
+
 					args[0] = &t;
 					args[1] = &T;
 					args[2] = PX;
 					args[3] = PY;
 					args[4] = PZ;
 					args[5] = Ppsi;
+
 					res[0] = &x;
 					res[1] = &y;
 					res[2] = &z;
@@ -543,6 +548,7 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 					res[7] = a;
 					res[8] = j;
 					res[9] = s;
+
 					CASADI_FUNC_CALL(bezier_multirotor);
 				}
 
@@ -552,6 +558,7 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				// ->(v_b[3],quat[4],omega_eb_b[3],omega_dot_eb_b[3],M_b[3],T)
 				{
 					CASADI_FUNC_ARGS(f_ref);
+
 					args[0] = &psi;
 					args[1] = &dpsi;
 					args[2] = &ddpsi;
@@ -559,9 +566,11 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 					args[4] = a;
 					args[5] = j;
 					args[6] = s;
-					res[1] = q_att;
-					res[2] = omega;
-					res[4] = M;
+
+					res[0] = q_att;
+					res[1] = omega;
+					res[2] = M;
+					
 					CASADI_FUNC_CALL(f_ref);
 				}
 

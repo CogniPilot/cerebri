@@ -147,7 +147,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 	double yaw = 0;
 	double debug = 0;
 	// Wait for both IMU and magnetometer data
-	// magnetometer waiting
+	// Magnetometer waiting
 	while (!zros_sub_update_available(&ctx->sub_mag)) {
 		LOG_INF("waiting for magnetometer");
 		k_sleep(K_MSEC(50));
@@ -206,8 +206,10 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		
 		CASADI_FUNC_CALL(attitude_init_from_mag)
 
-		LOG_INF("pitch: %f, roll: %f, yaw: %f, debug: %f", pitch, roll, yaw, debug);
 		LOG_INF("accel: %f, %f, %f", accel[0], accel[1], accel[2]);
+
+		LOG_INF("pitch: %f, roll: %f, yaw: %f, debug: %f", pitch, roll, yaw, debug);
+		LOG_INF("mag: %f, %f, %f", mag[0], mag[1], mag[2]);
 	}
 
 	// estimator states

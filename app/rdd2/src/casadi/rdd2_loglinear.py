@@ -86,9 +86,23 @@ def derive_se23_error():
 
     f_se23_error = ca.Function(
         "se23_error",
-        [p_w, v_w, q_wb, p_rw, v_rw, q_r],
+        [
+            p_w,
+            v_w,
+            q_wb,
+            p_rw,
+            v_rw,
+            q_r,
+        ],
         [zeta.param],
-        ["p_w", "v_w", "q_wb", "p_rw", "v_rw", "q_r"],
+        [
+            "p_w",
+            "v_w",
+            "q_wb",
+            "p_rw",
+            "v_rw",
+            "q_r",
+        ],
         ["zeta"],
     )
 

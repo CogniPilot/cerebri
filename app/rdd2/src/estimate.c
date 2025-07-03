@@ -147,7 +147,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 	double yaw = 0;
 	double debug = 0;
 	// Wait for both IMU and magnetometer data
-	// magnetometer waiting
+	// Magnetometer waiting
 	while (!zros_sub_update_available(&ctx->sub_mag)) {
 		LOG_INF("waiting for magnetometer");
 		k_sleep(K_MSEC(50));

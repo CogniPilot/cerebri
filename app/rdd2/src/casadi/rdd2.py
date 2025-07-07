@@ -708,6 +708,7 @@ def derive_attitude_init_from_mag():
     Initialize attitude quaternion from accelerometer and magnetometer readings.
     First calculates pitch and roll from accelerometer, then uses these to 
     convert magnetometer to world frame and calculate yaw.
+    Note: this function can be simplified by estimation only yaw and assuming pitch and roll are zero (which is valid since the imu cannot be calibrated otherwise).
     """
     mag_b = ca.SX.sym("mag_b", 3)
     accel_b = ca.SX.sym("accel_b", 3)  

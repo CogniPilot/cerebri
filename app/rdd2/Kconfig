@@ -255,6 +255,37 @@ config CEREBRI_RDD2_LOG_LINEAR_POSITION
   help
     Enable loglinear atitude position
 
+config CEREBRI_RDD2_ATTITUDE_RATE_ALPHA
+  int "attitude rate alpha"
+  default 95
+  help
+    attitude rate alpha
+
+config CEREBRI_RDD2_ATTITUDE_RATE_KP
+  int "attitude rate kp"
+  default 1000000
+  help
+    attitude rate kp
+
+config CEREBRI_RDD2_ATTITUDE_RATE_KI
+  int "attitude rate ki"
+  default 50000
+  help
+    attitude rate ki
+
+config CEREBRI_RDD2_ATTITUDE_RATE_ACCEL_GAIN
+  int "attitude rate accel gain"
+  default 40
+  help
+    attitude rate accel gain
+
+config CEREBRI_RDD2_ATTITUDE_RATE_MAG_GAIN
+  int "attitude rate mag gain"
+  default 40
+  help
+    attitude rate mag gain
+
+
 module = CEREBRI_RDD2
 module-str = cerebri_rdd2
 source "subsys/logging/Kconfig.template.log_config"

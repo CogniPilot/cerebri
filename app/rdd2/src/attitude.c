@@ -152,7 +152,7 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 					data_ok = false;
 				}
 			}
-
+			
 			if (data_ok) {
 				ctx->angular_velocity_sp.x = omega[0] + ctx->angular_velocity_ff.x;
 				ctx->angular_velocity_sp.y = omega[1] + ctx->angular_velocity_ff.y;

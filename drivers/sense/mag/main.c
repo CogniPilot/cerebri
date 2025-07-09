@@ -71,32 +71,32 @@ void mag_work_handler(struct k_work *work)
 	double mag[3] = {mag_data_array[0][1], -mag_data_array[0][0], -mag_data_array[0][2]};
 
 	//Define calibration parameters
-	double A[3][3] = {
-		{2.1040, -0.0187, 0.1249},
-		{0.0000, 2.0636, -0.0273},
-		{0.0000, 0.0000, 2.1265}
-	};
+	// double A[3][3] = {
+	// 	{2.0199, -0.0516, 0.1352},
+	// 	{0.0000, 1.9783, -0.0096},
+	// 	{0.0000, 0.0000, 2.0242}
+	// };
 	
-	double b[3] = {-0.0074, 0.0246, -0.0004};
+	// double b[3] = {0.0017, 0.0235, -0.0057};
 
-	double temp[3];
+	// double temp[3];
 
-	// Subtract bias
-    for (int i = 0; i < 3; i++){
-		mag[i] -= b[i];
-	}
+	// // Subtract bias
+    // for (int i = 0; i < 3; i++){
+	// 	mag[i] -= b[i];
+	// }
 
-    // Apply calibration matrix
-    for (int i = 0; i < 3; i++) {
-        temp[i] = 0;
-        for (int j = 0; j < 3; j++)
-            temp[i] += A[i][j] * mag[j];
-    }
+    // // Apply calibration matrix
+    // for (int i = 0; i < 3; i++) {
+    //     temp[i] = 0;
+    //     for (int j = 0; j < 3; j++)
+    //         temp[i] += A[i][j] * mag[j];
+    // }
 
-    // Copy calibrated data back
-    for (int i = 0; i < 3; i++){
-		mag[i] = temp[i];
-	}
+    // // Copy calibrated data back
+    // for (int i = 0; i < 3; i++){
+	// 	mag[i] = temp[i];
+	// }
 
 	// publish
 	stamp_msg(&ctx->data.stamp, k_uptime_ticks());

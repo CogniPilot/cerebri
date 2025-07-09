@@ -139,13 +139,14 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 	// Constants
 	static const double decl_WL = -4.494167/180 * M_PI; // magnetic declination for WL, IN
 	static const double g = 9.8; // gravity
+	static const double alpha = CONFIG_CEREBRI_RDD2_ATTITUDE_RATE_ALPHA * 1e-2;
+	static const double Kp = CONFIG_CEREBRI_RDD2_ATTITUDE_RATE_KP * 1e-6;
+	static const double Ki = CONFIG_CEREBRI_RDD2_ATTITUDE_RATE_KI * 1e-6;
+	static double accel_gain = CONFIG_CEREBRI_RDD2_ATTITUDE_RATE_ACCEL_GAIN * 1e-2;
+	static double mag_gain = CONFIG_CEREBRI_RDD2_ATTITUDE_RATE_MAG_GAIN * 1e-2;
 
 	// Initialize attitude from accelerometer and magnetometer
 	double q[4] = {1, 0, 0, 0};
-	double pitch = 0;
-	double roll = 0;	
-	double yaw = 0;
-	double debug = 0;
 	// Wait for both IMU and magnetometer data
 	// Magnetometer waiting
 	while (!zros_sub_update_available(&ctx->sub_mag)) {
@@ -199,17 +200,8 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		args[2] = &decl_WL;
 		
 		res[0] = q;
-		res[1] = &pitch;
-		res[2] = &roll;
-		res[3] = &yaw;
-		res[4] = &debug;
 		
 		CASADI_FUNC_CALL(attitude_init_from_mag)
-
-		LOG_INF("accel: %f, %f, %f", accel[0], accel[1], accel[2]);
-
-		LOG_INF("pitch: %f, roll: %f, yaw: %f, debug: %f", pitch, roll, yaw, debug);
-		LOG_INF("mag: %f, %f, %f", mag[0], mag[1], mag[2]);
 	}
 
 	// estimator states
@@ -222,6 +214,10 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 					0, 0, 0, 1e-2, 0, 0, 
 					0, 0, 0, 0, 1e-2, 0, 
 					0, 0, 0, 0, 0, 1e-2};
+
+	// estimator error
+	double integral_error[3] = {0, 0, 0};
+	double error[3] = {0, 0, 0};
 
 	// poll on imu
 	events[0] = *zros_sub_get_event(&ctx->sub_imu);
@@ -358,6 +354,8 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		["q", "mag", "mag_decl", "gyro", "accel", "dt"],
 		["q1"],
 		)*/
+		double debug[3] = {0, 0, 0};
+
 		{
 			CASADI_FUNC_ARGS(attitude_estimator)
 
@@ -370,17 +368,30 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			double mag[3] = {ctx->mag.magnetic_field.x, 
 							 ctx->mag.magnetic_field.y,
 					 		 ctx->mag.magnetic_field.z};
+
 			args[0] = q;
 			args[1] = mag;
 			args[2] = &decl_WL;
 			args[3] = omega_b;
 			args[4] = a_b;
-			args[5] = &dt;
+			args[5] = integral_error;
+			args[6] = error;
+			args[7] = &alpha;
+			args[8] = &Kp;
+			args[9] = &Ki;
+			args[10] = &accel_gain;
+			args[11] = &mag_gain;
+			args[12] = &dt;
 			
 			res[0] = q;
+			res[1] = integral_error;
+			res[2] = error;
+			res[3] = debug;
 
 			CASADI_FUNC_CALL(attitude_estimator)
 		}
+
+		LOG_INF("error: %f, %f, %f", error[0], error[1], error[2]);
 
 		// Put quaternion back into state vector
 		x[6] = q[0];

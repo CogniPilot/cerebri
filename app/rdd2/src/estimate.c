@@ -355,6 +355,8 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		["q1"],
 		)*/
 		double debug[3] = {0, 0, 0};
+		double debug1 = 0;
+		double debug2 = 0;
 
 		{
 			CASADI_FUNC_ARGS(attitude_estimator)
@@ -387,11 +389,14 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			res[1] = integral_error;
 			res[2] = error;
 			res[3] = debug;
-
+			res[4] = &debug1;
+			res[5] = &debug2;
 			CASADI_FUNC_CALL(attitude_estimator)
 		}
 
-		LOG_INF("error: %f, %f, %f", error[0], error[1], error[2]);
+		LOG_INF("debug1: %f, debug2: %f", debug1, debug2);
+
+		//LOG_INF("error: %f, %f, %f", error[0], error[1], error[2]);
 
 		// Put quaternion back into state vector
 		x[6] = q[0];

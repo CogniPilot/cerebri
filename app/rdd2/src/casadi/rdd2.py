@@ -818,20 +818,24 @@ def derive_attitude_estimator():
     # Transform acceleration in world frame
     accel_w = q_wb @ accel_b 
     accel_norm = ca.norm_2(accel_w)
+    accel_w_normed = accel_w / accel_norm
 
     # Correct accelerometer only if g between 0.9g and 1.1g
-    higher_lim_check = ca.if_else(accel_w[2] < g * 1.10, 1, 0)
-    lower_lim_check = ca.if_else(accel_w[2] > g * 0.90, 1, 0)
+    threshold = 0.02
+    higher_lim_check = ca.if_else(accel_w_normed[2] < (1 + threshold), 1, 0) * ca.if_else(accel_norm < g * (1 + threshold), 1, 0)
+    lower_lim_check = ca.if_else(accel_w_normed[2] > (1 - threshold), 1, 0) * ca.if_else(accel_norm > g * (1 - threshold), 1, 0)
     accel_norm_check = higher_lim_check * lower_lim_check
 
     # Acceleration gain
     # If the drone is accelerating, we shouldn't trust the accelerometer
-    accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / accel_norm))
+    accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / (1.1 * threshold * g)))
+    debug1 = accel_gain_magnitude
+    debug2 = accel_norm_check
 
     # Correct gravity as z
     raw_error_w -= (
         accel_norm_check
-        * ca.cross(ca.vertcat(0,0,1), ca.vertcat(accel_w[0],accel_w[1],accel_w[2]))
+        * ca.cross(ca.vertcat(0,0,1), ca.vertcat(accel_w_normed[0],accel_w_normed[1],accel_w_normed[2]))
         * accel_gain_magnitude
         * accel_gain
     )
@@ -841,13 +845,19 @@ def derive_attitude_estimator():
     filtered_error = alpha * error_prev + (1 - alpha) * raw_error_w
 
     # ----- PI Correction -----
+    max_integral = 0.15
     integral_error_new = integral_error_prev + filtered_error * dt
+    integral_error_new = ca.fmin(ca.fmax(integral_error_new, -max_integral), max_integral)
+
     omega_corr = Kp * filtered_error + Ki * integral_error_new
 
     ## TODO add gyro bias stuff
 
     # Make the correction
-    q1 = so3.elem(omega_corr * dt).exp(SO3Quat) * q_wb
+    correction_dt = omega_corr * dt
+    correction_norm = ca.norm_2(correction_dt)
+    correction_dt = ca.if_else(correction_norm > 1e-3, (correction_dt / correction_norm), correction_dt)
+    q1 = so3.elem(correction_dt).exp(SO3Quat) * q_wb
 
     # Return estimator
     f_att_estimator = ca.Function(
@@ -867,7 +877,7 @@ def derive_attitude_estimator():
             mag_gain,
             dt,
         ],
-        [q1.param, integral_error_new, filtered_error, debug],
+        [q1.param, integral_error_new, filtered_error, debug, debug1, debug2],
         [
             "q",
             "mag_b",
@@ -883,7 +893,7 @@ def derive_attitude_estimator():
             "mag_gain",
             "dt",
         ],
-        ["q1", "integral_error_new", "filtered_error", "debug"],
+        ["q1", "integral_error_new", "filtered_error", "debug", "debug1", "debug2"],
     )
 
     return {"attitude_estimator": f_att_estimator}

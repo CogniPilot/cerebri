@@ -698,7 +698,39 @@ def derive_position_correction():
     return {"position_correction": f_pos_estimator}
 
 
-def derive_attitude_init_from_mag():
+def derive_yaw_init():
+    """
+    Calculate yaw from magnetometer readings.
+    """
+    mag_b = ca.SX.sym("mag_b", 3)
+    mag_decl = ca.SX.sym("mag_decl", 1)
+    
+    # Calculate yaw from magnetometer readings
+    yaw = -angle_wrap(ca.atan2(mag_b[1], mag_b[0]) + mag_decl - ca.pi / 2)
+
+    # Step 5: Create final quaternion from roll, pitch, yaw
+    euler = SO3EulerB321.elem(ca.vertcat(yaw, 0, 0))
+    q_init = SO3Quat.from_Euler(euler)
+    
+    # Also return the individual angles for debugging
+    f_yaw_init = ca.Function(
+        "yaw_init",
+        [
+            mag_b,
+            mag_decl,
+        ],
+        [q_init.param],
+        [
+            "mag_b",
+            "mag_decl",
+        ],
+        ["q_init"],
+    )
+    
+    return {"yaw_init": f_yaw_init}
+
+
+def derive_attitude_init():
     """
     Initialize attitude quaternion from accelerometer and magnetometer readings.
     First calculates pitch and roll from accelerometer, then uses these to 
@@ -756,7 +788,7 @@ def derive_attitude_init_from_mag():
     
     # Also return the individual angles for debugging
     f_attitude_init = ca.Function(
-        "attitude_init_from_mag",
+        "attitude_init",
         [
             mag_b,
             accel_b,
@@ -771,7 +803,7 @@ def derive_attitude_init_from_mag():
         ["q_init"],
     )
     
-    return {"attitude_init_from_mag": f_attitude_init}
+    return {"attitude_init": f_attitude_init}
 
 
 def derive_attitude_estimator():
@@ -946,7 +978,8 @@ if __name__ == "__main__":
     eqs.update(derive_control_allocation())
     eqs.update(derive_common())
     eqs.update(derive_attitude_estimator())
-    eqs.update(derive_attitude_init_from_mag())
+    eqs.update(derive_yaw_init())
+    eqs.update(derive_attitude_init())
     eqs.update(derive_position_correction())
 
     for name, eq in eqs.items():

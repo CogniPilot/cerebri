@@ -984,11 +984,6 @@ def derive_attitude_estimator():
     mag_decl = ca.SX.sym("mag_decl", 1)
     omega_b = ca.SX.sym("omega_b", 3)
     accel_b = ca.SX.sym("accel", 3)
-    integral_error_prev = ca.SX.sym("integral_error_prev", 3)
-    error_prev = ca.SX.sym("error_prev", 3)
-    alpha = ca.SX.sym("alpha", 1)
-    Kp = ca.SX.sym("Kp", 1)
-    Ki = ca.SX.sym("Ki", 1)
     accel_gain = ca.SX.sym("accel_gain", 1)
     mag_gain = ca.SX.sym("mag_gain", 1)
     dt = ca.SX.sym("dt", 1)
@@ -999,7 +994,7 @@ def derive_attitude_estimator():
     # World frame: x is east, y is north, z is up
 
     # Correction angular velocity vector
-    raw_error_w = ca.SX.zeros(3, 1)
+    omega_w = ca.SX.zeros(3, 1)
 
     # --- Correction from magnetometer (yaw) ---
 
@@ -1010,7 +1005,7 @@ def derive_attitude_estimator():
     mag_error_w = -angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2) # the magnetic north is at (90 degrees - mag_decl) yaw
 
     # Move magnetometer correction in body frame
-    raw_error_w += (
+    omega_w += (
         ca.vertcat(0,0,mag_error_w)
         * mag_gain
     )
@@ -1023,43 +1018,27 @@ def derive_attitude_estimator():
     accel_w_normed = accel_w / accel_norm
 
     # Correct accelerometer only if g between 0.9g and 1.1g
-    threshold = 0.02
+    threshold = 0.05
     higher_lim_check = ca.if_else(accel_w_normed[2] < (1 + threshold), 1, 0) * ca.if_else(accel_norm < g * (1 + threshold), 1, 0)
     lower_lim_check = ca.if_else(accel_w_normed[2] > (1 - threshold), 1, 0) * ca.if_else(accel_norm > g * (1 - threshold), 1, 0)
     accel_norm_check = higher_lim_check * lower_lim_check
 
     # Acceleration gain
     # If the drone is accelerating, we shouldn't trust the accelerometer
-    accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / (1.1 * threshold * g)))
-    debug1 = accel_gain_magnitude
-    debug2 = accel_norm_check
+    accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / (1.01 * threshold * g)))
 
     # Correct gravity as z
-    raw_error_w -= (
+    omega_w -= (
         accel_norm_check
         * ca.cross(ca.vertcat(0,0,1), ca.vertcat(accel_w_normed[0],accel_w_normed[1],accel_w_normed[2]))
         * accel_gain_magnitude
         * accel_gain
     )
-    debug = ca.cross(ca.vertcat(0,0,1), ca.vertcat(accel_w[0],accel_w[1],accel_w[2]))
-
-    # ----- LPF -----
-    filtered_error = alpha * error_prev + (1 - alpha) * raw_error_w
-
-    # ----- PI Correction -----
-    max_integral = 0.15
-    integral_error_new = integral_error_prev + filtered_error * dt
-    integral_error_new = ca.fmin(ca.fmax(integral_error_new, -max_integral), max_integral)
-
-    omega_corr = Kp * filtered_error + Ki * integral_error_new
 
     ## TODO add gyro bias stuff
 
     # Make the correction
-    correction_dt = omega_corr * dt
-    correction_norm = ca.norm_2(correction_dt)
-    correction_dt = ca.if_else(correction_norm > 1e-3, (correction_dt / correction_norm), correction_dt)
-    q1 = so3.elem(correction_dt).exp(SO3Quat) * q_wb
+    q1 = so3.elem(omega_w * dt).exp(SO3Quat) * q_wb
 
     # Return estimator
     f_att_estimator = ca.Function(
@@ -1070,32 +1049,22 @@ def derive_attitude_estimator():
             mag_decl,
             omega_b,
             accel_b,
-            integral_error_prev,
-            error_prev,
-            alpha,
-            Kp,
-            Ki,
             accel_gain,
             mag_gain,
             dt,
         ],
-        [q1.param, integral_error_new, filtered_error, debug, debug1, debug2],
+        [q1.param],
         [
             "q",
             "mag_b",
             "mag_decl",
             "omega_b",
             "accel_b",
-            "integral_error_prev",
-            "error_prev",
-            "alpha",
-            "Kp",
-            "Ki",
             "accel_gain",
             "mag_gain",
             "dt",
         ],
-        ["q1", "integral_error_new", "filtered_error", "debug", "debug1", "debug2"],
+        ["q1"],
     )
 
     return {"attitude_estimator": f_att_estimator}

@@ -145,9 +145,12 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 	static double accel_gain = CONFIG_CEREBRI_RDD2_ATTITUDE_RATE_ACCEL_GAIN * 1e-2;
 	static double mag_gain = CONFIG_CEREBRI_RDD2_ATTITUDE_RATE_MAG_GAIN * 1e-2;
 
-	// Initialize attitude from accelerometer and magnetometer
+	// ------ Initialize attitude from accelerometer and magnetometer ------
+
 	double q[4] = {1, 0, 0, 0};
 	// Wait for both IMU and magnetometer data
+	
+	
 	// Magnetometer waiting
 	while (!zros_sub_update_available(&ctx->sub_mag)) {
 		LOG_INF("waiting for magnetometer");
@@ -165,43 +168,63 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		LOG_INF("magnetometer is not valid, waiting for valid data: %f", mag_norm);
 		k_sleep(K_MSEC(50));
 	}
-	// IMU waiting
-	while (!zros_sub_update_available(&ctx->sub_imu)) {
-		LOG_INF("waiting for IMU");
-		k_sleep(K_MSEC(50));
-	}
-	zros_sub_update(&ctx->sub_imu);
-	double accel_norm = ctx->imu.linear_acceleration.x * ctx->imu.linear_acceleration.x +
-			ctx->imu.linear_acceleration.y * ctx->imu.linear_acceleration.y +
-			ctx->imu.linear_acceleration.z * ctx->imu.linear_acceleration.z;
-	// wait for IMU to be valid
-	while (accel_norm < 0.8*9.8*9.8 || accel_norm > 1.2*9.8*9.8) {
-		zros_sub_update(&ctx->sub_imu);
-		accel_norm = ctx->imu.linear_acceleration.x * ctx->imu.linear_acceleration.x +
-			ctx->imu.linear_acceleration.y * ctx->imu.linear_acceleration.y +
-			ctx->imu.linear_acceleration.z * ctx->imu.linear_acceleration.z;
-		LOG_INF("IMU is not valid, waiting for valid data: %f", accel_norm);
-		k_sleep(K_MSEC(50));
-	}
+	
+	// TODO: If the IMU calibration parameters are saved on the SD card,
+	// perform full attitude initialization from accelerometer and magnetometer.
+	// Otherwise, perform only yaw initialization from magnetometer.
 
-	{	
-		// attitude_init_from_mag:(mag_b[3],accel_b[3],mag_decl)->(q_init[4]w)
-		CASADI_FUNC_ARGS(attitude_init_from_mag)
-		
+	bool imu_calibrated = false;
+	if (imu_calibrated) {
+		// IMU waiting
+		while (!zros_sub_update_available(&ctx->sub_imu)) {
+			LOG_INF("waiting for IMU");
+			k_sleep(K_MSEC(50));
+		}
+		zros_sub_update(&ctx->sub_imu);
+		double accel_norm = ctx->imu.linear_acceleration.x * ctx->imu.linear_acceleration.x +
+				ctx->imu.linear_acceleration.y * ctx->imu.linear_acceleration.y +
+				ctx->imu.linear_acceleration.z * ctx->imu.linear_acceleration.z;
+		// wait for IMU to be valid
+		while (accel_norm < 0.8*9.8*9.8 || accel_norm > 1.2*9.8*9.8) {
+			zros_sub_update(&ctx->sub_imu);
+			accel_norm = ctx->imu.linear_acceleration.x * ctx->imu.linear_acceleration.x +
+				ctx->imu.linear_acceleration.y * ctx->imu.linear_acceleration.y +
+				ctx->imu.linear_acceleration.z * ctx->imu.linear_acceleration.z;
+			LOG_INF("IMU is not valid, waiting for valid data: %f", accel_norm);
+			k_sleep(K_MSEC(50));
+		}
+
+		{	
+			// attitude_init_from_mag:(mag_b[3],accel_b[3],mag_decl)->(q_init[4]w)
+			CASADI_FUNC_ARGS(attitude_init)
+			
+			double mag[3] = {ctx->mag.magnetic_field.x,
+							ctx->mag.magnetic_field.y,
+							ctx->mag.magnetic_field.z};
+			double accel[3] = {ctx->imu.linear_acceleration.x,
+							ctx->imu.linear_acceleration.y,
+							ctx->imu.linear_acceleration.z};
+			
+			args[0] = mag;
+			args[1] = accel;
+			args[2] = &decl_WL;
+			
+			res[0] = q;
+			
+				CASADI_FUNC_CALL(attitude_init)
+		}
+	} else {
+		CASADI_FUNC_ARGS(yaw_init) 
+
 		double mag[3] = {ctx->mag.magnetic_field.x,
-						 ctx->mag.magnetic_field.y,
-						 ctx->mag.magnetic_field.z};
-		double accel[3] = {ctx->imu.linear_acceleration.x,
-						   ctx->imu.linear_acceleration.y,
-						   ctx->imu.linear_acceleration.z};
-		
+							ctx->mag.magnetic_field.y,
+							ctx->mag.magnetic_field.z};
 		args[0] = mag;
-		args[1] = accel;
-		args[2] = &decl_WL;
-		
+		args[1] = &decl_WL;
+
 		res[0] = q;
-		
-		CASADI_FUNC_CALL(attitude_init_from_mag)
+
+		CASADI_FUNC_CALL(yaw_init)
 	}
 
 	// estimator states

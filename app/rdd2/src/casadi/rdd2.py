@@ -4,13 +4,7 @@ import numpy as np
 from pathlib import Path
 import casadi as ca
 import cyecca.lie as lie
-from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321, so3
-from cyecca.lie.group_se23 import (
-    SE23Quat,
-    se23,
-    SE23LieGroupElement,
-    SE23LieAlgebraElement,
-)
+from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321, so3, SO3LieAlgebra, SO3LieGroup
 from cyecca.symbolic import SERIES
 
 # parameters
@@ -817,6 +811,7 @@ def derive_attitude_estimator():
     accel_gain = ca.SX.sym("accel_gain", 1)
     mag_gain = ca.SX.sym("mag_gain", 1)
     dt = ca.SX.sym("dt", 1)
+    P = ca.SX.sym("P", 6)
 
     # Note:
     # Magnetometer frame: x is east, y is north, z is up
@@ -824,7 +819,7 @@ def derive_attitude_estimator():
     # World frame: x is east, y is north, z is up
 
     # Correction angular velocity vector
-    omega_w = ca.SX.zeros(3, 1)
+    correction_w = ca.SX.zeros(3, 1)
 
     # --- Correction from magnetometer (yaw) ---
 
@@ -832,10 +827,10 @@ def derive_attitude_estimator():
     mag_earth = q_wb @ mag_b
 
     # Magnetometer error calculation
-    mag_error_w = -angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2) # the magnetic north is at (90 degrees - mag_decl) yaw
+    mag_error_w = angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2) # the magnetic north is at (90 degrees - mag_decl) yaw
 
     # Move magnetometer correction in body frame
-    omega_w += (
+    correction_w -= (
         ca.vertcat(0,0,mag_error_w)
         * mag_gain
     )
@@ -858,7 +853,7 @@ def derive_attitude_estimator():
     accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / (1.01 * threshold * g)))
 
     # Correct gravity as z
-    omega_w -= (
+    correction_w -= (
         accel_norm_check
         * ca.cross(ca.vertcat(0,0,1), ca.vertcat(accel_w_normed[0],accel_w_normed[1],accel_w_normed[2]))
         * accel_gain_magnitude
@@ -867,8 +862,22 @@ def derive_attitude_estimator():
 
     ## TODO add gyro bias stuff
 
+    # --- IEKF ---
+    # g_true_w = so3.elem(ca.vertcat(0,0,g))
+    # mag_true_w = so3.elem(ca.vertcat(ca.cos(mag_decl + ca.pi/2), ca.sin(mag_decl + ca.pi/2), 0))
+    # accel_error = -(g_true_w @ q_wb) @ correction_w
+    # mag_error = -(mag_true_w @ q_wb) @ correction_w
+    # y = ca.vertcat(accel_error, mag_error)
+    # H = ca.vertcat(g_true_w @ q_wb, mag_true_w @ q_wb)
+    # R = ca.SX.eye(6)
+    # S = H @ P @ H.T + R
+    # K = P @ H.T @ ca.inv(S)
+    # correction_w = K @ y
+    # P = (ca.SX.eye(6) - K @ H) @ P
+
     # Make the correction
-    q1 = so3.elem(omega_w * dt).exp(SO3Quat) * q_wb
+    q1 = so3.elem(correction_w * dt).exp(SO3Quat) * q_wb 
+    P_new = P
 
     # Return estimator
     f_att_estimator = ca.Function(
@@ -882,8 +891,9 @@ def derive_attitude_estimator():
             accel_gain,
             mag_gain,
             dt,
+            P,
         ],
-        [q1.param],
+        [q1.param, P_new],
         [
             "q",
             "mag_b",
@@ -893,8 +903,9 @@ def derive_attitude_estimator():
             "accel_gain",
             "mag_gain",
             "dt",
+            "P",
         ],
-        ["q1"],
+        ["q1", "P_new"],
     )
 
     return {"attitude_estimator": f_att_estimator}

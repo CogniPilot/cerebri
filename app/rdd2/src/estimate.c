@@ -228,8 +228,16 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 	// estimator states
 	double x[10] = {0, 0, 0, 0, 0, 0, q[0], q[1], q[2], q[3]};
 
-	// estimator covariance
-	double P[36] = {1e-2, 0, 0, 0, 0, 0,
+	// Position estimator covariance
+	double P_pos[36] = {1e-2, 0, 0, 0, 0, 0,
+	        		0, 1e-2, 0, 0, 0, 0,
+					0, 0, 1e-2, 0, 0, 0,
+					0, 0, 0, 1e-2, 0, 0, 
+					0, 0, 0, 0, 1e-2, 0, 
+					0, 0, 0, 0, 0, 1e-2};
+
+	// Attitude estimator covariance
+	double P_att[36] = {1e-2, 0, 0, 0, 0, 0,
 	        		0, 1e-2, 0, 0, 0, 0,
 					0, 0, 1e-2, 0, 0, 0,
 					0, 0, 0, 1e-2, 0, 0, 
@@ -354,10 +362,10 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			args[0] = x;
 			args[1] = gps;
 			args[2] = &dt;
-			args[3] = P;
+			args[3] = P_pos;
 
 			res[0] = x;
-			res[1] = P;
+			res[1] = P_pos;
 
 			CASADI_FUNC_CALL(position_correction)
 		}
@@ -393,8 +401,10 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			args[5] = &accel_gain;
 			args[6] = &mag_gain;
 			args[7] = &dt;
+			args[8] = P_att;
 			
 			res[0] = q;
+			res[1] = P_att;
 			CASADI_FUNC_CALL(attitude_estimator)
 		}
 

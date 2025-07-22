@@ -408,6 +408,8 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			CASADI_FUNC_CALL(attitude_estimator)
 		}
 
+		LOG_INF("P_att AFTER: %f %f %f %f %f %f", P_att[0], P_att[7], P_att[14], P_att[21], P_att[28], P_att[35]);
+
 		// Put quaternion back into state vector
 		x[6] = q[0];
 		x[7] = q[1];

@@ -811,7 +811,16 @@ def derive_attitude_estimator():
     accel_gain = ca.SX.sym("accel_gain", 1)
     mag_gain = ca.SX.sym("mag_gain", 1)
     dt = ca.SX.sym("dt", 1)
-    P = ca.SX.sym("P", 6)
+    P = ca.SX.sym("P", 3, 3)
+
+    R = ca.SX([
+        [1e6, 0.0,  0.0,  0.0,  0.0,  0.0 ],   # accel_x row
+        [0.0,  1e6, 0.0,  0.0,  0.0,  0.0 ],   # accel_y row  
+        [0.0,  0.0,  1e6, 0.0,  0.0,  0.0 ],   # accel_z row
+        [0.0,  0.0,  0.0,  1e6, 0.0,  0.0 ],   # mag_x row
+        [0.0,  0.0,  0.0,  0.0,  1e6, 0.0 ],   # mag_y row
+        [0.0,  0.0,  0.0,  0.0,  0.0,  1e6]    # mag_z row
+    ])
 
     # Note:
     # Magnetometer frame: x is east, y is north, z is up
@@ -827,10 +836,10 @@ def derive_attitude_estimator():
     mag_earth = q_wb @ mag_b
 
     # Magnetometer error calculation
-    mag_error_w = angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2) # the magnetic north is at (90 degrees - mag_decl) yaw
+    mag_error_w = -angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2) # the magnetic north is at (90 degrees - mag_decl) yaw
 
     # Move magnetometer correction in body frame
-    correction_w -= (
+    correction_w += (
         ca.vertcat(0,0,mag_error_w)
         * mag_gain
     )
@@ -863,21 +872,30 @@ def derive_attitude_estimator():
     ## TODO add gyro bias stuff
 
     # --- IEKF ---
-    # g_true_w = so3.elem(ca.vertcat(0,0,g))
-    # mag_true_w = so3.elem(ca.vertcat(ca.cos(mag_decl + ca.pi/2), ca.sin(mag_decl + ca.pi/2), 0))
-    # accel_error = -(g_true_w @ q_wb) @ correction_w
-    # mag_error = -(mag_true_w @ q_wb) @ correction_w
-    # y = ca.vertcat(accel_error, mag_error)
-    # H = ca.vertcat(g_true_w @ q_wb, mag_true_w @ q_wb)
-    # R = ca.SX.eye(6)
-    # S = H @ P @ H.T + R
-    # K = P @ H.T @ ca.inv(S)
-    # correction_w = K @ y
-    # P = (ca.SX.eye(6) - K @ H) @ P
+    # so3 representation of gravity vector and magnetic north vector
+    g_true_w = so3.wedge(ca.vertcat(0,0,g)).to_Matrix()
+    mag_true_w = so3.wedge(ca.vertcat(ca.cos(mag_decl + ca.pi/2), ca.sin(mag_decl + ca.pi/2), 0)).to_Matrix()
+
+    # Add process noise to covariance (use different variable name)
+    P_with_noise = P + ca.SX.eye(3) * 0.001
+
+    # Rotation matrix
+    R_est = q_wb.to_Matrix()
+    # Errors
+    accel_error = (R_est.T @ g_true_w) @ correction_w
+    mag_error = (R_est.T @ mag_true_w) @ correction_w
+    y = ca.vertcat(accel_error, mag_error)
+
+    H = ca.vertcat(R_est.T @ g_true_w, R_est.T @ mag_true_w)
+    S = H @ P_with_noise @ H.T + R
+    K = P_with_noise @ H.T @ ca.inv(S) # kalman gain
+
+    correction_w = K @ y
+    P_new = (ca.SX.eye(3) - K @ H) @ P_with_noise
 
     # Make the correction
-    q1 = so3.elem(correction_w * dt).exp(SO3Quat) * q_wb 
-    P_new = P
+    q1 = so3.elem(correction_w * dt).exp(SO3Quat) * q_wb
+    #P_new = P
 
     # Return estimator
     f_att_estimator = ca.Function(

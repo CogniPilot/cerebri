@@ -813,16 +813,6 @@ def derive_attitude_estimator():
     dt = ca.SX.sym("dt", 1)
     P = ca.SX.sym("P", 3, 3)
 
-    L = ca.SX([
-        [1e-3, 0.0,  0.0,  0.0,  0.0,  0.0 ],   # accel_x row
-        [0.0,  1e-3, 0.0,  0.0,  0.0,  0.0 ],   # accel_y row  
-        [0.0,  0.0,  1e-3, 0.0,  0.0,  0.0 ],   # accel_z row
-        [0.0,  0.0,  0.0,  1e-3, 0.0,  0.0 ],   # mag_x row
-        [0.0,  0.0,  0.0,  0.0,  1e-3, 0.0 ],   # mag_y row
-        [0.0,  0.0,  0.0,  0.0,  0.0,  1e-3]    # mag_z row
-    ])
-    Q = ca.SX.eye(3) * 1e-5
-
     # Note:
     # Magnetometer frame: x is east, y is north, z is up
     # Body frame: x is forward, y is left, z is down
@@ -847,20 +837,20 @@ def derive_attitude_estimator():
 
     # # --- Correction from accelerometer (roll/pitch) ---
 
-    # # Transform acceleration in world frame
-    # accel_w = q_wb @ accel_b 
-    # accel_norm = ca.norm_2(accel_w)
-    # accel_w_normed = accel_w / accel_norm
+    # Transform acceleration in world frame
+    accel_w = q_wb @ accel_b 
+    accel_norm = ca.norm_2(accel_w)
+    accel_w_normed = accel_w / accel_norm
 
-    # # Correct accelerometer only if g between 0.9g and 1.1g
-    # threshold = 0.05
-    # higher_lim_check = ca.if_else(accel_w_normed[2] < (1 + threshold), 1, 0) * ca.if_else(accel_norm < g * (1 + threshold), 1, 0)
-    # lower_lim_check = ca.if_else(accel_w_normed[2] > (1 - threshold), 1, 0) * ca.if_else(accel_norm > g * (1 - threshold), 1, 0)
-    # accel_norm_check = higher_lim_check * lower_lim_check
+    # Correct accelerometer only if g between 0.9g and 1.1g
+    threshold = 0.05
+    higher_lim_check = ca.if_else(ca.fabs(accel_w_normed[2]) < (1 + threshold), 1, 0) * ca.if_else(accel_norm < g * (1 + threshold), 1, 0)
+    lower_lim_check = ca.if_else(ca.fabs(accel_w_normed[2]) > (1 - threshold), 1, 0) * ca.if_else(accel_norm > g * (1 - threshold), 1, 0)
+    accel_norm_check = higher_lim_check * lower_lim_check
 
-    # # Acceleration gain
-    # # If the drone is accelerating, we shouldn't trust the accelerometer
-    # accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / (1.01 * threshold * g)))
+    # Acceleration gain
+    # If the drone is accelerating, we shouldn't trust the accelerometer
+    accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / (1.01 * threshold * g)))
 
     # # Correct gravity as z
     # correction_w -= (
@@ -875,26 +865,39 @@ def derive_attitude_estimator():
     mag_b_norm = mag_b / ca.norm_2(mag_b)
     accel_b_norm = accel_b / ca.norm_2(accel_b)
 
+    # Create diagonal elements with symbolic expressions
+    accel_diag_val = 1e-1 + (1.0 - accel_norm_check) * 1e3
+    
+    L = ca.vertcat(
+        ca.horzcat(accel_diag_val, 0.0, 0.0, 0.0, 0.0, 0.0),   # accel_x row
+        ca.horzcat(0.0, accel_diag_val, 0.0, 0.0, 0.0, 0.0),   # accel_y row  
+        ca.horzcat(0.0, 0.0, accel_diag_val, 0.0, 0.0, 0.0),   # accel_z row
+        ca.horzcat(0.0, 0.0, 0.0, 10.0, 0.0, 0.0),              # mag_x row
+        ca.horzcat(0.0, 0.0, 0.0, 0.0, 1.0, 0.0),              # mag_y row
+        ca.horzcat(0.0, 0.0, 0.0, 0.0, 0.0, 1.0)               # mag_z row
+    )    
+    Q = ca.SX.eye(3) * 1e-4
+
     # --- IEKF ---
-    R = ca.inv(SO3Dcm.from_Quat(q_wb).to_Matrix())
+    R = SO3Dcm.from_Quat(q_wb).to_Matrix()
     F = so3.wedge(omega_b * dt).exp(SO3Dcm).to_Matrix()
     P_new = F @ P @ F.T + Q
 
-    b = ca.vertcat(0,0,1, ca.vertcat(ca.cos(-mag_decl + ca.pi/2), ca.sin(-mag_decl + ca.pi/2), 0))
-    mag_w = ca.inv(R) @ mag_b
+    b = ca.vertcat(0,0,1, ca.cos(-mag_decl + ca.pi/2), ca.sin(-mag_decl + ca.pi/2), 0)
+    mag_w = R @ mag_b
     mag_w_norm = mag_w[0:2] / ca.norm_2(mag_w[0:2])
-    z = ca.vertcat(ca.inv(R) @ accel_b_norm, mag_w_norm, 0) - b
+    z = ca.vertcat(R @ accel_b_norm, mag_w_norm, 0) - b
     
-    debug = ca.vertcat(mag_w_norm, 0)
+    debug = mag_w[0:2]
 
-    H = ca.vertcat(so3.wedge(ca.vertcat(0,0,1)).to_Matrix() * ca.vertcat(1, 1, 0.001), so3.wedge(ca.vertcat(ca.cos(-mag_decl + ca.pi/2), ca.sin(-mag_decl + ca.pi/2), 0)).to_Matrix() * ca.vertcat(0.001, 0.001, 1))
+    H = ca.vertcat(so3.wedge(ca.vertcat(0,0,1)).to_Matrix(), so3.wedge(ca.vertcat(ca.cos(-mag_decl + ca.pi/2), ca.sin(-mag_decl + ca.pi/2), 0)).to_Matrix())
 
     S = H @ P_new @ H.T + L
     K = P_new @ H.T @ ca.inv(S)
-    R_new = R.T @ so3.wedge(K @ z).exp(SO3Dcm).to_Matrix()
+    R_new = so3.wedge(K @ z).exp(SO3Dcm).to_Matrix() @ R
 
     P_new = (ca.SX.eye(3) - K @ H) @ P_new
-    q1 = SO3Quat.from_Matrix(R_new.T)
+    q1 = SO3Quat.from_Matrix(R_new)
 
 
 

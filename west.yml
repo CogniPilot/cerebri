@@ -14,6 +14,9 @@ manifest:
       url-base: https://github.com/zephyrproject-rtos
     - name: cognipilot
       url-base: https://github.com/CogniPilot
+    - name: personal
+      url-base: https://github.com/YahorL
+
 
   projects:
     - name: zephyr
@@ -35,8 +38,8 @@ manifest:
       revision: 843348bca3a15e914914b90057369b9616302e20 # main 6/11/25
       path: modules/lib/zros
     - name: cyecca
-      remote: cognipilot
-      revision: 0acc0882eee8ab146371eca71bcb30157b76b250 # main 6/11/25
+      remote: personal
+      revision: afd329aaae3884943473cc92c91bc9216f263cf1 # incoming 19/06/25
       path: modules/lib/cyecca
     - name: synapse_pb
       remote: cognipilot

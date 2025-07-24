@@ -1,19 +1,10 @@
 import argparse
 import os
-import sys
-import math
 import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
 import casadi as ca
 import cyecca.lie as lie
-from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321, so3
-from cyecca.lie.group_se23 import (
-    SE23Quat,
-    se23,
-    SE23LieGroupElement,
-    SE23LieAlgebraElement,
-)
+from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321, so3, SO3LieAlgebra, SO3LieGroup, SO3Dcm
 from cyecca.symbolic import SERIES
 
 # parameters
@@ -29,18 +20,23 @@ yaw_rate_max = 60  # deg/s
 rollpitch_max = 30  # deg
 
 # position loop
-kp_pos = 1.0  # position proportional gain
+kp_pos = 1.0 # position proportional gain
 kp_vel = 2.0  # velocity proportional gain
 # pos_sp_dist_max = 2 # position setpoint max distance
 # vel_max = 2.0 # max velocity command
 z_integral_max = 0  # 5.0
 ki_z = 0.05  # velocity z integral gain
 
-# estimator params
-att_w_acc = 0.2
-att_w_gyro_bias = 0.1
-param_att_w_mag = 0.2
-
+def angle_wrap(angle):
+    """
+    Wrap angle to [-pi, pi]
+    """
+    # First ensure we're in [0, 2*pi) range, then shift to [-pi, pi]
+    wrapped = ca.fmod(angle, 2 * ca.pi)
+    # Handle negative angles
+    wrapped = ca.if_else(wrapped < 0, wrapped + 2 * ca.pi, wrapped)
+    # Shift to [-pi, pi] range
+    return ca.if_else(wrapped > ca.pi, wrapped - 2 * ca.pi, wrapped)
 
 def derive_control_allocation():
     """
@@ -111,10 +107,24 @@ def derive_control_allocation():
 
     f_alloc = ca.Function(
         "control_allocation",
-        [F_max, l, Cm, Ct, T, M],
-        [omega, Fp_sum, F_moment, F_thrust, M_sat],
-        ["F_max", "l", "Cm", "Ct", "T", "M"],
-        ["omega", "Fp_sum", "F_moment", "F_thrust", "M_sat"],
+        [
+            F_max,
+            l,
+            Cm,
+            Ct,
+            T,
+            M,
+        ],
+        [omega],
+        [
+            "F_max",
+            "l",
+            "Cm",
+            "Ct",
+            "T",
+            "M",
+        ],
+        ["omega"],
     )
     return {"f_alloc": f_alloc}
 
@@ -203,7 +213,7 @@ def derive_velocity_control():
 
 def derive_input_acro():
     """
-    Acro mode manual input:
+    Acro mode manual :
 
     Given input, find roll rate and thrust setpoints
     """
@@ -230,7 +240,11 @@ def derive_input_acro():
     # -------------------------------
     f_input_acro = ca.Function(
         "input_acro",
-        [thrust_trim, thrust_delta, input_aetr],
+        [
+            thrust_trim,
+            thrust_delta,
+            input_aetr
+        ],
         [w, thrust],
         [
             "thrust_trim",
@@ -282,7 +296,12 @@ def derive_input_auto_level():
     # -------------------------------
     f_input_auto_level = ca.Function(
         "input_auto_level",
-        [thrust_trim, thrust_delta, input_aetr, q.param],
+        [
+            thrust_trim,
+            thrust_delta,
+            input_aetr,
+            q.param
+        ],
         [q_r.param, thrust],
         [
             "thrust_trim",
@@ -351,7 +370,19 @@ def derive_attitude_control():
     # FUNCTION
     # -------------------------------
     f_attitude_control = ca.Function(
-        "attitude_control", [kp, q, q_r], [omega], ["kp", "q", "q_r"], ["omega"]
+        "attitude_control", 
+        [
+            kp,
+            q, 
+            q_r
+        ], 
+        [omega],
+        [
+            "kp",
+            "q",
+            "q_r"
+        ],
+        ["omega"]
     )
 
     return {"attitude_control": f_attitude_control}
@@ -400,7 +431,19 @@ def derive_attitude_rate_control():
     # -------------------------------
     f_attitude_rate_control = ca.Function(
         "attitude_rate_control",
-        [kp, ki, kd, f_cut, i_max, omega, omega_r, i0, e0, de0, dt],
+        [
+            kp,
+            ki,
+            kd,
+            f_cut,
+            i_max,
+            omega,
+            omega_r,
+            i0,
+            e0,
+            de0,
+            dt,
+        ],
         [M, i1, e1, de1, alpha],
         [
             "kp",
@@ -505,9 +548,29 @@ def derive_position_control():
     # -------------------------------
     f_get_u = ca.Function(
         "position_control",
-        [thrust_trim, pt_w, vt_w, at_w, qc_wb.param, p_w, v_w, z_i, dt],
+        [
+            thrust_trim,
+            pt_w,
+            vt_w,
+            at_w,
+            qc_wb.param,
+            p_w,
+            v_w,
+            z_i,
+            dt,
+        ],
         [nT, qr_wb.param, z_i_2],
-        ["thrust_trim", "pt_w", "vt_w", "at_w", "qc_wb", "p_w", "v_w", "z_i", "dt"],
+        [
+            "thrust_trim",
+            "pt_w",
+            "vt_w",
+            "at_w",
+            "qc_wb",
+            "p_w",
+            "v_w",
+            "z_i",
+            "dt",
+        ],
         ["nT", "qr_wb", "z_i_2"],
     )
 
@@ -548,9 +611,21 @@ def derive_strapdown_ins_propagation():
     # should do q renormalize check here
     f_ins = ca.Function(
         "strapdown_ins_propagate",
-        [X0.param, a_b, omega_b, g, dt],
+        [   
+            X0.param,
+            a_b,
+            omega_b,
+            g,
+            dt
+        ],
         [X1.param],
-        ["x0", "a_b", "omega_b", "g", "dt"],
+        [
+            "x0",
+            "a_b",
+            "omega_b",
+            "g",
+            "dt",
+        ],
         ["x1"],
     )
     eqs = {"strapdown_ins_propagate": f_ins}
@@ -599,83 +674,297 @@ def derive_position_correction():
 
     f_pos_estimator = ca.Function(
         "position_correction",
-        [est_x, z, dt, P],
+        [
+            est_x,
+            z,
+            dt,
+            P,
+        ],
         [x_new, P_new],
-        ["est_x", "gps", "dt", "P"],
+        [
+            "est_x",
+            "gps",
+            "dt",
+            "P",
+        ],
         ["x_new", "P_new"],
     )
     return {"position_correction": f_pos_estimator}
 
 
+def derive_yaw_init():
+    """
+    Calculate yaw from magnetometer readings.
+    """
+    mag_b = ca.SX.sym("mag_b", 3)
+    mag_decl = ca.SX.sym("mag_decl", 1)
+    
+    # Calculate yaw from magnetometer readings
+    yaw = -angle_wrap(ca.atan2(mag_b[1], mag_b[0]) + mag_decl - ca.pi / 2)
+
+    # Step 5: Create final quaternion from roll, pitch, yaw
+    euler = SO3EulerB321.elem(ca.vertcat(yaw, 0, 0))
+    q_init = SO3Quat.from_Euler(euler)
+    
+    # Also return the individual angles for debugging
+    f_yaw_init = ca.Function(
+        "yaw_init",
+        [
+            mag_b,
+            mag_decl,
+        ],
+        [q_init.param],
+        [
+            "mag_b",
+            "mag_decl",
+        ],
+        ["q_init"],
+    )
+    
+    return {"yaw_init": f_yaw_init}
+
+
+def derive_attitude_init():
+    """
+    Initialize attitude quaternion from accelerometer and magnetometer readings.
+    First calculates pitch and roll from accelerometer, then uses these to 
+    convert magnetometer to world frame and calculate yaw.
+    Note: this function can be simplified by estimation only yaw and assuming pitch and roll are zero (which is valid since the imu cannot be calibrated otherwise).
+    """
+    mag_b = ca.SX.sym("mag_b", 3)
+    accel_b = ca.SX.sym("accel_b", 3)  
+    mag_decl = ca.SX.sym("mag_decl", 1)
+    
+    # Step 1: Calculate pitch and roll from accelerometer
+    # Assuming gravity vector is [0, 0, g] in world frame
+    # In body frame: x=forward, y=left, z=up
+    
+    # Normalize accelerometer reading
+    accel_norm = ca.norm_2(accel_b)
+    accel_n = accel_b / accel_norm
+    
+    # Calculate pitch (rotation about y-axis)
+    # pitch = atan2(accel_x, sqrt(accel_y^2 + accel_z^2))
+    pitch = angle_wrap(ca.atan2(ca.sqrt(accel_n[1]**2 + accel_n[2]**2), accel_n[0]) - ca.pi / 2)
+
+    # Calculate roll (rotation about x-axis)  
+    # roll = atan2(accel_z, accel_y)
+    roll = -angle_wrap(ca.atan2(accel_n[2], accel_n[1]) - ca.pi / 2)
+    
+    # Step 2: Create partial rotation matrix from pitch and roll only
+    # This represents R_y(pitch) * R_x(roll) - rotation about pitch then roll
+    # This transforms from tilted body frame to a level frame (but still unknown yaw)
+    cos_roll = ca.cos(roll)
+    sin_roll = ca.sin(roll)
+    cos_pitch = ca.cos(pitch)
+    sin_pitch = ca.sin(pitch)
+    
+    # Partial rotation matrix: R_pitch * R_roll
+    # This removes the tilt component, leaving only yaw unknown
+    R_level_from_body = ca.vertcat(
+        ca.horzcat(cos_pitch, sin_pitch*sin_roll, sin_pitch*cos_roll),
+        ca.horzcat(0, cos_roll, -sin_roll),
+        ca.horzcat(-sin_pitch, cos_pitch*sin_roll, cos_pitch*cos_roll)
+    )
+    
+    # Step 3: Transform magnetometer to level frame (removes pitch/roll tilt)
+    mag_level = R_level_from_body @ mag_b
+    
+    # Step 4: Calculate yaw from level-frame magnetometer
+    # In level frame: x=east, y=north, z=up (but rotated by unknown yaw)
+    # The magnetometer now points in the correct direction relative to magnetic north
+    # Magnetic declination correction: true_north = mag_north + declination
+    yaw = -angle_wrap(ca.atan2(mag_level[1], mag_level[0]) + mag_decl - ca.pi / 2)
+
+    # Step 5: Create final quaternion from roll, pitch, yaw
+    euler = SO3EulerB321.elem(ca.vertcat(yaw, pitch, roll))
+    q_init = SO3Quat.from_Euler(euler)
+    
+    # Also return the individual angles for debugging
+    f_attitude_init = ca.Function(
+        "attitude_init",
+        [
+            mag_b,
+            accel_b,
+            mag_decl,
+        ],
+        [q_init.param],
+        [
+            "mag_b",
+            "accel_b", 
+            "mag_decl",
+        ],
+        ["q_init"],
+    )
+    
+    return {"attitude_init": f_attitude_init}
+
+
 def derive_attitude_estimator():
     # Define Casadi variables
     q0 = ca.SX.sym("q", 4)
-    q = SO3Quat.elem(param=q0)
-    mag = ca.SX.sym("mag", 3)
+    q_wb = SO3Quat.elem(param=q0)
+    mag_b = ca.SX.sym("mag", 3)
     mag_decl = ca.SX.sym("mag_decl", 1)
-    gyro = ca.SX.sym("gyro", 3)
-    accel = ca.SX.sym("accel", 3)
+    omega_b = ca.SX.sym("omega_b", 3)
+    accel_b = ca.SX.sym("accel", 3)
+    accel_gain = ca.SX.sym("accel_gain", 1)
+    mag_gain = ca.SX.sym("mag_gain", 1)
     dt = ca.SX.sym("dt", 1)
+    P = ca.SX.sym("P", 3, 3)
 
-    # Convert magnetometer to quat
-    mag1 = SO3Quat.elem(ca.vertcat(0, mag))
+    # Note:
+    # Magnetometer frame: x is east, y is north, z is up
+    # Body frame: x is forward, y is left, z is down
+    # World frame: x is east, y is north, z is up
 
-    # correction angular velocity vector
-    correction = ca.SX.zeros(3, 1)
+    # # Correction angular velocity vector
+    # correction_w = ca.SX.zeros(3, 1)
 
-    # Convert vector to world frame and extract xy component
-    spin_rate = ca.norm_2(gyro)
-    mag_earth = (q.inverse() * mag1 * q).param[1:]
+    # # --- Correction from magnetometer (yaw) ---
 
-    mag_err = (
-        ca.fmod(ca.atan2(mag_earth[1], mag_earth[0] - mag_decl) + ca.pi, 2 * ca.pi)
-        - ca.pi
-    )
+    # # Transform magnetometer to world frame
+    # mag_earth = q_wb @ mag_b
 
-    # Change gain if spin rate is large
-    fifty_dps = 0.873
-    gain_mult = ca.if_else(spin_rate > fifty_dps, ca.fmin(spin_rate / fifty_dps, 10), 1)
+    # # Magnetometer error calculation
+    # mag_error_w = -angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2) # the magnetic north is at (90 degrees - mag_decl) yaw
 
-    # Move magnetometer correction in body frame
-    correction += (
-        (q.inverse() * SO3Quat.elem(ca.vertcat(0, 0, 0, mag_err)) * q).param[1:]
-        * param_att_w_mag
-        * gain_mult
-    )
+    # # Move magnetometer correction in body frame
+    # correction_w += (
+    #     ca.vertcat(0,0,mag_error_w)
+    #     * mag_gain
+    # )
 
-    # Correction from accelerometer
-    accel_norm_sq = ca.norm_2(accel) ** 2
+    # # --- Correction from accelerometer (roll/pitch) ---
 
-    # Correct accelerometer only if g between
-    higher_lim_check = ca.if_else(accel_norm_sq < ((g * 1.1) ** 2), 1, 0)
-    lower_lim_check = ca.if_else(accel_norm_sq > ((g * 0.9) ** 2), 1, 0)
+    # Transform acceleration in world frame
+    accel_w = q_wb @ accel_b 
+    accel_norm = ca.norm_2(accel_w)
+    accel_w_normed = accel_w / accel_norm
 
-    # Correct gravity as z
-    correction += (
-        lower_lim_check
-        * higher_lim_check
-        * ca.cross(np.array([[0], [0], [-1]]), accel / ca.norm_2(accel))
-        * att_w_acc
-    )
+    # Correct accelerometer only if g between 0.9g and 1.1g
+    threshold = 0.05
+    higher_lim_check = ca.if_else(ca.fabs(accel_w_normed[2]) < (1 + threshold), 1, 0) * ca.if_else(accel_norm < g * (1 + threshold), 1, 0)
+    lower_lim_check = ca.if_else(ca.fabs(accel_w_normed[2]) > (1 - threshold), 1, 0) * ca.if_else(accel_norm > g * (1 - threshold), 1, 0)
+    accel_norm_check = higher_lim_check * lower_lim_check
+
+    # Acceleration gain
+    # If the drone is accelerating, we shouldn't trust the accelerometer
+    accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / (1.01 * threshold * g)))
+
+    # # Correct gravity as z
+    # correction_w -= (
+    #     accel_norm_check
+    #     * ca.cross(ca.vertcat(0,0,1), ca.vertcat(accel_w_normed[0],accel_w_normed[1],accel_w_normed[2]))
+    #     * accel_gain_magnitude
+    #     * accel_gain
+    # )
 
     ## TODO add gyro bias stuff
 
-    # Add gyro to correction
-    correction += gyro
+    mag_b_norm = mag_b / ca.norm_2(mag_b)
+    accel_b_norm = accel_b / ca.norm_2(accel_b)
 
-    # Make the correction
-    q1 = q * so3.elem(correction * dt).exp(SO3Quat)
+    # Create diagonal elements with symbolic expressions
+    accel_diag_val = 1e-1 + (1.0 - accel_norm_check) * 1e3
+    
+    L = ca.vertcat(
+        ca.horzcat(accel_diag_val, 0.0, 0.0, 0.0, 0.0, 0.0),   # accel_x row
+        ca.horzcat(0.0, accel_diag_val, 0.0, 0.0, 0.0, 0.0),   # accel_y row  
+        ca.horzcat(0.0, 0.0, accel_diag_val, 0.0, 0.0, 0.0),   # accel_z row
+        ca.horzcat(0.0, 0.0, 0.0, 10.0, 0.0, 0.0),              # mag_x row
+        ca.horzcat(0.0, 0.0, 0.0, 0.0, 1.0, 0.0),              # mag_y row
+        ca.horzcat(0.0, 0.0, 0.0, 0.0, 0.0, 1.0)               # mag_z row
+    )    
+    Q = ca.SX.eye(3) * 1e-4
+
+    # --- IEKF ---
+    R = SO3Dcm.from_Quat(q_wb).to_Matrix()
+    F = so3.wedge(omega_b * dt).exp(SO3Dcm).to_Matrix()
+    P_new = F @ P @ F.T + Q
+
+    b = ca.vertcat(0,0,1, ca.cos(-mag_decl + ca.pi/2), ca.sin(-mag_decl + ca.pi/2), 0)
+    mag_w = R @ mag_b
+    mag_w_norm = mag_w[0:2] / ca.norm_2(mag_w[0:2])
+    z = ca.vertcat(R @ accel_b_norm, mag_w_norm, 0) - b
+    
+    debug = mag_w[0:2]
+
+    H = ca.vertcat(so3.wedge(ca.vertcat(0,0,1)).to_Matrix(), so3.wedge(ca.vertcat(ca.cos(-mag_decl + ca.pi/2), ca.sin(-mag_decl + ca.pi/2), 0)).to_Matrix())
+
+    S = H @ P_new @ H.T + L
+    K = P_new @ H.T @ ca.inv(S)
+    R_new = so3.wedge(K @ z).exp(SO3Dcm).to_Matrix() @ R
+
+    P_new = (ca.SX.eye(3) - K @ H) @ P_new
+    q1 = SO3Quat.from_Matrix(R_new)
+
+
+
+
+
+
+
+
+
+
+
+
+    # g_true_w = so3.wedge(ca.vertcat(0,0,g)).to_Matrix()
+    # mag_true_w = so3.wedge(ca.vertcat(ca.cos(mag_decl + ca.pi/2), ca.sin(mag_decl + ca.pi/2), 0)).to_Matrix()
+
+    # # Add process noise to covariance (use different variable name)
+    # P_with_noise = P + ca.SX.eye(3) * 0.001
+
+    # # Rotation matrix
+    # R_est = q_wb.to_Matrix()
+    # # Errors
+    # accel_error = (R_est.T @ g_true_w) @ correction_w
+    # mag_error = (R_est.T @ mag_true_w) @ correction_w
+    # y = ca.vertcat(accel_error, mag_error)
+
+    # H = ca.vertcat(R_est.T @ g_true_w, R_est.T @ mag_true_w)
+    # S = H @ P_with_noise @ H.T + R
+    # K = P_with_noise @ H.T @ ca.inv(S) # kalman gain
+
+    # correction_w = K @ y
+    # P_new = (ca.SX.eye(3) - K @ H) @ P_with_noise
+
+    # # Make the correction
+    # q1 = so3.elem(correction_w * dt).exp(SO3Quat) * q_wb
+    # #P_new = P
 
     # Return estimator
     f_att_estimator = ca.Function(
         "attitude_estimator",
-        [q0, mag, mag_decl, gyro, accel, dt],
-        [q1.param],
-        ["q", "mag", "mag_decl", "gyro", "accel", "dt"],
-        ["q1"],
+        [
+            q0,
+            mag_b,
+            mag_decl,
+            omega_b,
+            accel_b,
+            accel_gain,
+            mag_gain,
+            dt,
+            P,
+        ],
+        [q1.param, P_new, z, debug],
+        [
+            "q",
+            "mag_b",
+            "mag_decl",
+            "omega_b",
+            "accel_b",
+            "accel_gain",
+            "mag_gain",
+            "dt",
+            "P",
+        ],
+        ["q1", "P_new", "z", "debug"],
     )
 
     return {"attitude_estimator": f_att_estimator}
+
 
 
 def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
@@ -724,6 +1013,8 @@ if __name__ == "__main__":
     eqs.update(derive_control_allocation())
     eqs.update(derive_common())
     eqs.update(derive_attitude_estimator())
+    eqs.update(derive_yaw_init())
+    eqs.update(derive_attitude_init())
     eqs.update(derive_position_correction())
 
     for name, eq in eqs.items():

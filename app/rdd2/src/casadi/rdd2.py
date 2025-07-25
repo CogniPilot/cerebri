@@ -867,9 +867,9 @@ def derive_attitude_estimator():
 
     
     L = ca.SX.zeros(3, 3)
-    L[0,0] = 1e-1
-    L[1,1] = 1e-1
-    L[2,2] = 1e-2
+    L[0,0] = 1e-2
+    L[1,1] = 1e-2
+    L[2,2] = 1e-4
     Q = ca.SX.eye(3) * 1e-6
 
     # --- IEKF ---
@@ -890,10 +890,10 @@ def derive_attitude_estimator():
     K = P_new @ H.T @ ca.inv(S)
 
 
-    R_new = so3.wedge(K @ correction_w).exp(SO3Dcm).to_Matrix() @ R
+    q1 = so3.wedge(K @ correction_w).exp(SO3Quat) * q_wb
 
     P_new = (ca.SX.eye(3) - K @ H) @ P_new
-    q1 = SO3Quat.from_Matrix(R_new)
+    #q1 = SO3Quat.from_Matrix(q1)
 
 
 

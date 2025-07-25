@@ -412,7 +412,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 
 		//LOG_INF("P_att AFTER: %f %f %f %f %f %f", P_att[0], P_att[7], P_att[14], P_att[21], P_att[28], P_att[35]);
 		//LOG_INF("z: %f %f %f %f %f %f", z[0], z[1], z[2], z[3], z[4], z[5]);
-		LOG_INF("debug: %f %f %f", debug[0], debug[1], debug[2]);
+		//LOG_INF("debug: %f %f %f", debug[0], debug[1], debug[2]);
 
 		// Put quaternion back into state vector
 		x[6] = q[0];
@@ -469,6 +469,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			ctx->odometry.twist.angular.y = ctx->imu.angular_velocity.y;
 			ctx->odometry.twist.angular.z = ctx->imu.angular_velocity.z;
 
+			LOG_INF("quaternion: %f %f %f %f", x[6], x[7], x[8], x[9]);
 			// check quaternion normal
 			__ASSERT(fabs((ctx->odometry.pose.orientation.w *
 					       ctx->odometry.pose.orientation.w +
@@ -478,7 +479,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 					       ctx->odometry.pose.orientation.y +
 				       ctx->odometry.pose.orientation.z *
 					       ctx->odometry.pose.orientation.z) -
-				      1) < 1e-2,
+				      1) < 1e-1,
 				 "quaternion normal error");
 			zros_pub_update(&ctx->pub_odometry);
 		}

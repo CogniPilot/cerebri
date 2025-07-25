@@ -1004,6 +1004,10 @@ def derive_attitude_estimator():
     # Magnetometer error calculation
     mag_error_w = -angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2) # the magnetic north is at (90 degrees - mag_decl) yaw
 
+    # mag check
+    gamma = ca.acos(mag_b[2] / ca.norm_2(mag_b))  # angle from vertical
+    mag_error_w = ca.if_else(ca.sin(gamma)  > 0.1, mag_error_w, 0)
+
     # Move magnetometer correction in body frame
     omega_w += (
         ca.vertcat(0,0,mag_error_w)
@@ -1028,12 +1032,13 @@ def derive_attitude_estimator():
     accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / (1.01 * threshold * g)))
 
     # Correct gravity as z
-    omega_w -= (
+    accel_correction = (
         accel_norm_check
         * ca.cross(ca.vertcat(0,0,1), ca.vertcat(accel_w_normed[0],accel_w_normed[1],accel_w_normed[2]))
         * accel_gain_magnitude
         * accel_gain
     )
+    omega_w -= accel_correction
 
     ## TODO add gyro bias stuff
 
@@ -1053,7 +1058,7 @@ def derive_attitude_estimator():
             mag_gain,
             dt,
         ],
-        [q1.param],
+        [q1.param, accel_correction],
         [
             "q",
             "mag_b",
@@ -1064,7 +1069,7 @@ def derive_attitude_estimator():
             "mag_gain",
             "dt",
         ],
-        ["q1"],
+        ["q1", "accel_correction"],
     )
 
     return {"attitude_estimator": f_att_estimator}

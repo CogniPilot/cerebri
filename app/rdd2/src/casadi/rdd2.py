@@ -818,22 +818,25 @@ def derive_attitude_estimator():
     # Body frame: x is forward, y is left, z is down
     # World frame: x is east, y is north, z is up
 
-    # # Correction angular velocity vector
-    # correction_w = ca.SX.zeros(3, 1)
+    # Correction angular velocity vector
+    correction_w = ca.SX.zeros(3, 1)
 
     # # --- Correction from magnetometer (yaw) ---
 
-    # # Transform magnetometer to world frame
-    # mag_earth = q_wb @ mag_b
+    # Transform magnetometer to world frame
+    mag_earth = q_wb @ mag_b
 
-    # # Magnetometer error calculation
-    # mag_error_w = -angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2) # the magnetic north is at (90 degrees - mag_decl) yaw
+    # Magnetometer error calculation
+    mag_error_w = -angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2) # the magnetic north is at (90 degrees - mag_decl) yaw
 
-    # # Move magnetometer correction in body frame
-    # correction_w += (
-    #     ca.vertcat(0,0,mag_error_w)
-    #     * mag_gain
-    # )
+    # mag check
+    gamma = ca.acos(mag_b[2] / ca.norm_2(mag_b))  # angle from vertical
+    mag_error_w = ca.if_else(ca.sin(gamma)  > 0.1, mag_error_w, 0)
+
+    correction_w += (
+        ca.vertcat(0,0,mag_error_w)
+        * mag_gain
+    )
 
     # # --- Correction from accelerometer (roll/pitch) ---
 
@@ -852,49 +855,42 @@ def derive_attitude_estimator():
     # If the drone is accelerating, we shouldn't trust the accelerometer
     accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / (1.01 * threshold * g)))
 
-    # # Correct gravity as z
-    # correction_w -= (
-    #     accel_norm_check
-    #     * ca.cross(ca.vertcat(0,0,1), ca.vertcat(accel_w_normed[0],accel_w_normed[1],accel_w_normed[2]))
-    #     * accel_gain_magnitude
-    #     * accel_gain
-    # )
+    # Correct gravity as z
+    correction_w -= (
+        accel_norm_check
+        * ca.cross(ca.vertcat(0,0,1), ca.vertcat(accel_w_normed[0],accel_w_normed[1],accel_w_normed[2]))
+        * accel_gain_magnitude
+        * accel_gain
+    )
 
     ## TODO add gyro bias stuff
 
-    mag_b_norm = mag_b / ca.norm_2(mag_b)
-    accel_b_norm = accel_b / ca.norm_2(accel_b)
-
-    # Create diagonal elements with symbolic expressions
-    accel_diag_val = 1e-1 + (1.0 - accel_norm_check) * 1e3
     
-    L = ca.vertcat(
-        ca.horzcat(accel_diag_val, 0.0, 0.0, 0.0, 0.0, 0.0),   # accel_x row
-        ca.horzcat(0.0, accel_diag_val, 0.0, 0.0, 0.0, 0.0),   # accel_y row  
-        ca.horzcat(0.0, 0.0, accel_diag_val, 0.0, 0.0, 0.0),   # accel_z row
-        ca.horzcat(0.0, 0.0, 0.0, 10.0, 0.0, 0.0),              # mag_x row
-        ca.horzcat(0.0, 0.0, 0.0, 0.0, 1.0, 0.0),              # mag_y row
-        ca.horzcat(0.0, 0.0, 0.0, 0.0, 0.0, 1.0)               # mag_z row
-    )    
-    Q = ca.SX.eye(3) * 1e-4
+    L = ca.SX.zeros(3, 3)
+    L[0,0] = 1e-1
+    L[1,1] = 1e-1
+    L[2,2] = 1e-2
+    Q = ca.SX.eye(3) * 1e-6
 
     # --- IEKF ---
     R = SO3Dcm.from_Quat(q_wb).to_Matrix()
     F = so3.wedge(omega_b * dt).exp(SO3Dcm).to_Matrix()
     P_new = F @ P @ F.T + Q
 
-    b = ca.vertcat(0,0,1, ca.cos(-mag_decl + ca.pi/2), ca.sin(-mag_decl + ca.pi/2), 0)
-    mag_w = R @ mag_b
-    mag_w_norm = mag_w[0:2] / ca.norm_2(mag_w[0:2])
-    z = ca.vertcat(R @ accel_b_norm, mag_w_norm, 0) - b
+    # b = ca.vertcat(0,0,1, ca.cos(-mag_decl + ca.pi/2), ca.sin(-mag_decl + ca.pi/2), 0)
+    # mag_w = R @ mag_b
+    # mag_w_norm = mag_w[0:2] / ca.norm_2(mag_w[0:2])
+    # z = ca.vertcat(R @ accel_b_norm, mag_w_norm, 0) - b
     
-    debug = mag_w[0:2]
+    debug = mag_earth[0:2]
 
-    H = ca.vertcat(so3.wedge(ca.vertcat(0,0,1)).to_Matrix(), so3.wedge(ca.vertcat(ca.cos(-mag_decl + ca.pi/2), ca.sin(-mag_decl + ca.pi/2), 0)).to_Matrix())
+    H = ca.SX.eye(3)
 
     S = H @ P_new @ H.T + L
     K = P_new @ H.T @ ca.inv(S)
-    R_new = so3.wedge(K @ z).exp(SO3Dcm).to_Matrix() @ R
+
+
+    R_new = so3.wedge(K @ correction_w).exp(SO3Dcm).to_Matrix() @ R
 
     P_new = (ca.SX.eye(3) - K @ H) @ P_new
     q1 = SO3Quat.from_Matrix(R_new)
@@ -948,7 +944,7 @@ def derive_attitude_estimator():
             dt,
             P,
         ],
-        [q1.param, P_new, z, debug],
+        [q1.param, P_new, correction_w, debug],
         [
             "q",
             "mag_b",

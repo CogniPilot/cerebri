@@ -237,12 +237,9 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 					0, 0, 0, 0, 0, 1e-2};
 
 	// Attitude estimator covariance
-	double P_att[36] = {1e-2, 0, 0, 0, 0, 0,
-	        		0, 1e-2, 0, 0, 0, 0,
-					0, 0, 1e-2, 0, 0, 0,
-					0, 0, 0, 1e-2, 0, 0, 
-					0, 0, 0, 0, 1e-2, 0, 
-					0, 0, 0, 0, 0, 1e-2};
+	double P_att[9] = {1e-2, 0, 0,
+	 				   0, 1e-2, 0,
+					   0, 0, 1e-2};
 
 	// poll on imu
 	events[0] = *zros_sub_get_event(&ctx->sub_imu);

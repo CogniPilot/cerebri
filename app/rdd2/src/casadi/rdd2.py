@@ -819,7 +819,7 @@ def derive_attitude_estimator():
     # World frame: x is east, y is north, z is up
 
     # Correction angular velocity vector
-    correction_w = ca.SX.zeros(3, 1)
+    error_w = ca.SX.zeros(3, 1)
 
     # # --- Correction from magnetometer (yaw) ---
 
@@ -833,7 +833,7 @@ def derive_attitude_estimator():
     gamma = ca.acos(mag_b[2] / ca.norm_2(mag_b))  # angle from vertical
     mag_error_check = ca.if_else(ca.sin(gamma) > 0.1, 0, 1)
 
-    correction_w += (ca.vertcat(0,0,mag_error_w))
+    error_w += (ca.vertcat(0,0,mag_error_w))
 
     # # --- Correction from accelerometer (roll/pitch) ---
 
@@ -854,18 +854,9 @@ def derive_attitude_estimator():
     accel_gain_magnitude = ca.if_else(accel_gain_magnitude < 0, 1e-3, accel_gain_magnitude)
     
     # Correct gravity as z
-    correction_w -= (
+    error_w -= (
         ca.cross(ca.vertcat(0,0,1), ca.vertcat(accel_w_normed[0],accel_w_normed[1],accel_w_normed[2]))
     )
-
-    # Add saturation to prevent large jumps
-    max_correction = 0.1  # radians, tune this value
-    correction_norm = ca.norm_2(correction_w)
-    correction_w = ca.if_else(
-    correction_norm > max_correction,
-    correction_w * max_correction / correction_norm,
-    correction_w
-)
 
     ## TODO add gyro bias stuff
 
@@ -878,7 +869,6 @@ def derive_attitude_estimator():
     L[1,1] = roll_cov / (accel_gain_magnitude * accel_gain) + 1e4 * accel_norm_check
     L[2,2] = yaw_cov / (mag_gain) + 1e4 * mag_error_check
     Q = ca.SX.eye(3) * 1e-6
-    debug = ca.vertcat(L[0,0], L[1,1], L[2,2])
 
     # --- IEKF ---
     R = SO3Dcm.from_Quat(q_wb).to_Matrix()
@@ -892,7 +882,18 @@ def derive_attitude_estimator():
     K = P_new @ H.T @ ca.inv(S)
 
     # Correction
-    q1 = so3.wedge(K @ correction_w).exp(SO3Quat) * q_wb
+    correction_w = K @ error_w
+
+    # Add saturation to prevent large jumps
+    max_correction = 0.1  # radians, tune this value
+    correction_norm = ca.norm_2(correction_w)
+    correction_w = ca.if_else(
+        correction_norm > max_correction,
+        correction_w * max_correction / correction_norm,
+        correction_w
+    )
+
+    q1 = so3.wedge(correction_w).exp(SO3Quat) * q_wb
     P_new = (ca.SX.eye(3) - K @ H) @ P_new
 
     # Return estimator

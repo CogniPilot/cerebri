@@ -988,61 +988,52 @@ def derive_attitude_estimator():
     mag_gain = ca.SX.sym("mag_gain", 1)
     dt = ca.SX.sym("dt", 1)
 
-    # Note:
-    # Magnetometer frame: x is east, y is north, z is up
-    # Body frame: x is forward, y is left, z is down
-    # World frame: x is east, y is north, z is up
-
     # Correction angular velocity vector
     omega_w = ca.SX.zeros(3, 1)
 
-    # --- Correction from magnetometer (yaw) ---
-
+    # --- Magnetometer correction (yaw) ---
     # Transform magnetometer to world frame
     mag_earth = q_wb @ mag_b
 
     # Magnetometer error calculation
-    mag_error_w = -angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2) # the magnetic north is at (90 degrees - mag_decl) yaw
+    mag_error_w = -angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2)
 
-    # mag check
-    gamma = ca.acos(mag_b[2] / ca.norm_2(mag_b))  # angle from vertical
-    mag_error_w = ca.if_else(ca.sin(gamma)  > 0.1, mag_error_w, 0)
+    # Check if magnetometer is not too vertical
+    gamma = ca.acos(mag_b[2] / ca.norm_2(mag_b))
+    mag_error_w = ca.if_else(ca.sin(gamma) > 0.1, mag_error_w, 0)
 
-    # Move magnetometer correction in body frame
-    omega_w += (
-        ca.vertcat(0,0,mag_error_w)
-        * mag_gain
-    )
+    # Apply magnetometer correction
+    omega_w += ca.vertcat(0, 0, mag_error_w) * mag_gain
 
-    # --- Correction from accelerometer (roll/pitch) ---
-
-    # Transform acceleration in world frame
-    accel_w = q_wb @ accel_b 
+    # --- Accelerometer correction (roll/pitch) ---
+    # Transform acceleration to world frame
+    accel_w = q_wb @ accel_b
     accel_norm = ca.norm_2(accel_w)
     accel_w_normed = accel_w / accel_norm
+    
 
-    # Correct accelerometer only if g between 0.9g and 1.1g
-    threshold = 0.05
-    higher_lim_check = ca.if_else(accel_w_normed[2] < (1 + threshold), 1, 0) * ca.if_else(accel_norm < g * (1 + threshold), 1, 0)
-    lower_lim_check = ca.if_else(accel_w_normed[2] > (1 - threshold), 1, 0) * ca.if_else(accel_norm > g * (1 - threshold), 1, 0)
+    # Only correct if acceleration is close to gravity
+    threshold = 0.1
+    higher_lim_check = ca.if_else(accel_norm < g * (1 + threshold), 1, 0)
+    lower_lim_check = ca.if_else(accel_norm > g * (1 - threshold), 1, 0)
     accel_norm_check = higher_lim_check * lower_lim_check
 
-    # Acceleration gain
-    # If the drone is accelerating, we shouldn't trust the accelerometer
+    # Reduce gain when accelerating
     accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / (1.01 * threshold * g)))
+    accel_gain_magnitude = ca.if_else(accel_gain_magnitude < 0, 1e-3, accel_gain_magnitude)
 
-    # Correct gravity as z
+    accel_error = ca.cross(ca.vertcat(0, 0, 1), accel_w_normed) 
+
+    # Calculate correction
     accel_correction = (
-        accel_norm_check
-        * ca.cross(ca.vertcat(0,0,1), ca.vertcat(accel_w_normed[0],accel_w_normed[1],accel_w_normed[2]))
-        * accel_gain_magnitude
+        ca.vertcat(accel_error[0], accel_error[1], 0)
         * accel_gain
+        * accel_norm_check
+        * accel_gain_magnitude
     )
     omega_w -= accel_correction
 
-    ## TODO add gyro bias stuff
-
-    # Make the correction
+    # Apply correction
     q1 = so3.elem(omega_w * dt).exp(SO3Quat) * q_wb
 
     # Return estimator

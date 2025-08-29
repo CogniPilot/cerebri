@@ -228,10 +228,18 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 	// estimator states
 	double x[10] = {0, 0, 0, 0, 0, 0, q[0], q[1], q[2], q[3]};
 
-	// estimator covariance
-	double P[36] = {1e-2, 0, 0, 0, 0, 0,
+	// Position estimator covariance
+	double P_pos[36] = {1e-2, 0, 0, 0, 0, 0,
 	        		0, 1e-2, 0, 0, 0, 0,
 					0, 0, 1e-2, 0, 0, 0,
+					0, 0, 0, 1e-2, 0, 0, 
+					0, 0, 0, 0, 1e-2, 0, 
+					0, 0, 0, 0, 0, 1e-2};
+
+	// Attitude estimator covariance
+	double P_att[36] = {1e-2, 0, 0, 0, 0, 0,
+	        		0, 1e-2, 0, 0, 0, 0,
+					0, 0, 1e-2, 0, 0, 0, 
 					0, 0, 0, 1e-2, 0, 0, 
 					0, 0, 0, 0, 1e-2, 0, 
 					0, 0, 0, 0, 0, 1e-2};
@@ -354,10 +362,10 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			args[0] = x;
 			args[1] = gps;
 			args[2] = &dt;
-			args[3] = P;
+			args[3] = P_pos;
 
 			res[0] = x;
-			res[1] = P;
+			res[1] = P_pos;
 
 			CASADI_FUNC_CALL(position_correction)
 		}
@@ -366,13 +374,11 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		/*
 		f_att_estimator = ca.Function(
 		"attitude_estimator",
-		[q0, mag, mag_decl, gyro, accel, dt],
-		[q1.param],
-		["q", "mag", "mag_decl", "gyro", "accel", "dt"],
-		["q1"],
+		[q0, mag, mag_decl, gyro, accel, dt, P_att],
+		[q1.param, P_att],
+		["q", "mag", "mag_decl", "gyro", "accel", "dt", "P_att"],
+		["q1", "P_att"],
 		)*/
-
-		double debug[3];
 
 		{
 			CASADI_FUNC_ARGS(attitude_estimator)
@@ -395,21 +401,13 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			args[5] = &accel_gain;
 			args[6] = &mag_gain;
 			args[7] = &dt;
+			args[8] = P_att;
 			
 			res[0] = q;
-			res[1] = debug;
+			res[1] = P_att;
 			CASADI_FUNC_CALL(attitude_estimator)
 		}
 
-		double q_norm = sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
-		q[0] = q[0] / q_norm;
-		q[1] = q[1] / q_norm;
-		q[2] = q[2] / q_norm; 
-		q[3] = q[3] / q_norm;
-
-		LOG_INF("debug: %f %f %f", debug[0], debug[1], debug[2]);
-
-		// Put quaternion back into state vector
 		x[6] = q[0];
 		x[7] = q[1];
 		x[8] = q[2];

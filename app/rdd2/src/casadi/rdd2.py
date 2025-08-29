@@ -905,13 +905,12 @@ def derive_attitude_init():
     Initialize attitude quaternion from accelerometer and magnetometer readings.
     First calculates pitch and roll from accelerometer, then uses these to 
     convert magnetometer to world frame and calculate yaw.
-    Note: this function can be simplified by estimation only yaw and assuming pitch and roll are zero (which is valid since the imu cannot be calibrated otherwise).
     """
     mag_b = ca.SX.sym("mag_b", 3)
     accel_b = ca.SX.sym("accel_b", 3)  
     mag_decl = ca.SX.sym("mag_decl", 1)
     
-    # Step 1: Calculate pitch and roll from accelerometer
+    # Calculate pitch and roll from accelerometer
     # Assuming gravity vector is [0, 0, g] in world frame
     # In body frame: x=forward, y=left, z=up
     
@@ -927,7 +926,7 @@ def derive_attitude_init():
     # roll = atan2(accel_z, accel_y)
     roll = -angle_wrap(ca.atan2(accel_n[2], accel_n[1]) - ca.pi / 2)
     
-    # Step 2: Create partial rotation matrix from pitch and roll only
+    # Create partial rotation matrix from pitch and roll only
     # This represents R_y(pitch) * R_x(roll) - rotation about pitch then roll
     # This transforms from tilted body frame to a level frame (but still unknown yaw)
     cos_roll = ca.cos(roll)
@@ -943,10 +942,10 @@ def derive_attitude_init():
         ca.horzcat(-sin_pitch, cos_pitch*sin_roll, cos_pitch*cos_roll)
     )
     
-    # Step 3: Transform magnetometer to level frame (removes pitch/roll tilt)
+    # Transform magnetometer to level frame (removes pitch/roll tilt)
     mag_level = R_level_from_body @ mag_b
     
-    # Step 4: Calculate yaw from level-frame magnetometer
+    # Calculate yaw from level-frame magnetometer
     # In level frame: x=east, y=north, z=up (but rotated by unknown yaw)
     # The magnetometer now points in the correct direction relative to magnetic north
     # Magnetic declination correction: true_north = mag_north + declination
@@ -978,8 +977,7 @@ def derive_attitude_init():
 
 def derive_attitude_estimator():
     # Define Casadi variables
-    q0 = ca.SX.sym("q", 4)
-    q_wb = SO3Quat.elem(param=q0)
+    q = ca.SX.sym("q", 4)
     mag_b = ca.SX.sym("mag", 3)
     mag_decl = ca.SX.sym("mag_decl", 1)
     omega_b = ca.SX.sym("omega_b", 3)
@@ -987,33 +985,36 @@ def derive_attitude_estimator():
     accel_gain = ca.SX.sym("accel_gain", 1)
     mag_gain = ca.SX.sym("mag_gain", 1)
     dt = ca.SX.sym("dt", 1)
+    P_att = ca.SX.sym("P_att", 36)
+
+    # Convert quaternion to SO3Quat object
+    q_wb = SO3Quat.elem(param=q)
 
     # Correction angular velocity vector
-    omega_w = ca.SX.zeros(3, 1)
+    correction_w = ca.SX.zeros(3, 1)
 
-    # --- Magnetometer correction (yaw) ---
+    # ----- Magnetometer correction (yaw) -----
     # Transform magnetometer to world frame
     mag_earth = q_wb @ mag_b
 
     # Magnetometer error calculation
     mag_error_w = -angle_wrap(ca.atan2(mag_earth[1], mag_earth[0]) + mag_decl - ca.pi / 2)
 
-    # Check if magnetometer is not too vertical
+    # Check if magnetic heading is not too vertical
     gamma = ca.acos(mag_b[2] / ca.norm_2(mag_b))
     mag_error_w = ca.if_else(ca.sin(gamma) > 0.1, mag_error_w, 0)
 
     # Apply magnetometer correction
-    omega_w += ca.vertcat(0, 0, mag_error_w) * mag_gain
+    correction_w += ca.vertcat(0, 0, mag_error_w) * mag_gain
 
-    # --- Accelerometer correction (roll/pitch) ---
+    # ----- Accelerometer correction (roll/pitch) -----
     # Transform acceleration to world frame
     accel_w = q_wb @ accel_b
     accel_norm = ca.norm_2(accel_w)
     accel_w_normed = accel_w / accel_norm
-    
 
     # Only correct if acceleration is close to gravity
-    threshold = 0.1
+    threshold = 0.1 # 10%
     higher_lim_check = ca.if_else(accel_norm < g * (1 + threshold), 1, 0)
     lower_lim_check = ca.if_else(accel_norm > g * (1 - threshold), 1, 0)
     accel_norm_check = higher_lim_check * lower_lim_check
@@ -1022,25 +1023,40 @@ def derive_attitude_estimator():
     accel_gain_magnitude = 1 - ca.fabs(((accel_norm - g) / (1.01 * threshold * g)))
     accel_gain_magnitude = ca.if_else(accel_gain_magnitude < 0, 1e-3, accel_gain_magnitude)
 
-    accel_error = ca.cross(ca.vertcat(0, 0, 1), accel_w_normed) 
+    accel_cross = ca.cross(ca.vertcat(0, 0, 1), accel_w_normed)
+    accel_error_w = ca.asin(ca.norm_2(accel_cross)) * accel_cross / ca.norm_2(accel_cross)
 
     # Calculate correction
-    accel_correction = (
-        ca.vertcat(accel_error[0], accel_error[1], 0)
+    accel_correction = -(
+        ca.vertcat(accel_error_w[0], accel_error_w[1], 0)
         * accel_gain
         * accel_norm_check
         * accel_gain_magnitude
     )
-    omega_w -= accel_correction
+    correction_w += accel_correction
+
+    # Limit correction magnitude
+    correction_limit = 0.05 # add to config maybe???
+    correction_magnitude = ca.norm_2(correction_w)
+    correction_w = ca.if_else(
+        correction_magnitude > correction_limit,
+        correction_w * correction_limit / correction_magnitude,
+        correction_w
+    )
 
     # Apply correction
-    q1 = so3.elem(omega_w * dt).exp(SO3Quat) * q_wb
+    q_new = so3.elem(correction_w * dt).exp(SO3Quat) * q_wb
+
+    # Normalize quaternion
+    q_new = SO3Quat.elem(q_new.param / ca.norm_2(q_new.param))
+
+    P_att_new = P_att
 
     # Return estimator
     f_att_estimator = ca.Function(
         "attitude_estimator",
         [
-            q0,
+            q,
             mag_b,
             mag_decl,
             omega_b,
@@ -1048,8 +1064,9 @@ def derive_attitude_estimator():
             accel_gain,
             mag_gain,
             dt,
+            P_att,
         ],
-        [q1.param, accel_correction],
+        [q_new.param, P_att_new],
         [
             "q",
             "mag_b",
@@ -1059,8 +1076,9 @@ def derive_attitude_estimator():
             "accel_gain",
             "mag_gain",
             "dt",
+            "P_att",
         ],
-        ["q1", "accel_correction"],
+        ["q_new", "P_att_new"],
     )
 
     return {"attitude_estimator": f_att_estimator}

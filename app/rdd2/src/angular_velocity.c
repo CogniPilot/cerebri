@@ -107,7 +107,6 @@ static void rdd2_angular_velocity_run(void *p0, void *p1, void *p2)
 
 	int64_t ticks_last = k_uptime_ticks();
 
-
 	// PID controller constants
 	static const double kp[3] = {
 		CONFIG_CEREBRI_RDD2_ROLLRATE_KP * 1e-6,
@@ -183,7 +182,7 @@ static void rdd2_angular_velocity_run(void *p0, void *p1, void *p2)
 			args[8] = ctx->omega_e;
 			args[9] = ctx->domega_e;
 			args[10] = &ctx->dt;
-			
+
 			res[0] = M;
 			res[1] = ctx->omega_i;
 			res[2] = ctx->omega_e;

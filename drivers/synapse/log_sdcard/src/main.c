@@ -97,12 +97,14 @@ static int log_sdcard_init(struct context *ctx)
 		return ret;
 	}
 
-	ret = zros_sub_init(&ctx->sub_mag, &ctx->node, &topic_magnetic_field, &ctx->frame.msg, TOPIC_RATE_HZ);
+	ret = zros_sub_init(&ctx->sub_mag, &ctx->node, &topic_magnetic_field, &ctx->frame.msg,
+			    TOPIC_RATE_HZ);
 	if (ret < 0) {
 		LOG_ERR("init mag failed: %d", ret);
 		return ret;
 	}
-	ret = zros_sub_init(&ctx->sub_odom, &ctx->node, &topic_odometry_estimator, &ctx->frame.msg, TOPIC_RATE_HZ);
+	ret = zros_sub_init(&ctx->sub_odom, &ctx->node, &topic_odometry_estimator, &ctx->frame.msg,
+			    TOPIC_RATE_HZ);
 	if (ret < 0) {
 		LOG_ERR("init odom failed: %d", ret);
 		return ret;

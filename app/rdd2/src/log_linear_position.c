@@ -149,37 +149,30 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 
 			// vehicle state
 			double p_w[3] = {ctx->odometry_estimator.pose.position.x,
-					 		 ctx->odometry_estimator.pose.position.y,
-					 		 ctx->odometry_estimator.pose.position.z};
+					 ctx->odometry_estimator.pose.position.y,
+					 ctx->odometry_estimator.pose.position.z};
 
 			double v_b[3] = {ctx->odometry_estimator.twist.linear.x,
-					 		 ctx->odometry_estimator.twist.linear.y,
-					 		 ctx->odometry_estimator.twist.linear.z};
+					 ctx->odometry_estimator.twist.linear.y,
+					 ctx->odometry_estimator.twist.linear.z};
 
 			double q_wb[4] = {ctx->odometry_estimator.pose.orientation.w,
-					  		  ctx->odometry_estimator.pose.orientation.x,
-					  		  ctx->odometry_estimator.pose.orientation.y,
-					  		  ctx->odometry_estimator.pose.orientation.z};
+					  ctx->odometry_estimator.pose.orientation.x,
+					  ctx->odometry_estimator.pose.orientation.y,
+					  ctx->odometry_estimator.pose.orientation.z};
 
 			// vehicle setpoint
-			double pt_w[3] = {ctx->position_sp.x, 
-					 		  ctx->position_sp.y,
-					          ctx->position_sp.z};
+			double pt_w[3] = {ctx->position_sp.x, ctx->position_sp.y,
+					  ctx->position_sp.z};
 
-			double vt_w[3] = {ctx->velocity_sp.x, 
-					 		  ctx->velocity_sp.y,
-					 		  ctx->velocity_sp.z};
+			double vt_w[3] = {ctx->velocity_sp.x, ctx->velocity_sp.y,
+					  ctx->velocity_sp.z};
 
-			double at_w[3] = {ctx->accel_ff.x, 
-					 		  ctx->accel_ff.y,
-					 		  ctx->accel_ff.z};
+			double at_w[3] = {ctx->accel_ff.x, ctx->accel_ff.y, ctx->accel_ff.z};
 
 			// vehicle camera setpoint
-			double qc_wb[4] = {ctx->orientation_sp.w, 
-							   ctx->orientation_sp.x,
-					   		   ctx->orientation_sp.y,
-							   ctx->orientation_sp.z};
-
+			double qc_wb[4] = {ctx->orientation_sp.w, ctx->orientation_sp.x,
+					   ctx->orientation_sp.y, ctx->orientation_sp.z};
 
 			double v_w[3];
 			{
@@ -194,8 +187,7 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				CASADI_FUNC_CALL(rotate_vector_b_to_w)
 			}
 
-
-			double nT; // thrust
+			double nT;       // thrust
 			double qr_wb[4]; // attitude setpoint
 			{
 				// position_control:(thrust_trim,pt_w[3],vt_w[3],at_w[3],
@@ -223,7 +215,7 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 			{
 				// se23_error:(p_w[3],v_b[3],q_wb[4],p_rw[3],v_rw[3],q_r[4])->(zeta[9])
 				CASADI_FUNC_ARGS(se23_error)
-				
+
 				args[0] = pt_w;
 				args[1] = vt_w;
 				args[2] = qr_wb;

@@ -121,14 +121,12 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 
 		if (ctx->status.mode != synapse_pb_Status_Mode_MODE_ATTITUDE_RATE) {
 			double q_wb[4] = {ctx->odometry_estimator.pose.orientation.w,
-					  		  ctx->odometry_estimator.pose.orientation.x,
-					  		  ctx->odometry_estimator.pose.orientation.y,
-					  		  ctx->odometry_estimator.pose.orientation.z};
+					  ctx->odometry_estimator.pose.orientation.x,
+					  ctx->odometry_estimator.pose.orientation.y,
+					  ctx->odometry_estimator.pose.orientation.z};
 
-			double q_r[4] = {ctx->attitude_sp.w,
-					 		 ctx->attitude_sp.x,
-						     ctx->attitude_sp.y,
-						     ctx->attitude_sp.z};
+			double q_r[4] = {ctx->attitude_sp.w, ctx->attitude_sp.x, ctx->attitude_sp.y,
+					 ctx->attitude_sp.z};
 			double omega[3];
 
 			{
@@ -140,7 +138,7 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 				args[2] = q_r;
 
 				res[0] = omega;
-				
+
 				CASADI_FUNC_CALL(attitude_control);
 			}
 
@@ -152,7 +150,7 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 					data_ok = false;
 				}
 			}
-			
+
 			if (data_ok) {
 				ctx->angular_velocity_sp.x = omega[0] + ctx->angular_velocity_ff.x;
 				ctx->angular_velocity_sp.y = omega[1] + ctx->angular_velocity_ff.y;

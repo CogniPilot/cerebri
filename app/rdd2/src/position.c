@@ -181,7 +181,7 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				args[1] = v_b;
 
 				res[0] = v_w;
-				
+
 				CASADI_FUNC_CALL(rotate_vector_b_to_w)
 			}
 

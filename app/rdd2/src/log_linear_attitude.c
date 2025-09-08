@@ -131,30 +131,26 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 
 		if (ctx->status.mode != synapse_pb_Status_Mode_MODE_ATTITUDE_RATE) {
 			double q_wb[4] = {ctx->odometry_estimator.pose.orientation.w,
-					  		  ctx->odometry_estimator.pose.orientation.x,
-					  		  ctx->odometry_estimator.pose.orientation.y,
-					  		  ctx->odometry_estimator.pose.orientation.z};
+					  ctx->odometry_estimator.pose.orientation.x,
+					  ctx->odometry_estimator.pose.orientation.y,
+					  ctx->odometry_estimator.pose.orientation.z};
 
-			double q_r[4] = {ctx->attitude_sp.w, 
-							 ctx->attitude_sp.x, 
-							 ctx->attitude_sp.y,
-					 		 ctx->attitude_sp.z};
+			double q_r[4] = {ctx->attitude_sp.w, ctx->attitude_sp.x, ctx->attitude_sp.y,
+					 ctx->attitude_sp.z};
 
 			double p_w[3] = {ctx->odometry_estimator.pose.position.x,
-					 		 ctx->odometry_estimator.pose.position.y,
-					 		 ctx->odometry_estimator.pose.position.z};
+					 ctx->odometry_estimator.pose.position.y,
+					 ctx->odometry_estimator.pose.position.z};
 
 			double v_b[3] = {ctx->odometry_estimator.twist.linear.x,
-					 		 ctx->odometry_estimator.twist.linear.y,
-					 		 ctx->odometry_estimator.twist.linear.z};
+					 ctx->odometry_estimator.twist.linear.y,
+					 ctx->odometry_estimator.twist.linear.z};
 
-			double p_rw[3] = {ctx->position_sp.x, 
-							  ctx->position_sp.y,
-					  		  ctx->position_sp.z};
+			double p_rw[3] = {ctx->position_sp.x, ctx->position_sp.y,
+					  ctx->position_sp.z};
 
-			double v_rw[3] = {ctx->velocity_sp.x,
-							  ctx->velocity_sp.y,
-					  		  ctx->velocity_sp.z};
+			double v_rw[3] = {ctx->velocity_sp.x, ctx->velocity_sp.y,
+					  ctx->velocity_sp.z};
 
 			double omega[3];
 			double zeta[9];
@@ -183,7 +179,7 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 				args[2] = q_r;
 
 				res[0] = omega;
-				
+
 				CASADI_FUNC_CALL(so3_attitude_control);
 			}
 

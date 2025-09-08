@@ -60,7 +60,7 @@ struct context {
 	size_t stack_size;
 	k_thread_stack_t *stack_area;
 	struct k_thread thread_data;
-	double camera_yaw;
+	double psi_sp; // yaw setpoint for input_velocity function
 };
 
 static struct context g_ctx = {
@@ -98,7 +98,7 @@ static struct context g_ctx = {
 	.stack_size = MY_STACK_SIZE,
 	.stack_area = g_my_stack_area,
 	.thread_data = {},
-	.camera_yaw = 0,
+	.psi_sp = 0,
 };
 
 static void rdd2_command_init(struct context *ctx)
@@ -332,27 +332,24 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				(ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) &&
 				(ctx->last_status.arming != synapse_pb_Status_Arming_ARMING_ARMED);
 
-			double yaw, pitch, roll;
-			{
-				/* quat_to_eulerB321:(q[4])->(yaw, pitch, roll) */
-				CASADI_FUNC_ARGS(quat_to_eulerB321);
-
-				args[0] = q;
-
-				res[0] = &yaw;
-				res[1] = &pitch;
-				res[2] = &roll;
-
-				CASADI_FUNC_CALL(quat_to_eulerB321);
-			}
-
-			// reset position setpoint if now auto or now armed
+			// reset position setpoint and yaw if now velocity mode or now armed
 			if (now_vel || now_armed) {
-				LOG_INF("position_sp, camera_yaw reset");
+				LOG_INF("position_sp, psi_sp reset");
 				ctx->position_sp.x = ctx->odometry_estimator.pose.position.x;
 				ctx->position_sp.y = ctx->odometry_estimator.pose.position.y;
 				ctx->position_sp.z = ctx->odometry_estimator.pose.position.z;
-				ctx->camera_yaw = yaw;
+
+				// Get current yaw from quaternion for reset
+				double yaw, pitch, roll;
+				{
+					CASADI_FUNC_ARGS(quat_to_eulerB321);
+					args[0] = q;
+					res[0] = &yaw;
+					res[1] = &pitch;
+					res[2] = &roll;
+					CASADI_FUNC_CALL(quat_to_eulerB321);
+				}
+				ctx->psi_sp = yaw;
 			}
 
 			double yaw_rate = 0;
@@ -393,26 +390,31 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 			};
 			double vw_sp[3], aw_sp[3];
 			double reset_position = 0;
-			double qc[4];
+			double q_sp[4];
 			{
 				// velocity_control:(dt,psi_sp,pw_sp[3],
 				//   pw[3],vb[3],psi_vel_sp,reset_position)
 				//   ->(psi_sp1,pw_sp1[3],vw_sp[3],aw_sp[3],q_sp[4])
 				CASADI_FUNC_ARGS(velocity_control);
+
 				args[0] = &dt;
-				args[1] = &ctx->camera_yaw;
+				args[1] = &ctx->psi_sp;
 				args[2] = pw_sp;
 				args[3] = pw;
 				args[4] = vt_b;
 				args[5] = &yaw_rate;
 				args[6] = &reset_position;
-				res[0] = &ctx->camera_yaw;
+
+				res[0] = &ctx->psi_sp;
 				res[1] = pw_sp;
 				res[2] = vw_sp;
 				res[3] = aw_sp;
-				res[4] = qc;
+				res[4] = q_sp;
+
 				CASADI_FUNC_CALL(velocity_control);
 			}
+
+			// LOG_INF("psi_sp1: %10.4f", psi_sp1);
 
 			// position setpoint
 			ctx->position_sp.x = pw_sp[0];
@@ -426,11 +428,11 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 			ctx->velocity_sp.z = vw_sp[2];
 			zros_pub_update(&ctx->pub_velocity_sp);
 
-			// orientation setpoint
-			ctx->orientation_sp.w = qc[0];
-			ctx->orientation_sp.x = qc[1];
-			ctx->orientation_sp.y = qc[2];
-			ctx->orientation_sp.z = qc[3];
+			// orientation setpoint (from input_velocity function)
+			ctx->orientation_sp.w = q_sp[0];
+			ctx->orientation_sp.x = q_sp[1];
+			ctx->orientation_sp.y = q_sp[2];
+			ctx->orientation_sp.z = q_sp[3];
 			zros_pub_update(&ctx->pub_orientation_sp);
 
 			// acceleration setpoint
@@ -515,12 +517,14 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				// ->(x,y,z,psi,dpsi,ddpsi,V,a,j,s)
 				{
 					CASADI_FUNC_ARGS(bezier_multirotor);
+
 					args[0] = &t;
 					args[1] = &T;
 					args[2] = PX;
 					args[3] = PY;
 					args[4] = PZ;
 					args[5] = Ppsi;
+
 					res[0] = &x;
 					res[1] = &y;
 					res[2] = &z;
@@ -531,6 +535,7 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 					res[7] = a;
 					res[8] = j;
 					res[9] = s;
+
 					CASADI_FUNC_CALL(bezier_multirotor);
 				}
 
@@ -540,6 +545,7 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				// ->(v_b[3],quat[4],omega_eb_b[3],omega_dot_eb_b[3],M_b[3],T)
 				{
 					CASADI_FUNC_ARGS(f_ref);
+
 					args[0] = &psi;
 					args[1] = &dpsi;
 					args[2] = &ddpsi;
@@ -547,9 +553,11 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 					args[4] = a;
 					args[5] = j;
 					args[6] = s;
-					res[1] = q_att;
-					res[2] = omega;
-					res[4] = M;
+
+					res[0] = q_att;
+					res[1] = omega;
+					res[2] = M;
+
 					CASADI_FUNC_CALL(f_ref);
 				}
 

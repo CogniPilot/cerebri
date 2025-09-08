@@ -38,6 +38,8 @@ struct context {
 	struct zros_sub sub_imu_q31_array;
 	struct zros_sub sub_pwm;
 	struct zros_sub sub_input;
+	struct zros_sub sub_mag;
+	struct zros_sub sub_odom;
 	// file
 	synapse_pb_Frame frame;
 	// status
@@ -51,6 +53,8 @@ struct context {
 static struct context g_ctx = {
 	.node = {},
 	.sub_imu = {},
+	.sub_mag = {},
+	.sub_odom = {},
 	.sub_imu_q31_array = {},
 	.running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
 	.stack_size = MY_STACK_SIZE,
@@ -93,6 +97,19 @@ static int log_sdcard_init(struct context *ctx)
 		return ret;
 	}
 
+	ret = zros_sub_init(&ctx->sub_mag, &ctx->node, &topic_magnetic_field, &ctx->frame.msg,
+			    TOPIC_RATE_HZ);
+	if (ret < 0) {
+		LOG_ERR("init mag failed: %d", ret);
+		return ret;
+	}
+	ret = zros_sub_init(&ctx->sub_odom, &ctx->node, &topic_odometry_estimator, &ctx->frame.msg,
+			    TOPIC_RATE_HZ);
+	if (ret < 0) {
+		LOG_ERR("init odom failed: %d", ret);
+		return ret;
+	}
+
 	k_sem_take(&ctx->running, K_FOREVER);
 
 	// make sure writer is ready
@@ -109,6 +126,8 @@ static int log_sdcard_fini(struct context *ctx)
 	zros_sub_fini(&ctx->sub_pwm);
 	zros_sub_fini(&ctx->sub_input);
 	zros_sub_fini(&ctx->sub_imu);
+	zros_sub_fini(&ctx->sub_mag);
+	zros_sub_fini(&ctx->sub_odom);
 	zros_sub_fini(&ctx->sub_imu_q31_array);
 	zros_node_fini(&ctx->node);
 
@@ -196,6 +215,18 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 			zros_sub_update(&ctx->sub_pwm);
 			ctx->frame.which_msg = synapse_pb_Frame_pwm_tag;
 			snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), "pwm");
+			log_sdcard_write_frame(ctx);
+		}
+		if (zros_sub_update_available(&ctx->sub_mag)) {
+			zros_sub_update(&ctx->sub_mag);
+			ctx->frame.which_msg = synapse_pb_Frame_magnetic_field_tag;
+			snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), "mag");
+			log_sdcard_write_frame(ctx);
+		}
+		if (zros_sub_update_available(&ctx->sub_odom)) {
+			zros_sub_update(&ctx->sub_odom);
+			ctx->frame.which_msg = synapse_pb_Frame_odometry_tag;
+			snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), "odom");
 			log_sdcard_write_frame(ctx);
 		}
 	}

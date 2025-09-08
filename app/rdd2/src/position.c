@@ -176,9 +176,12 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 			{
 				// rotate_vector_b_to_w:(q[4],v_b[3])->(v_w[3])
 				CASADI_FUNC_ARGS(rotate_vector_b_to_w)
+
 				args[0] = q_wb;
 				args[1] = v_b;
+
 				res[0] = v_w;
+
 				CASADI_FUNC_CALL(rotate_vector_b_to_w)
 			}
 
@@ -190,6 +193,7 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				// position_control:(thrust_trim,pt_w[3],vt_w[3],at_w[3],
 				// qc_wb[4],p_w[3],v_w[3],z_i,dt)->(nT,qr_wb[4],z_i_2)
 				CASADI_FUNC_ARGS(position_control)
+
 				args[0] = &thrust_trim;
 				args[1] = pt_w;
 				args[2] = vt_w;
@@ -199,11 +203,12 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				args[6] = v_w;
 				args[7] = &z_i;
 				args[8] = &dt;
+
 				res[0] = &nT;
 				res[1] = qr_wb;
 				res[2] = &z_i;
+
 				CASADI_FUNC_CALL(position_control)
-				// LOG_INF("z_i: %10.4f", z_i);
 			}
 
 			bool data_ok = true;

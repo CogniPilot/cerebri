@@ -159,7 +159,7 @@ void imu_calibrate(context_t *ctx)
 	// repeat until calibrated
 	while (true) {
 
-		LOG_INF("calibration started, keep level, don't move");
+		LOG_INF("calibration started, keep device stationary");
 
 		// reset sum to zero
 		memset(gyro_samples, 0, sizeof(gyro_samples));
@@ -219,9 +219,34 @@ void imu_calibrate(context_t *ctx)
 			gyro_std[k] = sqrt(gyro_std[k] / g_calibration_count);
 		}
 
-		// check if calibration acceptable, and break if it is
-		// TODO implement calibration check
-		break;
+		// check if calibration acceptable
+		bool calibration_ok = true;
+
+		// Check if acceleration magnitude is reasonable (should be close to 9.8 m/s²)
+		double accel_magnitude =
+			sqrt(accel_mean[0] * accel_mean[0] + accel_mean[1] * accel_mean[1] +
+			     accel_mean[2] * accel_mean[2]);
+
+		if (accel_magnitude < 8.0 || accel_magnitude > 11.0) {
+			LOG_WRN("accel magnitude out of range: %10.4f (expected ~9.8)",
+				accel_magnitude);
+			calibration_ok = false;
+		}
+
+		// Check if gyro readings are stable (low std deviation)
+		for (int k = 0; k < 3; k++) {
+			if (gyro_std[k] > 0.1) { // 0.1 rad/s threshold
+				LOG_WRN("gyro axis %d too noisy: std=%10.4f", k, gyro_std[k]);
+				calibration_ok = false;
+			}
+		}
+
+		if (calibration_ok) {
+			break;
+		} else {
+			LOG_INF("calibration failed, retrying...");
+			k_msleep(1000); // Wait before retry
+		}
 	}
 
 	LOG_INF("calibration completed");

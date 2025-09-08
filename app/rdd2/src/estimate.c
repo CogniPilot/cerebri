@@ -43,7 +43,7 @@ struct context {
 	synapse_pb_Odometry odometry_ethernet;
 	synapse_pb_Imu imu;
 	synapse_pb_Odometry odometry;
-	struct zros_sub sub_odometry_ethernet, sub_imu;
+	struct zros_sub sub_odometry_ethernet, sub_imu, sub_mag;
 	struct zros_pub pub_odometry;
 	double x[3];
 	struct k_sem running;
@@ -51,6 +51,7 @@ struct context {
 	k_thread_stack_t *stack_area;
 	struct k_thread thread_data;
 	struct perf_counter perf;
+	synapse_pb_MagneticField mag;
 };
 
 // private initialization
@@ -73,6 +74,7 @@ static struct context g_ctx = {
 		},
 	.sub_odometry_ethernet = {},
 	.sub_imu = {},
+	.sub_mag = {},
 	.pub_odometry = {},
 	.x = {},
 	.running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
@@ -80,12 +82,14 @@ static struct context g_ctx = {
 	.stack_area = g_my_stack_area,
 	.thread_data = {},
 	.perf = {},
+	.mag = {},
 };
 
 static void rdd2_estimate_init(struct context *ctx)
 {
 	zros_node_init(&ctx->node, "rdd2_estimate");
 	zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->imu, 300);
+	zros_sub_init(&ctx->sub_mag, &ctx->node, &topic_magnetic_field, &ctx->mag, 300);
 	zros_sub_init(&ctx->sub_odometry_ethernet, &ctx->node, &topic_odometry_ethernet,
 		      &ctx->odometry_ethernet, 10);
 	zros_pub_init(&ctx->pub_odometry, &ctx->node, &topic_odometry_estimator, &ctx->odometry);
@@ -97,6 +101,7 @@ static void rdd2_estimate_init(struct context *ctx)
 static void rdd2_estimate_fini(struct context *ctx)
 {
 	zros_sub_fini(&ctx->sub_imu);
+	zros_sub_fini(&ctx->sub_mag);
 	zros_sub_fini(&ctx->sub_odometry_ethernet);
 	zros_pub_fini(&ctx->pub_odometry);
 	zros_node_fini(&ctx->node);
@@ -131,12 +136,107 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 	double dt = 0;
 	int64_t ticks_last = k_uptime_ticks();
 
+	// Constants
+	static const double decl_WL = -4.494167 / 180 * M_PI; // magnetic declination for WL, IN
+	static const double g = 9.8;                          // gravity
+	static const double accel_gain = CONFIG_CEREBRI_RDD2_ATTITUDE_EST_ACCEL_GAIN * 1e-3;
+	static const double mag_gain = CONFIG_CEREBRI_RDD2_ATTITUDE_EST_MAG_GAIN * 1e-3;
+
+	// ------ Initialize attitude from accelerometer and magnetometer ------
+
+	double q[4] = {1, 0, 0, 0};
+	// Wait for both IMU and magnetometer data
+
+	// Magnetometer waiting
+	while (!zros_sub_update_available(&ctx->sub_mag)) {
+		LOG_INF("waiting for magnetometer");
+		k_sleep(K_MSEC(50));
+	}
+	zros_sub_update(&ctx->sub_mag);
+	double mag_norm = ctx->mag.magnetic_field.x * ctx->mag.magnetic_field.x +
+			  ctx->mag.magnetic_field.y * ctx->mag.magnetic_field.y +
+			  ctx->mag.magnetic_field.z * ctx->mag.magnetic_field.z;
+	// wait for magnetometer to be valid
+	while (mag_norm < 1e-4) {
+		mag_norm = ctx->mag.magnetic_field.x * ctx->mag.magnetic_field.x +
+			   ctx->mag.magnetic_field.y * ctx->mag.magnetic_field.y +
+			   ctx->mag.magnetic_field.z * ctx->mag.magnetic_field.z;
+		LOG_INF("magnetometer is not valid, waiting for valid data: %f", mag_norm);
+		k_sleep(K_MSEC(50));
+	}
+
+	// TODO: If the IMU calibration parameters are saved on the SD card,
+	// perform full attitude initialization from accelerometer and magnetometer.
+	// Otherwise, perform only yaw initialization from magnetometer.
+
+	bool imu_calibrated = false;
+
+	if (imu_calibrated) {
+		// IMU waiting
+		while (!zros_sub_update_available(&ctx->sub_imu)) {
+			LOG_INF("waiting for IMU");
+			k_sleep(K_MSEC(50));
+		}
+		zros_sub_update(&ctx->sub_imu);
+		double accel_norm =
+			ctx->imu.linear_acceleration.x * ctx->imu.linear_acceleration.x +
+			ctx->imu.linear_acceleration.y * ctx->imu.linear_acceleration.y +
+			ctx->imu.linear_acceleration.z * ctx->imu.linear_acceleration.z;
+		// wait for IMU to be valid
+		while (accel_norm < 0.8 * 9.8 * 9.8 || accel_norm > 1.2 * 9.8 * 9.8) {
+			zros_sub_update(&ctx->sub_imu);
+			accel_norm =
+				ctx->imu.linear_acceleration.x * ctx->imu.linear_acceleration.x +
+				ctx->imu.linear_acceleration.y * ctx->imu.linear_acceleration.y +
+				ctx->imu.linear_acceleration.z * ctx->imu.linear_acceleration.z;
+			LOG_INF("IMU is not valid, waiting for valid data: %f", accel_norm);
+			k_sleep(K_MSEC(50));
+		}
+
+		{
+			// attitude_init_from_mag:(mag_b[3],accel_b[3],mag_decl)->(q_init[4]w)
+			CASADI_FUNC_ARGS(attitude_init)
+
+			double mag[3] = {ctx->mag.magnetic_field.x, ctx->mag.magnetic_field.y,
+					 ctx->mag.magnetic_field.z};
+			double accel[3] = {ctx->imu.linear_acceleration.x,
+					   ctx->imu.linear_acceleration.y,
+					   ctx->imu.linear_acceleration.z};
+
+			args[0] = mag;
+			args[1] = accel;
+			args[2] = &decl_WL;
+
+			res[0] = q;
+
+			CASADI_FUNC_CALL(attitude_init)
+		}
+	} else {
+		CASADI_FUNC_ARGS(yaw_init)
+
+		double mag[3] = {ctx->mag.magnetic_field.x, ctx->mag.magnetic_field.y,
+				 ctx->mag.magnetic_field.z};
+		args[0] = mag;
+		args[1] = &decl_WL;
+
+		res[0] = q;
+
+		CASADI_FUNC_CALL(yaw_init)
+	}
+
 	// estimator states
-	double x[10] = {0, 0, 0, 0, 0, 0, 1, 0, 0, 0};
+	double x[10] = {0, 0, 0, 0, 0, 0, q[0], q[1], q[2], q[3]};
+
+	// Position estimator covariance
+	double P_pos[36] = {1e-2, 0, 0, 0,    0, 0, 0, 1e-2, 0, 0, 0,    0, 0, 0, 1e-2, 0, 0, 0,
+			    0,    0, 0, 1e-2, 0, 0, 0, 0,    0, 0, 1e-2, 0, 0, 0, 0,    0, 0, 1e-2};
+
+	// Attitude estimator covariance
+	double P_att[36] = {1e-2, 0, 0, 0,    0, 0, 0, 1e-2, 0, 0, 0,    0, 0, 0, 1e-2, 0, 0, 0,
+			    0,    0, 0, 1e-2, 0, 0, 0, 0,    0, 0, 1e-2, 0, 0, 0, 0,    0, 0, 1e-2};
 
 	// poll on imu
 	events[0] = *zros_sub_get_event(&ctx->sub_imu);
-
 	// int j = 0;
 
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
@@ -153,6 +253,10 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		if (zros_sub_update_available(&ctx->sub_imu)) {
 			zros_sub_update(&ctx->sub_imu);
 			perf_counter_update(&ctx->perf);
+		}
+
+		if (zros_sub_update_available(&ctx->sub_mag)) {
+			zros_sub_update(&ctx->sub_mag);
 		}
 
 		/*
@@ -199,6 +303,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			x[7] = ctx->odometry_ethernet.pose.orientation.x;
 			x[8] = ctx->odometry_ethernet.pose.orientation.y;
 			x[9] = ctx->odometry_ethernet.pose.orientation.z;
+
 #endif
 		}
 
@@ -214,7 +319,7 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 		{
 			CASADI_FUNC_ARGS(strapdown_ins_propagate)
 			/* strapdown_ins_propagate:(x0[10],a_b[3],omega_b[3],g,dt)->(x1[10]) */
-			const double g = 9.8;
+
 			double a_b[3] = {ctx->imu.linear_acceleration.x,
 					 ctx->imu.linear_acceleration.y,
 					 ctx->imu.linear_acceleration.z};
@@ -226,8 +331,96 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			args[2] = omega_b;
 			args[3] = &g;
 			args[4] = &dt;
+
 			res[0] = x;
+
 			CASADI_FUNC_CALL(strapdown_ins_propagate)
+		}
+
+		// Update quaternion
+		q[0] = x[6];
+		q[1] = x[7];
+		q[2] = x[8];
+		q[3] = x[9];
+
+		{
+			CASADI_FUNC_ARGS(position_correction)
+
+			double gps[3] = {ctx->odometry_ethernet.pose.position.x,
+					 ctx->odometry_ethernet.pose.position.y,
+					 ctx->odometry_ethernet.pose.position.z};
+
+			args[0] = x;
+			args[1] = gps;
+			args[2] = &dt;
+			args[3] = P_pos;
+
+			res[0] = x;
+			res[1] = P_pos;
+
+			CASADI_FUNC_CALL(position_correction)
+		}
+
+		/*
+		f_att_estimator = ca.Function(
+		"attitude_estimator",
+		[q0, mag, mag_decl, gyro, accel, dt, P_att],
+		[q1.param, P_att],
+		["q", "mag", "mag_decl", "gyro", "accel", "dt", "P_att"],
+		["q1", "P_att"],
+		)*/
+
+		{
+			CASADI_FUNC_ARGS(attitude_estimator)
+
+			double a_b[3] = {ctx->imu.linear_acceleration.x,
+					 ctx->imu.linear_acceleration.y,
+					 ctx->imu.linear_acceleration.z};
+			double omega_b[3] = {ctx->imu.angular_velocity.x,
+					     ctx->imu.angular_velocity.y,
+					     ctx->imu.angular_velocity.z};
+			double mag[3] = {ctx->mag.magnetic_field.x, ctx->mag.magnetic_field.y,
+					 ctx->mag.magnetic_field.z};
+
+			args[0] = q;
+			args[1] = mag;
+			args[2] = &decl_WL;
+			args[3] = omega_b;
+			args[4] = a_b;
+			args[5] = &accel_gain;
+			args[6] = &mag_gain;
+			args[7] = &dt;
+			args[8] = P_att;
+
+			res[0] = q;
+			res[1] = P_att;
+			CASADI_FUNC_CALL(attitude_estimator)
+		}
+
+		x[6] = q[0];
+		x[7] = q[1];
+		x[8] = q[2];
+		x[9] = q[3];
+
+		double v_b[3]; // velocity in body frame
+		double v_w[3]; // velocity in world frame
+
+		// Update velocity in world frame
+		v_w[0] = x[3];
+		v_w[1] = x[4];
+		v_w[2] = x[5];
+
+		// Rotate velocity from world frame to body frame
+		{
+			// rotate_vector_w_to_b:(q[4],v_w[3])->(v_b[3])
+			CASADI_FUNC_ARGS(rotate_vector_w_to_b)
+
+			args[0] = q;
+			args[1] = v_w;
+
+			res[0] = v_b;
+
+			CASADI_FUNC_CALL(rotate_vector_w_to_b)
 		}
 
 		bool data_ok = true;
@@ -247,9 +440,9 @@ static void rdd2_estimate_run(void *p0, void *p1, void *p2)
 			ctx->odometry.pose.position.x = x[0];
 			ctx->odometry.pose.position.y = x[1];
 			ctx->odometry.pose.position.z = x[2];
-			ctx->odometry.twist.linear.x = x[3];
-			ctx->odometry.twist.linear.y = x[4];
-			ctx->odometry.twist.linear.z = x[5];
+			ctx->odometry.twist.linear.x = v_b[0];
+			ctx->odometry.twist.linear.y = v_b[1];
+			ctx->odometry.twist.linear.z = v_b[2];
 			ctx->odometry.pose.orientation.w = x[6];
 			ctx->odometry.pose.orientation.x = x[7];
 			ctx->odometry.pose.orientation.y = x[8];

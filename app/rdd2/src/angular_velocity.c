@@ -39,11 +39,6 @@ struct context {
 	k_thread_stack_t *stack_area;
 	struct k_thread thread_data;
 	double dt;
-	double kp[3];
-	double ki[3];
-	double kd[3];
-	double i_max[3];
-	double f_cut;
 	double omega[3];
 	double omega_r[3];
 	double omega_i[3];
@@ -67,31 +62,6 @@ static struct context g_ctx = {
 	.stack_size = MY_STACK_SIZE,
 	.stack_area = g_my_stack_area,
 	.thread_data = {},
-	.kp =
-		{
-			CONFIG_CEREBRI_RDD2_ROLLRATE_KP * 1e-6,
-			CONFIG_CEREBRI_RDD2_PITCHRATE_KP * 1e-6,
-			CONFIG_CEREBRI_RDD2_YAWRATE_KP * 1e-6,
-		},
-	.ki =
-		{
-			CONFIG_CEREBRI_RDD2_ROLLRATE_KI * 1e-6,
-			CONFIG_CEREBRI_RDD2_PITCHRATE_KI * 1e-6,
-			CONFIG_CEREBRI_RDD2_YAWRATE_KI * 1e-6,
-		},
-	.kd =
-		{
-			CONFIG_CEREBRI_RDD2_ROLLRATE_KD * 1e-6,
-			CONFIG_CEREBRI_RDD2_PITCHRATE_KD * 1e-6,
-			CONFIG_CEREBRI_RDD2_YAWRATE_KD * 1e-6,
-		},
-	.i_max =
-		{
-			CONFIG_CEREBRI_RDD2_ROLLRATE_IMAX * 1e-6,
-			CONFIG_CEREBRI_RDD2_PITCHRATE_IMAX * 1e-6,
-			CONFIG_CEREBRI_RDD2_YAWRATE_IMAX * 1e-6,
-		},
-	.f_cut = CONFIG_CEREBRI_RDD2_ATTITUDE_RATE_FCUT * 1e-3,
 	.omega_i = {},
 	.omega_e = {},
 	.domega_e = {},
@@ -137,6 +107,33 @@ static void rdd2_angular_velocity_run(void *p0, void *p1, void *p2)
 
 	int64_t ticks_last = k_uptime_ticks();
 
+	// PID controller constants
+	static const double kp[3] = {
+		CONFIG_CEREBRI_RDD2_ROLLRATE_KP * 1e-6,
+		CONFIG_CEREBRI_RDD2_PITCHRATE_KP * 1e-6,
+		CONFIG_CEREBRI_RDD2_YAWRATE_KP * 1e-6,
+	};
+
+	static const double ki[3] = {
+		CONFIG_CEREBRI_RDD2_ROLLRATE_KI * 1e-6,
+		CONFIG_CEREBRI_RDD2_PITCHRATE_KI * 1e-6,
+		CONFIG_CEREBRI_RDD2_YAWRATE_KI * 1e-6,
+	};
+
+	static const double kd[3] = {
+		CONFIG_CEREBRI_RDD2_ROLLRATE_KD * 1e-6,
+		CONFIG_CEREBRI_RDD2_PITCHRATE_KD * 1e-6,
+		CONFIG_CEREBRI_RDD2_YAWRATE_KD * 1e-6,
+	};
+
+	static const double i_max[3] = {
+		CONFIG_CEREBRI_RDD2_ROLLRATE_IMAX * 1e-6,
+		CONFIG_CEREBRI_RDD2_PITCHRATE_IMAX * 1e-6,
+		CONFIG_CEREBRI_RDD2_YAWRATE_IMAX * 1e-6,
+	};
+
+	static const double f_cut = CONFIG_CEREBRI_RDD2_ATTITUDE_RATE_FCUT * 1e-3;
+
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 		// wait for estimator odometry, publish at 10 Hz regardless
 		int rc = 0;
@@ -163,36 +160,37 @@ static void rdd2_angular_velocity_run(void *p0, void *p1, void *p2)
 		double M[3];
 		{
 			// attitude_rate_control:(
-			//  kp[3],ki[3],kd[3],f_cut,i_max[3],
-			//  omega[3],omega_r[3],i0[3],e0[3],de0[3],dt)->(M[3],i1[3],e1[3],de1[3]) */
+			// kp[3],ki[3],kd[3],f_cut,i_max[3],
+			// omega[3],omega_r[3],i0[3],e0[3],de0[3],dt)->(M[3],i1[3],e1[3],de1[3]) */
 			CASADI_FUNC_ARGS(attitude_rate_control);
+
 			ctx->omega[0] = ctx->odometry_estimator.twist.angular.x;
 			ctx->omega[1] = ctx->odometry_estimator.twist.angular.y;
 			ctx->omega[2] = ctx->odometry_estimator.twist.angular.z;
 			ctx->omega_r[0] = ctx->angular_velocity_sp.x;
 			ctx->omega_r[1] = ctx->angular_velocity_sp.y;
 			ctx->omega_r[2] = ctx->angular_velocity_sp.z;
-			args[0] = ctx->kp;
-			args[1] = ctx->ki;
-			args[2] = ctx->kd;
-			args[3] = &(ctx->f_cut);
-			args[4] = ctx->i_max;
+
+			args[0] = kp;
+			args[1] = ki;
+			args[2] = kd;
+			args[3] = &f_cut;
+			args[4] = i_max;
 			args[5] = ctx->omega;
 			args[6] = ctx->omega_r;
 			args[7] = ctx->omega_i;
 			args[8] = ctx->omega_e;
 			args[9] = ctx->domega_e;
 			args[10] = &ctx->dt;
+
 			res[0] = M;
 			res[1] = ctx->omega_i;
 			res[2] = ctx->omega_e;
 			res[3] = ctx->domega_e;
 			res[4] = &ctx->alpha;
+
 			CASADI_FUNC_CALL(attitude_rate_control);
 		}
-
-		// LOG_INF("omega_i: %10.4f %10.4f %10.4f",
-		//     omega_i[0], omega_i[1], omega_i[2]);
 
 		bool data_ok = true;
 		for (int i = 0; i < 3; i++) {
@@ -251,9 +249,6 @@ static int rdd2_angular_velocity_cmd_handler(const struct shell *sh, size_t argc
 	} else if (strcmp(argv[0], "status") == 0) {
 		shell_print(sh, "running\t: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
 		shell_print(sh, "dt\t: %10.6f", ctx->dt);
-		shell_print(sh, "kp\t: %10.6f %10.6f %10.6f", ctx->kp[0], ctx->kp[1], ctx->kp[2]);
-		shell_print(sh, "ki\t: %10.6f %10.6f %10.6f", ctx->ki[0], ctx->ki[1], ctx->ki[2]);
-		shell_print(sh, "kd\t: %10.6f %10.6f %10.6f", ctx->kd[0], ctx->kd[1], ctx->kd[2]);
 		shell_print(sh, "omega\t: %10.6f %10.6f %10.6f", ctx->omega[0], ctx->omega[1],
 			    ctx->omega[2]);
 		shell_print(sh, "omega_r\t: %10.6f %10.6f %10.6f", ctx->omega_r[0], ctx->omega_r[1],
@@ -264,9 +259,6 @@ static int rdd2_angular_velocity_cmd_handler(const struct shell *sh, size_t argc
 			    ctx->omega_e[2]);
 		shell_print(sh, "domega_e: %10.6f %10.6f %10.6f", ctx->domega_e[0],
 			    ctx->domega_e[1], ctx->domega_e[2]);
-		shell_print(sh, "i_max\t: %10.6f %10.6f %10.6f", ctx->i_max[0], ctx->i_max[1],
-			    ctx->i_max[2]);
-		shell_print(sh, "f_cut\t: %10.6f", ctx->f_cut);
 		shell_print(sh, "alpha\t: %10.6f", ctx->alpha);
 	}
 	return 0;

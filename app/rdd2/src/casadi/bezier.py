@@ -1,4 +1,4 @@
-import argparse 
+import argparse
 import os
 import sys
 import math
@@ -9,14 +9,15 @@ import casadi as ca
 import cyecca.lie as lie
 from cyecca.lie.group_so3 import SO3Quat, SO3EulerB321, SO3Dcm
 
-print('python: ', sys.executable)
+print("python: ", sys.executable)
 
-g = 9.8 # grav accel m/s^2
-m = 2.0 # mass of vehicle
+g = 9.8  # grav accel m/s^2
+m = 2.0  # mass of vehicle
 J_xx = 0.0216666
 J_yy = 0.0216666
 J_zz = 0.04
 J_xz = 0
+
 
 class Bezier:
     """
@@ -26,12 +27,12 @@ class Bezier:
     def __init__(self, P: ca.SX, T: float):
         self.P = P
         self.m = P.shape[0]
-        self.n = P.shape[1]-1
+        self.n = P.shape[1] - 1
         self.T = T
 
     def eval(self, t):
-        #https://en.wikipedia.org/wiki/De_Casteljau%27s_algorithm
-        beta = t/self.T
+        # https://en.wikipedia.org/wiki/De_Casteljau%27s_algorithm
+        beta = t / self.T
         A = ca.SX(self.P)
         for j in range(1, self.n + 1):
             for k in range(self.n + 1 - j):
@@ -41,15 +42,17 @@ class Bezier:
     def deriv(self, m=1):
         D = ca.SX(self.P)
         for j in range(0, m):
-            D = (self.n - j)*ca.horzcat(*[ D[:, i+1] - D[:, i]
-                for i in range(self.n - j) ])
-        return Bezier(D/self.T**m, self.T)
+            D = (self.n - j) * ca.horzcat(
+                *[D[:, i + 1] - D[:, i] for i in range(self.n - j)]
+            )
+        return Bezier(D / self.T**m, self.T)
+
 
 def derive_bezier7():
     n = 8
-    T = ca.SX.sym('T')
-    t = ca.SX.sym('t')
-    P = ca.SX.sym('P', 1, n)
+    T = ca.SX.sym("T")
+    t = ca.SX.sym("t")
+    P = ca.SX.sym("P", 1, n)
     B = Bezier(P, T)
 
     # derivatives
@@ -66,11 +69,11 @@ def derive_bezier7():
     a = B_d2.eval(t)
     j = B_d3.eval(t)
     s = B_d4.eval(t)
-    r = ca.vertcat(p, v, a, j ,s)
+    r = ca.vertcat(p, v, a, j, s)
 
     # given position/velocity boundary conditions, solve for bezier points
-    wp_0 = ca.SX.sym('p0', 4, 1)  # pos/vel/acc/jerk at waypoint 0
-    wp_1 = ca.SX.sym('p1', 4, 1)  # pos/vel/acc/jerk at waypoint 1
+    wp_0 = ca.SX.sym("p0", 4, 1)  # pos/vel/acc/jerk at waypoint 0
+    wp_1 = ca.SX.sym("p1", 4, 1)  # pos/vel/acc/jerk at waypoint 1
 
     constraints = []
     constraints += [(B.eval(0), wp_0[0])]  # pos @ wp0
@@ -88,22 +91,23 @@ def derive_bezier7():
     b = ca.vertcat(*[c[1] for c in constraints])
     A = ca.jacobian(Y, P)
     A_inv = ca.inv(A)
-    P_sol = (A_inv@b).T
+    P_sol = (A_inv @ b).T
 
     functions = [
-        ca.Function('bezier7_solve', [wp_0, wp_1, T], [P_sol],
-            ['wp_0', 'wp_1', 'T'], ['P']),
-        ca.Function('bezier7_traj', [t, T, P], [r],
-            ['t', 'T', 'P'], ['r']),
+        ca.Function(
+            "bezier7_solve", [wp_0, wp_1, T], [P_sol], ["wp_0", "wp_1", "T"], ["P"]
+        ),
+        ca.Function("bezier7_traj", [t, T, P], [r], ["t", "T", "P"], ["r"]),
     ]
 
-    return { f.name(): f for f in functions }
+    return {f.name(): f for f in functions}
+
 
 def derive_bezier3():
     n = 4
-    T = ca.SX.sym('T')
-    t = ca.SX.sym('t')
-    P = ca.SX.sym('P', 1, n)
+    T = ca.SX.sym("T")
+    t = ca.SX.sym("t")
+    P = ca.SX.sym("P", 1, n)
     B = Bezier(P, T)
 
     # derivatives
@@ -121,8 +125,8 @@ def derive_bezier3():
     r = ca.vertcat(p, v, a)
 
     # given position/velocity boundary conditions, solve for bezier points
-    wp_0 = ca.SX.sym('p0', 2, 1)  # pos/vel at waypoint 0
-    wp_1 = ca.SX.sym('p1', 2, 1)  # pos/vel at waypoint 1
+    wp_0 = ca.SX.sym("p0", 2, 1)  # pos/vel at waypoint 0
+    wp_1 = ca.SX.sym("p1", 2, 1)  # pos/vel at waypoint 1
 
     constraints = []
     constraints += [(B.eval(0), wp_0[0])]  # pos @ wp0
@@ -136,27 +140,63 @@ def derive_bezier3():
     b = ca.vertcat(*[c[1] for c in constraints])
     A = ca.jacobian(Y, P)
     A_inv = ca.inv(A)
-    P_sol = (A_inv@b).T
+    P_sol = (A_inv @ b).T
 
     functions = [
-        ca.Function('bezier3_solve', [wp_0, wp_1, T], [P_sol],
-            ['wp_0', 'wp_1', 'T'], ['P']),
-        ca.Function('bezier3_traj', [t, T, P], [r],
-            ['t', 'T', 'P'], ['r']),
+        ca.Function(
+            "bezier3_solve",
+            [
+                wp_0,
+                wp_1,
+                T,
+            ],
+            [P_sol],
+            [
+                "wp_0",
+                "wp_1",
+                "T",
+            ],
+            ["P"],
+        ),
+        ca.Function(
+            "bezier3_traj",
+            [
+                t,
+                T,
+                P,
+            ],
+            [r],
+            [
+                "t",
+                "T",
+                "P",
+            ],
+            ["r"],
+        ),
     ]
 
-    return { f.name(): f for f in functions }
+    return {f.name(): f for f in functions}
+
 
 def derive_dcm_to_quat():
-    R = SO3Dcm.elem(ca.SX.sym('R',9))
+    R = SO3Dcm.elem(ca.SX.sym("R", 9))
     q = SO3Quat.from_Dcm(R)
 
     functions = [ca.Function(
         "dcm_to_quat",
-        [R.param], [q.param],
-        ["R"], ["q"])]
+        [
+            R.param,
+        ],
+        [q.param],
+        [
+            "R",
+        ],
+        ["q"],
+        )
+    ]
 
-    return { f.name(): f for f in functions }
+    return {f.name(): f for f in functions}
+
 
 def derive_ref():
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -203,10 +243,9 @@ def derive_ref():
 
     # T_dot = ca.dot(m*s_e, zb_e)
     C_be = ca.hcat([xb_e, yb_e, zb_e])
-    
-    dcm_quat = derive_dcm_to_quat()
-    quat = dcm_quat['dcm_to_quat'](SO3Dcm.from_Matrix(C_be).param)
 
+    dcm_quat = derive_dcm_to_quat()
+    quat = dcm_quat["dcm_to_quat"](SO3Dcm.from_Matrix(C_be).param)
 
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     # Solve for omega_eb_b
@@ -286,36 +325,53 @@ def derive_ref():
     v_b = C_eb @ v_e
     functions = [ca.Function(
         "f_ref",
-        [psi, psi_dot, psi_ddot, v_e, a_e, j_e, s_e],
-        [v_b, quat, omega_eb_b, omega_dot_eb_b, M_b, T],
-        ["psi","psi_dot","psi_ddot",
-         "v_e","a_e","j_e","s_e",],
-        ["v_b", "quat", "omega_eb_b", "omega_dot_eb_b", "M_b", "T"],
-    )]
-    return { f.name(): f for f in functions }
+        [
+            psi,
+            psi_dot,
+            psi_ddot,
+            v_e,
+            a_e,
+            j_e,
+            s_e,
+        ],
+        [quat, omega_eb_b, M_b],
+        [
+            "psi",
+            "psi_dot",
+            "psi_ddot",
+            "v_e",
+            "a_e",
+            "j_e",
+            "s_e",
+        ],
+            ["quat", "omega_eb_b", "M_b"],
+        ),
+    ]
+    return {f.name(): f for f in functions}
+
 
 def derive_multirotor():
     n1 = 8
     bezier_7 = derive_bezier7()
-    bezier_7_solve = bezier_7['bezier7_solve']
-    bezier_7_traj = bezier_7['bezier7_traj']
+    bezier_7_solve = bezier_7["bezier7_solve"]
+    bezier_7_traj = bezier_7["bezier7_traj"]
 
     n2 = 4
     bezier_3 = derive_bezier3()
-    bezier_3_solve = bezier_3['bezier3_solve']
-    bezier_3_traj = bezier_3['bezier3_traj']
+    bezier_3_solve = bezier_3["bezier3_solve"]
+    bezier_3_traj = bezier_3["bezier3_traj"]
 
-    T = ca.SX.sym('T')
-    t = ca.SX.sym('t')
+    T = ca.SX.sym("T")
+    t = ca.SX.sym("t")
 
-    PX = ca.SX.sym('PX', 1, n1)
-    PY = ca.SX.sym('PY', 1, n1)
-    PZ = ca.SX.sym('PZ', 1, n1)
+    PX = ca.SX.sym("PX", 1, n1)
+    PY = ca.SX.sym("PY", 1, n1)
+    PZ = ca.SX.sym("PZ", 1, n1)
     traj_x = bezier_7_traj(t, T, PX)
     traj_y = bezier_7_traj(t, T, PY)
     traj_z = bezier_7_traj(t, T, PZ)
 
-    Ppsi = ca.SX.sym('Ppsi', 1, n2)
+    Ppsi = ca.SX.sym("Ppsi", 1, n2)
     traj_psi = bezier_3_traj(t, T, Ppsi)
 
     x = traj_x[0]
@@ -338,7 +394,7 @@ def derive_multirotor():
 
     # camera orientation what vehicle wants to look at -> orientation sp
     psi = traj_psi[0]
-    dpsi = traj_psi[1] # yaw rate
+    dpsi = traj_psi[1]  # yaw rate
     ddpsi = traj_psi[2]
 
     v = ca.vertcat(vx, vy, vz)
@@ -346,13 +402,65 @@ def derive_multirotor():
     j = ca.vertcat(jx, jy, jz)
     s = ca.vertcat(sx, sy, sz)
 
-    functions = [
-        ca.Function(
-            'bezier_multirotor', [t, T, PX, PY, PZ, Ppsi], [x, y, z, psi, dpsi, ddpsi, v, a, j, s],
-            ['t', 'T', 'PX', 'PY', 'PZ', 'Ppsi'], ['x', 'y', 'z', 'psi', 'psidot', 'psiddot', 'v', 'a', 'j', 's']),
+    functions = [ca.Function(
+        "bezier_multirotor",
+        [
+            t,
+            T,
+            PX,
+            PY,
+            PZ,
+            Ppsi,
+        ],
+        [x, y, z, psi, dpsi, ddpsi, v, a, j, s],
+        [
+            "t",
+            "T",
+            "PX",
+            "PY",
+            "PZ",
+            "Ppsi",
+        ],
+        ["x", "y", "z", "psi", "psidot", "psiddot", "v", "a", "j", "s"],
+    )
     ]
 
-    return { f.name(): f for f in functions }
+    return {f.name(): f for f in functions}
+
+
+def derive_eulerB321_to_quat():
+    """
+    eulerB321 to quaternion converion
+    """
+
+    # INPUTS
+    # -------------------------------
+    e = SO3EulerB321.elem(ca.SX.sym("e", 3))
+
+    # CALC
+    # -------------------------------
+    X = SO3Quat.from_Euler(e)
+
+    # FUNCTION
+    # -------------------------------
+    f_eulerB321_to_quat = ca.Function(
+        "eulerB321_to_quat",
+        [
+            e.param[0],
+            e.param[1],
+            e.param[2],
+        ],
+        [X.param],
+        [
+            "yaw",
+            "pitch",
+            "roll",
+        ],
+        ["q"],
+    )
+
+    return {"eulerB321_to_quat": f_eulerB321_to_quat}
+
 
 def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
     dest_dir = Path(dest_dir)
@@ -378,9 +486,10 @@ def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
         gen.add(eq)
     gen.generate(str(dest_dir) + os.sep)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('dest_dir')
+    parser.add_argument("dest_dir")
     args = parser.parse_args()
 
     print("generating casadi equations in {:s}".format(args.dest_dir))
@@ -392,7 +501,7 @@ if __name__ == "__main__":
     eqs.update(derive_multirotor())
 
     for name, eq in eqs.items():
-        print('eq: ', name)
+        print("eq: ", name)
 
     generate_code(eqs, filename="bezier.c", dest_dir=args.dest_dir)
     print("complete")

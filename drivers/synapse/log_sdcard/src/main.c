@@ -30,6 +30,41 @@ LOG_MODULE_REGISTER(log_sdcard, LOG_LEVEL_DBG);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
+
+/* All Topics
+accel_ff
+accel_sp
+actuators
+altimeter
+angular_velocity_ff
+angular_velocity_sp
+attitude_sp
+battery_state
+bezier_trajectory
+bezier_trajectory_ethernet
+clock_offset_ethernet
+cmd_vel
+cmd_vel_ethernet
+imu
+imu_q31_array
+input
+input_ethernet
+input_sbus
+led_array
+magnetic_field
+moment_ff
+nav_sat_fix
+odometry_estimstor
+odometry_ethernet
+orientation_sp
+position_sp
+pwm
+safety
+status
+velocity_sp
+wheel_odometry
+*/
+
 struct context {
 	// zros node handle
 	struct zros_node node;
@@ -40,6 +75,7 @@ struct context {
 	struct zros_sub sub_input;
 	struct zros_sub sub_mag;
 	struct zros_sub sub_odom;
+	struct zros_sub sub_actuators;
 	// file
 	synapse_pb_Frame frame;
 	// status
@@ -56,6 +92,7 @@ static struct context g_ctx = {
 	.sub_mag = {},
 	.sub_odom = {},
 	.sub_imu_q31_array = {},
+	.sub_actuators = {},
 	.running = Z_SEM_INITIALIZER(g_ctx.running, 1, 1),
 	.stack_size = MY_STACK_SIZE,
 	.stack_area = g_my_stack_area,
@@ -109,6 +146,12 @@ static int log_sdcard_init(struct context *ctx)
 		LOG_ERR("init odom failed: %d", ret);
 		return ret;
 	}
+	ret = zros_sub_init(&ctx->sub_actuators, &ctx->node, &topic_actuators, &ctx->frame.msg,
+			    TOPIC_RATE_HZ);
+	if (ret < 0) {
+		LOG_ERR("init actuators failed: %d", ret);
+		return ret;
+	}
 
 	k_sem_take(&ctx->running, K_FOREVER);
 
@@ -129,6 +172,7 @@ static int log_sdcard_fini(struct context *ctx)
 	zros_sub_fini(&ctx->sub_mag);
 	zros_sub_fini(&ctx->sub_odom);
 	zros_sub_fini(&ctx->sub_imu_q31_array);
+	zros_sub_fini(&ctx->sub_actuators);
 	zros_node_fini(&ctx->node);
 
 	k_sem_give(&ctx->running);
@@ -227,6 +271,12 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 			zros_sub_update(&ctx->sub_odom);
 			ctx->frame.which_msg = synapse_pb_Frame_odometry_tag;
 			snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), "odom");
+			log_sdcard_write_frame(ctx);
+		}
+		if (zros_sub_update_available(&ctx->sub_actuators)) {
+			zros_sub_update(&ctx->sub_actuators);
+			ctx->frame.which_msg = synapse_pb_Frame_actuators_tag;
+			snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), "actuators");
 			log_sdcard_write_frame(ctx);
 		}
 	}

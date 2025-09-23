@@ -31,7 +31,7 @@ struct context {
 	// zros node handle
 	struct zros_node node;
 	// subscriptions
-	struct zros_sub sub_actuators, sub_odometry_estimator, sub_nav_sat_fix, sub_status;
+	struct zros_sub sub_actuators, sub_odometry_estimator, sub_position_sp, sub_nav_sat_fix, sub_status;
 	// topic data
 	synapse_pb_Frame tx_frame;
 	synapse_pb_Actuators actuators;
@@ -51,6 +51,7 @@ static struct context g_ctx = {
 	.node = {},
 	.sub_actuators = {},
 	.sub_odometry_estimator = {},
+	.sub_position_sp = {},
 	.sub_nav_sat_fix = {},
 	.sub_status = {},
 	.actuators = {},
@@ -111,6 +112,14 @@ static int eth_tx_init(struct context *ctx)
 		LOG_ERR("sub init estimator odometry failed: %d", ret);
 		return ret;
 	}
+
+	ret = zros_sub_init(&ctx->sub_position_sp, &ctx->node, &topic_position_sp,
+			    &ctx->odometry_estimator, 15);
+	if (ret < 0) {
+		LOG_ERR("sub init estimator odometry failed: %d", ret);
+		return ret;
+	}
+
 	ret = zros_sub_init(&ctx->sub_nav_sat_fix, &ctx->node, &topic_nav_sat_fix,
 			    &ctx->nav_sat_fix, 15);
 	if (ret < 0) {
@@ -143,6 +152,7 @@ static int eth_tx_fini(struct context *ctx)
 	// close subscriptions
 	zros_sub_fini(&ctx->sub_actuators);
 	zros_sub_fini(&ctx->sub_odometry_estimator);
+	zros_sub_fini(&ctx->sub_position_sp);
 	zros_sub_fini(&ctx->sub_nav_sat_fix);
 	zros_sub_fini(&ctx->sub_status);
 	zros_node_fini(&ctx->node);
@@ -179,6 +189,7 @@ static void eth_tx_run(void *p0, void *p1, void *p2)
 			*zros_sub_get_event(&ctx->sub_actuators),
 			*zros_sub_get_event(&ctx->sub_status),
 			*zros_sub_get_event(&ctx->sub_odometry_estimator),
+			*zros_sub_get_event(&ctx->sub_position_sp),
 			*zros_sub_get_event(&ctx->sub_nav_sat_fix),
 		};
 
@@ -206,6 +217,11 @@ static void eth_tx_run(void *p0, void *p1, void *p2)
 		if (zros_sub_update_available(&ctx->sub_odometry_estimator)) {
 			zros_sub_update(&ctx->sub_odometry_estimator);
 			send_frame(ctx, synapse_pb_Frame_odometry_tag);
+		}
+
+		if (zros_sub_update_available(&ctx->sub_position_sp)) {
+			zros_sub_update(&ctx->sub_position_sp);
+			send_frame(ctx, synapse_pb_Frame_vector3_tag);
 		}
 
 		if (now - ticks_last_uptime > CONFIG_SYS_CLOCK_TICKS_PER_SEC) {

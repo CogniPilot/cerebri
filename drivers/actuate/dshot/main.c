@@ -56,6 +56,7 @@ struct context {
 	const struct device *const dev;
 	uint8_t num_actuators;
 	const actuator_dshot_t *dshot_actuators;
+	const uint32_t update_rate_sleep_us;
 };
 
 static int actuate_dshot_init(struct context *ctx)
@@ -166,21 +167,10 @@ static void actuate_dshot_run(void *p0, void *p1, void *p2)
 		return;
 	}
 
-	struct k_poll_event events[] = {
-		*zros_sub_get_event(&ctx->sub_actuators),
-	};
+	const int timeout_ms = 20;
+	int64_t start_time = k_uptime_get();
 
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
-		int rc = 0;
-		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
-		if (rc != 0) {
-			LOG_DBG("no actuator message received");
-			// put motors in disarmed state
-			if (ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) {
-				ctx->status.arming = synapse_pb_Status_Arming_ARMING_DISARMED;
-				LOG_ERR("disarming motors due to actuator msg timeout!");
-			}
-		}
 
 		if (zros_sub_update_available(&ctx->sub_status)) {
 			zros_sub_update(&ctx->sub_status);
@@ -188,10 +178,25 @@ static void actuate_dshot_run(void *p0, void *p1, void *p2)
 
 		if (zros_sub_update_available(&ctx->sub_actuators)) {
 			zros_sub_update(&ctx->sub_actuators);
+			start_time = k_uptime_get(); // Reset timer if when we get a new setpoint
+		} else {
+			int64_t elapsed = k_uptime_get() - start_time;
+			if (elapsed >= timeout_ms) {
+				LOG_DBG("no actuator message received");
+				// put motors in disarmed state
+				if (ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) {
+					ctx->status.arming =
+						synapse_pb_Status_Arming_ARMING_DISARMED;
+					LOG_ERR("disarming motors due to actuator msg timeout!");
+				}
+				start_time = k_uptime_get();
+			}
 		}
 
 		// update dshot
 		dshot_update(ctx);
+
+		k_sleep(K_USEC(ctx->update_rate_sleep_us));
 	}
 
 	actuate_dshot_fini(ctx);
@@ -307,7 +312,7 @@ static int actuate_dshot_device_init(const struct device *dev)
 		.thread_data = {},                                                                 \
 		.dshot_actuators = g_actuator_dshots_##inst,                                       \
 		.num_actuators = DT_CHILD_NUM(DT_INST(inst, cerebri_dshot_actuators)),             \
-	};                                                                                         \
+		.update_rate_sleep_us = 1000000 / DT_INST_PROP(inst, rate)};                       \
 	DSHOT_ACTUATOR_SHELL(inst);                                                                \
 	DEVICE_DT_INST_DEFINE(inst, actuate_dshot_device_init, NULL, &data_##inst, NULL,           \
 			      POST_KERNEL, CONFIG_DSHOT_ACTUATORS_INIT_PRIORITY, NULL);

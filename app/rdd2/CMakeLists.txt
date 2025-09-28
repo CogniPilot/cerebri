@@ -67,7 +67,12 @@ if (CONFIG_CEREBRI_RDD2_LIGHTING)
 endif()
 
 if (CONFIG_CEREBRI_RDD2_COMMAND)
-  list(APPEND SOURCE_FILES src/command.c)
+  list(APPEND SOURCE_FILES
+    src/command.c
+    src/mode_bezier.c
+    src/mode_velocity.c
+    src/mode_attitude.c
+    src/mode_attitude_rate.c)
 endif()
 
 if (CONFIG_CEREBRI_RDD2_POSITION)

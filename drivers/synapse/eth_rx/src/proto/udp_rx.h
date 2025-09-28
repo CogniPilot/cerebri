@@ -6,7 +6,7 @@
 struct udp_rx {
 	int sock;
 	struct sockaddr_in addr;
-	char rx_buf[10240];
+	char rx_buf[4096];
 };
 
 int udp_rx_init(struct udp_rx *ctx);

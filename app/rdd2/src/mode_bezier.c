@@ -166,9 +166,9 @@ void rdd2_mode_bezier(struct context *ctx)
 		zros_pub_update(&ctx->pub_angular_velocity_ff);
 
 		// moment ff
-		ctx->moment_ff.x = 0; // M[0];
-		ctx->moment_ff.y = 0; // M[1];
-		ctx->moment_ff.z = 0; // M[2];
+		ctx->moment_ff.x = M[0];
+		ctx->moment_ff.y = M[1];
+		ctx->moment_ff.z = M[2];
 		zros_pub_update(&ctx->pub_moment_ff);
 
 		// orientation sp

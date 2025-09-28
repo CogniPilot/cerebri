@@ -10,7 +10,9 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(rdd2 LANGUAGES C)
 
-set(CYECCA_PYTHON  ${CMAKE_CURRENT_SOURCE_DIR}/../../scripts/cyecca_python)
+set(CYECCA_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/../../scripts/cyecca_python)
+
+set(CYECCA_PATH $ENV{ZEPHYR_BASE}/../modules/lib/cyecca)
 
 set(flags
   -std=c11
@@ -102,16 +104,16 @@ if (CONFIG_CEREBRI_RDD2_CASADI)
 endif()
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/rdd2.c
-  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2.py ${CASADI_DEST_DIR}
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2.py)
+  COMMAND ${CYECCA_PYTHON} ${CYECCA_PATH}/cyecca/models/rdd2.py ${CASADI_DEST_DIR}
+  DEPENDS ${CYECCA_PATH}/cyecca/models/rdd2.py)
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/rdd2_loglinear.c
   COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2_loglinear.py ${CASADI_DEST_DIR}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2_loglinear.py)
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/bezier.c
-  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/bezier.py ${CASADI_DEST_DIR}
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/bezier.py)
+  COMMAND ${CYECCA_PYTHON} ${CYECCA_PATH}/cyecca/models/bezier.py ${CASADI_DEST_DIR}
+  DEPENDS ${CYECCA_PATH}/cyecca/models/bezier.py)
 
 set_source_files_properties(
   ${SOURCE_FILES}

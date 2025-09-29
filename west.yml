@@ -36,7 +36,7 @@ manifest:
       path: modules/lib/zros
     - name: cyecca
       remote: cognipilot
-      revision: ad96b7c4629ca58228d17bde350c83765295c942 # main 9/28/25
+      revision: a13ce0f75b40d9500166660724541b8258b99c39 # main 9/28/25
       path: modules/lib/cyecca
     - name: synapse_pb
       remote: cognipilot

@@ -20,7 +20,7 @@
 
 #include <cerebri/core/casadi.h>
 
-#define MY_STACK_SIZE 8192
+#define MY_STACK_SIZE 3072
 #define MY_PRIORITY   4
 
 #ifndef M_PI

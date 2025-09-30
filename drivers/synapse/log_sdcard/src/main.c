@@ -24,31 +24,30 @@
 #define BUF_SIZE      131072
 #define TOPIC_RATE_HZ 10000
 
-#define SUBSCRIBE_TOPIC(topic_name) \
-	\
-	ret = zros_sub_init(&ctx->sub_##topic_name, &ctx->node, &topic_##topic_name, &ctx->frame.msg, TOPIC_RATE_HZ); \
-	if (ret < 0) { \
-		LOG_ERR("init " #topic_name " failed: %d", ret); \
-		return ret; \
-	} \
+#define SUBSCRIBE_TOPIC(topic_name)                                                                \
+                                                                                                   \
+	ret = zros_sub_init(&ctx->sub_##topic_name, &ctx->node, &topic_##topic_name,               \
+			    &ctx->frame.msg, TOPIC_RATE_HZ);                                       \
+	if (ret < 0) {                                                                             \
+		LOG_ERR("init " #topic_name " failed: %d", ret);                                   \
+		return ret;                                                                        \
+	}
 
 #define UNSUBSCRIBE_TOPIC(topic_name) zros_sub_fini(&ctx->sub_##topic_name)
 
-#define GET_UPDATE(topic_name, topic_type) \
-	if (zros_sub_update_available(&ctx->sub_##topic_name)) { \
-		zros_sub_update(&ctx->sub_##topic_name); \
-		ctx->frame.which_msg = synapse_pb_Frame_##topic_type##_tag; \
-		snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), #topic_name); \
-		log_sdcard_write_frame(ctx); \
-	} \
-
+#define GET_UPDATE(topic_name, topic_type)                                                         \
+	if (zros_sub_update_available(&ctx->sub_##topic_name)) {                                   \
+		zros_sub_update(&ctx->sub_##topic_name);                                           \
+		ctx->frame.which_msg = synapse_pb_Frame_##topic_type##_tag;                        \
+		snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), #topic_name);                 \
+		log_sdcard_write_frame(ctx);                                                       \
+	}
 
 RING_BUF_DECLARE(rb_sdcard, BUF_SIZE);
 
 LOG_MODULE_REGISTER(log_sdcard, LOG_LEVEL_DBG);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
-
 
 /* All Topics
 accel_ff - ?
@@ -88,14 +87,14 @@ struct context {
 	// zros node handle
 	struct zros_node node;
 	// subscriptions
-	//struct zros_sub sub_accel_ff;
+	// struct zros_sub sub_accel_ff;
 	struct zros_sub sub_accel_sp;
 	struct zros_sub sub_actuators;
-	//struct zros_sub sub_altimeter;
-	//struct zros_sub sub_angular_velocity_ff;
+	// struct zros_sub sub_altimeter;
+	// struct zros_sub sub_angular_velocity_ff;
 	struct zros_sub sub_angular_velocity_sp;
 	struct zros_sub sub_attitude_sp;
-	//struct zros_sub sub_battery_state;
+	// struct zros_sub sub_battery_state;
 	struct zros_sub sub_bezier_trajectory;
 	struct zros_sub sub_bezier_trajectory_ethernet;
 	struct zros_sub sub_clock_offset_ethernet;
@@ -106,17 +105,17 @@ struct context {
 	struct zros_sub sub_input;
 	struct zros_sub sub_input_ethernet;
 	struct zros_sub sub_input_sbus;
-	//struct zros_sub sub_led_array;
+	// struct zros_sub sub_led_array;
 	struct zros_sub sub_magnetic_field;
-	//struct zros_sub sub_moment_ff;
-	//struct zros_sub sub_nav_sat_fix;
+	// struct zros_sub sub_moment_ff;
+	// struct zros_sub sub_nav_sat_fix;
 	struct zros_sub sub_odometry_estimator;
 	struct zros_sub sub_odometry_ethernet;
 	struct zros_sub sub_orientation_sp;
 	struct zros_sub sub_position_sp;
 	struct zros_sub sub_pwm;
 	struct zros_sub sub_safety;
-	//struct zros_sub sub_status;
+	// struct zros_sub sub_status;
 	struct zros_sub sub_velocity_sp;
 	// struct zros_sub sub_wheel_odometry,
 	// file
@@ -178,14 +177,14 @@ static int log_sdcard_init(struct context *ctx)
 	perf_counter_init(&ctx->perf, "log imu", 1.0 / 100);
 
 	// initialize node subscriptions
-	//SUBSCRIBE_TOPIC(accel_ff);
+	// SUBSCRIBE_TOPIC(accel_ff);
 	SUBSCRIBE_TOPIC(accel_sp);
 	SUBSCRIBE_TOPIC(actuators);
-	//SUBSCRIBE_TOPIC(altimeter);
-	//SUBSCRIBE_TOPIC(angular_velocity_ff);
+	// SUBSCRIBE_TOPIC(altimeter);
+	// SUBSCRIBE_TOPIC(angular_velocity_ff);
 	SUBSCRIBE_TOPIC(angular_velocity_sp);
 	SUBSCRIBE_TOPIC(attitude_sp);
-	//SUBSCRIBE_TOPIC(battery_state);
+	// SUBSCRIBE_TOPIC(battery_state);
 	SUBSCRIBE_TOPIC(bezier_trajectory);
 	SUBSCRIBE_TOPIC(bezier_trajectory_ethernet);
 	SUBSCRIBE_TOPIC(clock_offset_ethernet);
@@ -196,17 +195,17 @@ static int log_sdcard_init(struct context *ctx)
 	SUBSCRIBE_TOPIC(input);
 	SUBSCRIBE_TOPIC(input_ethernet);
 	SUBSCRIBE_TOPIC(input_sbus);
-	//SUBSCRIBE_TOPIC(led_array);
+	// SUBSCRIBE_TOPIC(led_array);
 	SUBSCRIBE_TOPIC(magnetic_field);
-	//SUBSCRIBE_TOPIC(moment_ff);
-	//SUBSCRIBE_TOPIC(nav_sat_fix);
+	// SUBSCRIBE_TOPIC(moment_ff);
+	// SUBSCRIBE_TOPIC(nav_sat_fix);
 	SUBSCRIBE_TOPIC(odometry_estimator);
 	SUBSCRIBE_TOPIC(odometry_ethernet);
 	SUBSCRIBE_TOPIC(orientation_sp);
 	SUBSCRIBE_TOPIC(position_sp);
 	SUBSCRIBE_TOPIC(pwm);
 	SUBSCRIBE_TOPIC(safety);
-	//SUBSCRIBE_TOPIC(status);
+	// SUBSCRIBE_TOPIC(status);
 	SUBSCRIBE_TOPIC(velocity_sp);
 	// SUBSCRIBE_TOPIC(wheel_odometry);
 
@@ -215,11 +214,10 @@ static int log_sdcard_init(struct context *ctx)
 	// SUBSCRIBE_TOPIC(pwm);
 	// SUBSCRIBE_TOPIC(input);
 	// SUBSCRIBE_TOPIC(magnetic_field);
-	// SUBSCRIBE_TOPIC(odometry_estimator)	
+	// SUBSCRIBE_TOPIC(odometry_estimator)
 	// SUBSCRIBE_TOPIC(actuators);
 	// SUBSCRIBE_TOPIC(odometry_ethernet);
 	// SUBSCRIBE_TOPIC(position_sp);
-
 
 	k_sem_take(&ctx->running, K_FOREVER);
 
@@ -234,14 +232,14 @@ static int log_sdcard_fini(struct context *ctx)
 	int ret = 0;
 
 	// close subscriptions
-	//UNSUBSCRIBE_TOPIC(accel_ff);
+	// UNSUBSCRIBE_TOPIC(accel_ff);
 	UNSUBSCRIBE_TOPIC(accel_sp);
 	UNSUBSCRIBE_TOPIC(actuators);
-	//UNSUBSCRIBE_TOPIC(altimeter);
-	//UNSUBSCRIBE_TOPIC(angular_velocity_ff);
+	// UNSUBSCRIBE_TOPIC(altimeter);
+	// UNSUBSCRIBE_TOPIC(angular_velocity_ff);
 	UNSUBSCRIBE_TOPIC(angular_velocity_sp);
 	UNSUBSCRIBE_TOPIC(attitude_sp);
-	//UNSUBSCRIBE_TOPIC(battery_state);
+	// UNSUBSCRIBE_TOPIC(battery_state);
 	UNSUBSCRIBE_TOPIC(bezier_trajectory);
 	UNSUBSCRIBE_TOPIC(bezier_trajectory_ethernet);
 	UNSUBSCRIBE_TOPIC(clock_offset_ethernet);
@@ -252,27 +250,26 @@ static int log_sdcard_fini(struct context *ctx)
 	UNSUBSCRIBE_TOPIC(input);
 	UNSUBSCRIBE_TOPIC(input_ethernet);
 	UNSUBSCRIBE_TOPIC(input_sbus);
-	//UNSUBSCRIBE_TOPIC(led_array);
+	// UNSUBSCRIBE_TOPIC(led_array);
 	UNSUBSCRIBE_TOPIC(magnetic_field);
-	//UNSUBSCRIBE_TOPIC(moment_ff);
-	//UNSUBSCRIBE_TOPIC(nav_sat_fix);
+	// UNSUBSCRIBE_TOPIC(moment_ff);
+	// UNSUBSCRIBE_TOPIC(nav_sat_fix);
 	UNSUBSCRIBE_TOPIC(odometry_estimator);
 	UNSUBSCRIBE_TOPIC(odometry_ethernet);
 	UNSUBSCRIBE_TOPIC(orientation_sp);
 	UNSUBSCRIBE_TOPIC(position_sp);
 	UNSUBSCRIBE_TOPIC(pwm);
 	UNSUBSCRIBE_TOPIC(safety);
-	//UNSUBSCRIBE_TOPIC(status);
+	// UNSUBSCRIBE_TOPIC(status);
 	UNSUBSCRIBE_TOPIC(velocity_sp);
 	// UNSUBSCRIBE_TOPIC(wheel_odometry);
-
 
 	// UNSUBSCRIBE_TOPIC(imu);
 	// UNSUBSCRIBE_TOPIC(imu_q31_array);
 	// UNSUBSCRIBE_TOPIC(pwm);
 	// UNSUBSCRIBE_TOPIC(input);
 	// UNSUBSCRIBE_TOPIC(magnetic_field);
-	// UNSUBSCRIBE_TOPIC(odometry_estimator)	
+	// UNSUBSCRIBE_TOPIC(odometry_estimator)
 	// UNSUBSCRIBE_TOPIC(actuators);
 	// UNSUBSCRIBE_TOPIC(odometry_ethernet);
 	// UNSUBSCRIBE_TOPIC(position_sp);
@@ -339,14 +336,14 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 		perf_counter_update(&ctx->perf);
 
 		// check for updates
-		//GET_UPDATE(accel_ff, vector3);
-		//GET_UPDATE(accel_sp, vector3);
+		// GET_UPDATE(accel_ff, vector3);
+		// GET_UPDATE(accel_sp, vector3);
 		GET_UPDATE(actuators, actuators);
-		//GET_UPDATE(altimeter, altimeter);
-		//GET_UPDATE(angular_velocity_ff, vector3);
-		//GET_UPDATE(angular_velocity_sp, vector3);
+		// GET_UPDATE(altimeter, altimeter);
+		// GET_UPDATE(angular_velocity_ff, vector3);
+		// GET_UPDATE(angular_velocity_sp, vector3);
 		GET_UPDATE(attitude_sp, quaternion);
-		//GET_UPDATE(battery_state, battery_state);
+		// GET_UPDATE(battery_state, battery_state);
 		GET_UPDATE(bezier_trajectory, bezier_trajectory);
 		GET_UPDATE(bezier_trajectory_ethernet, bezier_trajectory);
 		GET_UPDATE(clock_offset_ethernet, clock_offset);
@@ -355,21 +352,21 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 		GET_UPDATE(imu, imu);
 		GET_UPDATE(imu_q31_array, imu_q31_array);
 		GET_UPDATE(input, input);
-		//GET_UPDATE(input_ethernet, input);
-		//GET_UPDATE(input_sbus, input);
-		//GET_UPDATE(led_array, led_array);
+		// GET_UPDATE(input_ethernet, input);
+		// GET_UPDATE(input_sbus, input);
+		// GET_UPDATE(led_array, led_array);
 		GET_UPDATE(magnetic_field, magnetic_field);
-		//GET_UPDATE(moment_ff, vector3);
-		//GET_UPDATE(nav_sat_fix, nav_sat_fix);
+		// GET_UPDATE(moment_ff, vector3);
+		// GET_UPDATE(nav_sat_fix, nav_sat_fix);
 		GET_UPDATE(odometry_estimator, odometry);
 		GET_UPDATE(odometry_ethernet, odometry);
-		//GET_UPDATE(orientation_sp, vector3); // Why?
+		// GET_UPDATE(orientation_sp, vector3); // Why?
 		GET_UPDATE(position_sp, vector3);
 		GET_UPDATE(pwm, pwm);
 		GET_UPDATE(safety, safety);
-		//GET_UPDATE(status, status);
-		//GET_UPDATE(velocity_sp, vector3);
-		// GET_UPDATE(wheel_odometry, wheel_odometry);
+		// GET_UPDATE(status, status);
+		// GET_UPDATE(velocity_sp, vector3);
+		//  GET_UPDATE(wheel_odometry, wheel_odometry);
 	}
 
 	// deconstructor

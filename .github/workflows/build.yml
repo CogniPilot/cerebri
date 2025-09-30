@@ -10,23 +10,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    container: ghcr.io/zephyrproject-rtos/ci:v0.26.14
+    runs-on: ubuntu-24.04
+    container: ghcr.io/cognipilot/ci-minimal:v0.0.1
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
       - name: Set path
         run: |
           echo "/github/home/.local/bin" >> $GITHUB_PATH
-
-      - name: Install Dependencies
-        run: |
-          wget -O- https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-          add-apt-repository --no-update --yes "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"
-          apt update
-          apt install pipx curl clang-format-18 -y
-          pipx install poetry==1.8.3
-          poetry config --list
 
       - name: Checkout
         uses: actions/checkout@v3

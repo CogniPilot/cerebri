@@ -17,7 +17,7 @@
 #define FS_RET_OK     FR_OK
 #define MY_STACK_SIZE 8192
 #define MY_PRIORITY   1
-#define BUF_SIZE      131072
+#define BUF_SIZE      (131072 * 2)
 
 extern struct ring_buf rb_sdcard;
 

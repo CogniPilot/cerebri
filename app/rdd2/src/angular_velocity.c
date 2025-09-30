@@ -161,7 +161,7 @@ static void rdd2_angular_velocity_run(void *p0, void *p1, void *p2)
 		{
 			// attitude_rate_control:(
 			// kp[3],ki[3],kd[3],f_cut,i_max[3],
-			// omega[3],omega_r[3],i0[3],e0[3],de0[3],dt)->(M[3],i1[3],e1[3],de1[3]) */
+			// omega[3],omega_r[3],i0[3],e0[3],de0[3],dt)->(M[3],i1[3],e1[3],de1[3])
 			CASADI_FUNC_ARGS(attitude_rate_control);
 
 			ctx->omega[0] = ctx->odometry_estimator.twist.angular.x;

@@ -166,21 +166,10 @@ static void actuate_dshot_run(void *p0, void *p1, void *p2)
 		return;
 	}
 
-	struct k_poll_event events[] = {
-		*zros_sub_get_event(&ctx->sub_actuators),
-	};
+	const int timeout_ms = 20;
+	int64_t start_time = k_uptime_get();
 
-	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
-		int rc = 0;
-		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
-		if (rc != 0) {
-			LOG_DBG("no actuator message received");
-			// put motors in disarmed state
-			if (ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) {
-				ctx->status.arming = synapse_pb_Status_Arming_ARMING_DISARMED;
-				LOG_ERR("disarming motors due to actuator msg timeout!");
-			}
-		}
+	while (1) {
 
 		if (zros_sub_update_available(&ctx->sub_status)) {
 			zros_sub_update(&ctx->sub_status);
@@ -188,10 +177,25 @@ static void actuate_dshot_run(void *p0, void *p1, void *p2)
 
 		if (zros_sub_update_available(&ctx->sub_actuators)) {
 			zros_sub_update(&ctx->sub_actuators);
+			start_time = k_uptime_get(); // Reset timer if when we get a new setpoint
+		} else {
+			int64_t elapsed = k_uptime_get() - start_time;
+			if (elapsed >= timeout_ms) {
+				LOG_DBG("no actuator message received");
+				// put motors in disarmed state
+				if (ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) {
+					ctx->status.arming =
+						synapse_pb_Status_Arming_ARMING_DISARMED;
+					LOG_ERR("disarming motors due to actuator msg timeout!");
+				}
+				start_time = k_uptime_get();
+			}
 		}
 
 		// update dshot
 		dshot_update(ctx);
+
+		k_sleep(K_USEC(2500));
 	}
 
 	actuate_dshot_fini(ctx);

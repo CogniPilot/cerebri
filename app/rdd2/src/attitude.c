@@ -157,7 +157,7 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 			bool data_ok = true;
 			for (int i = 0; i < 3; i++) {
 				if (!isfinite(omega[i])) {
-					LOG_DBG("omega[0] not finite: %10.4f", omega[i]);
+					LOG_WRN("omega[0] not finite: %10.4f", omega[i]);
 					data_ok = false;
 				}
 			}

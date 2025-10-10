@@ -133,10 +133,10 @@ static void rdd2_allocation_run(void *p0, void *p1, void *p2)
 			static double const Cm = CONFIG_CEREBRI_RDD2_MOTOR_CM * 1e-6;
 			static double const Ct = CONFIG_CEREBRI_RDD2_MOTOR_CT * 1e-9;
 			double omega[4];
-			double Fp_sum[3], F_moment[3], F_thrust[3], M_sat[3];
+			double Fp_sum[4], F_moment[4], F_thrust[4], M_sat[3];
 			double moment[3] = {ctx->moment_sp.x, ctx->moment_sp.y, ctx->moment_sp.z};
 
-			// control_allocation:(F_max,l,Cm,Ct,T,M[3])->(omega[4])
+			// control_allocation:(F_max,l,Cm,Ct,T,M[3])->(omega[4],Fp_sum[4],F_moment[4],F_thrust[4],M_sat[3])
 			CASADI_FUNC_ARGS(control_allocation)
 
 			args[0] = &F_max;

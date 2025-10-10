@@ -14,7 +14,7 @@ void rdd2_mode_bezier(struct context *ctx)
 			      ctx->clock_offset.offset.nanos);
 
 	if (time_nsec < time_start_nsec) {
-		LOG_DBG("time current: %" PRIu64 " ns < time start: %" PRIu64
+		LOG_WRN("time current: %" PRIu64 " ns < time start: %" PRIu64
 			"  ns, time out of range of trajectory\n",
 			time_nsec, time_start_nsec);
 		return;

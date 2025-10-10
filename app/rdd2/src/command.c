@@ -152,6 +152,10 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 			zros_sub_update(&ctx->sub_status);
 		}
 
+		if (zros_sub_update_available(&ctx->sub_clock_offset_ethernet)) {
+			zros_sub_update(&ctx->sub_clock_offset_ethernet);
+		}
+
 		// prioritize onboard sbus input
 		if (zros_sub_update_available(&ctx->sub_input_sbus)) {
 			zros_sub_update(&ctx->sub_input_sbus);

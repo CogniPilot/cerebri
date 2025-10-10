@@ -95,17 +95,28 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 
 	rdd2_attitude_init(ctx);
 
-	struct k_poll_event events[] = {
-		*zros_sub_get_event(&ctx->sub_odometry_estimator),
-	};
-
-	// Constants
+	// constants
 	static const double kp[3] = {
 		CONFIG_CEREBRI_RDD2_ROLL_KP * 1e-6,
 		CONFIG_CEREBRI_RDD2_PITCH_KP * 1e-6,
 		CONFIG_CEREBRI_RDD2_YAW_KP * 1e-6,
 	};
 
+	// wait for attitude setpoint
+	struct k_poll_event events[1];
+	events[0] = *zros_sub_get_event(&ctx->sub_attitude_sp);
+	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
+		int rc = 0;
+		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
+		if (rc != 0) {
+			LOG_DBG("not receiving attitude_setpoint");
+		} else {
+			break;
+		}
+	}
+
+	// poll on odometry from estimator
+	events[0] = *zros_sub_get_event(&ctx->sub_odometry_estimator);
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 		int rc = 0;
 		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));

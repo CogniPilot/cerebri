@@ -125,8 +125,8 @@ static void rdd2_allocation_run(void *p0, void *p1, void *p2)
 			stop(ctx);
 			LOG_DBG("no data, stopped");
 		} else if (ctx->status.arming != synapse_pb_Status_Arming_ARMING_ARMED) {
+			// not armed, stop
 			stop(ctx);
-			LOG_DBG("not armed, stopped");
 		} else {
 			static double const F_max = 20.0;
 			static double const l = CONFIG_CEREBRI_RDD2_MOTOR_L_MM * 1e-3;

@@ -36,9 +36,9 @@ struct context {
 	struct zros_node node;
 	synapse_pb_Status status;
 	synapse_pb_Odometry odometry_estimator;
-	synapse_pb_Vector3 force_sp, position_sp, velocity_sp, accel_ff;
+	synapse_pb_Vector3 force_sp, position_sp, velocity_sp, accel_sp;
 	synapse_pb_Quaternion attitude_sp, orientation_sp;
-	struct zros_sub sub_status, sub_position_sp, sub_velocity_sp, sub_accel_ff,
+	struct zros_sub sub_status, sub_position_sp, sub_velocity_sp, sub_accel_sp,
 		sub_odometry_estimator, sub_orientation_sp;
 	struct zros_pub pub_force_sp, pub_attitude_sp;
 	struct k_sem running;
@@ -55,11 +55,11 @@ static struct context g_ctx = {
 	.orientation_sp = synapse_pb_Quaternion_init_default,
 	.position_sp = synapse_pb_Vector3_init_default,
 	.velocity_sp = synapse_pb_Vector3_init_default,
-	.accel_ff = synapse_pb_Vector3_init_default,
+	.accel_sp = synapse_pb_Vector3_init_default,
 	.sub_status = {},
 	.sub_position_sp = {},
 	.sub_velocity_sp = {},
-	.sub_accel_ff = {},
+	.sub_accel_sp = {},
 	.sub_odometry_estimator = {},
 	.sub_orientation_sp = {},
 	.pub_force_sp = {},
@@ -76,7 +76,7 @@ static void rdd2_position_init(struct context *ctx)
 	zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
 	zros_sub_init(&ctx->sub_position_sp, &ctx->node, &topic_position_sp, &ctx->position_sp, 10);
 	zros_sub_init(&ctx->sub_velocity_sp, &ctx->node, &topic_velocity_sp, &ctx->velocity_sp, 10);
-	zros_sub_init(&ctx->sub_accel_ff, &ctx->node, &topic_accel_ff, &ctx->accel_ff, 10);
+	zros_sub_init(&ctx->sub_accel_sp, &ctx->node, &topic_accel_sp, &ctx->accel_sp, 10);
 	zros_sub_init(&ctx->sub_odometry_estimator, &ctx->node, &topic_odometry_estimator,
 		      &ctx->odometry_estimator, 10);
 	zros_sub_init(&ctx->sub_orientation_sp, &ctx->node, &topic_orientation_sp,
@@ -92,7 +92,7 @@ static void rdd2_position_fini(struct context *ctx)
 	zros_sub_fini(&ctx->sub_status);
 	zros_sub_fini(&ctx->sub_position_sp);
 	zros_sub_fini(&ctx->sub_velocity_sp);
-	zros_sub_fini(&ctx->sub_accel_ff);
+	zros_sub_fini(&ctx->sub_accel_sp);
 	zros_sub_fini(&ctx->sub_odometry_estimator);
 	zros_sub_fini(&ctx->sub_orientation_sp);
 	zros_pub_fini(&ctx->pub_force_sp);
@@ -130,7 +130,7 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 		zros_sub_update(&ctx->sub_status);
 		zros_sub_update(&ctx->sub_position_sp);
 		zros_sub_update(&ctx->sub_velocity_sp);
-		zros_sub_update(&ctx->sub_accel_ff);
+		zros_sub_update(&ctx->sub_accel_sp);
 		zros_sub_update(&ctx->sub_orientation_sp);
 		zros_sub_update(&ctx->sub_odometry_estimator);
 
@@ -169,7 +169,7 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 			double vt_w[3] = {ctx->velocity_sp.x, ctx->velocity_sp.y,
 					  ctx->velocity_sp.z};
 
-			double at_w[3] = {ctx->accel_ff.x, ctx->accel_ff.y, ctx->accel_ff.z};
+			double at_w[3] = {ctx->accel_sp.x, ctx->accel_sp.y, ctx->accel_sp.z};
 
 			// vehicle camera setpoint
 			double qc_wb[4] = {ctx->orientation_sp.w, ctx->orientation_sp.x,

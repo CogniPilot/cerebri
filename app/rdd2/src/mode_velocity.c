@@ -111,8 +111,8 @@ void rdd2_mode_velocity(struct context *ctx)
 	zros_pub_update(&ctx->pub_orientation_sp);
 
 	// acceleration setpoint
-	ctx->accel_ff.x = aw_sp[0];
-	ctx->accel_ff.y = aw_sp[1];
-	ctx->accel_ff.z = aw_sp[2];
-	zros_pub_update(&ctx->pub_accel_ff);
+	ctx->accel_sp.x = aw_sp[0];
+	ctx->accel_sp.y = aw_sp[1];
+	ctx->accel_sp.z = aw_sp[2];
+	zros_pub_update(&ctx->pub_accel_sp);
 }

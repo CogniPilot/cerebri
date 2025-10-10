@@ -51,8 +51,7 @@ static context_t g_ctx = {.work_item = Z_WORK_INITIALIZER(topic_work_handler),
 			  .lock = Z_MUTEX_INITIALIZER(g_ctx.lock)};
 
 #define TOPIC_DICTIONARY()                                                                         \
-	(accel_sp, &topic_accel_sp, "accel_sp"), (accel_ff, &topic_accel_ff, "accel_ff"),          \
-		(actuators, &topic_actuators, "actuators"),                                        \
+	(accel_sp, &topic_accel_sp, "accel_sp"), (actuators, &topic_actuators, "actuators"),       \
 		(altimeter, &topic_altimeter, "altimeter"),                                        \
 		(angular_velocity_ff, &topic_angular_velocity_ff, "angular_velocity_ff"),          \
 		(angular_velocity_sp, &topic_angular_velocity_sp, "angular_velocity_sp"),          \
@@ -247,8 +246,7 @@ void topic_work_handler(struct k_work *work)
 	} else if (topic == &topic_angular_velocity_sp || topic == &topic_accel_sp ||
 		   topic == &topic_moment_sp || topic == &topic_force_sp ||
 		   topic == &topic_velocity_sp || topic == &topic_position_sp ||
-		   topic == &topic_accel_ff || topic == &topic_moment_ff ||
-		   topic == &topic_angular_velocity_ff) {
+		   topic == &topic_moment_ff || topic == &topic_angular_velocity_ff) {
 		synapse_pb_Vector3 msg = {};
 		handler(sh, topic, &msg, (snprint_t *)&snprint_vector3);
 	} else if (topic == &topic_attitude_sp || topic == &topic_orientation_sp) {

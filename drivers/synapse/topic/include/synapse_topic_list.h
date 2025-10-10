@@ -42,7 +42,6 @@ const char *link_status_str(synapse_pb_Status_LinkStatus status);
 /********************************************************************
  * topics
  ********************************************************************/
-ZROS_TOPIC_DECLARE(topic_accel_ff, synapse_pb_Vector3);
 ZROS_TOPIC_DECLARE(topic_accel_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DECLARE(topic_actuators, synapse_pb_Actuators);
 ZROS_TOPIC_DECLARE(topic_altimeter, synapse_pb_Altimeter);

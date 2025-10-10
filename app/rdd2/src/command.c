@@ -27,7 +27,7 @@ static struct context g_ctx = {
 	.status = synapse_pb_Status_init_default,
 	.last_status = synapse_pb_Status_init_default,
 	.velocity_sp = synapse_pb_Vector3_init_default,
-	.accel_ff = synapse_pb_Vector3_init_default,
+	.accel_sp = synapse_pb_Vector3_init_default,
 	.moment_ff = synapse_pb_Vector3_init_default,
 	.orientation_sp = synapse_pb_Quaternion_init_default,
 	.position_sp = synapse_pb_Vector3_init_default,
@@ -43,7 +43,7 @@ static struct context g_ctx = {
 	.pub_angular_velocity_ff = {},
 	.pub_force_sp = {},
 	.pub_velocity_sp = {},
-	.pub_accel_ff = {},
+	.pub_accel_sp = {},
 	.pub_moment_ff = {},
 	.pub_orientation_sp = {},
 	.pub_position_sp = {},
@@ -76,11 +76,11 @@ static void rdd2_command_init(struct context *ctx)
 	zros_sub_init(&ctx->sub_cmd_vel_ethernet, &ctx->node, &topic_cmd_vel_ethernet,
 		      &ctx->cmd_vel, 10);
 	zros_pub_init(&ctx->pub_attitude_sp, &ctx->node, &topic_attitude_sp, &ctx->attitude_sp);
-	zros_pub_init(&ctx->pub_angular_velocity_ff, &ctx->node, &topic_angular_velocity_sp,
+	zros_pub_init(&ctx->pub_angular_velocity_ff, &ctx->node, &topic_angular_velocity_ff,
 		      &ctx->angular_velocity_ff);
 	zros_pub_init(&ctx->pub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp);
 	zros_pub_init(&ctx->pub_velocity_sp, &ctx->node, &topic_velocity_sp, &ctx->velocity_sp);
-	zros_pub_init(&ctx->pub_accel_ff, &ctx->node, &topic_accel_sp, &ctx->accel_ff);
+	zros_pub_init(&ctx->pub_accel_sp, &ctx->node, &topic_accel_sp, &ctx->accel_sp);
 	zros_pub_init(&ctx->pub_moment_ff, &ctx->node, &topic_moment_ff, &ctx->moment_ff);
 	zros_pub_init(&ctx->pub_orientation_sp, &ctx->node, &topic_orientation_sp,
 		      &ctx->orientation_sp);
@@ -101,7 +101,7 @@ static void rdd2_command_fini(struct context *ctx)
 	zros_pub_fini(&ctx->pub_attitude_sp);
 	zros_pub_fini(&ctx->pub_angular_velocity_ff);
 	zros_pub_fini(&ctx->pub_velocity_sp);
-	zros_pub_fini(&ctx->pub_accel_ff);
+	zros_pub_fini(&ctx->pub_accel_sp);
 	zros_pub_fini(&ctx->pub_force_sp);
 	zros_pub_fini(&ctx->pub_orientation_sp);
 	zros_pub_fini(&ctx->pub_position_sp);

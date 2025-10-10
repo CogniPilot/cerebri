@@ -177,7 +177,6 @@ const char *fuel_str(synapse_pb_Status_Fuel fuel)
 /********************************************************************
  * topics
  ********************************************************************/
-ZROS_TOPIC_DEFINE(accel_ff, synapse_pb_Vector3);
 ZROS_TOPIC_DEFINE(accel_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DEFINE(actuators, synapse_pb_Actuators);
 ZROS_TOPIC_DEFINE(altimeter, synapse_pb_Altimeter);
@@ -212,7 +211,6 @@ ZROS_TOPIC_DEFINE(velocity_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DEFINE(wheel_odometry, synapse_pb_WheelOdometry);
 
 static struct zros_topic *topic_list[] = {
-	&topic_accel_ff,
 	&topic_accel_sp,
 	&topic_actuators,
 	&topic_altimeter,

@@ -50,11 +50,9 @@ LOG_MODULE_REGISTER(log_sdcard, LOG_LEVEL_DBG);
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
 /* All Topics
-accel_ff - ?
 accel_sp - Melody wants
 actuators - output
 altimeter - want?
-angular_velocity_ff - ?
 angular_velocity_sp - Melody wants
 attitude_sp - Melody wants
 battery_state - ?
@@ -87,11 +85,9 @@ struct context {
 	// zros node handle
 	struct zros_node node;
 	// subscriptions
-	// struct zros_sub sub_accel_ff;
 	struct zros_sub sub_accel_sp;
 	struct zros_sub sub_actuators;
 	// struct zros_sub sub_altimeter;
-	// struct zros_sub sub_angular_velocity_ff;
 	struct zros_sub sub_angular_velocity_sp;
 	struct zros_sub sub_attitude_sp;
 	// struct zros_sub sub_battery_state;
@@ -131,7 +127,6 @@ struct context {
 static struct context g_ctx = {
 	.node = {},
 	// Subscriptions
-	//.sub_accel_ff = {},
 	.sub_accel_sp = {},
 	.sub_actuators = {},
 	//.sub_altimeter = {},
@@ -177,11 +172,9 @@ static int log_sdcard_init(struct context *ctx)
 	perf_counter_init(&ctx->perf, "log imu", 1.0 / 100);
 
 	// initialize node subscriptions
-	// SUBSCRIBE_TOPIC(accel_ff);
 	SUBSCRIBE_TOPIC(accel_sp);
 	SUBSCRIBE_TOPIC(actuators);
 	// SUBSCRIBE_TOPIC(altimeter);
-	// SUBSCRIBE_TOPIC(angular_velocity_ff);
 	SUBSCRIBE_TOPIC(angular_velocity_sp);
 	SUBSCRIBE_TOPIC(attitude_sp);
 	// SUBSCRIBE_TOPIC(battery_state);
@@ -232,11 +225,9 @@ static int log_sdcard_fini(struct context *ctx)
 	int ret = 0;
 
 	// close subscriptions
-	// UNSUBSCRIBE_TOPIC(accel_ff);
 	UNSUBSCRIBE_TOPIC(accel_sp);
 	UNSUBSCRIBE_TOPIC(actuators);
 	// UNSUBSCRIBE_TOPIC(altimeter);
-	// UNSUBSCRIBE_TOPIC(angular_velocity_ff);
 	UNSUBSCRIBE_TOPIC(angular_velocity_sp);
 	UNSUBSCRIBE_TOPIC(attitude_sp);
 	// UNSUBSCRIBE_TOPIC(battery_state);
@@ -336,12 +327,10 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 		perf_counter_update(&ctx->perf);
 
 		// check for updates
-		// GET_UPDATE(accel_ff, vector3);
-		// GET_UPDATE(accel_sp, vector3);
+		GET_UPDATE(accel_sp, vector3);
 		GET_UPDATE(actuators, actuators);
 		// GET_UPDATE(altimeter, altimeter);
-		// GET_UPDATE(angular_velocity_ff, vector3);
-		// GET_UPDATE(angular_velocity_sp, vector3);
+		GET_UPDATE(angular_velocity_sp, vector3);
 		GET_UPDATE(attitude_sp, quaternion);
 		// GET_UPDATE(battery_state, battery_state);
 		GET_UPDATE(bezier_trajectory, bezier_trajectory);

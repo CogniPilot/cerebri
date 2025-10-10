@@ -147,11 +147,11 @@ void rdd2_mode_bezier(struct context *ctx)
 		ctx->velocity_sp.z = v[2];
 		zros_pub_update(&ctx->pub_velocity_sp);
 
-		// acceleration ff
-		ctx->accel_ff.x = a[0];
-		ctx->accel_ff.y = a[1];
-		ctx->accel_ff.z = a[2];
-		zros_pub_update(&ctx->pub_accel_ff);
+		// acceleration sp
+		ctx->accel_sp.x = a[0];
+		ctx->accel_sp.y = a[1];
+		ctx->accel_sp.z = a[2];
+		zros_pub_update(&ctx->pub_accel_sp);
 
 		// attitude sp
 		// ctx->attitude_sp.w = q_att[0];

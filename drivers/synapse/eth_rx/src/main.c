@@ -13,13 +13,14 @@
 
 #include "proto/udp_rx.h"
 #include <synapse_topic_list.h>
+#include <cerebri/core/log_utils.h>
 
 #include <pb_decode.h>
 
 #define MY_STACK_SIZE 8192
 #define MY_PRIORITY   1
 
-LOG_MODULE_REGISTER(eth_rx, LOG_LEVEL_INF);
+CEREBRI_NODE_LOG_INIT(eth_rx, LOG_LEVEL_WRN);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 

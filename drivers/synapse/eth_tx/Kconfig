@@ -11,7 +11,7 @@ config CEREBRI_SYNAPSE_ETH_TX
 if CEREBRI_SYNAPSE_ETH_TX
 
 module = CEREBRI_SYNAPSE_ETH_TX
-module-str = synapse_eth_tx
+module-str = cerebri_synapse_eth_tx
 source "subsys/logging/Kconfig.template.log_config"
 
 endif # CEREBRI_SYNAPSE_ETH_TX

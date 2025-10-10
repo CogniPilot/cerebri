@@ -16,6 +16,7 @@
 #include <zros/zros_pub.h>
 #include <zros/zros_sub.h>
 
+#include <cerebri/core/log_utils.h>
 #include <synapse_topic_list.h>
 
 #include "input_mapping.h"

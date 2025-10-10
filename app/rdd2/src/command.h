@@ -18,6 +18,7 @@
 #include <synapse_topic_list.h>
 
 #include <cerebri/core/casadi.h>
+#include <cerebri/core/log_utils.h>
 
 #include "app/rdd2/casadi/bezier.h"
 #include "app/rdd2/casadi/rdd2.h"

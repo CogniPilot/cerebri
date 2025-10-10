@@ -19,6 +19,7 @@
 #include <synapse_topic_list.h>
 
 #include <cerebri/core/casadi.h>
+#include <cerebri/core/log_utils.h>
 
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY   4
@@ -27,7 +28,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-LOG_MODULE_REGISTER(rdd2_allocation, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
+CEREBRI_NODE_LOG_INIT(rdd2_allocation, LOG_LEVEL_WRN);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 

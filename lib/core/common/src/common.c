@@ -7,6 +7,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/reboot.h>
+#include <zephyr/logging/log_ctrl.h>
 
 #include <stdio.h>
 #include <stdlib.h>

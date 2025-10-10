@@ -19,6 +19,7 @@
 #include <zros/zros_sub.h>
 
 #include <cerebri/core/perf_counter.h>
+#include <cerebri/core/log_utils.h>
 
 #include <synapse_topic_list.h>
 
@@ -33,7 +34,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-LOG_MODULE_REGISTER(rdd2_estimate, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
+CEREBRI_NODE_LOG_INIT(rdd2_estimate, LOG_LEVEL_WRN);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 

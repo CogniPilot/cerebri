@@ -21,13 +21,14 @@
 #include <zros/zros_sub.h>
 
 #include <synapse_topic_list.h>
+#include <cerebri/core/log_utils.h>
 
 #define RX_BUF_SIZE   8192
 #define TX_BUF_SIZE   8192
 #define MY_STACK_SIZE 8192
 #define MY_PRIORITY   -10
 
-LOG_MODULE_REGISTER(dream_sil, CONFIG_CEREBRI_DREAM_SIL_LOG_LEVEL);
+CEREBRI_NODE_LOG_INIT(dream_sil, LOG_LEVEL_WRN);
 
 RING_BUF_DECLARE(g_tx_buf, TX_BUF_SIZE);
 pthread_mutex_t g_lock_tx;
@@ -107,7 +108,7 @@ static void handle_frame(struct context *ctx)
 		uint64_t uptime = k_uptime_get();
 		int uptime_delta = uptime - ctx->uptime_last;
 		if (uptime_delta != 4 && uptime_delta != 0) {
-			LOG_WRN("uptime delta: %d\n", uptime_delta);
+			LOG_DBG("uptime delta: %d\n", uptime_delta);
 		}
 		ctx->uptime_last = uptime;
 		struct timespec ts_board;
@@ -121,12 +122,13 @@ static void handle_frame(struct context *ctx)
 		int32_t delta_nsec = sim_clock->sim.nanos - ts_board.tv_nsec;
 		int64_t wait_usec = delta_sec * 1e6 + delta_nsec * 1e-3;
 
-		LOG_DBG("\nsim: sec %lld nsec %d", sim_clock->sim.seconds, sim_clock->sim.nanos);
-		LOG_DBG("board: sec %ld nsec %ld", ts_board.tv_sec, ts_board.tv_nsec);
-		LOG_DBG("wait: usec %lld", wait_usec);
-
 		// sleep to match clocks
 		if (wait_usec > 0) {
+			// LOG_DBG("sleeping to match clocks");
+			// LOG_DBG("sim: sec %lld nsec %d", sim_clock->sim.seconds,
+			// sim_clock->sim.nanos); LOG_DBG("board: sec %ld nsec %ld",
+			// ts_board.tv_sec, ts_board.tv_nsec); LOG_DBG("wait: usec %lld",
+			// wait_usec);
 			k_usleep(wait_usec);
 		}
 	} else if (frame->which_msg == synapse_pb_Frame_nav_sat_fix_tag) {
@@ -198,7 +200,7 @@ static void zephyr_sim_entry_point(void *p0, void *p1, void *p2)
 			while (stream.bytes_left > 0) {
 				if (!pb_decode_ex(&stream, synapse_pb_Frame_fields, &ctx->rx_frame,
 						  PB_DECODE_DELIMITED)) {
-					LOG_INF("failed to decode msg: %s\n",
+					LOG_ERR("failed to decode msg: %s\n",
 						PB_GET_ERROR(&stream));
 					break;
 				} else {

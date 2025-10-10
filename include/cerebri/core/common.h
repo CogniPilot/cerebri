@@ -16,4 +16,6 @@ extern const char *banner_name;
 
 #define CASADI_FUNC_CALL(name) name(args, res, iw, w, mem);
 
+void cerebri_set_module_log_level(int16_t module_id, uint32_t level);
+
 #endif // CEREBRI_CORE_COMMON_H

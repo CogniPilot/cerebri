@@ -11,8 +11,9 @@
 #endif
 
 #include <cerebri/core/common.h>
+#include <cerebri/core/log_utils.h>
 
-LOG_MODULE_REGISTER(rdd2_boot_banner, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
+CEREBRI_NODE_LOG_INIT(rdd2_boot_banner, LOG_LEVEL_WRN);
 
 static int rdd2_boot_banner_sys_init(void)
 {

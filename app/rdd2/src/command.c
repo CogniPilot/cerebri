@@ -4,6 +4,7 @@
  */
 
 #include "command.h"
+#include <cerebri/core/log_utils.h>
 
 #define MY_STACK_SIZE 16384
 #define MY_PRIORITY   4
@@ -12,7 +13,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-LOG_MODULE_REGISTER(rdd2_command, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
+CEREBRI_NODE_LOG_INIT(rdd2_command, LOG_LEVEL_WRN);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 

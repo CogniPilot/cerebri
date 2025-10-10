@@ -195,7 +195,6 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				// qc_wb[4],p_w[3],v_w[3],z_i,dt)->(nT,qr_wb[4],z_i_2)
 				CASADI_FUNC_ARGS(position_control)
 
-
 				args[0] = &thrust_trim;
 				args[1] = pt_w;
 				args[2] = vt_w;
@@ -229,12 +228,10 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 
 			if (data_ok) {
 
-				LOG_INF("pt_w: %10.4f %10.4f %10.4f", pt_w[0], pt_w[1], pt_w[2]);
-				LOG_INF("p_w: %10.4f %10.4f %10.4f", p_w[0], p_w[1], p_w[2]);
-				LOG_INF("ep_w: %10.4f %10.4f %10.4f",
-						p_w[0] - pt_w[0],
-						p_w[1] - pt_w[1],
-						p_w[2] - pt_w[2]);
+				LOG_DBG("pt_w: %10.4f %10.4f %10.4f", pt_w[0], pt_w[1], pt_w[2]);
+				LOG_DBG("p_w: %10.4f %10.4f %10.4f", p_w[0], p_w[1], p_w[2]);
+				LOG_DBG("ep_w: %10.4f %10.4f %10.4f", p_w[0] - pt_w[0],
+					p_w[1] - pt_w[1], p_w[2] - pt_w[2]);
 
 				ctx->attitude_sp.w = qr_wb[0];
 				ctx->attitude_sp.x = qr_wb[1];

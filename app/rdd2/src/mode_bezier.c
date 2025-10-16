@@ -136,18 +136,21 @@ void rdd2_mode_bezier(struct context *ctx)
 		}
 
 		// position sp
+		stamp_msg(&ctx->position_sp.stamp, k_uptime_ticks());
 		ctx->position_sp.x = x;
 		ctx->position_sp.y = y;
 		ctx->position_sp.z = z;
 		zros_pub_update(&ctx->pub_position_sp);
 
 		// velocity sp
+		stamp_msg(&ctx->velocity_sp.stamp, k_uptime_ticks());
 		ctx->velocity_sp.x = v[0];
 		ctx->velocity_sp.y = v[1];
 		ctx->velocity_sp.z = v[2];
 		zros_pub_update(&ctx->pub_velocity_sp);
 
 		// acceleration sp
+		stamp_msg(&ctx->accel_sp.stamp, k_uptime_ticks());
 		ctx->accel_sp.x = a[0];
 		ctx->accel_sp.y = a[1];
 		ctx->accel_sp.z = a[2];
@@ -160,18 +163,21 @@ void rdd2_mode_bezier(struct context *ctx)
 		// ctx->attitude_sp.z = q_att[3];
 
 		// angular velocity ff
+		stamp_msg(&ctx->angular_velocity_ff.stamp, k_uptime_ticks());
 		ctx->angular_velocity_ff.x = omega[0];
 		ctx->angular_velocity_ff.y = omega[1];
 		ctx->angular_velocity_ff.z = omega[2];
 		zros_pub_update(&ctx->pub_angular_velocity_ff);
 
 		// moment ff
+		stamp_msg(&ctx->moment_ff.stamp, k_uptime_ticks());
 		ctx->moment_ff.x = M[0];
 		ctx->moment_ff.y = M[1];
 		ctx->moment_ff.z = M[2];
 		zros_pub_update(&ctx->pub_moment_ff);
 
 		// orientation sp
+		stamp_msg(&ctx->orientation_sp.stamp, k_uptime_ticks());
 		ctx->orientation_sp.w = q_orientation[0];
 		ctx->orientation_sp.x = q_orientation[1];
 		ctx->orientation_sp.y = q_orientation[2];

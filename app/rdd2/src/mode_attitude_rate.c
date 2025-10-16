@@ -35,6 +35,7 @@ void rdd2_mode_attitude_rate(struct context *ctx)
 
 	if (data_ok) {
 		// angular velocity set point
+		stamp_msg(&ctx->angular_velocity_ff.stamp, k_uptime_ticks());
 		ctx->angular_velocity_ff.x = omega[0];
 		ctx->angular_velocity_ff.y = omega[1];
 		ctx->angular_velocity_ff.z = omega[2];

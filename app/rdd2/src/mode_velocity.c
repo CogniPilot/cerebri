@@ -92,18 +92,21 @@ void rdd2_mode_velocity(struct context *ctx)
 	// LOG_INF("psi_sp1: %10.4f", psi_sp1);
 
 	// position setpoint
+	stamp_msg(&ctx->position_sp.stamp, k_uptime_ticks());
 	ctx->position_sp.x = pw_sp[0];
 	ctx->position_sp.y = pw_sp[1];
 	ctx->position_sp.z = pw_sp[2];
 	zros_pub_update(&ctx->pub_position_sp);
 
 	// velocity setpoint
+	stamp_msg(&ctx->velocity_sp.stamp, k_uptime_ticks());
 	ctx->velocity_sp.x = vw_sp[0];
 	ctx->velocity_sp.y = vw_sp[1];
 	ctx->velocity_sp.z = vw_sp[2];
 	zros_pub_update(&ctx->pub_velocity_sp);
 
 	// orientation setpoint (from input_velocity function)
+	stamp_msg(&ctx->orientation_sp.stamp, k_uptime_ticks());
 	ctx->orientation_sp.w = q_sp[0];
 	ctx->orientation_sp.x = q_sp[1];
 	ctx->orientation_sp.y = q_sp[2];
@@ -111,6 +114,7 @@ void rdd2_mode_velocity(struct context *ctx)
 	zros_pub_update(&ctx->pub_orientation_sp);
 
 	// acceleration setpoint
+	stamp_msg(&ctx->accel_sp.stamp, k_uptime_ticks());
 	ctx->accel_sp.x = aw_sp[0];
 	ctx->accel_sp.y = aw_sp[1];
 	ctx->accel_sp.z = aw_sp[2];

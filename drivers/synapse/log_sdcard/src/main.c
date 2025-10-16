@@ -21,7 +21,6 @@
 
 #define MY_STACK_SIZE 16384
 #define MY_PRIORITY   1
-//131072
 #define BUF_SIZE      131072
 #define TOPIC_RATE_HZ 1
 
@@ -92,13 +91,13 @@ struct context {
 	struct zros_sub sub_angular_velocity_sp;
 	struct zros_sub sub_attitude_sp;
 	// struct zros_sub sub_battery_state;
-	//struct zros_sub sub_bezier_trajectory;
-	//struct zros_sub sub_bezier_trajectory_ethernet;
+	// struct zros_sub sub_bezier_trajectory;
+	// struct zros_sub sub_bezier_trajectory_ethernet;
 	struct zros_sub sub_clock_offset_ethernet;
 	struct zros_sub sub_cmd_vel;
 	struct zros_sub sub_cmd_vel_ethernet;
-	//struct zros_sub sub_imu;
-	//struct zros_sub sub_imu_q31_array;
+	struct zros_sub sub_imu;
+	// struct zros_sub sub_imu_q31_array;
 	struct zros_sub sub_input;
 	struct zros_sub sub_input_ethernet;
 	struct zros_sub sub_input_sbus;
@@ -140,7 +139,7 @@ static struct context g_ctx = {
 	.sub_clock_offset_ethernet = {},
 	.sub_cmd_vel = {},
 	.sub_cmd_vel_ethernet = {},
-	//.sub_imu = {},
+	.sub_imu = {},
 	//.sub_imu_q31_array = {},
 	.sub_input = {},
 	.sub_input_ethernet = {},
@@ -179,13 +178,13 @@ static int log_sdcard_init(struct context *ctx)
 	SUBSCRIBE_TOPIC(angular_velocity_sp);
 	SUBSCRIBE_TOPIC(attitude_sp);
 	// SUBSCRIBE_TOPIC(battery_state);
-	//SUBSCRIBE_TOPIC(bezier_trajectory);
-	//SUBSCRIBE_TOPIC(bezier_trajectory_ethernet);
+	// SUBSCRIBE_TOPIC(bezier_trajectory);
+	// SUBSCRIBE_TOPIC(bezier_trajectory_ethernet);
 	SUBSCRIBE_TOPIC(clock_offset_ethernet);
 	SUBSCRIBE_TOPIC(cmd_vel);
 	SUBSCRIBE_TOPIC(cmd_vel_ethernet);
-	//SUBSCRIBE_TOPIC(imu);
-	//SUBSCRIBE_TOPIC(imu_q31_array);
+	SUBSCRIBE_TOPIC(imu);
+	// SUBSCRIBE_TOPIC(imu_q31_array);
 	SUBSCRIBE_TOPIC(input);
 	SUBSCRIBE_TOPIC(input_ethernet);
 	SUBSCRIBE_TOPIC(input_sbus);
@@ -232,13 +231,13 @@ static int log_sdcard_fini(struct context *ctx)
 	UNSUBSCRIBE_TOPIC(angular_velocity_sp);
 	UNSUBSCRIBE_TOPIC(attitude_sp);
 	// UNSUBSCRIBE_TOPIC(battery_state);
-	//UNSUBSCRIBE_TOPIC(bezier_trajectory);
-	//UNSUBSCRIBE_TOPIC(bezier_trajectory_ethernet);
+	// UNSUBSCRIBE_TOPIC(bezier_trajectory);
+	// UNSUBSCRIBE_TOPIC(bezier_trajectory_ethernet);
 	UNSUBSCRIBE_TOPIC(clock_offset_ethernet);
 	UNSUBSCRIBE_TOPIC(cmd_vel);
 	UNSUBSCRIBE_TOPIC(cmd_vel_ethernet);
-	//UNSUBSCRIBE_TOPIC(imu);
-	//UNSUBSCRIBE_TOPIC(imu_q31_array);
+	UNSUBSCRIBE_TOPIC(imu);
+	// UNSUBSCRIBE_TOPIC(imu_q31_array);
 	UNSUBSCRIBE_TOPIC(input);
 	UNSUBSCRIBE_TOPIC(input_ethernet);
 	UNSUBSCRIBE_TOPIC(input_sbus);
@@ -315,35 +314,35 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 	// while running
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 		struct k_poll_event events[] = {
-		 	*zros_sub_get_event(&ctx->sub_accel_sp),
-			*zros_sub_get_event(&ctx->sub_actuators),
+			//*zros_sub_get_event(&ctx->sub_accel_sp),
+			//*zros_sub_get_event(&ctx->sub_actuators),
 			//*zros_sub_get_event(&ctx->sub_altimeter),
-			*zros_sub_get_event(&ctx->sub_angular_velocity_sp),
-			*zros_sub_get_event(&ctx->sub_attitude_sp),
+			//*zros_sub_get_event(&ctx->sub_angular_velocity_sp),
+			//*zros_sub_get_event(&ctx->sub_attitude_sp),
 			//*zros_sub_get_event(&ctx->sub_battery_state),
 			//*zros_sub_get_event(&ctx->sub_bezier_trajectory),
 			//*zros_sub_get_event(&ctx->sub_bezier_trajectory_ethernet),
-			*zros_sub_get_event(&ctx->sub_clock_offset_ethernet),
-			*zros_sub_get_event(&ctx->sub_cmd_vel),
-			*zros_sub_get_event(&ctx->sub_cmd_vel_ethernet),
-		 	//*zros_sub_get_event(&ctx->sub_imu),
-		 	//*zros_sub_get_event(&ctx->sub_imu_q31_array),
-		 	*zros_sub_get_event(&ctx->sub_input),
-		 	*zros_sub_get_event(&ctx->sub_input_ethernet),
-		 	*zros_sub_get_event(&ctx->sub_input_sbus),
+			//*zros_sub_get_event(&ctx->sub_clock_offset_ethernet),
+			//*zros_sub_get_event(&ctx->sub_cmd_vel),
+			//*zros_sub_get_event(&ctx->sub_cmd_vel_ethernet),
+			*zros_sub_get_event(&ctx->sub_imu),
+			//*zros_sub_get_event(&ctx->sub_imu_q31_array),
+			//*zros_sub_get_event(&ctx->sub_input),
+			//*zros_sub_get_event(&ctx->sub_input_ethernet),
+			//*zros_sub_get_event(&ctx->sub_input_sbus),
 			//*zros_sub_get_event(&ctx->sub_led_array),
-			*zros_sub_get_event(&ctx->sub_magnetic_field),
-		 	//*zros_sub_get_event(&ctx->sub_moment_ff),
-		 	//*zros_sub_get_event(&ctx->sub_nav_sat_fix),
-		 	*zros_sub_get_event(&ctx->sub_odometry_estimator),
-		 	*zros_sub_get_event(&ctx->sub_odometry_ethernet),
-		 	*zros_sub_get_event(&ctx->sub_orientation_sp),
-		 	*zros_sub_get_event(&ctx->sub_position_sp),
-		 	*zros_sub_get_event(&ctx->sub_pwm),
-		 	*zros_sub_get_event(&ctx->sub_safety),
-		 	*zros_sub_get_event(&ctx->sub_status),
-		 	*zros_sub_get_event(&ctx->sub_velocity_sp),
-		 	//*zros_sub_get_event(&ctx->sub_wheel_odometry),
+			//*zros_sub_get_event(&ctx->sub_magnetic_field),
+			//*zros_sub_get_event(&ctx->sub_moment_ff),
+			//*zros_sub_get_event(&ctx->sub_nav_sat_fix),
+			//*zros_sub_get_event(&ctx->sub_odometry_estimator),
+			//*zros_sub_get_event(&ctx->sub_odometry_ethernet),
+			//*zros_sub_get_event(&ctx->sub_orientation_sp),
+			//*zros_sub_get_event(&ctx->sub_position_sp),
+			//*zros_sub_get_event(&ctx->sub_pwm),
+			//*zros_sub_get_event(&ctx->sub_safety),
+			//*zros_sub_get_event(&ctx->sub_status),
+			//*zros_sub_get_event(&ctx->sub_velocity_sp),
+			//*zros_sub_get_event(&ctx->sub_wheel_odometry),
 		};
 
 		int rc = 0;
@@ -361,13 +360,13 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 		GET_UPDATE(angular_velocity_sp, vector3);
 		GET_UPDATE(attitude_sp, quaternion);
 		// GET_UPDATE(battery_state, battery_state);
-		//GET_UPDATE(bezier_trajectory, bezier_trajectory);
-		//GET_UPDATE(bezier_trajectory_ethernet, bezier_trajectory);
+		// GET_UPDATE(bezier_trajectory, bezier_trajectory);
+		// GET_UPDATE(bezier_trajectory_ethernet, bezier_trajectory);
 		GET_UPDATE(clock_offset_ethernet, clock_offset);
 		GET_UPDATE(cmd_vel, twist);
 		GET_UPDATE(cmd_vel_ethernet, twist);
-		//GET_UPDATE(imu, imu);
-		//GET_UPDATE(imu_q31_array, imu_q31_array);
+		GET_UPDATE(imu, imu);
+		// GET_UPDATE(imu_q31_array, imu_q31_array);
 		GET_UPDATE(input, input);
 		// GET_UPDATE(input_ethernet, input);
 		// GET_UPDATE(input_sbus, input);

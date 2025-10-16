@@ -137,8 +137,7 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 		dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
 		ticks_last = ticks_now;
 		if (dt < 0 || dt > 0.5) {
-			LOG_WRN("position update rate too low");
-			continue;
+			LOG_WRN("position update rate too low: %10.4f", dt);
 		}
 
 		if (ctx->status.mode == synapse_pb_Status_Mode_MODE_POSITION ||

@@ -123,6 +123,7 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
 		if (rc != 0) {
 			LOG_DBG("not receiving odometry_estimator");
+			continue;
 		}
 
 		// update subscriptions

@@ -30,7 +30,13 @@ static struct context g_ctx = {
 	.accel_sp = synapse_pb_Vector3_init_default,
 	.moment_ff = synapse_pb_Vector3_init_default,
 	.orientation_sp = synapse_pb_Quaternion_init_default,
-	.position_sp = synapse_pb_Vector3_init_default,
+	.position_sp =
+		{
+			.has_stamp = true,
+			.x = 0,
+			.y = 0,
+			.z = 0,
+		},
 	.cmd_vel = synapse_pb_Twist_init_default,
 	.sub_input_ethernet = {},
 	.sub_input_sbus = {},

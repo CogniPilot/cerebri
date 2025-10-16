@@ -137,6 +137,7 @@ void rdd2_mode_bezier(struct context *ctx)
 
 		// position sp
 		stamp_msg(&ctx->position_sp.stamp, k_uptime_ticks());
+		ctx->position_sp.has_stamp = true;
 		ctx->position_sp.x = x;
 		ctx->position_sp.y = y;
 		ctx->position_sp.z = z;
@@ -144,6 +145,7 @@ void rdd2_mode_bezier(struct context *ctx)
 
 		// velocity sp
 		stamp_msg(&ctx->velocity_sp.stamp, k_uptime_ticks());
+		ctx->velocity_sp.has_stamp = true;
 		ctx->velocity_sp.x = v[0];
 		ctx->velocity_sp.y = v[1];
 		ctx->velocity_sp.z = v[2];
@@ -151,6 +153,7 @@ void rdd2_mode_bezier(struct context *ctx)
 
 		// acceleration sp
 		stamp_msg(&ctx->accel_sp.stamp, k_uptime_ticks());
+		ctx->accel_sp.has_stamp = true;
 		ctx->accel_sp.x = a[0];
 		ctx->accel_sp.y = a[1];
 		ctx->accel_sp.z = a[2];
@@ -164,6 +167,7 @@ void rdd2_mode_bezier(struct context *ctx)
 
 		// angular velocity ff
 		stamp_msg(&ctx->angular_velocity_ff.stamp, k_uptime_ticks());
+		ctx->angular_velocity_ff.has_stamp = true;
 		ctx->angular_velocity_ff.x = omega[0];
 		ctx->angular_velocity_ff.y = omega[1];
 		ctx->angular_velocity_ff.z = omega[2];
@@ -171,6 +175,7 @@ void rdd2_mode_bezier(struct context *ctx)
 
 		// moment ff
 		stamp_msg(&ctx->moment_ff.stamp, k_uptime_ticks());
+		ctx->moment_ff.has_stamp = true;
 		ctx->moment_ff.x = M[0];
 		ctx->moment_ff.y = M[1];
 		ctx->moment_ff.z = M[2];
@@ -178,6 +183,7 @@ void rdd2_mode_bezier(struct context *ctx)
 
 		// orientation sp
 		stamp_msg(&ctx->orientation_sp.stamp, k_uptime_ticks());
+		ctx->orientation_sp.has_stamp = true;
 		ctx->orientation_sp.w = q_orientation[0];
 		ctx->orientation_sp.x = q_orientation[1];
 		ctx->orientation_sp.y = q_orientation[2];

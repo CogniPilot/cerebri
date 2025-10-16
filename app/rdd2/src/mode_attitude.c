@@ -39,6 +39,7 @@ void rdd2_mode_attitude(struct context *ctx)
 	// attitude set point
 	if (data_ok) {
 		stamp_msg(&ctx->attitude_sp.stamp, k_uptime_ticks());
+		ctx->attitude_sp.has_stamp = true;
 		ctx->attitude_sp.w = qr[0];
 		ctx->attitude_sp.x = qr[1];
 		ctx->attitude_sp.y = qr[2];
@@ -46,6 +47,8 @@ void rdd2_mode_attitude(struct context *ctx)
 		zros_pub_update(&ctx->pub_attitude_sp);
 
 		// thrust pass through
+		stamp_msg(&ctx->force_sp.stamp, k_uptime_ticks());
+		ctx->force_sp.has_stamp = true;
 		ctx->force_sp.z = thrust;
 		zros_pub_update(&ctx->pub_force_sp);
 	}

@@ -42,6 +42,7 @@ void rdd2_mode_attitude_rate(struct context *ctx)
 		zros_pub_update(&ctx->pub_angular_velocity_ff);
 
 		// thrust pass through
+		stamp_msg(&ctx->force_sp.stamp, k_uptime_ticks());
 		ctx->force_sp.z = thrust;
 		zros_pub_update(&ctx->pub_force_sp);
 	}

@@ -165,6 +165,8 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 			}
 
 			if (data_ok) {
+				stamp_msg(&ctx->angular_velocity_sp.stamp, k_uptime_ticks());
+				ctx->angular_velocity_sp.has_stamp = true;
 				ctx->angular_velocity_sp.x = omega[0] + ctx->angular_velocity_ff.x;
 				ctx->angular_velocity_sp.y = omega[1] + ctx->angular_velocity_ff.y;
 				ctx->angular_velocity_sp.z = omega[2] + ctx->angular_velocity_ff.z;

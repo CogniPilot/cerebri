@@ -5,10 +5,13 @@
 #include <stdio.h>
 #include <synapse_topic_list.h>
 
+#include <zephyr/logging/log.h>
 #include "lib/core/common/casadi/common.h"
 #include <cerebri/core/casadi.h>
 
 #include "synapse_shell_print.h"
+
+LOG_MODULE_DECLARE(zros_topic);
 
 int snprintf_cat(char *buf, int n, char const *fmt, ...)
 {
@@ -26,6 +29,9 @@ int snprintf_cat(char *buf, int n, char const *fmt, ...)
 int snprint_pwm(char *buf, size_t n, synapse_pb_Pwm *m)
 {
 	size_t offset = 0;
+	if (m->has_timestamp) {
+		offset += snprint_timestamp(buf + offset, n - offset, &m->timestamp);
+	}
 
 	for (int i = 0; i < m->channel_count; i++) {
 		offset += snprintf_cat(buf + offset, n - offset, "%4d: %10ld", i, m->channel[i]);
@@ -66,8 +72,14 @@ int snprint_actuators(char *buf, size_t n, synapse_pb_Actuators *m)
 
 int snprint_altimeter(char *buf, size_t n, synapse_pb_Altimeter *m)
 {
-	return snprintf_cat(buf, n, "alt: %10.4f m, vel: %10.4f m/s, ref alt: %10.4f m\n",
-			    m->vertical_position, m->vertical_velocity, m->vertical_reference);
+	size_t offset = 0;
+	if (m->has_stamp) {
+		offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
+	}
+	offset += snprintf_cat(buf + offset, n - offset,
+			       "alt: %10.4f m, vel: %10.4f m/s, ref alt: %10.4f m\n",
+			       m->vertical_position, m->vertical_velocity, m->vertical_reference);
+	return offset;
 }
 
 int snprint_battery_state(char *buf, size_t n, synapse_pb_BatteryState *m)
@@ -188,6 +200,10 @@ int snprint_imu(char *buf, size_t n, synapse_pb_Imu *m)
 int snprint_input(char *buf, size_t n, synapse_pb_Input *m)
 {
 	size_t offset = 0;
+	if (m->has_timestamp) {
+		offset += snprint_timestamp(buf + offset, n - offset, &m->timestamp);
+	}
+
 	offset += snprintf_cat(buf + offset, n - offset, "\nchannels:\t");
 	for (int i = 0; i < m->channel_count; i++) {
 		offset += snprintf_cat(buf + offset, n - offset, "%10.4f\t", (double)m->channel[i]);
@@ -200,6 +216,10 @@ int snprint_input(char *buf, size_t n, synapse_pb_Input *m)
 int snprint_ledarray(char *buf, size_t n, synapse_pb_LEDArray *m)
 {
 	size_t offset = 0;
+	if (m->has_stamp) {
+		offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
+	}
+
 	for (int i = 0; i < m->led_count; i++) {
 		offset += snprintf_cat(buf + offset, n - offset, "index: %4d rgb: %4d %4d %4d\n",
 				       m->led[i].index, m->led[i].r, m->led[i].g, m->led[i].b);
@@ -254,6 +274,10 @@ int snprint_odometry(char *buf, size_t n, synapse_pb_Odometry *m)
 int snprint_pose(char *buf, size_t n, synapse_pb_Pose *m)
 {
 	size_t offset = 0;
+	if (m->has_stamp) {
+		offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
+	}
+
 	if (m->has_position) {
 		offset += snprintf_cat(buf + offset, n - offset, "position\n");
 		offset += snprint_vector3(buf + offset, n - offset, &m->position);
@@ -277,10 +301,16 @@ int snprint_quaternion(char *buf, size_t n, synapse_pb_Quaternion *m)
 	res[1] = &pitch;
 	res[2] = &roll;
 	CASADI_FUNC_CALL(quat_to_eulerB321)
-	return snprintf_cat(buf, n,
-			    "yaw: %8.2f pitch: %8.2f roll: %8.2f [deg]\nw: %10.4f x: %10.4f y: "
-			    "%10.4f z: %10.4f\n",
-			    rad2deg * yaw, rad2deg * pitch, rad2deg * roll, m->w, m->x, m->y, m->z);
+	size_t offset = 0;
+	if (m->has_stamp) {
+		offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
+	}
+	offset += snprintf_cat(buf + offset, n - offset,
+			       "yaw: %8.2f pitch: %8.2f roll: %8.2f [deg]\nw: %10.4f x: %10.4f y: "
+			       "%10.4f z: %10.4f\n",
+			       rad2deg * yaw, rad2deg * pitch, rad2deg * roll, m->w, m->x, m->y,
+			       m->z);
+	return offset;
 }
 
 int snprint_safety(char *buf, size_t n, synapse_pb_Safety *m)
@@ -306,6 +336,9 @@ int snprint_clock_offset(char *buf, size_t n, synapse_pb_ClockOffset *m)
 int snprint_twist(char *buf, size_t n, synapse_pb_Twist *m)
 {
 	size_t offset = 0;
+	if (m->has_stamp) {
+		offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
+	}
 	if (m->has_angular) {
 		offset += snprintf_cat(buf + offset, n - offset, "angular\n");
 		offset += snprint_vector3(buf + offset, n - offset, &m->angular);
@@ -319,7 +352,13 @@ int snprint_twist(char *buf, size_t n, synapse_pb_Twist *m)
 
 int snprint_vector3(char *buf, size_t n, synapse_pb_Vector3 *m)
 {
-	return snprintf_cat(buf, n, "x: %10.7f y: %10.7f z: %10.7f\n", m->x, m->y, m->z);
+	size_t offset = 0;
+	if (m->has_stamp) {
+		offset += snprint_timestamp(buf + offset, n - offset, &m->stamp);
+	}
+	offset += snprintf_cat(buf + offset, n - offset, "x: %10.7f y: %10.7f z: %10.7f\n", m->x,
+			       m->y, m->z);
+	return offset;
 }
 
 int snprint_imu_q31_array(char *buf, size_t n, synapse_pb_ImuQ31Array *m)

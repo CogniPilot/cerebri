@@ -93,6 +93,7 @@ void rdd2_mode_velocity(struct context *ctx)
 
 	// position setpoint
 	stamp_msg(&ctx->position_sp.stamp, k_uptime_ticks());
+	ctx->position_sp.has_stamp = true;
 	ctx->position_sp.x = pw_sp[0];
 	ctx->position_sp.y = pw_sp[1];
 	ctx->position_sp.z = pw_sp[2];
@@ -100,6 +101,7 @@ void rdd2_mode_velocity(struct context *ctx)
 
 	// velocity setpoint
 	stamp_msg(&ctx->velocity_sp.stamp, k_uptime_ticks());
+	ctx->velocity_sp.has_stamp = true;
 	ctx->velocity_sp.x = vw_sp[0];
 	ctx->velocity_sp.y = vw_sp[1];
 	ctx->velocity_sp.z = vw_sp[2];
@@ -107,6 +109,7 @@ void rdd2_mode_velocity(struct context *ctx)
 
 	// orientation setpoint (from input_velocity function)
 	stamp_msg(&ctx->orientation_sp.stamp, k_uptime_ticks());
+	ctx->orientation_sp.has_stamp = true;
 	ctx->orientation_sp.w = q_sp[0];
 	ctx->orientation_sp.x = q_sp[1];
 	ctx->orientation_sp.y = q_sp[2];
@@ -115,6 +118,7 @@ void rdd2_mode_velocity(struct context *ctx)
 
 	// acceleration setpoint
 	stamp_msg(&ctx->accel_sp.stamp, k_uptime_ticks());
+	ctx->accel_sp.has_stamp = true;
 	ctx->accel_sp.x = aw_sp[0];
 	ctx->accel_sp.y = aw_sp[1];
 	ctx->accel_sp.z = aw_sp[2];

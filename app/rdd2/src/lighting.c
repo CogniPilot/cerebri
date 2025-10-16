@@ -198,6 +198,7 @@ static void rdd2_lighting_run(void *p0, void *p1, void *p2)
 
 		// set timestamp
 		stamp_msg(&ctx->led_array.stamp, k_uptime_ticks());
+		ctx->led_array.has_stamp = true;
 		ctx->led_array.led_count = led_msg_index;
 
 		zros_pub_update(&ctx->pub_led_array);

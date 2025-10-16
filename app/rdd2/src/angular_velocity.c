@@ -209,6 +209,8 @@ static void rdd2_angular_velocity_run(void *p0, void *p1, void *p2)
 
 		// publish moment setpoint
 		if (data_ok) {
+			stamp_msg(&ctx->moment_sp.stamp, k_uptime_ticks());
+			ctx->moment_sp.has_stamp = true;
 			ctx->moment_sp.x = M[0] + ctx->moment_ff.x;
 			ctx->moment_sp.y = M[1] + ctx->moment_ff.y;
 			ctx->moment_sp.z = M[2] + ctx->moment_ff.z;

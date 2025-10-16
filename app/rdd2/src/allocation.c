@@ -169,9 +169,9 @@ static void rdd2_allocation_run(void *p0, void *p1, void *p2)
 			}
 		}
 
-		stamp_msg(&ctx->actuators.stamp, k_uptime_ticks());
-
 		// publish
+		stamp_msg(&ctx->actuators.stamp, k_uptime_ticks());
+		ctx->actuators.has_stamp = true;
 		zros_pub_update(&ctx->pub_actuators);
 	}
 

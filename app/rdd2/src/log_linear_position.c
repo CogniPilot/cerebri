@@ -264,12 +264,14 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 			}
 
 			if (data_ok) {
+				stamp_msg(&ctx->attitue_sp.stamp, k_uptime_ticks());
 				ctx->attitude_sp.w = qr_wb[0];
 				ctx->attitude_sp.x = qr_wb[1];
 				ctx->attitude_sp.y = qr_wb[2];
 				ctx->attitude_sp.z = qr_wb[3];
 				zros_pub_update(&ctx->pub_attitude_sp);
 
+				stamp_msg(&ctx->force_sp.stamp, k_uptime_ticks());
 				ctx->force_sp.z = nT;
 				zros_pub_update(&ctx->pub_force_sp);
 			}

@@ -8,13 +8,6 @@ description: DSHOT actuators parent node
 
 compatible: "cerebri,dshot-actuators"
 
-properties:
-  rate:
-    type: int
-    default: 200
-    description: |
-      Update rate of the dshot signal in Hz
-
 child-binding:
   description: DSHOT actuators node
   properties:

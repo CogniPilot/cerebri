@@ -56,6 +56,9 @@ struct context {
 	const struct device *const dev;
 	uint8_t num_actuators;
 	const actuator_dshot_t *dshot_actuators;
+	const uint32_t update_rate_default_us;
+	const uint64_t disarm_timeout_us;
+	int64_t last_update_received;
 };
 
 static int actuate_dshot_init(struct context *ctx)
@@ -154,6 +157,15 @@ static void dshot_spin_dir(const struct shell *sh, struct context *ctx, int moto
 	}
 }
 
+static inline bool should_disarm(struct context *ctx)
+{
+	int64_t disarm_target = ctx->last_update_received +
+				ctx->disarm_timeout_us * CONFIG_SYS_CLOCK_TICKS_PER_SEC / 1000000;
+
+	return ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED &&
+	       k_uptime_ticks() >= disarm_target;
+}
+
 static void actuate_dshot_run(void *p0, void *p1, void *p2)
 {
 	struct context *ctx = p0;
@@ -172,14 +184,14 @@ static void actuate_dshot_run(void *p0, void *p1, void *p2)
 
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 		int rc = 0;
-		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
-		if (rc != 0) {
-			LOG_DBG("no actuator message received");
-			// put motors in disarmed state
-			if (ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) {
-				ctx->status.arming = synapse_pb_Status_Arming_ARMING_DISARMED;
-				LOG_ERR("disarming motors due to actuator msg timeout!");
-			}
+		rc = k_poll(events, ARRAY_SIZE(events), K_USEC(ctx->update_rate_default_us));
+		if (rc == 0) {
+			ctx->last_update_received = k_uptime_ticks();
+		}
+
+		if (should_disarm(ctx)) {
+			ctx->status.arming = synapse_pb_Status_Arming_ARMING_DISARMED;
+			LOG_ERR("disarming motors due to actuator msg timeout!");
 		}
 
 		if (zros_sub_update_available(&ctx->sub_status)) {
@@ -307,6 +319,8 @@ static int actuate_dshot_device_init(const struct device *dev)
 		.thread_data = {},                                                                 \
 		.dshot_actuators = g_actuator_dshots_##inst,                                       \
 		.num_actuators = DT_CHILD_NUM(DT_INST(inst, cerebri_dshot_actuators)),             \
+		.update_rate_default_us = 1000000 / DT_INST_PROP(inst, rate),                      \
+		.disarm_timeout_us = 1000 * DT_INST_PROP(inst, disarm_timeout_ms),                 \
 	};                                                                                         \
 	DSHOT_ACTUATOR_SHELL(inst);                                                                \
 	DEVICE_DT_INST_DEFINE(inst, actuate_dshot_device_init, NULL, &data_##inst, NULL,           \

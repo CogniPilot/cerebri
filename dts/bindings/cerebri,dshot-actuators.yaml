@@ -8,6 +8,20 @@ description: DSHOT actuators parent node
 
 compatible: "cerebri,dshot-actuators"
 
+properties:
+  rate:
+    type: int
+    default: 200
+    description: |
+      Update rate of the dshot signal in Hz
+
+  disarm-timeout-ms:
+    type: int
+    default: 20
+    description: |
+      Inactivity timeout to disarm the DShot actuators, which is: no actuator
+      update is received within this time.
+
 child-binding:
   description: DSHOT actuators node
   properties:

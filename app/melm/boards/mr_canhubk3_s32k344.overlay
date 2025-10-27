@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* Copyright 2023 CogniPilot Foundation */
 #include <freq.h>
-#include <zephyr/dt-bindings/gpio/nxp-s32-gpio.h>
+#include <zephyr/dt-bindings/gpio/nxp-siul2-gpio.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <zephyr/dt-bindings/led/led.h>
 #include <zephyr/dt-bindings/sensor/ina230.h>
@@ -92,11 +92,9 @@
 		master-bus = <&emios0_bus_a>;
 		pwm-mode = "OPWMB";
 		phase-shift = <100>;
-		duty-cycle = <0>;
 	};
 	pwm_1 {
 		prescaler = <1>;
-		duty-cycle = <0>;
 	};
 	pwm_2 {
 		prescaler = <1>;
@@ -267,7 +265,6 @@
 		emios2_bus_b {
 			mode = "MCB_UP_COUNTER";
 			prescaler = <1>;
-			period = <DT_FREQ_K(2)>;
 			status = "okay";
 		};
 	};
@@ -279,10 +276,8 @@
 
 		pwm_gps_buzzer {
 			channel = <6>;
-			duty-cycle = <0>;
 			master-bus = <&emios2_bus_b>;
 			pwm-mode = "OPWMB";
-			polarity = "ACTIVE_HIGH";
 		};
 	};
 };
@@ -362,9 +357,9 @@ uart0: &lpuart7 {
 
 	icm42688_mr_canhubk3_adap: icm42688p0@0 {
 		fifo-hires;
-		compatible = "invensense,icm42688";
+		compatible = "invensense,icm42688", "invensense,icm4268x";
 		reg = <0>;
-		int-gpios = <&gpioe_h 5 NXP_S32_GPIO_INT_WKPU>;
+		int-gpios = <&gpioe_h 5 NXP_SIUL2_GPIO_INT_WKPU>;
 		spi-max-frequency = <15000000>;
 		accel-pwr-mode = <ICM42688_DT_ACCEL_LN>;
 		accel-odr = <ICM42688_DT_ACCEL_ODR_200>;

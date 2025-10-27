@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 806b37ff02adcb8265f4e1713cec7d2f5f623fc0 # zephyr_3.7.0.1 08/21/24
+      revision: 533ef581573a84098e45fd5d0f8cf3c90df9abe9 # main 10/27/25
       import:
         - name-allowlist:
           - nanopb
@@ -27,6 +27,7 @@ manifest:
           - hal_nxp
           - cmsis
           - cmsis-dsp
+          - cmsis_6
           - ubxlib
           - fatfs
           - segger
@@ -48,5 +49,5 @@ manifest:
       revision: brave
     - name: hal_nxp
       remote: cognipilot
-      revision: e400b5dba27d9abe1403fc799d48b58fa1b1daee # master 8/21/24
+      revision: cf8f1631e862528ee044850bcc70273975b90771 # master 10/27/25
       path: modules/hal/nxp

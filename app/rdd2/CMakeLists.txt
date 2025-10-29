@@ -142,4 +142,8 @@ target_include_directories(app SYSTEM BEFORE PRIVATE
   ${CMAKE_BINARY_DIR}
   )
 
+if(CONFIG_BOARD STREQUAL "vmu_rt1170")
+  zephyr_linker_sources(ITCM_SECTION boards/vmu_rt1170_itcm_linker.ld)
+endif()
+
 # vi: ts=2 sw=2 et

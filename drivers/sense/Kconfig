@@ -3,7 +3,6 @@
 
 menu "Sense"
 
-rsource "baro/Kconfig"
 rsource "accel/Kconfig"
 rsource "icm42688/Kconfig"
 rsource "mag/Kconfig"

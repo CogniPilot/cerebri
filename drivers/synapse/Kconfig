@@ -8,5 +8,6 @@ rsource "eth_rx/Kconfig"
 rsource "topic/Kconfig"
 rsource "vesc_can/Kconfig"
 rsource "log_sdcard/Kconfig"
+rsource "rpmsg/Kconfig"
 
 endmenu

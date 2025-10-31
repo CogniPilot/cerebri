@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_BARO baro)
-add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_IMU imu)
 add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_ACCEL accel)
 add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_ICM42688 icm42688)
 add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_SBUS sbus)

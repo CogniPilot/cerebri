@@ -53,5 +53,5 @@ manifest:
       path: modules/hal/nxp
     - name: zros_drivers
       remote: cognipilot
-      revision: b661c028fe8e6b0bbadc498c95c41c2c1f6cd948 # main 10/31/25
+      revision: 3ddbc0ee3884e5a469d9c07384a6cba296e69ca3 # main 10/31/25
       path: modules/lib/zros_drivers

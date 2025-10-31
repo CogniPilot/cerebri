@@ -12,8 +12,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <cerebri/core/perf_duration.h>
-
 LOG_MODULE_REGISTER(core_common, CONFIG_CEREBRI_CORE_COMMON_LOG_LEVEL);
 
 #if defined(CONFIG_REBOOT)

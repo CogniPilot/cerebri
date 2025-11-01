@@ -110,21 +110,21 @@ static void rdd2_angular_velocity_run(void *p0, void *p1, void *p2)
 
 	// PID controller constants
 	static const double kp[3] = {
-		CONFIG_CEREBRI_RDD2_ROLLRATE_KP * 1e-6,
-		CONFIG_CEREBRI_RDD2_PITCHRATE_KP * 1e-6,
-		CONFIG_CEREBRI_RDD2_YAWRATE_KP * 1e-6,
+		CONFIG_CEREBRI_RDD2_ROLLRATE_KP * 1e-6 * 20,
+		CONFIG_CEREBRI_RDD2_PITCHRATE_KP * 1e-6 * 20,
+		CONFIG_CEREBRI_RDD2_YAWRATE_KP * 1e-6 * 20,
 	};
 
 	static const double ki[3] = {
-		CONFIG_CEREBRI_RDD2_ROLLRATE_KI * 1e-6,
-		CONFIG_CEREBRI_RDD2_PITCHRATE_KI * 1e-6,
-		CONFIG_CEREBRI_RDD2_YAWRATE_KI * 1e-6,
+		CONFIG_CEREBRI_RDD2_ROLLRATE_KI * 1e-6 * 20,
+		CONFIG_CEREBRI_RDD2_PITCHRATE_KI * 1e-6 * 20,
+		CONFIG_CEREBRI_RDD2_YAWRATE_KI * 1e-6 * 20,
 	};
 
 	static const double kd[3] = {
-		CONFIG_CEREBRI_RDD2_ROLLRATE_KD * 1e-6,
-		CONFIG_CEREBRI_RDD2_PITCHRATE_KD * 1e-6,
-		CONFIG_CEREBRI_RDD2_YAWRATE_KD * 1e-6,
+		CONFIG_CEREBRI_RDD2_ROLLRATE_KD * 1e-6 * 20,
+		CONFIG_CEREBRI_RDD2_PITCHRATE_KD * 1e-6 * 20,
+		CONFIG_CEREBRI_RDD2_YAWRATE_KD * 1e-6 * 20,
 	};
 
 	static const double i_max[3] = {
@@ -279,6 +279,6 @@ static int rdd2_angular_velocity_sys_init(void)
 	return start(&g_ctx);
 };
 
-SYS_INIT(rdd2_angular_velocity_sys_init, APPLICATION, 4);
+SYS_INIT(rdd2_angular_velocity_sys_init, APPLICATION, 99);
 
 // vi: ts=4 sw=4 et

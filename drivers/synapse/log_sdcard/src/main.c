@@ -173,9 +173,7 @@ static int log_sdcard_init(struct context *ctx)
 
 	k_sem_take(&ctx->running, K_FOREVER);
 
-	// make sure writer is ready
-	k_msleep(1000);
-	LOG_INF("init");
+	LOG_INF("reader init");
 	return ret;
 };
 
@@ -217,7 +215,7 @@ static int log_sdcard_fini(struct context *ctx)
 	zros_node_fini(&ctx->node);
 
 	k_sem_give(&ctx->running);
-	LOG_INF("fini");
+	LOG_INF("reader fini");
 	return ret;
 };
 
@@ -352,6 +350,6 @@ static int log_sdcard_sys_init(void)
 	return start(&g_ctx);
 };
 
-SYS_INIT(log_sdcard_sys_init, APPLICATION, 0);
+SYS_INIT(log_sdcard_sys_init, APPLICATION, 99);
 
 // vi: ts=4 sw=4 et

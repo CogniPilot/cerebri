@@ -264,6 +264,6 @@ static int eth_tx_sys_init(void)
 	return start(&g_ctx);
 };
 
-SYS_INIT(eth_tx_sys_init, APPLICATION, 0);
+SYS_INIT(eth_tx_sys_init, APPLICATION, 99);
 
 // vi: ts=4 sw=4 et

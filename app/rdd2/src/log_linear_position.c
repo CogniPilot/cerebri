@@ -116,7 +116,7 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 
 	double dt = 0;
 	int64_t ticks_last = k_uptime_ticks();
-	double z_i = 0; // altitude error integral
+	double z_i[3]; // altitude error integral
 
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 		int rc = 0;
@@ -202,12 +202,12 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				args[4] = qc_wb;
 				args[5] = p_w;
 				args[6] = v_w;
-				args[7] = &z_i;
+				args[7] = z_i;
 				args[8] = &dt;
 
 				res[0] = &nT;
 				res[1] = qr_wb;
-				res[2] = &z_i;
+				res[2] = z_i;
 
 				CASADI_FUNC_CALL(position_control)
 			}
@@ -323,6 +323,6 @@ static int rdd2_position_sys_init(void)
 	return start(&g_ctx);
 };
 
-SYS_INIT(rdd2_position_sys_init, APPLICATION, 1);
+SYS_INIT(rdd2_position_sys_init, APPLICATION, 99);
 
 // vi: ts=4 sw=4 et

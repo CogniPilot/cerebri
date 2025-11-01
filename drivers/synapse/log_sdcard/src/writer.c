@@ -115,7 +115,7 @@ static int log_sdcard_writer_init(struct context *ctx)
 	}
 
 	k_sem_take(&ctx->running, K_FOREVER);
-	LOG_INF("init");
+	LOG_INF("writer init");
 	return ret;
 };
 
@@ -134,7 +134,7 @@ static int log_sdcard_writer_fini(struct context *ctx)
 	}
 
 	k_sem_give(&ctx->running);
-	LOG_INF("fini");
+	LOG_INF("writer fini");
 	return ret;
 };
 
@@ -231,6 +231,6 @@ static int log_sdcard_writer_sys_init(void)
 	return 0;
 };
 
-SYS_INIT(log_sdcard_writer_sys_init, APPLICATION, 0);
+SYS_INIT(log_sdcard_writer_sys_init, APPLICATION, 99);
 
 // vi: ts=4 sw=4 et

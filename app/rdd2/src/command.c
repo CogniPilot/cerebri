@@ -259,6 +259,6 @@ static int rdd2_command_sys_init(void)
 	return start(&g_ctx);
 };
 
-SYS_INIT(rdd2_command_sys_init, APPLICATION, 1);
+SYS_INIT(rdd2_command_sys_init, APPLICATION, 99);
 
 // vi: ts=4 sw=4 et

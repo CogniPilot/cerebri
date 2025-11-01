@@ -8,8 +8,6 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
-#include <cerebri/core/perf_counter.h>
-
 #include <ff.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>

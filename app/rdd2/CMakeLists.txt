@@ -113,8 +113,8 @@ add_custom_command(OUTPUT ${CASADI_DEST_DIR}/rdd2.c
   DEPENDS ${CYECCA_PATH}/cyecca/models/rdd2.py)
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/rdd2_loglinear.c
-  COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2_loglinear.py ${CASADI_DEST_DIR}
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2_loglinear.py)
+  COMMAND ${CYECCA_PYTHON} ${CYECCA_PATH}/cyecca/models/rdd2_loglinear.py ${CASADI_DEST_DIR}
+  DEPENDS ${CYECCA_PATH}/cyecca/models/rdd2_loglinear.py)
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/bezier.c
   COMMAND ${CYECCA_PYTHON} ${CYECCA_PATH}/cyecca/models/bezier.py ${CASADI_DEST_DIR}

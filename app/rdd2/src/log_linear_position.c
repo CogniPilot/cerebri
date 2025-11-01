@@ -116,7 +116,7 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 
 	double dt = 0;
 	int64_t ticks_last = k_uptime_ticks();
-	double z_i = 0; // altitude error integral
+	double z_i[3]; // altitude error integral
 
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
 		int rc = 0;
@@ -190,27 +190,27 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 
 			double nT;       // thrust
 			double qr_wb[4]; // attitude setpoint
-			{
-				// position_control:(thrust_trim,pt_w[3],vt_w[3],at_w[3],
-				// qc_wb[4],p_w[3],v_w[3],z_i,dt)->(nT,qr_wb[4],z_i_2)
-				CASADI_FUNC_ARGS(position_control)
+			// {
+			// 	// position_control:(thrust_trim,pt_w[3],vt_w[3],at_w[3],
+			// 	// qc_wb[4],p_w[3],v_w[3],z_i,dt)->(nT,qr_wb[4],z_i_2)
+			// 	CASADI_FUNC_ARGS(position_control)
 
-				args[0] = &thrust_trim;
-				args[1] = pt_w;
-				args[2] = vt_w;
-				args[3] = at_w;
-				args[4] = qc_wb;
-				args[5] = p_w;
-				args[6] = v_w;
-				args[7] = &z_i;
-				args[8] = &dt;
+			// 	args[0] = &thrust_trim;
+			// 	args[1] = pt_w;
+			// 	args[2] = vt_w;
+			// 	args[3] = at_w;
+			// 	args[4] = qc_wb;
+			// 	args[5] = p_w;
+			// 	args[6] = v_w;
+			// 	args[7] = z_i;
+			// 	args[8] = &dt;
 
-				res[0] = &nT;
-				res[1] = qr_wb;
-				res[2] = &z_i;
+			// 	res[0] = &nT;
+			// 	res[1] = qr_wb;
+			// 	res[2] = z_i;
 
-				CASADI_FUNC_CALL(position_control)
-			}
+			// 	CASADI_FUNC_CALL(position_control)
+			// }
 
 			double zeta[9]; // se23 error
 			{
@@ -231,6 +231,7 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 
 			// se23_control:(thrust_trim,kp[3],zeta[9],at_w[3],q_wb[4],z_i,dt)->(nT,z_i_2,u_omega[3],q_sp[4])
 			{
+				double dummy[3];
 				CASADI_FUNC_ARGS(se23_control)
 
 				args[0] = &thrust_trim;
@@ -238,13 +239,13 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				args[2] = zeta;
 				args[3] = at_w;
 				args[4] = q_wb;
-				args[5] = &z_i;
+				args[5] = z_i;
 				args[6] = &dt;
 
 				res[0] = &nT;
-				res[1] = &z_i;
-				// res[2] u_omega[3], ignored
-				// res[3] q_sp[4], ignored
+				res[1] = z_i;
+				res[2] = dummy;
+				res[3] = q_sp[4];
 
 				CASADI_FUNC_CALL(se23_control)
 			}

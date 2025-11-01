@@ -6,7 +6,7 @@
 #include "command.h"
 #include <cerebri/core/log_utils.h>
 
-#define MY_STACK_SIZE 16384
+#define MY_STACK_SIZE 32768
 #define MY_PRIORITY   4
 
 #ifndef M_PI

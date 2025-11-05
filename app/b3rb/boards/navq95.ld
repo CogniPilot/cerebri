@@ -10,7 +10,7 @@ GROUP_START(DDR)
 
 	SECTION_PROLOGUE(_IMX95_DDR_SECTION_NAME, (NOLOAD),)
 	{
-		*(.log_sdcard)
+		*(.bss._ring_buffer_data_rb_sdcard)
 	} GROUP_LINK_IN(DDR)
 
 GROUP_END(DDR)

@@ -78,7 +78,7 @@ endif()
 if (CONFIG_CEREBRI_RDD2_POSITION)
   list(APPEND SOURCE_FILES
     src/position.c)
-elseif (CONFIG_CEREBRI_RDD2_LOGLINEAR_POSITION)
+elseif (CONFIG_CEREBRI_RDD2_LOG_LINEAR_POSITION)
   list(APPEND SOURCE_FILES
     src/log_linear_position.c)
 endif()
@@ -91,7 +91,7 @@ endif()
 if (CONFIG_CEREBRI_RDD2_ATTITUDE)
   list(APPEND SOURCE_FILES
     src/attitude.c)
-elseif (CONFIG_CEREBRI_RDD2_LOGLINEAR_ATTITUDE)
+elseif (CONFIG_CEREBRI_RDD2_LOG_LINEAR_ATTITUDE)
   list(APPEND SOURCE_FILES
     src/log_linear_attitude.c)
 endif()
@@ -115,6 +115,10 @@ add_custom_command(OUTPUT ${CASADI_DEST_DIR}/rdd2.c
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/rdd2_loglinear.c
   COMMAND ${CYECCA_PYTHON} ${CYECCA_PATH}/cyecca/models/rdd2_loglinear.py ${CASADI_DEST_DIR}
   DEPENDS ${CYECCA_PATH}/cyecca/models/rdd2_loglinear.py)
+
+# add_custom_command(OUTPUT ${CASADI_DEST_DIR}/rdd2_loglinear.c
+#   COMMAND ${CYECCA_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2_loglinear.py ${CASADI_DEST_DIR}
+#   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/casadi/rdd2_loglinear.py)
 
 add_custom_command(OUTPUT ${CASADI_DEST_DIR}/bezier.c
   COMMAND ${CYECCA_PYTHON} ${CYECCA_PATH}/cyecca/models/bezier.py ${CASADI_DEST_DIR}

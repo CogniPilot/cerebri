@@ -158,10 +158,10 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 			ctx->last_status = ctx->status;
 			zros_sub_update(&ctx->sub_status);
 		}
-
-		if (zros_sub_update_available(&ctx->sub_clock_offset_ethernet)) {
-			zros_sub_update(&ctx->sub_clock_offset_ethernet);
-		}
+		// if (!ctx->status.has_stamp){
+		// 		LOG_WRN("waiting for valid status");
+		// 		return;
+		// 	}
 
 		// prioritize onboard sbus input
 		if (zros_sub_update_available(&ctx->sub_input_sbus)) {
@@ -176,9 +176,7 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 				synapse_pb_Status_InputSource_INPUT_SOURCE_ETHERNET;
 		}
 
-		zros_sub_update(&ctx->sub_bezier_trajectory_ethernet);
 		zros_sub_update(&ctx->sub_odometry_estimator);
-		zros_sub_update(&ctx->sub_cmd_vel_ethernet);
 
 		// calculate dt
 		int64_t ticks_now = k_uptime_ticks();

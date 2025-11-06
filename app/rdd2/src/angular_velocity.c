@@ -149,6 +149,11 @@ static void rdd2_angular_velocity_run(void *p0, void *p1, void *p2)
 		zros_sub_update(&ctx->sub_angular_velocity_sp);
 		zros_sub_update(&ctx->sub_moment_ff);
 
+		if (!ctx->status.has_stamp && ctx->odometry_estimator.has_stamp && ctx->angular_velocity_sp.has_stamp && ctx->moment_sp.has_stamp){
+			LOG_WRN("waiting for valid data");
+			continue;
+		}
+
 		// calculate dt
 		int64_t ticks_now = k_uptime_ticks();
 		ctx->dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;

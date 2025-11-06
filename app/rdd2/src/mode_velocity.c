@@ -4,6 +4,12 @@ LOG_MODULE_DECLARE(rdd2_command, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
 void rdd2_mode_velocity(struct context *ctx)
 {
+
+	if (!ctx->odometry_estimator.has_stamp){
+				LOG_WRN("waiting for valid odometry estimator data");
+				return;
+			}
+
 	bool now_vel = ctx->last_status.mode != synapse_pb_Status_Mode_MODE_VELOCITY;
 	bool now_armed = (ctx->status.arming == synapse_pb_Status_Arming_ARMING_ARMED) &&
 			 (ctx->last_status.arming != synapse_pb_Status_Arming_ARMING_ARMED);
@@ -45,6 +51,13 @@ void rdd2_mode_velocity(struct context *ctx)
 		}
 	} else if (ctx->status.topic_source ==
 		   synapse_pb_Status_TopicSource_TOPIC_SOURCE_ETHERNET) {
+
+		zros_sub_update(&ctx->sub_cmd_vel_ethernet);
+
+		if (!ctx->cmd_vel.has_stamp && ctx->odometry_estimator.has_stamp){
+				LOG_WRN("waiting for valid velocity data");
+				return;
+			}
 		yaw_rate = ctx->cmd_vel.angular.z;
 		vt_b[0] = ctx->cmd_vel.linear.x;
 		vt_b[1] = ctx->cmd_vel.linear.y;

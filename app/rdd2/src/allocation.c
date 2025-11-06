@@ -122,6 +122,11 @@ static void rdd2_allocation_run(void *p0, void *p1, void *p2)
 		zros_sub_update(&ctx->sub_force_sp);
 		zros_sub_update(&ctx->sub_moment_sp);
 
+		if (!ctx->status.has_stamp && ctx->force_sp.has_stamp && ctx->moment_sp.has_stamp){
+			LOG_WRN("waiting for valid data");
+			continue;
+		}
+
 		if (rc < 0) {
 			stop(ctx);
 			LOG_DBG("no data, stopped");

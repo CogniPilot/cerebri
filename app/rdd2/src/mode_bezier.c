@@ -4,6 +4,15 @@ LOG_MODULE_DECLARE(rdd2_command, CONFIG_CEREBRI_RDD2_LOG_LEVEL);
 
 void rdd2_mode_bezier(struct context *ctx)
 {
+	
+	zros_sub_update(&ctx->sub_bezier_trajectory_ethernet);
+	zros_sub_update(&ctx->sub_clock_offset_ethernet);
+
+	if (!ctx->bezier_trajectory.has_stamp && ctx->clock_offset.has_stamp){
+			LOG_WRN("waiting for valid bezier publication");
+			return;
+		}
+	
 	// goal -> given position goal, find cmd_vel
 	uint64_t time_start_nsec = (ctx->bezier_trajectory.time_start.seconds * 1e9 +
 				    ctx->bezier_trajectory.time_start.nanos);
@@ -14,7 +23,7 @@ void rdd2_mode_bezier(struct context *ctx)
 			      ctx->clock_offset.offset.nanos);
 
 	if (time_nsec < time_start_nsec) {
-		LOG_WRN("time current: %" PRIu64 " ns < time start: %" PRIu64
+		LOG_DBG("time current: %" PRIu64 " ns < time start: %" PRIu64
 			"  ns, time out of range of trajectory\n",
 			time_nsec, time_start_nsec);
 		return;
@@ -194,6 +203,14 @@ void rdd2_mode_bezier(struct context *ctx)
 		zros_pub_update(&ctx->pub_moment_ff);
 
 		// orientation sp
+		double q_orientation_norm_sq = q_orientation[0]*q_orientation[0] + q_orientation[1]*q_orientation[1] + q_orientation[2]*q_orientation[2] + q_orientation[3]*q_orientation[3];
+		if (fabs(q_orientation_norm_sq-1.0)>1e-1) {
+				LOG_ERR("q_orientation_norm_sq not equals to 1: %10.4f ", q_orientation_norm_sq);
+				q_orientation[0] = 1.0;
+				q_orientation[1] = 0.0;
+				q_orientation[2] = 0.0;
+				q_orientation[3] = 0.0;
+			}
 		stamp_msg(&ctx->orientation_sp.stamp, k_uptime_ticks());
 		ctx->orientation_sp.has_stamp = true;
 		ctx->orientation_sp.w = q_orientation[0];

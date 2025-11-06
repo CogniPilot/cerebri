@@ -17,6 +17,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 #include "app/rdd2/casadi/rdd2.h"
+#include "app/rdd2/casadi/rdd2_loglinear.h"
 
 #include <cerebri/core/casadi.h>
 #include <cerebri/core/log_utils.h>
@@ -108,6 +109,24 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 
 	rdd2_position_init(ctx);
 
+	// constants
+	static const double kp[2] = {
+		CONFIG_CEREBRI_RDD2_POS_KP * 1e-6,
+		CONFIG_CEREBRI_RDD2_VEL_KP * 1e-6,
+	};
+
+	static const double ki[3] = {
+		CONFIG_CEREBRI_RDD2_X_KI * 1e-6,
+		CONFIG_CEREBRI_RDD2_Y_KI * 1e-6,
+		CONFIG_CEREBRI_RDD2_Z_KI * 1e-6,
+	};
+
+	static const double imax[3] = {
+		CONFIG_CEREBRI_RDD2_X_IMAX * 1e-6,
+		CONFIG_CEREBRI_RDD2_Y_IMAX * 1e-6,
+		CONFIG_CEREBRI_RDD2_Z_IMAX * 1e-6,
+	};
+
 	struct k_poll_event events[] = {
 		*zros_sub_get_event(&ctx->sub_odometry_estimator),
 	};
@@ -131,6 +150,13 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 		zros_sub_update(&ctx->sub_accel_sp);
 		zros_sub_update(&ctx->sub_orientation_sp);
 		zros_sub_update(&ctx->sub_odometry_estimator);
+
+		if (!ctx->status.has_stamp && ctx->position_sp.has_stamp && ctx->velocity_sp.has_stamp 
+			&& ctx->accel_sp.has_stamp && ctx->orientation_sp.has_stamp && ctx->odometry_estimator.has_stamp){
+				LOG_WRN("waiting for valid publication");
+				k_msleep(1000);
+				continue;
+			}
 
 		// calculate dt
 		int64_t ticks_now = k_uptime_ticks();
@@ -195,14 +221,17 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 				CASADI_FUNC_ARGS(position_control)
 
 				args[0] = &thrust_trim;
-				args[1] = pt_w;
-				args[2] = vt_w;
-				args[3] = at_w;
-				args[4] = qc_wb;
-				args[5] = p_w;
-				args[6] = v_w;
-				args[7] = z_i;
-				args[8] = &dt;
+				args[1] = kp;
+				args[2] = ki;
+				args[3] = imax;
+				args[4] = pt_w;
+				args[5] = vt_w;
+				args[6] = at_w;
+				args[7] = qc_wb;
+				args[8] = p_w;
+				args[9] = v_w;
+				args[10] = z_i;
+				args[11] = &dt;
 
 				res[0] = &nT;
 				res[1] = qr_wb;
@@ -210,8 +239,23 @@ static void rdd2_position_run(void *p0, void *p1, void *p2)
 
 				CASADI_FUNC_CALL(position_control)
 			}
-
+			
 			bool data_ok = true;
+			double qc_wb_norm_sq = qc_wb[0]*qc_wb[0] + qc_wb[1]*q_wb[1] + qc_wb[2]*qc_wb[2] + qc_wb[3]*qc_wb[3];
+
+			if (fabs(qc_wb_norm_sq-1.0)>1e-1) {
+				LOG_ERR("qc_wb_norm_sq not finite: %10.4f ", qc_wb_norm_sq);
+				data_ok = false;
+			}
+
+			for (int i = 0; i < 4; i++) {
+				if (!isfinite(qc_wb[i])) {
+					LOG_ERR("qc_wb[%d] not finite: %10.4f", i, qc_wb[i]);
+					data_ok = false;
+					break;
+				}
+			}
+
 			for (int i = 0; i < 4; i++) {
 				if (!isfinite(qr_wb[i])) {
 					LOG_ERR("qr_wb[%d] not finite: %10.4f", i, qr_wb[i]);

@@ -21,6 +21,7 @@
 #include <synapse_topic_list.h>
 
 #include "app/rdd2/casadi/rdd2.h"
+#include "app/rdd2/casadi/rdd2_loglinear.h"
 
 #define MY_STACK_SIZE 3072
 #define MY_PRIORITY   4
@@ -131,6 +132,11 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 		zros_sub_update(&ctx->sub_odometry_estimator);
 		zros_sub_update(&ctx->sub_attitude_sp);
 		zros_sub_update(&ctx->sub_angular_velocity_ff);
+
+		if (!ctx->status.has_stamp && ctx->odometry_estimator.has_stamp && ctx->angular_velocity_ff.has_stamp && ctx->attitude_sp.has_stamp){
+			LOG_WRN("waiting for valid data");
+			continue;
+		}
 
 		if (ctx->status.mode != synapse_pb_Status_Mode_MODE_ATTITUDE_RATE) {
 			double q_wb[4] = {ctx->odometry_estimator.pose.orientation.w,

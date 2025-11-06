@@ -32,7 +32,7 @@ static struct fs_mount_t mp = {
 	.type = FS_FATFS,
 };
 
-LOG_MODULE_DECLARE(log_sdcard, LOG_LEVEL_DBG);
+LOG_MODULE_DECLARE(log_sdcard, CONFIG_CEREBRI_SYNAPSE_LOG_SDCARD_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 

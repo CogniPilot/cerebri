@@ -68,7 +68,7 @@ void power_work_handler(struct k_work *work)
 	context_t *ctx = CONTAINER_OF(work, context_t, work_item);
 	int ret = sensor_sample_fetch(ctx->device[0]);
 	if (ret) {
-		LOG_ERR("Could not fetch sensor data");
+		LOG_ERR_RATELIMIT_RATE(2000, "Could not fetch sensor data");
 		return;
 	}
 	struct sensor_value voltage, current;

@@ -41,7 +41,7 @@ manifest:
       path: modules/lib/cyecca
     - name: synapse_pb
       remote: cognipilot
-      revision: e77c3a61f0ea8df8cf3424c9bd0bc33b28e53ba7 # main 10/27/25
+      revision: f038dd178faac0481033e5e4c757e31777c1b0be # main 11/10/25
       path: modules/lib/synapse_pb
     - name: ubxlib
       remote: cognipilot

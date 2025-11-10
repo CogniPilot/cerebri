@@ -11,4 +11,3 @@ build:
     - synapse_pb
     - cmsis
     - cmsis-dsp
-    - zros_drivers

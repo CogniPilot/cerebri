@@ -329,7 +329,7 @@ def derive_rover2d_estimator():
 
 def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
     dest_dir = Path(dest_dir)
-    dest_dir.mkdir(exist_ok=True)
+    dest_dir.mkdir(parents=True, exist_ok=True)
     p = {
         "verbose": True,
         "mex": False,

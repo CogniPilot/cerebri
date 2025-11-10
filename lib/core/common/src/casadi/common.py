@@ -139,7 +139,7 @@ def generate_code(eqs: dict, filename, dest_dir: str, **kwargs):
     Generate C Code from python CasADi functions.
     """
     dest_dir = Path(dest_dir)
-    dest_dir.mkdir(exist_ok=True)
+    dest_dir.mkdir(parents=True, exist_ok=True)
     p = {
         "verbose": True,
         "mex": False,

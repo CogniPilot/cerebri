@@ -150,6 +150,10 @@
 	/delete-node/ bmp388@76;
 };
 
+&enet1g_phy {
+	master-slave = "auto";
+};
+
 /* GNSS 1 */
 uart0: &lpuart3 {
        status = "okay";

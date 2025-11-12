@@ -150,4 +150,17 @@ if(CONFIG_BOARD STREQUAL "mr_vmu_tropic")
   zephyr_linker_sources(ITCM_SECTION boards/mr_vmu_tropic_itcm_linker.ld)
 endif()
 
+if(CONFIG_BOARD STREQUAL "mr_navq95a")
+  # Relocate code to ITCM
+  zephyr_linker_sources(ITCM_SECTION boards/mr_navq95a_itcm_linker.ld)
+  # Relocate log ring buffer to SDRAM
+  zephyr_linker_sources(SECTIONS boards/navq95.ld)
+  # Relocate data to OCRAM since zephyr doesn't have an auto spillover
+  zephyr_code_relocate(FILES ${SOURCE_FILES} LOCATION OCRAM_DATA)
+  zephyr_code_relocate(FILES ${SOURCE_FILES} LOCATION OCRAM_BSS)
+  zephyr_code_relocate(FILES ${SOURCE_FILES} LOCATION OCRAM_NOINIT)
+  zephyr_code_relocate(LIBRARY cerebri_synapse_topic LOCATION OCRAM_BSS)
+  zephyr_code_relocate(LIBRARY cerebri_synapse_topic LOCATION OCRAM_NOINIT)
+endif()
+
 # vi: ts=2 sw=2 et

@@ -16,6 +16,11 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_NXP_FLEXIO_DSHOT_LOG_LEVEL);
 
+#ifdef CONFIG_SOC_MIMX9596_M7
+#include <zephyr/drivers/firmware/scmi/clk.h>
+#include <zephyr/dt-bindings/clock/imx95_clock.h>
+#endif
+
 #include <zephyr/drivers/misc/nxp_flexio/nxp_flexio.h>
 
 #define DT_DRV_COMPAT nxp_flexio_dshot
@@ -192,8 +197,9 @@ static void nxp_flexio_bdshot_input(const struct device *dev, uint32_t channel)
 	FLEXIO_SetTimerConfig(flexio_base, child->res.timer_index[channel], &timerConfig);
 }
 
-static void nxp_flexio_dshot_set_clock()
+static int nxp_flexio_dshot_set_clock(const struct nxp_flexio_dshot_config *cfg)
 {
+	int ret = 0;
 #ifdef CONFIG_SOC_MIMXRT1176
 	/* Init System Pll2 pfd3 to 432Mhz */
 	CLOCK_InitPfd(kCLOCK_PllSys2, kCLOCK_Pfd3, 22);
@@ -205,6 +211,27 @@ static void nxp_flexio_dshot_set_clock()
 	rootCfg.div = 4;
 	CLOCK_SetRootClock(kCLOCK_Root_Flexio1, &rootCfg);
 #endif
+
+#ifdef CONFIG_SOC_MIMX9596_M7
+	uint64_t flexio_clk = 44444444;
+	struct scmi_protocol *proto = cfg->clock_dev->data;
+	struct scmi_clock_rate_config clk_cfg = {0};
+	ret = scmi_clock_parent_set(proto, IMX95_CLK_FLEXIO1, IMX95_CLK_SYSPLL1_PFD1_DIV2);
+	if (ret) {
+		return ret;
+	}
+
+	clk_cfg.flags = SCMI_CLK_RATE_SET_FLAGS_ROUNDS_AUTO;
+	clk_cfg.clk_id = IMX95_CLK_FLEXIO1;
+	clk_cfg.rate[0] = flexio_clk & 0xffffffff;
+	clk_cfg.rate[1] = (flexio_clk >> 32) & 0xffffffff;
+
+	ret = scmi_clock_rate_set(proto, &clk_cfg);
+	if (ret) {
+		return ret;
+	}
+#endif
+
 #ifdef CONFIG_SOC_MIMXRT1064
 	/* 108Mhz clock for FlexIO using PLL3 PFD2 @ 520 */
 	CLOCK_InitUsb1Pfd(kCLOCK_Pfd2, 16U);
@@ -213,6 +240,9 @@ static void nxp_flexio_dshot_set_clock()
 	CLOCK_SetDiv(kCLOCK_Flexio1Div, 0);
 	CLOCK_SetDiv(kCLOCK_Flexio1PreDiv, 4);
 #endif
+
+	return ret;
+
 }
 
 static int nxp_flexio_dshot_init(const struct device *dev)
@@ -227,7 +257,9 @@ static int nxp_flexio_dshot_init(const struct device *dev)
 		return -ENODEV;
 	}
 
-	nxp_flexio_dshot_set_clock();
+	if (nxp_flexio_dshot_set_clock(config)) {
+		return -EINVAL;
+	}
 
 	if (clock_control_get_rate(config->clock_dev, config->clock_subsys, &data->flexio_clk)) {
 		return -EINVAL;
@@ -242,11 +274,13 @@ static int nxp_flexio_dshot_init(const struct device *dev)
 
 	err = pinctrl_apply_state(config->pincfg, PINCTRL_STATE_DEFAULT);
 	if (err) {
+		LOG_ERR("Failed to configure pins");
 		return err;
 	}
 
 	err = nxp_flexio_child_attach(config->flexio_dev, child);
 	if (err < 0) {
+		LOG_ERR("Failed to attach child");
 		return err;
 	}
 

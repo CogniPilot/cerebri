@@ -113,10 +113,11 @@ target_sources(app PRIVATE ${SOURCE_FILES})
 
 target_include_directories(app SYSTEM BEFORE PRIVATE ${ZEPHYR_BASE}/include ${CMAKE_BINARY_DIR})
 
-add_subdirectory(boards ${build_dir})
-
 if(CONFIG_BOARD STREQUAL "mr_navq95a")
+  # Relocate code to ITCM
   zephyr_linker_sources(ITCM_SECTION boards/mr_navq95a_itcm_linker.ld)
+  # Relocate log ring buffer to SDRAM
+  zephyr_linker_sources(SECTIONS boards/navq95.ld)
 endif()
 
 # vi: ts=2 sw=2 et

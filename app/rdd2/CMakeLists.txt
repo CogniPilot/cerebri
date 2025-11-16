@@ -146,4 +146,8 @@ if(CONFIG_BOARD STREQUAL "vmu_rt1170")
   zephyr_linker_sources(ITCM_SECTION boards/vmu_rt1170_itcm_linker.ld)
 endif()
 
+if(CONFIG_BOARD STREQUAL "mr_vmu_tropic")
+  zephyr_linker_sources(ITCM_SECTION boards/mr_vmu_tropic_itcm_linker.ld)
+endif()
+
 # vi: ts=2 sw=2 et

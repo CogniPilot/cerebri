@@ -11,4 +11,4 @@ if [ -f $PYTHON_PATH/activate ]; then
 	deactivate
 fi
 
-poetry install -C $CYECCA_PATH
+poetry install -C $CYECCA_PATH --only main

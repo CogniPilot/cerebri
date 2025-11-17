@@ -48,6 +48,7 @@ static struct context g_ctx = {
 	.sub_cmd_vel_ethernet = {},
 	.pub_attitude_sp = {},
 	.pub_angular_velocity_ff = {},
+	.pub_angular_velocity_sp = {},
 	.pub_force_sp = {},
 	.pub_velocity_sp = {},
 	.pub_accel_sp = {},

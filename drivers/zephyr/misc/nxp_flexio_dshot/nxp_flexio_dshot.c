@@ -236,13 +236,12 @@ static int nxp_flexio_dshot_set_clock(const struct nxp_flexio_dshot_config *cfg)
 	/* 108Mhz clock for FlexIO using PLL3 PFD2 @ 520 */
 	CLOCK_InitUsb1Pfd(kCLOCK_Pfd2, 16U);
 
-	CLOCK_SetMux(kCLOCK_Flexio1Mux, 1); //PPL3 PFD2
+	CLOCK_SetMux(kCLOCK_Flexio1Mux, 1); // PPL3 PFD2
 	CLOCK_SetDiv(kCLOCK_Flexio1Div, 0);
 	CLOCK_SetDiv(kCLOCK_Flexio1PreDiv, 4);
 #endif
 
 	return ret;
-
 }
 
 static int nxp_flexio_dshot_init(const struct device *dev)

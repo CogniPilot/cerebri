@@ -1,0 +1,136 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2024 CogniPilot Foundation */
+#include <zephyr/dt-bindings/sensor/ina230.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+/ {
+	dshot_actuators: dshot_actuators {
+		compatible = "cerebri,dshot-actuators";
+		aux0 {
+			input-type = "velocity";
+			input-index = <0>;
+			center = <200>;
+			scale = <1500>;
+			scale-div = <1000>;
+		};
+		aux1 {
+			input-type = "velocity";
+			input-index = <1>;
+			center = <200>;
+			scale = <1500>;
+			scale-div = <1000>;
+		};
+		aux2 {
+			input-type = "velocity";
+			input-index = <2>;
+			center = <200>;
+			scale = <1500>;
+			scale-div = <1000>;
+		};
+		aux3 {
+			input-type = "velocity";
+			input-index = <3>;
+			center = <200>;
+			scale = <1500>;
+			scale-div = <1000>;
+		};
+	};
+
+	chosen {
+		zephyr,canbus = &flexcan3;
+	};
+
+	aliases {
+		can0 = &flexcan3;
+		telem1 = &lpuart5;
+		accel0 = &icm45686;
+		gyro0 = &icm45686;
+		mag0 = &ist8310;
+		mag1 = &bmm350;
+		baro0 = &bmp390;
+		power0 = &ina230;
+		status-led = &ncp5623c;
+		buzzer = &buzzer0;
+		sbus = &sbus0;
+	};
+	cfg-device-gnss {
+		status = "okay";
+		compatible = "u-blox,ubxlib-device-gnss";
+		transport-type = "uart0";
+		uart-baud-rate = <115200>;
+		module-type = "U_GNSS_MODULE_TYPE_M10";
+	};
+};
+
+&flexcan3 {
+	status = "okay";
+};
+
+&lpi2c3 {
+	ina230: ina230@41 {
+		compatible = "ti,ina230";
+		reg = <0x41>;
+		current-lsb-microamps = <5000>;
+		rshunt-micro-ohms = <500>;
+	};
+};
+
+/* GNSS 1 */
+uart0: &lpuart2 {
+       status = "okay";
+       current-speed = <115200>;
+};
+
+/* DSHOT */
+
+&pinctrl {
+	
+	pinmux_dshot_vmu: pinmux_dshot_vmu {
+		group0 {
+			pinmux = <&iomuxc_gpio_emc_06_flexio1_flexio06>,
+				<&iomuxc_gpio_emc_07_flexio1_flexio07>,
+				<&iomuxc_gpio_emc_08_flexio1_flexio08>,
+				<&iomuxc_gpio_emc_09_flexio1_flexio09>,
+				<&iomuxc_gpio_emc_02_flexio1_flexio02>,
+				<&iomuxc_gpio_emc_03_flexio1_flexio03>,
+				<&iomuxc_gpio_emc_04_flexio1_flexio04>,
+				<&iomuxc_gpio_emc_05_flexio1_flexio05>;
+			drive-strength = "r0-4";
+			bias-pull-up;
+			bias-pull-up-value = "47k";
+			slew-rate = "fast";
+			input-enable;
+			nxp,speed = "100-mhz";
+		};
+	};
+};
+
+&flexio1 {
+	status = "okay";
+
+	dshot: dshot {
+		compatible = "nxp,flexio-dshot";
+		pinctrl-0 = <&pinmux_dshot_vmu>;
+		pinctrl-names = "default";
+		status = "okay";
+		speed = <600>;
+
+		ch1 {
+			pin-id = <6>;
+		};
+
+		ch2 {
+			pin-id = <7>;
+		};
+
+		ch3 {
+			pin-id = <8>;
+		};
+
+		ch4 {
+			pin-id = <9>;
+		};
+
+	};
+
+};

@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 806b37ff02adcb8265f4e1713cec7d2f5f623fc0 # zephyr_3.7.0.1 08/21/24
+      revision: 79ef09f41aa943c2853f7da9060dc0b8ec15d804 # main-with-patches 11/17/25
       import:
         - name-allowlist:
           - nanopb
@@ -27,12 +27,15 @@ manifest:
           - hal_nxp
           - cmsis
           - cmsis-dsp
+          - cmsis_6
           - ubxlib
           - fatfs
+          - open-amp
+          - libmetal
           - segger
     - name: zros
       remote: cognipilot
-      revision: 843348bca3a15e914914b90057369b9616302e20 # main 6/11/25
+      revision: 843348bca3a15e914914b90057369b9616302e20 # main 10/27/25
       path: modules/lib/zros
     - name: cyecca
       remote: cognipilot
@@ -40,7 +43,7 @@ manifest:
       path: modules/lib/cyecca
     - name: synapse_pb
       remote: cognipilot
-      revision: a3f07afc647f3f4531515f480199621df97beac6 # main 10/16/25
+      revision: f038dd178faac0481033e5e4c757e31777c1b0be # main 11/10/25
       path: modules/lib/synapse_pb
     - name: ubxlib
       remote: cognipilot
@@ -48,5 +51,13 @@ manifest:
       revision: brave
     - name: hal_nxp
       remote: cognipilot
-      revision: e400b5dba27d9abe1403fc799d48b58fa1b1daee # master 8/21/24
+      revision: cf8f1631e862528ee044850bcc70273975b90771 # master 10/27/25
       path: modules/hal/nxp
+    - name: zros_drivers
+      remote: cognipilot
+      revision: 62aa3c92569e6a2819123c424d96e02c5aca16e9 # main 11/10/25
+      path: modules/lib/zros_drivers
+    - name: zephyr_boards
+      remote: cognipilot
+      revision: c353dcae1e94f6223b5959845521e9aa25dcc3df
+      path: modules/lib/zephyr_boards

@@ -19,10 +19,11 @@
 
 #include <synapse_topic_list.h>
 
-#define MY_STACK_SIZE 16384
+#define MY_STACK_SIZE 8192
 #define MY_PRIORITY   1
 #define BUF_SIZE      131072
 #define TOPIC_RATE_HZ 100
+#define MAX_ENC_SIZE  8192
 
 #define SUBSCRIBE_TOPIC(topic_name)                                                                \
                                                                                                    \
@@ -38,12 +39,15 @@
 #define GET_UPDATE(topic_name, topic_type)                                                         \
 	if (zros_sub_update_available(&ctx->sub_##topic_name)) {                                   \
 		zros_sub_update(&ctx->sub_##topic_name);                                           \
+		harden_pb_frame(&ctx->frame);                                                      \
 		ctx->frame.which_msg = synapse_pb_Frame_##topic_type##_tag;                        \
 		snprintf(ctx->frame.topic, sizeof(ctx->frame.topic), #topic_name);                 \
 		log_sdcard_write_frame(ctx);                                                       \
 	}
 
-RING_BUF_DECLARE(rb_sdcard, BUF_SIZE);
+BUILD_ASSERT(BUF_SIZE <= RING_BUFFER_MAX_SIZE, RING_BUFFER_SIZE_ASSERT_MSG);
+static uint8_t _ring_buffer_data_rb_sdcard[BUF_SIZE];
+struct ring_buf rb_sdcard = RING_BUF_INIT(_ring_buffer_data_rb_sdcard, BUF_SIZE);
 
 LOG_MODULE_REGISTER(log_sdcard, LOG_LEVEL_DBG);
 
@@ -173,9 +177,7 @@ static int log_sdcard_init(struct context *ctx)
 
 	k_sem_take(&ctx->running, K_FOREVER);
 
-	// make sure writer is ready
-	k_msleep(1000);
-	LOG_INF("init");
+	LOG_INF("reader init");
 	return ret;
 };
 
@@ -217,30 +219,73 @@ static int log_sdcard_fini(struct context *ctx)
 	zros_node_fini(&ctx->node);
 
 	k_sem_give(&ctx->running);
-	LOG_INF("fini");
+	LOG_INF("reader fini");
 	return ret;
 };
 
+/* Streaming write callback writing to Zephyr ring buffer in chunks */
+static bool rb_stream_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
+{
+	struct ring_buf *rb = (struct ring_buf *)stream->state;
+
+	size_t written = 0;
+	while (written < count) {
+		uint8_t *dst;
+		size_t to_write = count - written;
+
+		/* Claim as much as possible for this chunk */
+		size_t claim = ring_buf_put_claim(rb, &dst, to_write);
+		if (claim == 0) {
+			/* No contiguous space at this moment
+			 * Fail: this will abort the encode.
+			 */
+			PB_RETURN_ERROR(stream, "ring buffer full");
+			return false;
+		}
+
+		memcpy(dst, buf + written, claim);
+		ring_buf_put_finish(rb, claim);
+		written += claim;
+	}
+
+	return true;
+}
+
 static void log_sdcard_write_frame(struct context *ctx)
 {
-	static uint8_t buf[8192];
-	size_t size_written, size_available;
-	pb_ostream_t stream = pb_ostream_from_buffer(buf, ARRAY_SIZE(buf));
-	if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, &ctx->frame, PB_ENCODE_DELIMITED)) {
-		LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
+	uint8_t *buf;
+	uint32_t claimed_size = ring_buf_put_claim(&rb_sdcard, &buf, MAX_ENC_SIZE);
+
+	if (claimed_size < MAX_ENC_SIZE) {
+		/* No data written, release claim */
+		ring_buf_put_finish(&rb_sdcard, 0);
+
+		/* Build a nanopb stream that writes via our callback */
+		pb_ostream_t stream = {.callback = rb_stream_write,
+				       .state = &rb_sdcard,
+				       .max_size = SIZE_MAX,
+				       .bytes_written = 0};
+
+		if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, &ctx->frame,
+				  PB_ENCODE_DELIMITED)) {
+			/* Note: Partial data may have been committed to the ring buffer */
+			LOG_ERR_RATELIMIT_RATE(1000, "encoding failed: %s", PB_GET_ERROR(&stream));
+		}
 	} else {
-		size_available = ring_buf_space_get(&rb_sdcard);
-		if (size_available < stream.bytes_written) {
-			LOG_WRN("dropping packet, stream full");
+		pb_ostream_t stream = pb_ostream_from_buffer(buf, claimed_size);
+		if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, &ctx->frame,
+				  PB_ENCODE_DELIMITED)) {
+			LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
+			ring_buf_put_finish(&rb_sdcard, 0);
 		} else {
-			size_written = ring_buf_put(&rb_sdcard, buf, stream.bytes_written);
-			if (size_written != stream.bytes_written) {
-				LOG_INF("partial write: %d/%d", size_written, stream.bytes_written);
-				return;
-			}
-			// LOG_INF("writing %d", stream.bytes_written);
+			ring_buf_put_finish(&rb_sdcard, stream.bytes_written);
 		}
 	}
+}
+
+static void harden_pb_frame(synapse_pb_Frame *frame)
+{
+	memset(&frame->cb_msg, 0, sizeof(frame->cb_msg));
 }
 
 static void log_sdcard_run(void *p0, void *p1, void *p2)
@@ -352,6 +397,6 @@ static int log_sdcard_sys_init(void)
 	return start(&g_ctx);
 };
 
-SYS_INIT(log_sdcard_sys_init, APPLICATION, 0);
+SYS_INIT(log_sdcard_sys_init, APPLICATION, 99);
 
 // vi: ts=4 sw=4 et

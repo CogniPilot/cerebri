@@ -15,16 +15,20 @@
 
 #include <pb_encode.h>
 
-#include "proto/udp_tx.h"
-
 #include <synapse_topic_list.h>
 #include <cerebri/core/log_utils.h>
 
-#define MY_STACK_SIZE 8192
-#define MY_PRIORITY   1
-#define TX_BUF_SIZE   8192
+#ifndef CONFIG_CEREBRI_SYNAPSE_RPMSG
+#include "proto/udp_tx.h"
+#else
+#include <synapse_rpmsg.h>
+#endif
 
-CEREBRI_NODE_LOG_INIT(eth_tx, LOG_LEVEL_WRN);
+#define MY_STACK_SIZE 3072
+#define MY_PRIORITY   1
+#define TX_BUF_SIZE   2048
+
+CEREBRI_NODE_LOG_INIT(eth_tx, CONFIG_CEREBRI_SYNAPSE_ETH_TX_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
@@ -39,8 +43,10 @@ struct context {
 	synapse_pb_NavSatFix nav_sat_fix;
 	synapse_pb_Odometry odometry_estimator;
 	synapse_pb_Status status;
+#ifndef CONFIG_CEREBRI_SYNAPSE_RPMSG
 	// connections
 	struct udp_tx udp;
+#endif
 	// status
 	struct k_sem running;
 	size_t stack_size;
@@ -90,7 +96,11 @@ static void send_frame(struct context *ctx, pb_size_t which_msg)
 	if (!pb_encode_ex(&stream, synapse_pb_Frame_fields, frame, PB_ENCODE_DELIMITED)) {
 		LOG_ERR("encoding failed: %s", PB_GET_ERROR(&stream));
 	} else {
+#ifndef CONFIG_CEREBRI_SYNAPSE_RPMSG
 		udp_tx_send(&ctx->udp, tx_buf, stream.bytes_written);
+#else
+		rpmsg_synapse_send(tx_buf, stream.bytes_written);
+#endif
 	}
 }
 
@@ -124,12 +134,14 @@ static int eth_tx_init(struct context *ctx)
 		return ret;
 	}
 
+#ifndef CONFIG_CEREBRI_SYNAPSE_RPMSG
 	// initialize udp
 	ret = udp_tx_init(&ctx->udp);
 	if (ret < 0) {
 		LOG_ERR("udp init failed: %d", ret);
 		return ret;
 	}
+#endif
 
 	k_sem_take(&ctx->running, K_FOREVER);
 	LOG_INF("init");
@@ -139,7 +151,9 @@ static int eth_tx_init(struct context *ctx)
 static int eth_tx_fini(struct context *ctx)
 {
 	int ret = 0;
+#ifndef CONFIG_CEREBRI_SYNAPSE_RPMSG
 	ret = udp_tx_fini(&ctx->udp);
+#endif
 
 	// close subscriptions
 	zros_sub_fini(&ctx->sub_actuators);
@@ -264,6 +278,6 @@ static int eth_tx_sys_init(void)
 	return start(&g_ctx);
 };
 
-SYS_INIT(eth_tx_sys_init, APPLICATION, 0);
+SYS_INIT(eth_tx_sys_init, APPLICATION, 99);
 
 // vi: ts=4 sw=4 et

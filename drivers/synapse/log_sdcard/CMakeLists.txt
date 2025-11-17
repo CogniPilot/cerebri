@@ -11,6 +11,12 @@ zephyr_library_sources(
   src/writer.c
   )
 
-zephyr_link_libraries(ELMFAT)
+if(CONFIG_FAT_FILESYSTEM_ELM)
+  zephyr_link_libraries(ELMFAT)
+endif()
 
 add_dependencies(cerebri_synapse_log_sdcard synapse_pb)
+
+if(CONFIG_CEREBRI_SYNAPSE_RPMSG)
+add_dependencies(cerebri_synapse_log_sdcard cerebri_synapse_rpmsg)
+endif()

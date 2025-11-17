@@ -222,6 +222,6 @@ static int rdd2_allocation_sys_init(void)
 	return start(&g_ctx);
 };
 
-SYS_INIT(rdd2_allocation_sys_init, APPLICATION, 4);
+SYS_INIT(rdd2_allocation_sys_init, APPLICATION, 99);
 
 // vi: ts=4 sw=4 et

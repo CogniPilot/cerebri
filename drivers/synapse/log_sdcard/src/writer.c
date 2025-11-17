@@ -8,26 +8,31 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
-#include <cerebri/core/perf_counter.h>
-
+#if CONFIG_FAT_FILESYSTEM_ELM
 #include <ff.h>
+#endif
+
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>
+#ifdef CONFIG_FILE_SYSTEM_RPMSGFS
+#include <synapse_rpmsg.h>
+#endif
 
 #define FS_RET_OK     FR_OK
-#define MY_STACK_SIZE 8192
+#define MY_STACK_SIZE 2048
 #define MY_PRIORITY   1
-#define BUF_SIZE      (131072 * 2)
+#define BUF_SIZE      512
 
 extern struct ring_buf rb_sdcard;
 
+#ifndef CONFIG_FILE_SYSTEM_RPMSGFS
 static FATFS fat_fs;
+#endif
 static struct fs_mount_t mp = {
 	.type = FS_FATFS,
-	.fs_data = &fat_fs,
 };
 
-LOG_MODULE_DECLARE(log_sdcard, LOG_LEVEL_DBG);
+LOG_MODULE_DECLARE(log_sdcard, CONFIG_CEREBRI_SYNAPSE_LOG_SDCARD_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
@@ -53,46 +58,51 @@ static const char *disk_mount_pt = "/SD:";
 
 static int mount_sd_card(void)
 {
-	/* raw disk i/o */
-	static const char *disk_pdrv = "SD";
-	uint64_t memory_size_mb;
-	uint32_t block_count;
-	uint32_t block_size;
+	struct fs_statvfs stat;
+	int res;
 
-	if (disk_access_init(disk_pdrv) != 0) {
-		LOG_ERR("Storage init ERROR!");
-		return -1;
-	}
+	res = fs_statvfs(disk_mount_pt, &stat);
+	if (res == -ENOENT) {
 
-	if (disk_access_ioctl(disk_pdrv, DISK_IOCTL_GET_SECTOR_COUNT, &block_count)) {
-		LOG_ERR("Unable to get sector count");
-		return -1;
-	}
-	LOG_INF("Block count %u", block_count);
+		mp.mnt_point = disk_mount_pt;
 
-	if (disk_access_ioctl(disk_pdrv, DISK_IOCTL_GET_SECTOR_SIZE, &block_size)) {
-		LOG_ERR("Unable to get sector size");
-		return -1;
-	}
-	LOG_INF("Sector size %u", block_size);
+#ifndef CONFIG_FILE_SYSTEM_RPMSGFS
+		mp.fs_data = &fat_fs;
+#else
+		mp.fs_data = "/cerebri";
+		mp.type = FS_RPMSGFS;
+		rpmsg_rpdev_wait();
+#endif
 
-	memory_size_mb = (uint64_t)block_count * block_size;
-	LOG_INF("Memory Size(MB) %u", (uint32_t)(memory_size_mb >> 20));
-
-	mp.mnt_point = disk_mount_pt;
-
-	int res = fs_mount(&mp);
-
-	if (res == FR_OK) {
-		LOG_INF("Disk mounted.");
-	} else {
-		LOG_INF("Failed to mount disk - trying one more time");
 		res = fs_mount(&mp);
-		if (res != FR_OK) {
-			LOG_INF("Error mounting disk.");
-			return -1;
+
+		if (res == 0) {
+			LOG_INF("Disk mounted.");
+		} else {
+			LOG_INF("Failed to mount disk - trying one more time");
+			res = fs_mount(&mp);
+			if (res != 0) {
+				LOG_ERR("Error mounting disk.");
+				return -1;
+			}
 		}
+
+		do {
+			res = fs_statvfs(disk_mount_pt, &stat);
+			k_sleep(K_MSEC(1));
+		} while (res >= 0 && stat.f_blocks == 0);
+		/* Retry indefinitely until a mounted filesystem is available
+		 * and has space to write to (i.e., f_blocks > 0).
+		 */
 	}
+
+	if (res < 0) {
+		return -1;
+	}
+
+	LOG_INF("Sector size %lu", stat.f_blocks);
+	LOG_INF("Memory Size(MB) %u", (uint32_t)((stat.f_bsize * stat.f_blocks) >> 20));
+
 	return 0;
 }
 
@@ -107,6 +117,15 @@ static int log_sdcard_writer_init(struct context *ctx)
 
 	fs_file_t_init(&ctx->file);
 
+#ifdef CONFIG_FILE_SYSTEM_RPMSGFS
+	/* Linux VFS is partially initialized: currently mounted read-only.
+	 * Linux requires additional setup before the VFS becomes writable.
+	 * Unfortunately, there's no asynchronous signal to detect readiness,
+	 * but a 100ms delay has proven to be a stable workaround.
+	 */
+	k_sleep(K_MSEC(100));
+#endif
+
 	// delete old file if it exists
 	fs_unlink("/SD:/data.pb");
 
@@ -117,7 +136,7 @@ static int log_sdcard_writer_init(struct context *ctx)
 	}
 
 	k_sem_take(&ctx->running, K_FOREVER);
-	LOG_INF("init");
+	LOG_INF("writer init");
 	return ret;
 };
 
@@ -136,7 +155,7 @@ static int log_sdcard_writer_fini(struct context *ctx)
 	}
 
 	k_sem_give(&ctx->running);
-	LOG_INF("fini");
+	LOG_INF("writer fini");
 	return ret;
 };
 
@@ -161,21 +180,29 @@ static void log_sdcard_writer_run(void *p0, void *p1, void *p2)
 	int64_t last_ticks = 0;
 	uint8_t *data;
 	while (k_sem_take(&ctx->running, K_NO_WAIT) < 0) {
+		/* Wait until the ring buffer has at least BUF_SIZE bytes available.
+		 * We aim to write in chunks of BUF_SIZE, ideally matching the filesystem's
+		 * sector size to maximize write throughput.
+		 */
+		if (ring_buf_size_get(&rb_sdcard) < BUF_SIZE) {
+			k_msleep(1);
+			continue;
+		}
 
-		k_msleep(1);
 		size = ring_buf_get_claim(&rb_sdcard, &data, BUF_SIZE);
 		if (size > 0) {
-			// LOG_INF("writing: %d bytes to sdcard", size);
+			LOG_DBG("writing: %d bytes to sdcard", size);
 			size_written = fs_write(&ctx->file, data, size);
 			ctx->total_size_written += size_written;
 			ring_buf_get_finish(&rb_sdcard, size);
 			if (size != size_written) {
-				LOG_ERR("file write failed %d/%d", size_written, size);
+				LOG_ERR_RATELIMIT_RATE(1000, "file write failed %d/%d",
+						       size_written, size);
 			}
 		}
 		int64_t now_ticks = k_uptime_ticks();
 		if (now_ticks - last_ticks > 4 * CONFIG_SYS_CLOCK_TICKS_PER_SEC) {
-			// LOG_INF("fsync");
+			LOG_DBG("fsync");
 			last_ticks = now_ticks;
 			fs_sync(&ctx->file);
 		}
@@ -233,6 +260,6 @@ static int log_sdcard_writer_sys_init(void)
 	return 0;
 };
 
-SYS_INIT(log_sdcard_writer_sys_init, APPLICATION, 0);
+SYS_INIT(log_sdcard_writer_sys_init, APPLICATION, 99);
 
 // vi: ts=4 sw=4 et

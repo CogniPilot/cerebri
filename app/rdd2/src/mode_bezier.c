@@ -101,6 +101,12 @@ void rdd2_mode_bezier(struct context *ctx)
 		// f_ref:(psi,psi_dot,psi_ddot,v_e[3],a_e[3],j_e[3],s_e[3])
 		// ->(v_b[3],quat[4],omega_eb_b[3],omega_dot_eb_b[3],M_b[3],T)
 		{
+			double m = 2.0;
+			double g = 9.8;
+			double Jx = 0.02166666666666667;
+			double Jy = 0.02166666666666667;
+			double Jz = 0.04000000000000001;
+			double Jxz = 0.0;
 			CASADI_FUNC_ARGS(f_ref);
 
 			args[0] = &psi;
@@ -110,6 +116,12 @@ void rdd2_mode_bezier(struct context *ctx)
 			args[4] = a;
 			args[5] = j;
 			args[6] = s;
+			args[7] = &m;
+			args[8] = &g;
+			args[9] = &Jx;
+			args[10] = &Jy;
+			args[11] = &Jz;
+			args[12] = &Jxz;
 
 			res[0] = v_b;
 			res[1] = q_att;

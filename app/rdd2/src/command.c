@@ -6,7 +6,7 @@
 #include "command.h"
 #include <cerebri/core/log_utils.h>
 
-#define MY_STACK_SIZE 16384
+#define MY_STACK_SIZE 32768
 #define MY_PRIORITY   4
 
 #ifndef M_PI
@@ -22,6 +22,7 @@ static struct context g_ctx = {
 	.input = synapse_pb_Input_init_default,
 	.attitude_sp = synapse_pb_Quaternion_init_default,
 	.angular_velocity_ff = synapse_pb_Vector3_init_default,
+	.angular_velocity_sp = synapse_pb_Vector3_init_default,
 	.force_sp = synapse_pb_Vector3_init_default,
 	.bezier_trajectory = synapse_pb_BezierTrajectory_init_default,
 	.status = synapse_pb_Status_init_default,
@@ -47,6 +48,7 @@ static struct context g_ctx = {
 	.sub_cmd_vel_ethernet = {},
 	.pub_attitude_sp = {},
 	.pub_angular_velocity_ff = {},
+	.pub_angular_velocity_sp = {},
 	.pub_force_sp = {},
 	.pub_velocity_sp = {},
 	.pub_accel_sp = {},
@@ -84,6 +86,8 @@ static void rdd2_command_init(struct context *ctx)
 	zros_pub_init(&ctx->pub_attitude_sp, &ctx->node, &topic_attitude_sp, &ctx->attitude_sp);
 	zros_pub_init(&ctx->pub_angular_velocity_ff, &ctx->node, &topic_angular_velocity_ff,
 		      &ctx->angular_velocity_ff);
+	zros_pub_init(&ctx->pub_angular_velocity_sp, &ctx->node, &topic_angular_velocity_sp,
+		      &ctx->angular_velocity_sp);
 	zros_pub_init(&ctx->pub_force_sp, &ctx->node, &topic_force_sp, &ctx->force_sp);
 	zros_pub_init(&ctx->pub_velocity_sp, &ctx->node, &topic_velocity_sp, &ctx->velocity_sp);
 	zros_pub_init(&ctx->pub_accel_sp, &ctx->node, &topic_accel_sp, &ctx->accel_sp);
@@ -106,6 +110,7 @@ static void rdd2_command_fini(struct context *ctx)
 	zros_sub_fini(&ctx->sub_cmd_vel_ethernet);
 	zros_pub_fini(&ctx->pub_attitude_sp);
 	zros_pub_fini(&ctx->pub_angular_velocity_ff);
+	zros_pub_fini(&ctx->pub_angular_velocity_sp);
 	zros_pub_fini(&ctx->pub_velocity_sp);
 	zros_pub_fini(&ctx->pub_accel_sp);
 	zros_pub_fini(&ctx->pub_force_sp);

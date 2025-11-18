@@ -1,0 +1,83 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2024 CogniPilot Foundation */
+
+/*
+ * ESC Passthrough GPIO configuration for VMU RT1170
+ *
+ * Motor output pins (same as DSHOT driver uses):
+ *   CH1 = GPIO_EMC_B1_23 = GPIO1 pin 23
+ *   CH2 = GPIO_EMC_B1_25 = GPIO1 pin 25
+ *   CH3 = GPIO_EMC_B1_27 = GPIO1 pin 27
+ *   CH4 = GPIO_EMC_B1_06 = GPIO1 pin 6
+ *
+ * Communication:
+ *   Passthrough: USB-C CDC ACM (/dev/ttyACM0)
+ *   Console: lpuart1 debug cable (/dev/ttyUSB0)
+ */
+
+/* Pinmux for ESC GPIO bit-banging mode */
+&pinctrl {
+	pinmux_esc_gpio: pinmux_esc_gpio {
+		group0 {
+			pinmux = <&iomuxc_gpio_emc_b1_23_gpio_mux1_io23>,
+				<&iomuxc_gpio_emc_b1_25_gpio_mux1_io25>,
+				<&iomuxc_gpio_emc_b1_27_gpio_mux1_io27>,
+				<&iomuxc_gpio_emc_b1_06_gpio_mux1_io06>;
+			slew-rate = "fast";
+			drive-strength = "high";
+		};
+	};
+};
+
+/ {
+	esc_gpios: esc_gpios {
+		compatible = "gpio-leds";
+		status = "okay";
+		pinctrl-0 = <&pinmux_esc_gpio>;
+		pinctrl-names = "default";
+
+		esc1: esc_1 {
+			gpios = <&gpio1 23 GPIO_ACTIVE_HIGH>;
+			label = "ESC1 (CH1)";
+		};
+
+		esc2: esc_2 {
+			gpios = <&gpio1 25 GPIO_ACTIVE_HIGH>;
+			label = "ESC2 (CH2)";
+		};
+
+		esc3: esc_3 {
+			gpios = <&gpio1 27 GPIO_ACTIVE_HIGH>;
+			label = "ESC3 (CH3)";
+		};
+
+		esc4: esc_4 {
+			gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+			label = "ESC4 (CH4)";
+		};
+	};
+};
+
+/* CDC ACM UART for ESC passthrough (new USB stack) */
+&zephyr_udc0 {
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+/* Disable PWM outputs that would conflict with GPIO control */
+&flexpwm1_pwm0 {
+	status = "disabled";
+};
+
+&flexpwm1_pwm1 {
+	status = "disabled";
+};
+
+&flexpwm1_pwm2 {
+	status = "disabled";
+};
+
+&flexpwm2_pwm0 {
+	status = "disabled";
+};

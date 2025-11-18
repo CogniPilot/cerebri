@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2024 CogniPilot Foundation
+#
+# ESC Passthrough USB Protocol Tests
+#
+# These pytest tests run against the MAIN app (not Ztest), simulating what
+# AM32.ca configurator does over USB CDC.
+#
+# Run with:
+#   west twister -T app/esc_passthrough \
+#     -p vmu_rt1170/mimxrt1176/cm7 \
+#     --device-testing --device-serial /dev/ttyUSB0 \
+#     --west-runner jlink
+#
+# The tests communicate over USB CDC (/dev/ttyACM0) while twister monitors
+# the console on /dev/ttyUSB0.
+
+common:
+  tags: esc passthrough usb protocol
+
+tests:
+  # USB Protocol tests - pytest-based, simulates AM32 configurator
+  # Builds the MAIN app and tests MSP + 4-way interface over USB CDC
+  esc_passthrough.usb_protocol:
+    tags: hardware usb protocol pytest
+    platform_allow:
+      - vmu_rt1170/mimxrt1176/cm7
+    harness: pytest
+    harness_config:
+      pytest_root:
+        - tests/pytest/
+      pytest_dut_scope: session
+    timeout: 120

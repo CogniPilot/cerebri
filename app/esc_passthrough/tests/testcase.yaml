@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2024 CogniPilot Foundation
+#
+# ESC Passthrough Tests
+#
+# Run CI tests (no hardware):
+#   west twister -T app/esc_passthrough/tests -p native_sim
+#
+# Run HW tests (requires ESC connected):
+#   west twister -T app/esc_passthrough/tests \
+#     -p vmu_rt1170/mimxrt1176/cm7 \
+#     --device-testing --device-serial /dev/ttyUSB0 \
+#     --west-runner jlink \
+#     -s esc_passthrough.hardware
+#
+# Note: USB protocol tests (pytest) are in app/esc_passthrough/testcase.yaml
+#       Run with: west twister -T app/esc_passthrough -p vmu_rt1170/mimxrt1176/cm7 ...
+#
+# Note: Use /dev/ttyUSB0 (UART console on debug cable) for twister
+#
+# Or build/flash manually:
+#   west build -b vmu_rt1170/mimxrt1176/cm7 app/esc_passthrough/tests \
+#     -DCONFIG_TEST_HARDWARE=y -p && west flash -r jlink
+
+common:
+  tags: esc passthrough
+  min_ram: 32
+
+tests:
+  # CI Tests - Protocol verification without hardware
+  # These run in cloud CI automatically
+  esc_passthrough.protocol.ci:
+    tags: ci protocol crc parsing
+    platform_allow:
+      - native_sim
+      - qemu_cortex_m3
+    integration_platforms:
+      - native_sim
+    harness: console
+    harness_config:
+      type: one_line
+      regex:
+        - "PROJECT EXECUTION SUCCESSFUL"
+
+  # Hardware tests - require real VMU with ESC connected
+  # Excluded from CI, run with --device-testing
+  esc_passthrough.hardware:
+    tags: hardware
+    platform_allow:
+      - vmu_rt1170/mimxrt1176/cm7
+    extra_configs:
+      - CONFIG_TEST_HARDWARE=y
+      - CONFIG_GPIO=y
+      - CONFIG_LOG=y
+    harness: console
+    harness_config:
+      type: one_line
+      regex:
+        - "PROJECT EXECUTION SUCCESSFUL"
+    timeout: 120
+

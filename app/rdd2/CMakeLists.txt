@@ -144,15 +144,18 @@ target_include_directories(app SYSTEM BEFORE PRIVATE
 
 if(CONFIG_BOARD STREQUAL "vmu_rt1170")
   zephyr_linker_sources(ITCM_SECTION boards/vmu_rt1170_itcm_linker.ld)
+  zephyr_code_relocate(LIBRARY nanopb LOCATION ITCM_TEXT)
 endif()
 
 if(CONFIG_BOARD STREQUAL "mr_vmu_tropic")
   zephyr_linker_sources(ITCM_SECTION boards/mr_vmu_tropic_itcm_linker.ld)
+  zephyr_code_relocate(LIBRARY nanopb LOCATION ITCM_TEXT)
 endif()
 
 if(CONFIG_BOARD STREQUAL "mr_navq95a")
   # Relocate code to ITCM
   zephyr_linker_sources(ITCM_SECTION boards/mr_navq95a_itcm_linker.ld)
+  zephyr_code_relocate(LIBRARY nanopb LOCATION ITCM_TEXT)
   # Relocate log ring buffer to SDRAM
   zephyr_linker_sources(SECTIONS boards/navq95.ld)
   # Relocate data to OCRAM since zephyr doesn't have an auto spillover

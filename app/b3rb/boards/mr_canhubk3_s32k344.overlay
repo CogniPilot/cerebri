@@ -69,13 +69,7 @@
 		wheel-odometry0 = &qdec0;
 		sbus = &sbus0;
 		safety-button = &safety_button_mr_canhubk3_adap;
-	};
-	cfg-device-gnss {
-		status = "okay";
-		compatible = "u-blox,ubxlib-device-gnss";
-		transport-type = "uart0";
-		uart-baud-rate = <115200>;
-		module-type = "U_GNSS_MODULE_TYPE_M10";
+		gnss = &gnss1;
 	};
 	leds {
 		gps_led_mr_canhubk3_adap: gps_led {
@@ -361,6 +355,12 @@ uart0: &lpuart7 {
 	pinctrl-0 = <&lpuart7_mr_canhubk3_adap>;
 	pinctrl-names = "default";
 	current-speed = <115200>;
+
+	gnss1: gnss {
+		status = "okay";
+		compatible = "u-blox,f9p";
+		fix-rate = <100>;
+	};
 };
 
 &lpspi4 {

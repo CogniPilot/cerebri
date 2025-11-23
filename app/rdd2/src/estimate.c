@@ -89,7 +89,7 @@ static struct context g_ctx = {
 static void rdd2_estimate_init(struct context *ctx)
 {
 	zros_node_init(&ctx->node, "rdd2_estimate");
-	zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->imu, 300);
+	zros_sub_init(&ctx->sub_imu, &ctx->node, &topic_imu, &ctx->imu, 1000);
 	zros_sub_init(&ctx->sub_mag, &ctx->node, &topic_magnetic_field, &ctx->mag, 300);
 	zros_sub_init(&ctx->sub_odometry_ethernet, &ctx->node, &topic_odometry_ethernet,
 		      &ctx->odometry_ethernet, 10);

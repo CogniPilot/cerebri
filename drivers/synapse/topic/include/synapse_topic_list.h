@@ -55,7 +55,8 @@ ZROS_TOPIC_DECLARE(topic_clock_offset_ethernet, synapse_pb_Time);
 ZROS_TOPIC_DECLARE(topic_cmd_vel, synapse_pb_Twist);
 ZROS_TOPIC_DECLARE(topic_cmd_vel_ethernet, synapse_pb_Twist);
 ZROS_TOPIC_DECLARE(topic_force_sp, synapse_pb_Vector3);
-ZROS_TOPIC_DECLARE(topic_imu, synapse_pb_Imu);
+ZROS_TOPIC_DECLARE(topic_imu0, synapse_pb_Imu);
+ZROS_TOPIC_DECLARE(topic_imu1, synapse_pb_Imu);
 ZROS_TOPIC_DECLARE(topic_imu_q31_array, synapse_pb_ImuQ31Array);
 ZROS_TOPIC_DECLARE(topic_input, synapse_pb_Input);
 ZROS_TOPIC_DECLARE(topic_input_sbus, synapse_pb_Input);
@@ -74,6 +75,11 @@ ZROS_TOPIC_DECLARE(topic_safety, synapse_pb_Safety);
 ZROS_TOPIC_DECLARE(topic_status, synapse_pb_Status);
 ZROS_TOPIC_DECLARE(topic_velocity_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DECLARE(topic_wheel_odometry, synapse_pb_WheelOdometry);
+
+/********************************************************************
+ * alias
+ ********************************************************************/
+#define topic_imu topic_imu0
 
 #endif // SYNAPSE_TOPIC_LIST_H_
 // vi: ts=4 sw=4 et

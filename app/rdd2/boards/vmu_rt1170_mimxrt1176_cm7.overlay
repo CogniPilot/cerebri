@@ -45,10 +45,7 @@
 		can1 = &flexcan2;
 		can2 = &flexcan3;
 		telem1 = &lpuart8; /* Use telem2 as telem1 */
-		/*accel0 = &icm42686;*/
-		accel0 = &icm42688_0;
-		/*gyro0 = &icm42686;*/
-		gyro0 = &icm42688_0;
+		imu-stream-0 = &icm42688_0;
 		mag0 = &ist8310;
 		mag1 = &bmm150;
 		/* baro0 = &bmp388_0; */
@@ -118,6 +115,13 @@
 		current-lsb-microamps = <5000>;
 		rshunt-micro-ohms = <500>;
 	};
+};
+
+#include <zephyr/dt-bindings/sensor/icm42688.h>
+
+&icm42688_0 {
+	accel-odr = <ICM42688_DT_ACCEL_ODR_8000>;
+	gyro-odr = <ICM42688_DT_GYRO_ODR_8000>;
 };
 
 &lpspi1 {

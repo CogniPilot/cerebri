@@ -52,13 +52,7 @@
 		status-led = &ncp5623c;
 		buzzer = &buzzer0;
 		sbus = &sbus0;
-	};
-	cfg-device-gnss {
-		status = "okay";
-		compatible = "u-blox,ubxlib-device-gnss";
-		transport-type = "uart0";
-		uart-baud-rate = <115200>;
-		module-type = "U_GNSS_MODULE_TYPE_M10";
+		gnss = &gnss1;
 	};
 };
 
@@ -79,6 +73,12 @@
 uart0: &lpuart2 {
        status = "okay";
        current-speed = <115200>;
+
+		gnss1: gnss {
+				status = "okay";
+				compatible = "u-blox,f9p";
+				fix-rate = <100>;
+		};
 };
 
 /* DSHOT */

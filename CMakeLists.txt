@@ -46,3 +46,10 @@ set(CPACK_PACKAGE_VERSION_PATCH "${CONFIG_CEREBRI_VERSION_PATCH}")
 set(CPACK_PACKAGE_CONTACT cogni@cognipilot.com)
 
 include(CPack)
+
+add_custom_target(generate_vscode_launch ALL
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/update_launch.py
+	        ${BOARD} ${CMAKE_BINARY_DIR}
+    DEPENDS ${CMAKE_BINARY_DIR}/zephyr/runners.yaml
+    COMMENT "Updating launch.json"
+)

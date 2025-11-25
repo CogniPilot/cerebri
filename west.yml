@@ -50,7 +50,7 @@ manifest:
       path: modules/hal/nxp
     - name: zros_drivers
       remote: cognipilot
-      revision: bdd8bd070d90bd469abf660703e6785f520aa0d1 # sense-stream-imu branch
+      revision: 6d1165011510011835d24b5220520b181161238d # imu-stream-multi-instance-support
       path: modules/lib/zros_drivers
     - name: zephyr_boards
       remote: cognipilot

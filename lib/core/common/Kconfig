@@ -3,7 +3,6 @@
 menuconfig CEREBRI_CORE_COMMON
   bool "Enable core common"
   select ZROS_PERF
-  default y
   help
      This option enables the core common library
 

@@ -1,0 +1,215 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2025 CogniPilot Foundation */
+#include <freq.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/sensor/ina230.h>
+#include <zephyr/dt-bindings/memory-attr/memory-attr-arm.h>
+
+/ {
+	pwm_actuators: pwm_actuators {
+		compatible = "cerebri,pwm-actuators";
+		aux0 {
+			input-type = "position";
+			input-index = <0>;
+			pwms = <&tpm5 1 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+			disarmed = <1500>;
+			min = <1100>;
+			max = <1900>;
+			center = <1500>;
+			scale = <800>;
+			scale-div = <1>;
+
+		};
+		aux1 {
+			input-type = "velocity";
+			input-index = <0>;
+			pwms = <&tpm3 1 PWM_HZ(20000) PWM_POLARITY_NORMAL>;
+			disarmed = <25000>;
+			min = <0>;
+			max = <50000>;
+			center = <25000>;
+			scale = <717>;
+			scale-div = <1>;
+			use-nano-seconds;
+		};
+		aux2 {
+			input-type = "normalized";
+			input-index = <0>;
+			pwms = <&tpm5 0 PWM_HZ(50) PWM_POLARITY_NORMAL>;
+			disarmed = <0>;
+			min = <0>;
+			max = <20000>;
+			center = <0>;
+			scale = <20000>;
+			scale-div = <1>;
+		};
+	};
+
+	chosen {
+		/* zephyr,canbus = &flexcan5; */
+
+		zephyr,ipc_shm = &shmem;
+		zephyr,ipc_rsc_table = &rsc_table;
+		zephyr,ipc = &mailbox0;
+	};
+
+	ocram: memory@20480000 {
+		compatible = "zephyr,memory-region", "mmio-sram";
+		device_type = "memory";
+		reg = <0x20480000 DT_SIZE_K(256)>;
+		zephyr,memory-region = "OCRAM";
+		zephyr,memory-attr = <( DT_MEM_ARM(ATTR_MPU_RAM) )>;
+	};
+
+	ddr: ddr@90000000 {
+		compatible = "zephyr,memory-region", "mmio-sram";
+		device_type = "memory";
+		reg = <0x90000000 DT_SIZE_M(4)>;
+		zephyr,memory-region = "DDR";
+		zephyr,memory-attr = <( DT_MEM_ARM(ATTR_MPU_RAM) )>;
+	};
+
+	shmem: memory@88000000 {
+		compatible = "mmio-sram";
+		reg = <0x88000000 0x500000>;
+	};
+
+	rsc_table: memory@88220000 {
+		compatible = "mmio-sram";
+		reg = <0x88220000 0x100>;
+	};
+
+	mailbox0: mailbox {
+		compatible = "zephyr,mbox-ipm";
+		mboxes = <&mu7 1>, <&mu7 1>;
+		mbox-names = "tx", "rx";
+		status = "okay";
+	};
+
+	aliases {
+		accel0 = &bmi08x_accel;
+		gyro0 = &bmi08x_gyro;
+		mag0 = &bmm350;
+		power0 = &ina230;
+		wheel-odometry0 = &tpm4;
+		sbus = &sbus0;
+		/* can0 = &flexcan5; */
+	};
+};
+
+/* Reconfigure TPM4 as QDEC */
+&tpm4 {
+	compatible = "nxp,tpm-qdec";
+	micro-ticks-per-rev = <685440000>;
+	/delete-property/ prescaler;
+};
+
+&tpm5 {
+	prescaler = <4>;
+};
+
+&lpi2c6 {
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+
+	ina230: ina230@40 {
+		compatible = "ti,ina230";
+		reg = <0x40>;
+		current-lsb-microamps = <10000>;
+		rshunt-micro-ohms = <2000>;
+	};
+};
+
+&lpuart5 {
+	status = "okay";
+	current-speed = <100000>;
+	rx-invert;
+
+	sbus0: sbus {
+		compatible = "futaba,sbus";
+		chan_1 {
+			channel = <1>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <1>;
+		};
+		chan_2 {
+			channel = <2>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <2>;
+		};
+		chan_3 {
+			channel = <3>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <3>;
+		};
+		chan_4 {
+			channel = <4>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <4>;
+		};
+		chan_5 {
+			channel = <5>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <5>;
+		};
+		chan_6 {
+			channel = <6>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <6>;
+		};
+		chan_7 {
+			channel = <7>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <7>;
+		};
+		chan_8 {
+			channel = <8>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <8>;
+		};
+		chan_9 {
+			channel = <9>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <9>;
+		};
+		chan_10 {
+			channel = <10>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <10>;
+		};
+		chan_11 {
+			channel = <11>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <11>;
+		};
+		chan_12 {
+			channel = <12>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <12>;
+		};
+		chan_13 {
+			channel = <13>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <13>;
+		};
+		chan_14 {
+			channel = <14>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <14>;
+		};
+		chan_15 {
+			channel = <15>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <15>;
+		};
+		chan_16 {
+			channel = <16>;
+			type = <INPUT_EV_ABS>;
+			zephyr,code = <16>;
+		};
+	};
+};
+
+&mu7 {
+	status = "okay";
+};

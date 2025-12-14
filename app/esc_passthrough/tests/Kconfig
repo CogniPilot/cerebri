@@ -1,0 +1,12 @@
+# Copyright (c) 2025 CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config TEST_HARDWARE
+	bool "Include hardware tests (requires real ESC)"
+	default n
+	help
+	  Enable hardware tests that require a real ESC connected.
+	  These tests will query the ESC bootloader and test read/write.
+	  Only enable when running on actual hardware with ESC connected.
+
+source "Kconfig.zephyr"

@@ -388,4 +388,9 @@ int snprint_wheel_odometry(char *buf, size_t n, synapse_pb_WheelOdometry *m)
 	return offset;
 }
 
+int snprint_rtcm3(char *buf, size_t n, synapse_pb_Rtcm3 *m)
+{
+	return snprintf_cat(buf, n, "len: %d", m->data.size);
+}
+
 // vi: ts=4 sw=4 et

@@ -42,7 +42,7 @@ manifest:
       path: modules/lib/cyecca
     - name: synapse_pb
       remote: cognipilot
-      revision: f038dd178faac0481033e5e4c757e31777c1b0be # main 11/10/25
+      revision: d14faa3fbce8ebe6412b252724ba3b47df1106c7 # main 12/16/25
       path: modules/lib/synapse_pb
     - name: hal_nxp
       remote: cognipilot
@@ -50,7 +50,7 @@ manifest:
       path: modules/hal/nxp
     - name: zros_drivers
       remote: cognipilot
-      revision: pull/26/head
+      revision: cd0a0b241f6e3cb31ad9514fce42572eed33e4cd # main 12/17/25
       path: modules/lib/zros_drivers
     - name: zephyr_boards
       remote: cognipilot

@@ -74,6 +74,9 @@ static void handle_frame(synapse_pb_Frame *frame)
 	} else if (frame->which_msg == synapse_pb_Frame_odometry_tag) {
 		msg = &frame->msg.odometry;
 		topic = &topic_odometry_ethernet;
+	} else if (frame->which_msg == synapse_pb_Frame_rtcm3_tag) {
+		msg = &frame->msg.rtcm3;
+		topic = &topic_rtcm3;
 #ifdef CONFIG_CEREBRI_DREAM_HIL
 	} else if (frame->which_msg == synapse_pb_Frame_battery_state_tag) {
 		msg = &frame->msg.battery_state;

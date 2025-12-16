@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: CogniPilot_Large_Runner
     container: ghcr.io/cognipilot/ci-minimal:v0.0.4
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
@@ -20,7 +20,7 @@ jobs:
           echo "/github/home/.local/bin" >> $GITHUB_PATH
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           path: cerebri
 

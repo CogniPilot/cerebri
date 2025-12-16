@@ -1,0 +1,83 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Copyright 2025 CogniPilot Foundation */
+
+/*
+ * ESC Passthrough GPIO configuration for VMU
+ *
+ * Motor output pins (same as DSHOT driver uses):
+ *   CH1 = GPIO_EMC_06 = GPIO9 pin 6
+ *   CH2 = GPIO_EMC_07 = GPIO9 pin 7
+ *   CH3 = GPIO_EMC_08 = GPIO9 pin 8
+ *   CH4 = GPIO_EMC_09 = GPIO9 pin 9
+ *
+ * Communication:
+ *   Passthrough: USB-C CDC ACM (/dev/ttyACM0)
+ *   Console: lpuart1 debug cable (/dev/ttyUSB0)
+ */
+
+/* Pinmux for ESC GPIO bit-banging mode */
+&pinctrl {
+	pinmux_esc_gpio: pinmux_esc_gpio {
+		group0 {
+			pinmux = <&iomuxc_gpio_emc_06_gpio9_io06>,
+				<&iomuxc_gpio_emc_07_gpio9_io07>,
+				<&iomuxc_gpio_emc_08_gpio9_io08>,
+				<&iomuxc_gpio_emc_09_gpio9_io09>;
+			slew-rate = "fast";
+			drive-strength = "r0-4";
+		};
+	};
+};
+
+&gpio9 {
+	status = "okay";
+};
+
+/ {
+	esc_gpios: esc_gpios {
+		compatible = "gpio-leds";
+		status = "okay";
+		pinctrl-0 = <&pinmux_esc_gpio>;
+		pinctrl-names = "default";
+
+		esc1: esc_1 {
+			gpios = <&gpio9 6 GPIO_ACTIVE_HIGH>;
+			label = "ESC1 (CH1)";
+		};
+
+		esc2: esc_2 {
+			gpios = <&gpio9 7 GPIO_ACTIVE_HIGH>;
+			label = "ESC2 (CH2)";
+		};
+
+		esc3: esc_3 {
+			gpios = <&gpio9 8 GPIO_ACTIVE_HIGH>;
+			label = "ESC3 (CH3)";
+		};
+
+		esc4: esc_4 {
+			gpios = <&gpio9 9 GPIO_ACTIVE_HIGH>;
+			label = "ESC4 (CH4)";
+		};
+	};
+};
+
+/* CDC ACM UART for ESC passthrough (new USB stack) */
+&zephyr_udc0 {
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
+
+/* Disable PWM outputs that would conflict with GPIO control */
+&flexpwm1_pwm1 {
+	status = "disabled";
+};
+
+&flexpwm1_pwm2 {
+	status = "disabled";
+};
+
+&flexpwm2_pwm0 {
+	status = "disabled";
+};

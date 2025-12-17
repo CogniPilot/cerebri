@@ -10,8 +10,8 @@ on:
 
 jobs:
   build:
-    runs-on: CogniPilot_Large_Runner
-    container: ghcr.io/cognipilot/ci-minimal:v0.0.4
+    runs-on: ubuntu-24.04
+    container: ghcr.io/cognipilot/ci-minimal:v0.1.0
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
@@ -23,6 +23,18 @@ jobs:
         uses: actions/checkout@v6
         with:
           path: cerebri
+
+      - name: Cache west modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            bootloader
+            modules
+            tools
+            zephyr
+          key: west-${{ hashFiles('cerebri/west.yml') }}
+          restore-keys: |
+            west-
 
       - name: Initialize
         working-directory: cerebri

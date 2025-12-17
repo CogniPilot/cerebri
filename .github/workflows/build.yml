@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    container: ghcr.io/cognipilot/ci-minimal:v0.1.0
+    container: ghcr.io/cognipilot/ci-minimal:v0.1.1
     env:
       CMAKE_PREFIX_PATH: /opt/toolchains
     steps:
@@ -36,6 +36,16 @@ jobs:
           restore-keys: |
             west-
 
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /ccache
+          key: ccache-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ github.ref_name }}-
+            ccache-main-
+            ccache-
+
       - name: Initialize
         working-directory: cerebri
         run: |
@@ -52,3 +62,7 @@ jobs:
         working-directory: cerebri
         run: |
           west test
+
+      - name: Show ccache stats
+        if: always()
+        run: ccache -s

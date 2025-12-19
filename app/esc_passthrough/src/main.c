@@ -33,6 +33,9 @@
 #include <string.h>
 #include <stdio.h>
 
+/* FlexIO UART driver for ESC single-wire communication */
+#include "nxp_flexio_uart.h"
+
 LOG_MODULE_REGISTER(esc_passthrough, LOG_LEVEL_INF);
 
 /* MSP commands - minimal set for ESC configurator */
@@ -72,45 +75,18 @@ LOG_MODULE_REGISTER(esc_passthrough, LOG_LEVEL_INF);
 #define ACK_INVALID_CHANNEL 0x08
 #define ACK_GENERAL_ERROR   0x0F
 
-/* ESC GPIO - count channels from device tree */
-#define ESC_GPIOS_NODE DT_NODELABEL(esc_gpios)
-
-/* Count ESC channels by checking which esc nodes exist */
-#define ESC1_EXISTS DT_NODE_EXISTS(DT_NODELABEL(esc1))
-#define ESC2_EXISTS DT_NODE_EXISTS(DT_NODELABEL(esc2))
-#define ESC3_EXISTS DT_NODE_EXISTS(DT_NODELABEL(esc3))
-#define ESC4_EXISTS DT_NODE_EXISTS(DT_NODELABEL(esc4))
-
-#define NUM_ESC_CHANNELS (ESC1_EXISTS + ESC2_EXISTS + ESC3_EXISTS + ESC4_EXISTS)
-
-#if NUM_ESC_CHANNELS == 0
-#error "No ESC nodes defined in device tree (need esc1, esc2, etc.)"
+/* FlexIO UART device for ESC communication */
+#if DT_HAS_COMPAT_STATUS_OKAY(nxp_flexio_uart)
+#define FLEXIO_UART_NODE DT_COMPAT_GET_ANY_STATUS_OKAY(nxp_flexio_uart)
+static const struct device *const flexio_uart_dev = DEVICE_DT_GET(FLEXIO_UART_NODE);
+#else
+#error "FlexIO UART device not found - check device tree"
 #endif
-
-static const struct gpio_dt_spec esc_gpios[NUM_ESC_CHANNELS] = {
-#if ESC1_EXISTS
-	GPIO_DT_SPEC_GET(DT_NODELABEL(esc1), gpios),
-#endif
-#if ESC2_EXISTS
-	GPIO_DT_SPEC_GET(DT_NODELABEL(esc2), gpios),
-#endif
-#if ESC3_EXISTS
-	GPIO_DT_SPEC_GET(DT_NODELABEL(esc3), gpios),
-#endif
-#if ESC4_EXISTS
-	GPIO_DT_SPEC_GET(DT_NODELABEL(esc4), gpios),
-#endif
-};
 
 static const struct device *const usb_uart = DEVICE_DT_GET_ONE(zephyr_cdc_acm_uart);
 
-/* Pinctrl for ESC GPIOs - apply GPIO mux mode */
-#if DT_NODE_HAS_PROP(DT_NODELABEL(esc_gpios), pinctrl_0)
-PINCTRL_DT_DEFINE(DT_NODELABEL(esc_gpios));
-#define HAS_ESC_PINCTRL 1
-#else
-#define HAS_ESC_PINCTRL 0
-#endif
+/* Number of ESC channels from FlexIO UART driver */
+#define NUM_ESC_CHANNELS 4
 
 /* State */
 static uint8_t current_esc = 0;
@@ -123,96 +99,66 @@ static uint8_t rx_buf[RX_BUF_SIZE];
 static volatile int rx_len = 0;
 
 /*
- * Single-wire timing for AM32 bootloader protocol.
- * BIT_TIME_US is FIXED at 52 microseconds (19200 baud) and MUST NOT be changed.
- * This value is critical for protocol compatibility with AM32 ESCs.
- * Changing this value will break communication with the bootloader.
+ * FlexIO UART wrapper functions for ESC communication.
+ * These replace the previous GPIO bit-banging functions.
+ *
+ * Note: FlexIO UART in TX mode idles HIGH (proper UART behavior).
+ * For operations requiring explicit LOW state (like reset pulse),
+ * we send a break condition (0x00 byte) which provides the LOW pulse.
  */
-#define BIT_TIME_US 52
-/* Compile-time check: BIT_TIME_US must be 52 (19200 baud) */
-#if BIT_TIME_US != 52
-#error "BIT_TIME_US must be 52 (19200 baud) for AM32 bootloader protocol compatibility"
-#endif
 
 static inline void delay_us(uint32_t us)
 {
 	k_busy_wait(us);
 }
 
-static void esc_output(uint8_t esc)
+/* Single-wire TX buffer - sends all bytes, then switches to RX mode */
+static void sw_tx(uint8_t esc, const uint8_t *data, int len)
+{
+	nxp_flexio_uart_write(flexio_uart_dev, esc, data, len);
+	/* Switch to RX mode for half-duplex response */
+	nxp_flexio_uart_rx_enable(flexio_uart_dev, esc);
+}
+
+/* Single-wire RX buffer - receives bytes with timeout */
+static int sw_rx(uint8_t esc, uint8_t *data, int len, uint32_t timeout_us)
+{
+	return nxp_flexio_uart_read(flexio_uart_dev, esc, data, len, timeout_us);
+}
+
+/* Helper to switch ESC channel to input/RX mode */
+static void esc_input(uint8_t esc)
 {
 	if (esc < NUM_ESC_CHANNELS) {
-		gpio_pin_configure_dt(&esc_gpios[esc], GPIO_OUTPUT);
+		nxp_flexio_uart_rx_enable(flexio_uart_dev, esc);
 	}
 }
 
-static void esc_input(uint8_t esc)
+/* Helper to switch ESC channel to output/TX mode (idles HIGH) */
+static void esc_output(uint8_t esc)
 {
-	/* Use pull-up to keep line HIGH when idle (UART idle state) */
 	if (esc < NUM_ESC_CHANNELS) {
-		gpio_pin_configure_dt(&esc_gpios[esc], GPIO_INPUT | GPIO_PULL_UP);
+		nxp_flexio_uart_tx_enable(flexio_uart_dev, esc);
+	}
+}
+
+/*
+ * Direct pin control using FlexIO UART set_pin function.
+ * This disables UART mode and directly controls the pin level,
+ * allowing sustained LOW or HIGH states for reset pulses and bootloader entry.
+ */
+static void esc_low(uint8_t esc)
+{
+	if (esc < NUM_ESC_CHANNELS) {
+		nxp_flexio_uart_set_pin(flexio_uart_dev, esc, false);
 	}
 }
 
 static void esc_high(uint8_t esc)
 {
 	if (esc < NUM_ESC_CHANNELS) {
-		gpio_pin_set_dt(&esc_gpios[esc], 1);
+		nxp_flexio_uart_set_pin(flexio_uart_dev, esc, true);
 	}
-}
-
-static void esc_low(uint8_t esc)
-{
-	if (esc < NUM_ESC_CHANNELS) {
-		gpio_pin_set_dt(&esc_gpios[esc], 0);
-	}
-}
-
-static int esc_read(uint8_t esc)
-{
-	return (esc < NUM_ESC_CHANNELS) ? gpio_pin_get_dt(&esc_gpios[esc]) : 0;
-}
-
-/* Single-wire TX byte */
-static void sw_tx(uint8_t esc, uint8_t byte)
-{
-	esc_output(esc);
-	esc_low(esc);
-	delay_us(BIT_TIME_US);
-	for (int i = 0; i < 8; i++) {
-		if (byte & (1 << i)) {
-			esc_high(esc);
-		} else {
-			esc_low(esc);
-		}
-		delay_us(BIT_TIME_US);
-	}
-	esc_high(esc);
-	delay_us(BIT_TIME_US);
-}
-
-/* Single-wire RX byte with timeout */
-static int sw_rx(uint8_t esc, uint8_t *byte, uint32_t timeout_us)
-{
-	uint32_t start = k_uptime_get_32();
-	uint8_t data = 0;
-
-	esc_input(esc);
-	while (esc_read(esc)) {
-		uint32_t elapsed_ms = k_uptime_get_32() - start;
-		if ((uint64_t)elapsed_ms * 1000 > timeout_us) {
-			return -ETIMEDOUT;
-		}
-	}
-	delay_us(BIT_TIME_US + BIT_TIME_US / 2);
-	for (int i = 0; i < 8; i++) {
-		if (esc_read(esc)) {
-			data |= (1 << i);
-		}
-		delay_us(BIT_TIME_US);
-	}
-	*byte = data;
-	return 0;
 }
 
 /* CRC16 for 4-way protocol (polynomial 0x1021, MSB first) */
@@ -262,23 +208,22 @@ static uint16_t crc16_bl(const uint8_t *data, int len)
 /* Send a bootloader command with CRC and wait for ACK */
 static int bl_send_cmd(uint8_t esc, const uint8_t *cmd, int cmd_len, uint8_t *ack_out)
 {
-	/* Calculate CRC on command bytes */
+	/* Build packet: command + CRC */
+	uint8_t pkt[16];
+	memcpy(pkt, cmd, cmd_len);
 	uint16_t crc = crc16_bl(cmd, cmd_len);
+	pkt[cmd_len] = crc & 0xFF;
+	pkt[cmd_len + 1] = crc >> 8;
 
-	/* Send command bytes */
-	for (int i = 0; i < cmd_len; i++) {
-		sw_tx(esc, cmd[i]);
-	}
-	/* Send CRC (low byte first) */
-	sw_tx(esc, crc & 0xFF);
-	sw_tx(esc, crc >> 8);
+	/* Send entire packet in one call */
+	sw_tx(esc, pkt, cmd_len + 2);
 
 	/* Turnaround delay - give bootloader time to process before we listen */
 	delay_us(200);
 
 	/* Wait for ACK */
 	uint8_t ack;
-	if (sw_rx(esc, &ack, 100000) != 0) {
+	if (sw_rx(esc, &ack, 1, 100000) != 1) {
 		LOG_WRN("BL: no ACK after cmd 0x%02X", cmd[0]);
 		return -ETIMEDOUT;
 	}
@@ -308,45 +253,48 @@ static int bl_set_address(uint8_t esc, uint16_t addr)
 /* Read data from bootloader at previously set address */
 static int bl_read_data(uint8_t esc, uint8_t *data, uint16_t len)
 {
-	/* Send READ command: [0x03, size] + CRC */
-	uint8_t cmd[2] = {BL_CMD_READ_FLASH, (len == 256) ? 0 : (uint8_t)len};
-	uint16_t crc = crc16_bl(cmd, 2);
+	/* Build READ command packet: [0x03, size] + CRC */
+	uint8_t pkt[4];
+	pkt[0] = BL_CMD_READ_FLASH;
+	pkt[1] = (len == 256) ? 0 : (uint8_t)len;
+	uint16_t crc = crc16_bl(pkt, 2);
+	pkt[2] = crc & 0xFF;
+	pkt[3] = crc >> 8;
 
-	sw_tx(esc, cmd[0]);
-	sw_tx(esc, cmd[1]);
-	sw_tx(esc, crc & 0xFF);
-	sw_tx(esc, crc >> 8);
+	/* Send entire packet in one call */
+	sw_tx(esc, pkt, 4);
 
-	/* Turnaround delay */
+	/* Turnaround delay - give bootloader time to prepare response */
 	delay_us(200);
 
 	/* Read data bytes */
-	for (int i = 0; i < len; i++) {
-		if (sw_rx(esc, &data[i], 100000) != 0) {
-			LOG_WRN("BL READ: timeout at byte %d/%d", i, len);
-			return -ETIMEDOUT;
-		}
-	}
-
-	/* Read CRC (low byte first) */
-	uint8_t crc_lo, crc_hi;
-	if (sw_rx(esc, &crc_lo, 50000) != 0 || sw_rx(esc, &crc_hi, 50000) != 0) {
-		LOG_WRN("BL READ: CRC timeout");
+	int got = sw_rx(esc, data, len, 100000);
+	if (got != len) {
+		LOG_WRN("BL READ: timeout at byte %d/%d", got, len);
 		return -ETIMEDOUT;
 	}
 
-	/* Read ACK */
-	uint8_t ack;
-	if (sw_rx(esc, &ack, 50000) != 0) {
-		LOG_WRN("BL READ: ACK timeout");
+	/* Read CRC (low byte first) and ACK */
+	uint8_t tail[3];
+	got = sw_rx(esc, tail, 3, 50000);
+	if (got != 3) {
+		LOG_WRN("BL READ: CRC/ACK timeout (got %d/3)", got);
 		return -ETIMEDOUT;
 	}
+	uint8_t crc_lo = tail[0];
+	uint8_t crc_hi = tail[1];
+	uint8_t ack = tail[2];
 
 	/* Verify CRC */
 	uint16_t calc_crc = crc16_bl(data, len);
 	uint16_t rx_crc = (crc_hi << 8) | crc_lo;
 	if (calc_crc != rx_crc) {
 		LOG_WRN("BL READ: CRC mismatch (calc=0x%04X rx=0x%04X)", calc_crc, rx_crc);
+		LOG_WRN("First 16 bytes: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X "
+			"%02X %02X %02X %02X %02X",
+			data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
+			data[8], data[9], data[10], data[11], data[12], data[13], data[14],
+			data[15]);
 		return -EIO;
 	}
 
@@ -359,84 +307,57 @@ static int bl_read_data(uint8_t esc, uint8_t *data, uint16_t len)
 	return 0;
 }
 
-/* Write data to bootloader at previously set address */
+/*
+ * Write data to bootloader at previously set address.
+ *
+ * BLHeli/AM32 bootloader write protocol:
+ *   1. SET_BUFFER: [0xFE, 0x00, len_hi, len_lo] + CRC -> no ACK
+ *   2. DATA: [data bytes...] + CRC -> ACK
+ *   3. PROG_FLASH: [0x01, 0x00] + CRC -> ACK
+ *
+ * SET_BUFFER and DATA must be sent as separate transmissions with a brief
+ * inter-packet delay. The bootloader buffers the length from SET_BUFFER,
+ * then receives exactly that many data bytes before verifying the CRC.
+ */
 static int bl_write_data(uint8_t esc, const uint8_t *data, uint16_t len)
 {
-	/*
-	 * AM32 bootloader write protocol (3 steps):
-	 * Reference: https://github.com/am32-firmware/AM32-Bootloader/blob/master/bootloader/main.c
-	 *
-	 * 1. SET_BUFFER: [0xFE, 0x00, type, count] + CRC -> NO ACK!
-	 *    - Sets payload_buffer_size and incoming_payload_no_command flag
-	 *    - type=0x01 means 256 bytes, else count byte (rxBuffer[3]) is used
-	 *    - IMPORTANT: Bootloader does NOT send ACK after SET_BUFFER!
-	 *      It sets incoming_payload_no_command=1 and calls setReceive() to
-	 *      immediately wait for data bytes.
-	 *
-	 * 2. DATA: [data bytes...] + CRC(data) -> ACK
-	 *    - NO count prefix! Bootloader knows size from SET_BUFFER
-	 *    - receiveBuffer() collects exactly payload_buffer_size + 2 (CRC) bytes
-	 *    - CRC is validated on the raw data (not including SET_BUFFER cmd)
-	 *
-	 * 3. PROG_FLASH: [0x01, 0x00] + CRC -> ACK
-	 *    - Writes payLoadBuffer to flash at current address
-	 *    - Returns 0x30 (ACK_OK) on success, 0xC1 (BAD_CMD) on failure
-	 *
-	 * Key insight from official repo: SET_BUFFER handler does NOT call send_ACK(),
-	 * it only sets state and waits for payload. Client must NOT wait for ACK!
-	 */
 	uint8_t ack;
 	uint16_t crc;
 
 	/* Step 1: SET_BUFFER - tell bootloader how much data to expect */
-	uint8_t set_buf_cmd[4];
-	set_buf_cmd[0] = BL_CMD_SET_BUFFER; /* 0xFE */
-	set_buf_cmd[1] = 0x00;
-	if (len == 256) {
-		set_buf_cmd[2] = 0x01; /* Type: 256 bytes */
-		set_buf_cmd[3] = 0x00;
-	} else {
-		set_buf_cmd[2] = 0x00; /* Type: use count */
-		set_buf_cmd[3] = (uint8_t)len;
-	}
-	crc = crc16_bl(set_buf_cmd, 4);
+	uint8_t set_buf_pkt[6];
+	set_buf_pkt[0] = BL_CMD_SET_BUFFER; /* 0xFE */
+	set_buf_pkt[1] = 0x00;              /* Reserved */
+	set_buf_pkt[2] = (len >> 8) & 0xFF; /* Length high byte */
+	set_buf_pkt[3] = len & 0xFF;        /* Length low byte (0 means 256) */
+	crc = crc16_bl(set_buf_pkt, 4);
+	set_buf_pkt[4] = crc & 0xFF;
+	set_buf_pkt[5] = crc >> 8;
 
-	/* Minimize logging during write for speed - use LOG_DBG for verbose */
 	LOG_DBG("BL WRITE: SET_BUFFER len=%d", len);
 
-	sw_tx(esc, set_buf_cmd[0]);
-	sw_tx(esc, set_buf_cmd[1]);
-	sw_tx(esc, set_buf_cmd[2]);
-	sw_tx(esc, set_buf_cmd[3]);
-	sw_tx(esc, crc & 0xFF);
-	sw_tx(esc, crc >> 8);
+	/* Send SET_BUFFER - no ACK expected */
+	nxp_flexio_uart_write(flexio_uart_dev, esc, set_buf_pkt, 6);
 
-	/*
-	 * NO ACK expected after SET_BUFFER!
-	 * Per official AM32-Bootloader: the handler sets incoming_payload_no_command=1
-	 * and immediately calls setReceive() to wait for data. No send_ACK() is called.
-	 * Give bootloader time to prepare receive buffer.
-	 */
-	delay_us(500);
-
-	/*
-	 * Step 2: Send data + CRC
-	 * Per official AM32-Bootloader decodeInput(): when incoming_payload_no_command=1,
-	 * bootloader collects exactly payload_buffer_size bytes + 2 CRC bytes,
-	 * validates CRC, stores in payLoadBuffer, then DOES send ACK (or BAD_CRC_ACK).
-	 */
-	uint16_t data_crc = crc16_bl(data, len);
-
-	for (int i = 0; i < len; i++) {
-		sw_tx(esc, data[i]);
-	}
-	sw_tx(esc, data_crc & 0xFF);
-	sw_tx(esc, data_crc >> 8);
-
-	/* Turnaround delay */
+	/* Inter-packet delay before DATA */
 	delay_us(200);
 
-	if (sw_rx(esc, &ack, 100000) != 0) {
+	/* Step 2: Send DATA + CRC */
+	uint8_t tx_buf[258]; /* Max 256 data + 2 CRC */
+	memcpy(tx_buf, data, len);
+	uint16_t data_crc = crc16_bl(data, len);
+	tx_buf[len] = data_crc & 0xFF;
+	tx_buf[len + 1] = data_crc >> 8;
+
+	LOG_DBG("BL WRITE: DATA %d bytes", len);
+
+	/* Send DATA and switch to RX for ACK */
+	sw_tx(esc, tx_buf, len + 2);
+
+	/* Turnaround delay */
+	delay_us(1000);
+
+	if (sw_rx(esc, &ack, 1, 100000) != 1) {
 		LOG_WRN("BL WRITE: no ACK for data");
 		return -ETIMEDOUT;
 	}
@@ -447,21 +368,21 @@ static int bl_write_data(uint8_t esc, const uint8_t *data, uint16_t len)
 	LOG_DBG("BL WRITE: data ACK OK");
 
 	/* Step 3: PROG_FLASH - write buffered data to flash */
-	uint8_t prog_cmd[2] = {BL_CMD_PROG_FLASH, 0x00};
-	crc = crc16_bl(prog_cmd, 2);
+	uint8_t prog_pkt[4];
+	prog_pkt[0] = BL_CMD_PROG_FLASH;
+	prog_pkt[1] = 0x00;
+	crc = crc16_bl(prog_pkt, 2);
+	prog_pkt[2] = crc & 0xFF;
+	prog_pkt[3] = crc >> 8;
 
 	LOG_DBG("BL WRITE: PROG_FLASH");
-
-	sw_tx(esc, prog_cmd[0]);
-	sw_tx(esc, prog_cmd[1]);
-	sw_tx(esc, crc & 0xFF);
-	sw_tx(esc, crc >> 8);
+	sw_tx(esc, prog_pkt, 4);
 
 	/* Turnaround delay */
 	delay_us(200);
 
 	/* Wait for final ACK (flash programming can take time) */
-	if (sw_rx(esc, &ack, 500000) != 0) {
+	if (sw_rx(esc, &ack, 1, 500000) != 1) {
 		LOG_WRN("BL WRITE: no ACK for PROG_FLASH");
 		return -ETIMEDOUT;
 	}
@@ -484,21 +405,24 @@ static int bl_write_data(uint8_t esc, const uint8_t *data, uint16_t len)
 /* Erase flash page at previously set address */
 static int bl_erase_page(uint8_t esc)
 {
-	uint8_t cmd[2] = {BL_CMD_ERASE_FLASH, 0x00};
+	/* Build erase command packet */
+	uint8_t pkt[4];
+	pkt[0] = BL_CMD_ERASE_FLASH;
+	pkt[1] = 0x00;
+	uint16_t crc = crc16_bl(pkt, 2);
+	pkt[2] = crc & 0xFF;
+	pkt[3] = crc >> 8;
+
 	LOG_DBG("BL: ERASE_PAGE");
-	/* Erase can take a while, use longer timeout by sending manually */
-	uint16_t crc = crc16_bl(cmd, 2);
-	sw_tx(esc, cmd[0]);
-	sw_tx(esc, cmd[1]);
-	sw_tx(esc, crc & 0xFF);
-	sw_tx(esc, crc >> 8);
+	/* Erase can take a while, use longer timeout */
+	sw_tx(esc, pkt, 4);
 
 	/* Turnaround delay */
 	delay_us(200);
 
 	/* Wait for ACK - erase can take up to 500ms */
 	uint8_t ack;
-	if (sw_rx(esc, &ack, 500000) != 0) {
+	if (sw_rx(esc, &ack, 1, 500000) != 1) {
 		LOG_WRN("BL ERASE: no ACK");
 		return -ETIMEDOUT;
 	}
@@ -757,10 +681,7 @@ static void process_fourway(const uint8_t *buf, int len)
 		};
 
 		/* Send bootloader init sequence */
-		esc_output(esc);
-		for (size_t i = 0; i < sizeof(boot_init); i++) {
-			sw_tx(esc, boot_init[i]);
-		}
+		sw_tx(esc, boot_init, sizeof(boot_init));
 		esc_input(esc);
 
 		LOG_DBG("Query sent, waiting for response...");
@@ -769,18 +690,9 @@ static void process_fourway(const uint8_t *buf, int len)
 		 * Bytes 0-2: "471" protocol ID
 		 * Bytes 3-5: device info
 		 * Bytes 6-7: additional info
-		 *
-		 * IMPORTANT: No logging inside this loop! Logging adds delay
-		 * that disrupts the timing-sensitive bit-banged serial protocol.
 		 */
 		uint8_t resp[8] = {0};
-		int got = 0;
-		for (int i = 0; i < 12 && got < 8; i++) {
-			uint8_t byte;
-			if (sw_rx(esc, &byte, 50000) == 0) {
-				resp[got++] = byte;
-			}
-		}
+		int got = sw_rx(esc, resp, 8, 50000);
 
 		/* Log response after all bytes received */
 		LOG_DBG("ESC %d resp: [%02X %02X %02X %02X %02X %02X %02X %02X]", esc + 1, resp[0],
@@ -1071,28 +983,21 @@ static void process_rx(void)
 
 int main(void)
 {
-	LOG_INF("ESC Passthrough - MSP + 4-Way Interface");
+	LOG_INF("ESC Passthrough - MSP + 4-Way Interface (FlexIO UART)");
 
-	/* Apply pinctrl to set GPIO mux mode for ESC pins */
-#if HAS_ESC_PINCTRL
-	int pret = pinctrl_apply_state(PINCTRL_DT_DEV_CONFIG_GET(DT_NODELABEL(esc_gpios)),
-				       PINCTRL_STATE_DEFAULT);
-	if (pret < 0) {
-		LOG_ERR("Failed to apply ESC pinctrl: %d", pret);
-	} else {
-		LOG_INF("ESC GPIO pinctrl applied");
+	/* Check FlexIO UART device is ready */
+	if (!device_is_ready(flexio_uart_dev)) {
+		LOG_ERR("FlexIO UART device not ready");
+		return -1;
 	}
-#endif
 
-	/* Init ESC GPIOs - all HIGH for bootloader entry */
-	for (int i = 0; i < NUM_ESC_CHANNELS; i++) {
-		if (!gpio_is_ready_dt(&esc_gpios[i])) {
-			LOG_ERR("ESC GPIO %d not ready", i);
-			return -1;
-		}
-		gpio_pin_configure_dt(&esc_gpios[i], GPIO_OUTPUT);
-		gpio_pin_set_dt(&esc_gpios[i], 1); /* HIGH for bootloader entry */
-		LOG_INF("ESC %d: GPIO1.%d = HIGH", i + 1, esc_gpios[i].pin);
+	uint8_t channel_count = nxp_flexio_uart_channel_count(flexio_uart_dev);
+	LOG_INF("FlexIO UART ready with %d channels", channel_count);
+
+	/* Initialize all channels in TX mode (idle HIGH) for bootloader entry */
+	for (int i = 0; i < channel_count && i < NUM_ESC_CHANNELS; i++) {
+		nxp_flexio_uart_tx_enable(flexio_uart_dev, i);
+		LOG_INF("ESC %d: FlexIO channel ready", i + 1);
 	}
 
 	LOG_INF("*** ALL ESC SIGNALS HIGH - PLUG IN BATTERY NOW ***");
@@ -1137,10 +1042,10 @@ int main(void)
 
 /* Shell commands for testing and manual bootloader entry */
 
-static int cmd_esc_low(const struct shell *sh, size_t argc, char **argv)
+static int cmd_esc_tx_mode(const struct shell *sh, size_t argc, char **argv)
 {
 	if (argc < 2) {
-		shell_print(sh, "Usage: esc low <channel 1-4>");
+		shell_print(sh, "Usage: esc tx <channel 1-4>");
 		return -EINVAL;
 	}
 	int ch = atoi(argv[1]) - 1;
@@ -1148,18 +1053,15 @@ static int cmd_esc_low(const struct shell *sh, size_t argc, char **argv)
 		shell_print(sh, "Invalid channel (1-4)");
 		return -EINVAL;
 	}
-	esc_output(ch);
-	esc_low(ch);
-	/* Read back to verify */
-	int val = gpio_pin_get_raw(esc_gpios[ch].port, esc_gpios[ch].pin);
-	shell_print(sh, "ESC %d (GPIO1.%d) set LOW, readback=%d", ch + 1, esc_gpios[ch].pin, val);
+	nxp_flexio_uart_tx_enable(flexio_uart_dev, ch);
+	shell_print(sh, "ESC %d set to TX mode (line idle HIGH)", ch + 1);
 	return 0;
 }
 
-static int cmd_esc_high(const struct shell *sh, size_t argc, char **argv)
+static int cmd_esc_rx_mode(const struct shell *sh, size_t argc, char **argv)
 {
 	if (argc < 2) {
-		shell_print(sh, "Usage: esc high <channel 1-4>");
+		shell_print(sh, "Usage: esc rx <channel 1-4>");
 		return -EINVAL;
 	}
 	int ch = atoi(argv[1]) - 1;
@@ -1167,53 +1069,8 @@ static int cmd_esc_high(const struct shell *sh, size_t argc, char **argv)
 		shell_print(sh, "Invalid channel (1-4)");
 		return -EINVAL;
 	}
-	esc_output(ch);
-	esc_high(ch);
-	shell_print(sh, "ESC %d signal HIGH", ch + 1);
-	return 0;
-}
-
-static int cmd_esc_input(const struct shell *sh, size_t argc, char **argv)
-{
-	if (argc < 2) {
-		shell_print(sh, "Usage: esc input <channel 1-4>");
-		return -EINVAL;
-	}
-	int ch = atoi(argv[1]) - 1;
-	if (ch < 0 || ch >= NUM_ESC_CHANNELS) {
-		shell_print(sh, "Invalid channel (1-4)");
-		return -EINVAL;
-	}
-	esc_input(ch);
-	shell_print(sh, "ESC %d set to input mode, reading: %d", ch + 1, esc_read(ch));
-	return 0;
-}
-
-static int cmd_esc_test(const struct shell *sh, size_t argc, char **argv)
-{
-	if (argc < 2) {
-		shell_print(sh, "Usage: esc test <channel 1-4>");
-		return -EINVAL;
-	}
-	int ch = atoi(argv[1]) - 1;
-	if (ch < 0 || ch >= NUM_ESC_CHANNELS) {
-		shell_print(sh, "Invalid channel (1-4)");
-		return -EINVAL;
-	}
-	shell_print(sh, "Testing ESC %d GPIO (GPIO1.%d)...", ch + 1, esc_gpios[ch].pin);
-	esc_output(ch);
-	shell_print(sh, "  LOW...");
-	esc_low(ch);
-	k_msleep(500);
-	shell_print(sh, "  HIGH...");
-	esc_high(ch);
-	k_msleep(500);
-	shell_print(sh, "  LOW...");
-	esc_low(ch);
-	k_msleep(500);
-	esc_high(ch);
-	esc_input(ch);
-	shell_print(sh, "Test complete - check if motor beeped");
+	nxp_flexio_uart_rx_enable(flexio_uart_dev, ch);
+	shell_print(sh, "ESC %d set to RX mode", ch + 1);
 	return 0;
 }
 
@@ -1221,7 +1078,7 @@ static int cmd_esc_boot(const struct shell *sh, size_t argc, char **argv)
 {
 	if (argc < 2) {
 		shell_print(sh, "Usage: esc boot <channel 1-4 | all>");
-		shell_print(sh, "Holds signal HIGH for bootloader entry (AM32 standard)");
+		shell_print(sh, "Sets TX mode (HIGH) for bootloader entry (AM32 standard)");
 		return -EINVAL;
 	}
 
@@ -1234,15 +1091,13 @@ static int cmd_esc_boot(const struct shell *sh, size_t argc, char **argv)
 	}
 
 	if (boot_all) {
-		shell_print(sh, "Holding ALL ESCs HIGH for bootloader entry...");
+		shell_print(sh, "Setting ALL ESCs to TX mode (HIGH) for bootloader entry...");
 		for (int i = 0; i < NUM_ESC_CHANNELS; i++) {
-			esc_output(i);
-			esc_high(i);
+			nxp_flexio_uart_tx_enable(flexio_uart_dev, i);
 		}
 	} else {
-		shell_print(sh, "Holding ESC %d HIGH for bootloader entry...", ch + 1);
-		esc_output(ch);
-		esc_high(ch);
+		shell_print(sh, "Setting ESC %d to TX mode (HIGH) for bootloader entry...", ch + 1);
+		nxp_flexio_uart_tx_enable(flexio_uart_dev, ch);
 	}
 
 	shell_print(sh, ">>> PLUG IN BATTERY within 10 seconds <<<");
@@ -1269,21 +1124,11 @@ static int cmd_esc_boot(const struct shell *sh, size_t argc, char **argv)
 
 		for (int query = 0; query < 3; query++) {
 			/* Send bootloader init sequence */
-			esc_output(esc);
-			for (size_t i = 0; i < sizeof(boot_init); i++) {
-				sw_tx(esc, boot_init[i]);
-			}
-			esc_input(esc);
+			sw_tx(esc, boot_init, sizeof(boot_init));
 
 			/* Read 8-byte response */
 			uint8_t resp[8] = {0};
-			int got = 0;
-			for (int i = 0; i < 12 && got < 8; i++) {
-				uint8_t byte;
-				if (sw_rx(esc, &byte, 50000) == 0) {
-					resp[got++] = byte;
-				}
-			}
+			int got = sw_rx(esc, resp, 8, 50000);
 
 			if (got >= 8 && resp[0] == '4' && resp[1] == '7' && resp[2] == '1') {
 				shell_print(sh, "  Bootloader: %c%c%c %02X %02X %02X %02X %02X",
@@ -1307,11 +1152,12 @@ static int cmd_esc_boot(const struct shell *sh, size_t argc, char **argv)
 
 static int cmd_esc_status(const struct shell *sh, size_t argc, char **argv)
 {
-	shell_print(sh, "ESC GPIO Status:");
-	for (int i = 0; i < NUM_ESC_CHANNELS; i++) {
-		int val = gpio_pin_get_raw(esc_gpios[i].port, esc_gpios[i].pin);
-		shell_print(sh, "  ESC %d (GPIO1.%d): %d", i + 1, esc_gpios[i].pin, val);
-	}
+	uint8_t channel_count = nxp_flexio_uart_channel_count(flexio_uart_dev);
+	shell_print(sh, "FlexIO UART Status:");
+	shell_print(sh, "  Device: %s", device_is_ready(flexio_uart_dev) ? "ready" : "NOT READY");
+	shell_print(sh, "  Channels: %d", channel_count);
+	shell_print(sh, "  4-Way mode: %s", fourway_mode ? "ACTIVE" : "inactive");
+	shell_print(sh, "  Current ESC: %d", current_esc + 1);
 	return 0;
 }
 
@@ -1395,21 +1241,11 @@ static int cmd_esc_eeprom(const struct shell *sh, size_t argc, char **argv)
 		0xF4, 0x7D                                       /* checksum */
 	};
 
-	esc_output(ch);
-	for (size_t i = 0; i < sizeof(boot_init); i++) {
-		sw_tx(ch, boot_init[i]);
-	}
-	esc_input(ch);
+	sw_tx(ch, boot_init, sizeof(boot_init));
 
 	/* Read 8-byte response */
 	uint8_t resp[8] = {0};
-	int got = 0;
-	for (int i = 0; i < 12 && got < 8; i++) {
-		uint8_t byte;
-		if (sw_rx(ch, &byte, 50000) == 0) {
-			resp[got++] = byte;
-		}
-	}
+	int got = sw_rx(ch, resp, 8, 50000);
 
 	if (got < 8 || resp[0] != '4' || resp[1] != '7' || resp[2] != '1') {
 		shell_print(sh, "Bootloader init failed (got %d bytes, first=%02X)", got, resp[0]);
@@ -1500,21 +1336,15 @@ static int cmd_esc_query(const struct shell *sh, size_t argc, char **argv)
 	static const uint8_t boot_init[] = {0, 0,    0,   0,   0,   0,   0,   0,   0,    0,   0,
 					    0, 0x0D, 'B', 'L', 'H', 'e', 'l', 'i', 0xF4, 0x7D};
 
-	esc_output(ch);
-	for (size_t i = 0; i < sizeof(boot_init); i++) {
-		sw_tx(ch, boot_init[i]);
-	}
-	esc_input(ch);
+	sw_tx(ch, boot_init, sizeof(boot_init));
 
 	uint8_t resp[8] = {0};
-	int got = 0;
-	for (int i = 0; i < 12 && got < 8; i++) {
-		uint8_t byte;
-		if (sw_rx(ch, &byte, 50000) == 0) {
-			resp[got++] = byte;
-			shell_print(sh, "  [%d] 0x%02X '%c'", got, byte,
-				    (byte >= 0x20 && byte < 0x7F) ? byte : '.');
-		}
+	int got = sw_rx(ch, resp, 8, 50000);
+
+	/* Print received bytes */
+	for (int i = 0; i < got; i++) {
+		shell_print(sh, "  [%d] 0x%02X '%c'", i + 1, resp[i],
+			    (resp[i] >= 0x20 && resp[i] < 0x7F) ? resp[i] : '.');
 	}
 
 	if (got >= 8 && resp[0] == '4' && resp[1] == '7' && resp[2] == '1') {
@@ -1549,20 +1379,10 @@ static int cmd_esc_write_test(const struct shell *sh, size_t argc, char **argv)
 	shell_print(sh, "Step 1: Query bootloader...");
 	static const uint8_t boot_init[] = {0, 0,    0,   0,   0,   0,   0,   0,   0,    0,   0,
 					    0, 0x0D, 'B', 'L', 'H', 'e', 'l', 'i', 0xF4, 0x7D};
-	esc_output(ch);
-	for (size_t i = 0; i < sizeof(boot_init); i++) {
-		sw_tx(ch, boot_init[i]);
-	}
-	esc_input(ch);
+	sw_tx(ch, boot_init, sizeof(boot_init));
 
 	uint8_t resp[8] = {0};
-	int got = 0;
-	for (int i = 0; i < 12 && got < 8; i++) {
-		uint8_t byte;
-		if (sw_rx(ch, &byte, 50000) == 0) {
-			resp[got++] = byte;
-		}
-	}
+	int got = sw_rx(ch, resp, 8, 50000);
 	if (got < 8 || resp[0] != '4') {
 		shell_print(sh, "  FAIL: Bootloader not responding");
 		return -EIO;
@@ -1652,12 +1472,10 @@ static int cmd_esc_4way_status(const struct shell *sh, size_t argc, char **argv)
 }
 
 SHELL_STATIC_SUBCMD_SET_CREATE(
-	sub_esc, SHELL_CMD(low, NULL, "Set ESC signal LOW", cmd_esc_low),
-	SHELL_CMD(high, NULL, "Set ESC signal HIGH", cmd_esc_high),
-	SHELL_CMD(input, NULL, "Set ESC to input mode", cmd_esc_input),
-	SHELL_CMD(test, NULL, "Toggle ESC signal (motor should beep)", cmd_esc_test),
+	sub_esc, SHELL_CMD(tx, NULL, "Set ESC to TX mode (idle HIGH)", cmd_esc_tx_mode),
+	SHELL_CMD(rx, NULL, "Set ESC to RX mode", cmd_esc_rx_mode),
 	SHELL_CMD(boot, NULL, "Manual bootloader entry (10s window)", cmd_esc_boot),
-	SHELL_CMD(status, NULL, "Show GPIO status", cmd_esc_status),
+	SHELL_CMD(status, NULL, "Show FlexIO UART status", cmd_esc_status),
 	SHELL_CMD(test_tx, NULL, "Send test 4WAY response to USB", cmd_esc_test_tx),
 	SHELL_CMD(dump, NULL, "Dump RX buffer contents", cmd_esc_dump),
 	SHELL_CMD(eeprom, NULL, "Read EEPROM from ESC in bootloader mode", cmd_esc_eeprom),
@@ -1665,4 +1483,4 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 	SHELL_CMD(write_test, NULL, "Test write to EEPROM (modifies data!)", cmd_esc_write_test),
 	SHELL_CMD(4way, NULL, "Show 4-way interface status", cmd_esc_4way_status),
 	SHELL_SUBCMD_SET_END);
-SHELL_CMD_REGISTER(esc, &sub_esc, "ESC GPIO commands", NULL);
+SHELL_CMD_REGISTER(esc, &sub_esc, "ESC FlexIO UART commands", NULL);

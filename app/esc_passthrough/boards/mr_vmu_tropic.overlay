@@ -2,63 +2,56 @@
 /* Copyright 2025 CogniPilot Foundation */
 
 /*
- * ESC Passthrough GPIO configuration for VMU
+ * ESC Passthrough FlexIO UART configuration for VMU
  *
- * Motor output pins (same as DSHOT driver uses):
- *   CH1 = GPIO_EMC_06 = GPIO9 pin 6
- *   CH2 = GPIO_EMC_07 = GPIO9 pin 7
- *   CH3 = GPIO_EMC_08 = GPIO9 pin 8
- *   CH4 = GPIO_EMC_09 = GPIO9 pin 9
+ * Motor output pins (using FlexIO1 for hardware UART):
+ *   CH0 = GPIO_EMC_06 = FlexIO1 pin 6
+ *   CH1 = GPIO_EMC_07 = FlexIO1 pin 7
+ *   CH2 = GPIO_EMC_08 = FlexIO1 pin 8
+ *   CH3 = GPIO_EMC_09 = FlexIO1 pin 9
+ *
+ * Uses FlexIO peripheral for half-duplex single-wire UART at 19200 baud
+ * instead of GPIO bit-banging. This provides:
+ *   - More accurate timing (hardware-generated baud rate)
+ *   - Less CPU overhead (no busy-wait loops)
+ *   - Better noise immunity
  *
  * Communication:
  *   Passthrough: USB-C CDC ACM (/dev/ttyACM0)
  *   Console: lpuart1 debug cable (/dev/ttyUSB0)
  */
 
-/* Pinmux for ESC GPIO bit-banging mode */
+/* Pinmux for FlexIO UART mode on ESC pins */
 &pinctrl {
-	pinmux_esc_gpio: pinmux_esc_gpio {
+	pinmux_flexio_esc: pinmux_flexio_esc {
 		group0 {
-			pinmux = <&iomuxc_gpio_emc_06_gpio9_io06>,
-				<&iomuxc_gpio_emc_07_gpio9_io07>,
-				<&iomuxc_gpio_emc_08_gpio9_io08>,
-				<&iomuxc_gpio_emc_09_gpio9_io09>;
+			pinmux = <&iomuxc_gpio_emc_06_flexio1_flexio06>,
+				<&iomuxc_gpio_emc_07_flexio1_flexio07>,
+				<&iomuxc_gpio_emc_08_flexio1_flexio08>,
+				<&iomuxc_gpio_emc_09_flexio1_flexio09>;
+			drive-strength = "r0-6";
 			slew-rate = "fast";
-			drive-strength = "r0-4";
+			nxp,speed = "100-mhz";
+			bias-pull-up;  /* Keep line HIGH when in RX mode (high-Z) */
 		};
 	};
 };
 
-&gpio9 {
+&flexio1 {
 	status = "okay";
-};
 
-/ {
-	esc_gpios: esc_gpios {
-		compatible = "gpio-leds";
+	flexio_uart_esc: flexio_uart_esc {
+		compatible = "nxp,flexio-uart";
 		status = "okay";
-		pinctrl-0 = <&pinmux_esc_gpio>;
+		pinctrl-0 = <&pinmux_flexio_esc>;
 		pinctrl-names = "default";
+		current-speed = <19200>;
 
-		esc1: esc_1 {
-			gpios = <&gpio9 6 GPIO_ACTIVE_HIGH>;
-			label = "ESC1 (CH1)";
-		};
-
-		esc2: esc_2 {
-			gpios = <&gpio9 7 GPIO_ACTIVE_HIGH>;
-			label = "ESC2 (CH2)";
-		};
-
-		esc3: esc_3 {
-			gpios = <&gpio9 8 GPIO_ACTIVE_HIGH>;
-			label = "ESC3 (CH3)";
-		};
-
-		esc4: esc_4 {
-			gpios = <&gpio9 9 GPIO_ACTIVE_HIGH>;
-			label = "ESC4 (CH4)";
-		};
+		/* ESC channels - each uses one FlexIO shifter/timer pair */
+		ch0 { pin-id = <6>; };   /* ESC1 - GPIO_EMC_06 */
+		ch1 { pin-id = <7>; };   /* ESC2 - GPIO_EMC_07 */
+		ch2 { pin-id = <8>; };   /* ESC3 - GPIO_EMC_08 */
+		ch3 { pin-id = <9>; };   /* ESC4 - GPIO_EMC_09 */
 	};
 };
 

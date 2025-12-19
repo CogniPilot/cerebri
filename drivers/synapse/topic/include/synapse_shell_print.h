@@ -29,6 +29,7 @@ int snprint_pose(char *buf, size_t n, synapse_pb_Pose *m);
 int snprint_pwm(char *buf, size_t n, synapse_pb_Pwm *m);
 int snprint_quaternion(char *buf, size_t n, synapse_pb_Quaternion *m);
 int snprint_rates_sp(char *buf, size_t n, synapse_pb_Vector3 *m);
+int snprint_rtcm3(char *buf, size_t n, synapse_pb_Rtcm3 *m);
 int snprint_safety(char *buf, size_t n, synapse_pb_Safety *m);
 int snprint_status(char *buf, size_t n, synapse_pb_Status *m);
 int snprint_timestamp(char *buf, size_t n, synapse_pb_Timestamp *m);

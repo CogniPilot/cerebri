@@ -20,6 +20,7 @@
 #include <synapse_pb/odometry.pb.h>
 #include <synapse_pb/pwm.pb.h>
 #include <synapse_pb/quaternion.pb.h>
+#include <synapse_pb/rtcm3.pb.h>
 #include <synapse_pb/safety.pb.h>
 #include <synapse_pb/status.pb.h>
 #include <synapse_pb/twist.pb.h>
@@ -71,6 +72,7 @@ ZROS_TOPIC_DECLARE(topic_odometry_ethernet, synapse_pb_Odometry);
 ZROS_TOPIC_DECLARE(topic_orientation_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DECLARE(topic_position_sp, synapse_pb_Vector3);
 ZROS_TOPIC_DECLARE(topic_pwm, synapse_pb_Pwm);
+ZROS_TOPIC_DECLARE(topic_rtcm3, synapse_pb_Rtcm3);
 ZROS_TOPIC_DECLARE(topic_safety, synapse_pb_Safety);
 ZROS_TOPIC_DECLARE(topic_status, synapse_pb_Status);
 ZROS_TOPIC_DECLARE(topic_velocity_sp, synapse_pb_Vector3);

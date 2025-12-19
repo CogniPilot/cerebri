@@ -24,3 +24,11 @@ tests:
       - rdd2
     integration_platforms:
       - mr_navq95a/mimx9596/m7/flash
+  rdd2.vmu_rt1170/rtk:
+    tags:
+      - rdd2
+      - rtk
+    extra_args:
+      - EXTRA_CONF_FILE="overlay-rtk.conf"
+    integration_platforms:
+      - vmu_rt1170/mimxrt1176/cm7

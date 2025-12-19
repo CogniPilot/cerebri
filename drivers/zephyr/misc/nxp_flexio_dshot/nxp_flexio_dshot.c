@@ -213,7 +213,7 @@ static int nxp_flexio_dshot_set_clock(const struct nxp_flexio_dshot_config *cfg)
 #endif
 
 #ifdef CONFIG_SOC_MIMX9596_M7
-	uint64_t flexio_clk = 44444444;
+	uint64_t flexio_clk = 133333333;
 	struct scmi_protocol *proto = cfg->clock_dev->data;
 	struct scmi_clock_rate_config clk_cfg = {0};
 	ret = scmi_clock_parent_set(proto, IMX95_CLK_FLEXIO1, IMX95_CLK_SYSPLL1_PFD1_DIV2);

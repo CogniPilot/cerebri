@@ -1,0 +1,12 @@
+# Copyright 2024 CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+tests:
+  drivers.flexio_uart:
+    tags: drivers flexio uart
+    platform_allow:
+      - mr_vmu_tropic
+      - mimxrt1064_evk
+    harness: ztest
+    integration_platforms:
+      - mr_vmu_tropic

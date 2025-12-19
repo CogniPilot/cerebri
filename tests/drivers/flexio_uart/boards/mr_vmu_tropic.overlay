@@ -1,0 +1,36 @@
+/*
+ * Copyright 2024 CogniPilot Foundation
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * FlexIO UART test overlay for MR VMU Tropic
+ *
+ * Uses GPIO_EMC_06 (FlexIO1_D6) as a test UART channel
+ */
+
+&pinctrl {
+	pinmux_flexio_uart: pinmux_flexio_uart {
+		group0 {
+			pinmux = <&iomuxc_gpio_emc_06_flexio1_flexio06>;
+			drive-strength = "r0-6";
+			slew-rate = "fast";
+			nxp,speed = "100-mhz";
+		};
+	};
+};
+
+/* Enable FlexIO1 peripheral - disabled by default in SoC dtsi */
+&flexio1 {
+	status = "okay";
+
+	flexio_uart0: flexio_uart0 {
+		compatible = "nxp,flexio-uart";
+		status = "okay";
+		pinctrl-0 = <&pinmux_flexio_uart>;
+		pinctrl-names = "default";
+		current-speed = <19200>;
+
+		ch0 {
+			pin-id = <6>;
+		};
+	};
+};

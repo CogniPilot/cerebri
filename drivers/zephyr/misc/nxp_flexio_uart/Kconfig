@@ -1,0 +1,32 @@
+# Copyright 2025 CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config NXP_FLEXIO_UART
+	bool "NXP FlexIO UART driver"
+	default y
+	depends on DT_HAS_NXP_FLEXIO_UART_ENABLED
+	select MCUX_FLEXIO
+	help
+	  Enable support for NXP FlexIO-based UART.
+	  This driver implements a software UART using the FlexIO peripheral,
+	  which can use almost any GPIO pin. Supports half-duplex single-wire
+	  mode for protocols like AM32 ESC bootloader communication.
+
+if NXP_FLEXIO_UART
+
+config NXP_FLEXIO_UART_INIT_PRIORITY
+	int "FlexIO UART init priority"
+	default 80
+	help
+	  FlexIO UART device driver initialization priority.
+	  Must be initialized after FlexIO parent device.
+
+config NXP_FLEXIO_UART_LOG_LEVEL
+	int "FlexIO UART log level"
+	default 3
+	range 0 4
+	help
+	  Log level for FlexIO UART driver.
+	  0 = Off, 1 = Error, 2 = Warning, 3 = Info, 4 = Debug
+
+endif # NXP_FLEXIO_UART

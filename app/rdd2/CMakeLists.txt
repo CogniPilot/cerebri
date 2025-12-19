@@ -152,7 +152,7 @@ if(CONFIG_BOARD STREQUAL "mr_vmu_tropic")
   zephyr_code_relocate(LIBRARY nanopb LOCATION ITCM_TEXT)
 endif()
 
-if(CONFIG_BOARD STREQUAL "mr_navq95a")
+if(CONFIG_BOARD STREQUAL "mr_navq95a" OR CONFIG_BOARD STREQUAL "mr_navq95b")
   # Relocate code to ITCM
   zephyr_linker_sources(ITCM_SECTION boards/mr_navq95a_itcm_linker.ld)
   zephyr_code_relocate(LIBRARY nanopb LOCATION ITCM_TEXT)

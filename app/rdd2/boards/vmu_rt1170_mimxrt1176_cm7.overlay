@@ -121,8 +121,16 @@
 #include <zephyr/dt-bindings/sensor/icm42688.h>
 
 &icm42688_0 {
-	accel-odr = <ICM42688_DT_ACCEL_ODR_8000>;
-	gyro-odr = <ICM42688_DT_GYRO_ODR_8000>;
+	accel-odr = <ICM4268X_DT_ACCEL_ODR_8000>;
+	gyro-odr = <ICM4268X_DT_GYRO_ODR_8000>;
+	/* UI Filter settings */
+	accel-filt-bw = <ICM4268X_DT_ACCEL_FILT_BW_MAX_400_ODR_DIV_10>;
+	accel-filt-ord = <ICM4268X_DT_ACCEL_FILT_ORDER_3>;
+	gyro-filt-bw = <ICM4268X_DT_GYRO_FILT_BW_MAX_400_ODR_DIV_10>;
+	gyro-filt-ord = <ICM4268X_DT_GYRO_FILT_ORDER_3>;
+	/* AAF settings (42Hz cutoff) */
+	accel-aaf = <ICM4268X_DT_ACCEL_AAF_42>;
+	gyro-aaf = <ICM4268X_DT_GYRO_AAF_42>;
 };
 
 &icm42686_0 {

@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: a692d6077d1e981f0e17bd5b44b90ce8b2bc219e # main-with-patches 12/22/25
+      revision: f37e8da0a4ce59d7ab5b732e3a89a3388c4e527f # pr-icm4268x-rtio-drdy-trigger 12/24/25
       import:
         - name-allowlist:
           - nanopb
@@ -50,7 +50,7 @@ manifest:
       path: modules/hal/nxp
     - name: zros_drivers
       remote: cognipilot
-      revision: cd0a0b241f6e3cb31ad9514fce42572eed33e4cd # main 12/22/25
+      revision: 177fbb0b7e1035cba858a82b81cf3ecca42420a0 # pr-icm4268x-rtio-drdy-trigger 12/24/25
       path: modules/lib/zros_drivers
     - name: zephyr_boards
       remote: cognipilot

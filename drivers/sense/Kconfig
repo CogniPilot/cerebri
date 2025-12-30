@@ -7,7 +7,7 @@ rsource "accel/Kconfig"
 rsource "icm42688/Kconfig"
 rsource "power/Kconfig"
 rsource "safety/Kconfig"
-rsource "sbus/Kconfig"
+rsource "rc/Kconfig"
 rsource "vesc_can_status/Kconfig"
 rsource "wheel_odometry/Kconfig"
 

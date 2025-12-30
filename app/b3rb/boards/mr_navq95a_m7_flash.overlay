@@ -93,7 +93,7 @@
 		mag0 = &bmm350;
 		power0 = &ina230;
 		wheel-odometry0 = &tpm4;
-		sbus = &sbus0;
+		rc = &sbus0;
 		/* can0 = &flexcan5; */
 	};
 };

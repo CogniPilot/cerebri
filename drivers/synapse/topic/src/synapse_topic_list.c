@@ -195,7 +195,7 @@ ZROS_TOPIC_DEFINE(imu1, synapse_pb_Imu);
 ZROS_TOPIC_DEFINE(imu_q31_array, synapse_pb_ImuQ31Array);
 ZROS_TOPIC_DEFINE(input, synapse_pb_Input);
 ZROS_TOPIC_DEFINE(input_ethernet, synapse_pb_Input);
-ZROS_TOPIC_DEFINE(input_sbus, synapse_pb_Input);
+ZROS_TOPIC_DEFINE(input_rc, synapse_pb_Input);
 ZROS_TOPIC_DEFINE(led_array, synapse_pb_LEDArray);
 ZROS_TOPIC_DEFINE(magnetic_field, synapse_pb_MagneticField);
 ZROS_TOPIC_DEFINE(moment_ff, synapse_pb_Vector3);
@@ -230,7 +230,7 @@ static struct zros_topic *topic_list[] = {
 	&topic_imu_q31_array,
 	&topic_input,
 	&topic_input_ethernet,
-	&topic_input_sbus,
+	&topic_input_rc,
 	&topic_led_array,
 	&topic_magnetic_field,
 	&topic_moment_ff,

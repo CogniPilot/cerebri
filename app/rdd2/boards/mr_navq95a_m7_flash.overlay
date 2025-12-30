@@ -85,7 +85,7 @@
 		gyro0 = &bmi08x_gyro;
 		mag0 = &bmm350;
 		power0 = &ina230;
-		sbus = &sbus0;
+		rc = &sbus0;
 		/* can0 = &flexcan5; */
 	};
 };

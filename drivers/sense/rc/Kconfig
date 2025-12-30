@@ -1,0 +1,18 @@
+# Copyright (c) 2025, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+menuconfig CEREBRI_SENSE_RC
+  bool "RC Input"
+  default y
+  depends on ZROS
+  depends on CEREBRI_CORE_WORKQUEUES
+  depends on INPUT_MODE_SYNCHRONOUS
+  help
+    This option enables the RC Input zros publisher
+
+if CEREBRI_SENSE_RC
+
+module = CEREBRI_SENSE_RC
+module-str = sense_rc
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # CEREBRI_SENSE_RC

@@ -73,7 +73,7 @@ struct context {
 	// struct zros_sub sub_imu_q31_array;
 	struct zros_sub sub_input;
 	struct zros_sub sub_input_ethernet;
-	struct zros_sub sub_input_sbus;
+	struct zros_sub sub_input_rc;
 	struct zros_sub sub_led_array;
 	struct zros_sub sub_magnetic_field;
 	struct zros_sub sub_moment_ff;
@@ -116,7 +116,7 @@ static struct context g_ctx = {
 	//.sub_imu_q31_array = {},
 	.sub_input = {},
 	.sub_input_ethernet = {},
-	.sub_input_sbus = {},
+	.sub_input_rc = {},
 	.sub_led_array = {},
 	.sub_magnetic_field = {},
 	.sub_moment_ff = {},
@@ -160,7 +160,7 @@ static int log_sdcard_init(struct context *ctx)
 	// SUBSCRIBE_TOPIC(imu_q31_array);
 	SUBSCRIBE_TOPIC(input);
 	SUBSCRIBE_TOPIC(input_ethernet);
-	SUBSCRIBE_TOPIC(input_sbus);
+	SUBSCRIBE_TOPIC(input_rc);
 	SUBSCRIBE_TOPIC(led_array);
 	SUBSCRIBE_TOPIC(magnetic_field);
 	SUBSCRIBE_TOPIC(moment_ff);
@@ -201,7 +201,7 @@ static int log_sdcard_fini(struct context *ctx)
 	// UNSUBSCRIBE_TOPIC(imu_q31_array);
 	UNSUBSCRIBE_TOPIC(input);
 	UNSUBSCRIBE_TOPIC(input_ethernet);
-	UNSUBSCRIBE_TOPIC(input_sbus);
+	UNSUBSCRIBE_TOPIC(input_rc);
 	UNSUBSCRIBE_TOPIC(led_array);
 	UNSUBSCRIBE_TOPIC(magnetic_field);
 	UNSUBSCRIBE_TOPIC(moment_ff);
@@ -335,7 +335,7 @@ static void log_sdcard_run(void *p0, void *p1, void *p2)
 		// GET_UPDATE(imu_q31_array, imu_q31_array);
 		GET_UPDATE(input, input);
 		GET_UPDATE(input_ethernet, input);
-		GET_UPDATE(input_sbus, input);
+		GET_UPDATE(input_rc, input);
 		GET_UPDATE(led_array, led_array);
 		GET_UPDATE(magnetic_field, magnetic_field);
 		GET_UPDATE(moment_ff, vector3);

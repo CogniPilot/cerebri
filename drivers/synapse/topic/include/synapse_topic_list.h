@@ -59,7 +59,7 @@ ZROS_TOPIC_DECLARE(topic_imu0, synapse_pb_Imu);
 ZROS_TOPIC_DECLARE(topic_imu1, synapse_pb_Imu);
 ZROS_TOPIC_DECLARE(topic_imu_q31_array, synapse_pb_ImuQ31Array);
 ZROS_TOPIC_DECLARE(topic_input, synapse_pb_Input);
-ZROS_TOPIC_DECLARE(topic_input_sbus, synapse_pb_Input);
+ZROS_TOPIC_DECLARE(topic_input_rc, synapse_pb_Input);
 ZROS_TOPIC_DECLARE(topic_input_ethernet, synapse_pb_Input);
 ZROS_TOPIC_DECLARE(topic_led_array, synapse_pb_LEDArray);
 ZROS_TOPIC_DECLARE(topic_magnetic_field, synapse_pb_MagneticField);

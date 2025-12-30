@@ -51,7 +51,7 @@
 		power0 = &ina230;
 		status-led = &ncp5623c;
 		buzzer = &buzzer0;
-		sbus = &sbus0;
+		rc = &sbus0;
 		gnss = &gnss1;
 	};
 };

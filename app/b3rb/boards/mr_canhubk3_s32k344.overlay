@@ -67,7 +67,7 @@
 		buzzer = &gps_buzzer_mr_canhubk3_adap;
 		power0 = &ina230;
 		wheel-odometry0 = &qdec0;
-		sbus = &sbus0;
+		rc = &sbus0;
 		safety-button = &safety_button_mr_canhubk3_adap;
 		gnss = &gnss1;
 	};

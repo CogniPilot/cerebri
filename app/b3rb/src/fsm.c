@@ -85,7 +85,7 @@ struct status_input {
 
 	bool update_battery_state;
 	bool update_safety;
-	bool update_input_sbus;
+	bool update_input_rc;
 	bool update_input_ethernet;
 	bool update_cmd_vel_ethernet;
 	bool topic_source_ethernet;
@@ -100,7 +100,7 @@ struct status_input {
 
 	// derived booleans
 	bool update_input_from_ethernet;
-	bool update_input_from_sbus;
+	bool update_input_from_rc;
 	bool update_input;
 	bool input_regained_now;
 	bool input_lost_now;
@@ -112,13 +112,13 @@ struct status_input {
 
 struct context {
 	struct zros_node node;
-	synapse_pb_Input input, input_sbus, input_ethernet;
+	synapse_pb_Input input, input_rc, input_ethernet;
 	synapse_pb_BatteryState battery_state;
 	synapse_pb_Safety safety;
 	synapse_pb_Status status;
 	synapse_pb_Twist cmd_vel, cmd_vel_ethernet;
 	struct status_input status_input;
-	struct zros_sub sub_input_sbus, sub_input_ethernet, sub_battery_state, sub_safety,
+	struct zros_sub sub_input_rc, sub_input_ethernet, sub_battery_state, sub_safety,
 		sub_cmd_vel_ethernet;
 	struct zros_pub pub_status, pub_input, pub_cmd_vel;
 	struct k_sem running;
@@ -157,7 +157,7 @@ static struct context g_ctx = {
 		},
 	.sub_battery_state = {},
 	.sub_safety = {},
-	.sub_input_sbus = {},
+	.sub_input_rc = {},
 	.sub_input_ethernet = {},
 	.sub_cmd_vel_ethernet = {},
 	.pub_status = {},
@@ -182,7 +182,7 @@ static void b3rb_fsm_init(struct context *ctx)
 	zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state,
 		      &ctx->battery_state, 10);
 	zros_sub_init(&ctx->sub_safety, &ctx->node, &topic_safety, &ctx->safety, 10);
-	zros_sub_init(&ctx->sub_input_sbus, &ctx->node, &topic_input_sbus, &ctx->input_sbus, 10);
+	zros_sub_init(&ctx->sub_input_rc, &ctx->node, &topic_input_rc, &ctx->input_rc, 10);
 	zros_sub_init(&ctx->sub_input_ethernet, &ctx->node, &topic_input_ethernet,
 		      &ctx->input_ethernet, 10);
 	zros_sub_init(&ctx->sub_cmd_vel_ethernet, &ctx->node, &topic_cmd_vel_ethernet,
@@ -198,7 +198,7 @@ static void b3rb_fsm_fini(struct context *ctx)
 {
 	zros_sub_fini(&ctx->sub_battery_state);
 	zros_sub_fini(&ctx->sub_safety);
-	zros_sub_fini(&ctx->sub_input_sbus);
+	zros_sub_fini(&ctx->sub_input_rc);
 	zros_sub_fini(&ctx->sub_input_ethernet);
 	zros_sub_fini(&ctx->sub_cmd_vel_ethernet);
 	zros_pub_fini(&ctx->pub_status);
@@ -241,7 +241,7 @@ static void fsm_compute_input(struct status_input *input, struct context *ctx)
 	// booleans from input
 	input->update_battery_state = zros_sub_update_available(&ctx->sub_battery_state);
 	input->update_safety = zros_sub_update_available(&ctx->sub_safety);
-	input->update_input_sbus = zros_sub_update_available(&ctx->sub_input_sbus);
+	input->update_input_rc = zros_sub_update_available(&ctx->sub_input_rc);
 	input->update_input_ethernet = zros_sub_update_available(&ctx->sub_input_ethernet);
 	input->update_cmd_vel_ethernet = zros_sub_update_available(&ctx->sub_cmd_vel_ethernet);
 	input->topic_source_ethernet =
@@ -265,9 +265,8 @@ static void fsm_compute_input(struct status_input *input, struct context *ctx)
 	// derived booleans
 	input->update_input_from_ethernet =
 		input->update_input_ethernet && input->input_source_ethernet;
-	input->update_input_from_sbus =
-		input->update_input_sbus && input->input_source_radio_control;
-	input->update_input = input->update_input_from_sbus || input->update_input_from_ethernet;
+	input->update_input_from_rc = input->update_input_rc && input->input_source_radio_control;
+	input->update_input = input->update_input_from_rc || input->update_input_from_ethernet;
 	input->input_regained_now = input->update_input && input->input_status_loss;
 	input->input_lost_now = !input->input_status_loss && input->input_timeout;
 	input->update_topic_from_ethernet =
@@ -455,7 +454,7 @@ static void b3rb_fsm_run(void *p0, void *p1, void *p2)
 	b3rb_fsm_init(ctx);
 
 	struct k_poll_event events[] = {
-		*zros_sub_get_event(&ctx->sub_input_sbus),
+		*zros_sub_get_event(&ctx->sub_input_rc),
 		*zros_sub_get_event(&ctx->sub_input_ethernet),
 		*zros_sub_get_event(&ctx->sub_battery_state),
 	};
@@ -486,8 +485,8 @@ static void b3rb_fsm_run(void *p0, void *p1, void *p2)
 			zros_sub_update(&ctx->sub_safety);
 		}
 
-		if (in->update_input_sbus) {
-			zros_sub_update(&ctx->sub_input_sbus);
+		if (in->update_input_rc) {
+			zros_sub_update(&ctx->sub_input_rc);
 		}
 
 		if (in->update_input_ethernet) {
@@ -502,8 +501,8 @@ static void b3rb_fsm_run(void *p0, void *p1, void *p2)
 		// update input from correct source
 		if (in->update_input_from_ethernet) {
 			ctx->input = ctx->input_ethernet;
-		} else if (in->update_input_from_sbus) {
-			ctx->input = ctx->input_sbus;
+		} else if (in->update_input_from_rc) {
+			ctx->input = ctx->input_rc;
 		}
 
 		// update ticks
@@ -525,7 +524,7 @@ static void b3rb_fsm_run(void *p0, void *p1, void *p2)
 
 		// if signal loss, try to reconfigure to another link
 		if (in->input_status_loss) {
-			if (in->update_input_sbus) {
+			if (in->update_input_rc) {
 				ctx->status.input_source =
 					synapse_pb_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL;
 				LOG_INF("reconfiguring link to use radio control");

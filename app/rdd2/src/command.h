@@ -39,7 +39,7 @@ struct context {
 	synapse_pb_Odometry odometry_estimator;
 	synapse_pb_Twist cmd_vel;
 	struct zros_sub sub_bezier_trajectory_ethernet, sub_status, sub_input_ethernet,
-		sub_input_sbus, sub_odometry_estimator, sub_cmd_vel_ethernet,
+		sub_input_rc, sub_odometry_estimator, sub_cmd_vel_ethernet,
 		sub_clock_offset_ethernet;
 	struct zros_pub pub_attitude_sp, pub_angular_velocity_ff, pub_angular_velocity_sp,
 		pub_force_sp, pub_accel_sp, pub_moment_ff, pub_velocity_sp, pub_orientation_sp,

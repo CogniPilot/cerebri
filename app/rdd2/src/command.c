@@ -40,7 +40,7 @@ static struct context g_ctx = {
 		},
 	.cmd_vel = synapse_pb_Twist_init_default,
 	.sub_input_ethernet = {},
-	.sub_input_sbus = {},
+	.sub_input_rc = {},
 	.sub_status = {},
 	.sub_bezier_trajectory_ethernet = {},
 	.sub_clock_offset_ethernet = {},
@@ -73,7 +73,7 @@ static void rdd2_command_init(struct context *ctx)
 	zros_node_init(&ctx->node, "rdd2_command");
 	zros_sub_init(&ctx->sub_input_ethernet, &ctx->node, &topic_input_ethernet, &ctx->input,
 		      200);
-	zros_sub_init(&ctx->sub_input_sbus, &ctx->node, &topic_input_sbus, &ctx->input, 200);
+	zros_sub_init(&ctx->sub_input_rc, &ctx->node, &topic_input_rc, &ctx->input, 200);
 	zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
 	zros_sub_init(&ctx->sub_bezier_trajectory_ethernet, &ctx->node,
 		      &topic_bezier_trajectory_ethernet, &ctx->bezier_trajectory, 10);
@@ -103,7 +103,7 @@ static void rdd2_command_init(struct context *ctx)
 static void rdd2_command_fini(struct context *ctx)
 {
 	zros_sub_fini(&ctx->sub_input_ethernet);
-	zros_sub_fini(&ctx->sub_input_sbus);
+	zros_sub_fini(&ctx->sub_input_rc);
 	zros_sub_fini(&ctx->sub_status);
 	zros_sub_fini(&ctx->sub_bezier_trajectory_ethernet);
 	zros_sub_fini(&ctx->sub_odometry_estimator);
@@ -131,7 +131,7 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 
 	struct k_poll_event events[] = {
 		*zros_sub_get_event(&ctx->sub_input_ethernet),
-		*zros_sub_get_event(&ctx->sub_input_sbus),
+		*zros_sub_get_event(&ctx->sub_input_rc),
 		*zros_sub_get_event(&ctx->sub_cmd_vel_ethernet),
 		*zros_sub_get_event(&ctx->sub_bezier_trajectory_ethernet),
 	};
@@ -169,8 +169,8 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 		}
 
 		// prioritize onboard sbus input
-		if (zros_sub_update_available(&ctx->sub_input_sbus)) {
-			zros_sub_update(&ctx->sub_input_sbus);
+		if (zros_sub_update_available(&ctx->sub_input_rc)) {
+			zros_sub_update(&ctx->sub_input_rc);
 			zros_pub_update(&ctx->pub_input);
 			ctx->status.input_source =
 				synapse_pb_Status_InputSource_INPUT_SOURCE_RADIO_CONTROL;

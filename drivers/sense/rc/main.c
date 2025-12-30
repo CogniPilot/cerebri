@@ -1,5 +1,5 @@
 /*
- * Copyright CogniPilot Foundation 2023
+ * Copyright CogniPilot Foundation 2025
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +19,7 @@
 #define MY_STACK_SIZE 2048
 #define MY_PRIORITY   2
 
-LOG_MODULE_REGISTER(sense_sbus, CONFIG_CEREBRI_SENSE_SBUS_LOG_LEVEL);
+LOG_MODULE_REGISTER(sense_rc, CONFIG_CEREBRI_SENSE_RC_LOG_LEVEL);
 
 static K_THREAD_STACK_DEFINE(g_my_stack_area, MY_STACK_SIZE);
 
@@ -45,16 +45,16 @@ static struct context g_ctx = {
 	.last_event = 0,
 };
 
-static void sense_sbus_init(struct context *ctx)
+static void sense_rc_init(struct context *ctx)
 {
-	zros_node_init(&ctx->node, "sense_sbus");
-	zros_pub_init(&ctx->pub_input, &ctx->node, &topic_input_sbus, &ctx->input);
+	zros_node_init(&ctx->node, "sense_rc");
+	zros_pub_init(&ctx->pub_input, &ctx->node, &topic_input_rc, &ctx->input);
 	ctx->last_event = 0;
 	k_sem_take(&ctx->running, K_FOREVER);
 	LOG_INF("init");
 }
 
-static void sense_sbus_fini(struct context *ctx)
+static void sense_rc_fini(struct context *ctx)
 {
 	zros_pub_fini(&ctx->pub_input);
 	zros_node_fini(&ctx->node);
@@ -62,26 +62,26 @@ static void sense_sbus_fini(struct context *ctx)
 	LOG_INF("fini");
 }
 
-static void sense_sbus_run(void *p0, void *p1, void *p2)
+static void sense_rc_run(void *p0, void *p1, void *p2)
 {
 	struct context *ctx = p0;
 	ARG_UNUSED(p1);
 	ARG_UNUSED(p2);
 
-	sense_sbus_init(ctx);
+	sense_rc_init(ctx);
 
 	// wait for stop request
 	while (k_sem_take(&ctx->running, K_MSEC(1000)) < 0)
 		;
 
-	sense_sbus_fini(ctx);
+	sense_rc_fini(ctx);
 }
 
 static int start(struct context *ctx)
 {
 	k_tid_t tid = k_thread_create(&ctx->thread_data, ctx->stack_area, ctx->stack_size,
-				      sense_sbus_run, ctx, NULL, NULL, MY_PRIORITY, 0, K_FOREVER);
-	k_thread_name_set(tid, "sense_sbus");
+				      sense_rc_run, ctx, NULL, NULL, MY_PRIORITY, 0, K_FOREVER);
+	k_thread_name_set(tid, "sense_rc");
 	k_thread_start(tid);
 	return 0;
 }
@@ -95,8 +95,8 @@ static void input_cb(struct input_event *evt, void *userdata)
 		return;
 	}
 
-	double x0 = 1024;
-	double scale = 784;
+	float x0 = 1024;
+	float scale = 784;
 
 	if (evt->code > 0 && evt->code <= ctx->input.channel_count) {
 		ctx->input.channel[evt->code - 1] = (evt->value - x0) / scale;
@@ -112,9 +112,9 @@ static void input_cb(struct input_event *evt, void *userdata)
 	ctx->last_event = evt->code;
 }
 
-INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_ALIAS(sbus)), input_cb, &g_ctx);
+INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(DT_ALIAS(rc)), input_cb, &g_ctx);
 
-static int sense_sbus_cmd_handler(const struct shell *sh, size_t argc, char **argv, void *data)
+static int sense_rc_cmd_handler(const struct shell *sh, size_t argc, char **argv, void *data)
 {
 	ARG_UNUSED(argc);
 	struct context *ctx = data;
@@ -137,16 +137,16 @@ static int sense_sbus_cmd_handler(const struct shell *sh, size_t argc, char **ar
 	return 0;
 }
 
-SHELL_SUBCMD_DICT_SET_CREATE(sub_sense_sbus, sense_sbus_cmd_handler, (start, &g_ctx, "start"),
+SHELL_SUBCMD_DICT_SET_CREATE(sub_sense_rc, sense_rc_cmd_handler, (start, &g_ctx, "start"),
 			     (stop, &g_ctx, "stop"), (status, &g_ctx, "status"));
 
-SHELL_CMD_REGISTER(sense_sbus, &sub_sense_sbus, "sense sbus args", NULL);
+SHELL_CMD_REGISTER(sense_rc, &sub_sense_rc, "sense rc args", NULL);
 
-static int sense_sbus_sys_init(void)
+static int sense_rc_sys_init(void)
 {
 	return start(&g_ctx);
 };
 
-SYS_INIT(sense_sbus_sys_init, APPLICATION, 2);
+SYS_INIT(sense_rc_sys_init, APPLICATION, 2);
 
 /* vi: ts=4 sw=4 et */

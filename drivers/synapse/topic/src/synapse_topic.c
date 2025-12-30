@@ -68,7 +68,7 @@ static context_t g_ctx = {.work_item = Z_WORK_INITIALIZER(topic_work_handler),
 		(imu_q31_array, &topic_imu_q31_array, "imu_q31_array"),                            \
 		(input, &topic_input, "input"),                                                    \
 		(input_ethernet, &topic_input_ethernet, "input_ethernet"),                         \
-		(input_sbus, &topic_input_sbus, "input_sbus"),                                     \
+		(input_rc, &topic_input_rc, "input_rc"),                                           \
 		(led_array, &topic_led_array, "led_array"),                                        \
 		(magnetic_field, &topic_magnetic_field, "magnetic_field"),                         \
 		(moment_ff, &topic_moment_ff, "moment_ff"),                                        \
@@ -272,7 +272,7 @@ void topic_work_handler(struct k_work *work)
 	} else if (topic == &topic_imu || topic == &topic_imu0 || topic == &topic_imu1) {
 		synapse_pb_Imu msg = {};
 		handler(sh, topic, &msg, (snprint_t *)&snprint_imu);
-	} else if (topic == &topic_input_ethernet || topic == &topic_input_sbus ||
+	} else if (topic == &topic_input_ethernet || topic == &topic_input_rc ||
 		   topic == &topic_input) {
 		synapse_pb_Input msg = {};
 		handler(sh, topic, &msg, (snprint_t *)&snprint_input);

@@ -11,4 +11,4 @@ zephyr_library_sources(
   main.c
   )
 
-add_dependencies(cerebri_sense_sbus synapse_pb)
+add_dependencies(cerebri_sense_sbus synapse_pb cerebri_core_common)

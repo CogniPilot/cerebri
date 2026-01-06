@@ -54,5 +54,5 @@ manifest:
       path: modules/lib/zros_drivers
     - name: zephyr_boards
       remote: cognipilot
-      revision: c353dcae1e94f6223b5959845521e9aa25dcc3df
+      revision: e39207f2328cfdc695d0bde0568806547b9b6398
       path: modules/lib/zephyr_boards

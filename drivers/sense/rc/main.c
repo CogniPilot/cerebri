@@ -11,10 +11,27 @@
 
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_pub_struct.h>
+#include <zros/private/zros_sub_struct.h>
 #include <zros/zros_node.h>
 #include <zros/zros_pub.h>
+#include <zros/zros_sub.h>
 
 #include <synapse_topic_list.h>
+
+#if DT_NODE_HAS_COMPAT(DT_ALIAS(rc), tbs_crsf)
+#include <zephyr/drivers/input/input_crsf.h>
+#include <zephyr/sys/byteorder.h>
+#define CRSF_TELEMETRY 1
+
+enum crsf_telem {
+	CRSF_GPS = 0,
+	CRSF_FLIGHT_MODE,
+	CRSF_BATTERY,
+	CRSF_ATTITUDE,
+	CRSF_TELEM_COUNT
+};
+
+#endif
 
 #define MY_STACK_SIZE 2048
 #define MY_PRIORITY   2
@@ -32,6 +49,12 @@ struct context {
 	k_thread_stack_t *stack_area;
 	struct k_thread thread_data;
 	int last_event;
+#ifdef CRSF_TELEMETRY
+	enum crsf_telem telem_state;
+	synapse_pb_BatteryState battery_state;
+	synapse_pb_Status status;
+	struct zros_sub sub_battery_state, sub_status;
+#endif
 };
 
 static struct context g_ctx = {
@@ -43,6 +66,13 @@ static struct context g_ctx = {
 	.stack_area = g_my_stack_area,
 	.thread_data = {},
 	.last_event = 0,
+#ifdef CRSF_TELEMETRY
+	.telem_state = CRSF_GPS,
+	.battery_state = synapse_pb_BatteryState_init_default,
+	.status = synapse_pb_Status_init_default,
+	.sub_battery_state = {},
+	.sub_status = {},
+#endif
 };
 
 static void sense_rc_init(struct context *ctx)
@@ -50,12 +80,21 @@ static void sense_rc_init(struct context *ctx)
 	zros_node_init(&ctx->node, "sense_rc");
 	zros_pub_init(&ctx->pub_input, &ctx->node, &topic_input_rc, &ctx->input);
 	ctx->last_event = 0;
+#ifdef CRSF_TELEMETRY
+	zros_sub_init(&ctx->sub_battery_state, &ctx->node, &topic_battery_state,
+		      &ctx->battery_state, 10);
+	zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
+#endif
 	k_sem_take(&ctx->running, K_FOREVER);
 	LOG_INF("init");
 }
 
 static void sense_rc_fini(struct context *ctx)
 {
+#ifdef CRSF_TELEMETRY
+	zros_sub_fini(&ctx->sub_battery_state);
+	zros_sub_fini(&ctx->sub_status);
+#endif
 	zros_pub_fini(&ctx->pub_input);
 	zros_node_fini(&ctx->node);
 	k_sem_give(&ctx->running);
@@ -70,9 +109,48 @@ static void sense_rc_run(void *p0, void *p1, void *p2)
 
 	sense_rc_init(ctx);
 
+#ifdef CRSF_TELEMETRY
+	const struct device *dev = DEVICE_DT_GET(DT_ALIAS(rc));
+	while (k_sem_take(&ctx->running, K_MSEC(100)) < 0) {
+		switch (ctx->telem_state) {
+		case CRSF_GPS:
+			break;
+
+		case CRSF_FLIGHT_MODE:
+			zros_sub_update(&ctx->sub_status);
+			input_crsf_send_telemetry(dev, CRSF_TYPE_FLIGHT_MODE,
+						  (uint8_t *)mode_str(ctx->status.mode),
+						  strlen(mode_str(ctx->status.mode)));
+			break;
+
+		case CRSF_BATTERY:
+
+			zros_sub_update(&ctx->sub_battery_state);
+			struct crsf_payload_battery bat_payload;
+			bat_payload.voltage_dV =
+				sys_cpu_to_be16((int16_t)(ctx->battery_state.voltage * 10));
+			bat_payload.current_dA =
+				sys_cpu_to_be16((int16_t)(ctx->battery_state.current * 10));
+			bat_payload.remaining_pct = (int8_t)(ctx->status.fuel_percentage);
+			input_crsf_send_telemetry(dev, CRSF_TYPE_BATTERY, (uint8_t *)&bat_payload,
+						  sizeof(struct crsf_payload_battery));
+			break;
+
+		case CRSF_ATTITUDE:
+			break;
+
+		default:
+			break;
+		}
+
+		ctx->telem_state = (ctx->telem_state + 1) % CRSF_TELEM_COUNT;
+	}
+
+#else
 	// wait for stop request
 	while (k_sem_take(&ctx->running, K_MSEC(1000)) < 0)
 		;
+#endif
 
 	sense_rc_fini(ctx);
 }

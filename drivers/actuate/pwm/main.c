@@ -137,7 +137,8 @@ static void pwm_update(struct context *ctx)
 		perf_duration_stop(&control_latency);
 
 		if (err) {
-			LOG_ERR("Failed to set pulse %d on %d (err %d)", pulse, pwm.index, err);
+			LOG_ERR_RATELIMIT_RATE(5000, "Failed to set pulse %d on %d (err %d)", pulse,
+					       pwm.index, err);
 		}
 	}
 

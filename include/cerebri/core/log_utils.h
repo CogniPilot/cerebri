@@ -2,14 +2,20 @@
 #define CEREBRI_LOG_UTILS_H
 
 #include <zephyr/logging/log.h>
+#include <zephyr/logging/log_ctrl.h>
+#include <zephyr/logging/log_backend.h>
 
-/* Register a module’s desired runtime log level with the manager */
+/* Register desired log level during SYS_INIT (applied after boot via delayed work) */
 void cerebri_register_log_level(int16_t module_id, uint32_t level);
+
+/* Apply runtime log filter immediately for a module (can be called anytime) */
+void cerebri_apply_log_filter(int16_t module_id, uint32_t level);
 
 /*
  * Convenience macro for nodes:
- * Registers the module with LOG_LEVEL_DBG compiled,
- * and requests runtime filtering at `level`.
+ * Registers the module with LOG_LEVEL_DBG compiled in (so DBG can be enabled at runtime),
+ * but applies runtime filtering at `level` after boot completes.
+ * Use `log enable dbg <module>` shell command to enable debug messages at runtime.
  */
 #define CEREBRI_NODE_LOG_INIT(name, level)                                                         \
 	LOG_MODULE_REGISTER(name, LOG_LEVEL_DBG);                                                  \
@@ -18,6 +24,6 @@ void cerebri_register_log_level(int16_t module_id, uint32_t level);
 		cerebri_register_log_level(LOG_CURRENT_MODULE_ID(), level);                        \
 		return 0;                                                                          \
 	}                                                                                          \
-	SYS_INIT(name##_log_init, APPLICATION, 98)
+	SYS_INIT(name##_log_init, APPLICATION, 1)
 
 #endif // CEREBRI_LOG_UTILS_H

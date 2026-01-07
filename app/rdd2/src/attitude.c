@@ -110,7 +110,7 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 		int rc = 0;
 		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
 		if (rc != 0) {
-			LOG_DBG("not receiving attitude_setpoint");
+			LOG_DBG_RATELIMIT_RATE(30000, "not receiving attitude_setpoint");
 		} else {
 			break;
 		}
@@ -122,7 +122,7 @@ static void rdd2_attitude_run(void *p0, void *p1, void *p2)
 		int rc = 0;
 		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
 		if (rc != 0) {
-			LOG_DBG("not receiving odometry_estimator");
+			LOG_DBG_RATELIMIT_RATE(30000, "not receiving odometry_estimator");
 			continue;
 		}
 

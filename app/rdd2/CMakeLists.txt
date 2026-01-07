@@ -10,6 +10,10 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(rdd2 LANGUAGES C)
 
+# Suppress strncpy warning from upstream Zephyr USB MSC code (usbd_msc_scsi.c)
+# The strncpy usage is correct for fixed-size SCSI fields that don't need null termination
+zephyr_compile_options(-Wno-stringop-truncation)
+
 set(CYECCA_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/../../scripts/cyecca_python)
 
 set(CYECCA_PATH $ENV{ZEPHYR_BASE}/../modules/lib/cyecca)

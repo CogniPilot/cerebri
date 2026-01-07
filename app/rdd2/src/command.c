@@ -190,7 +190,7 @@ static void rdd2_command_run(void *p0, void *p1, void *p2)
 		ctx->dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
 		ticks_last = ticks_now;
 		if (ctx->dt < 0 || ctx->dt > 0.5) {
-			LOG_DBG("input update rate too low");
+			LOG_DBG_RATELIMIT_RATE(30000, "input update rate too low");
 			continue;
 		}
 

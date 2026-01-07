@@ -19,6 +19,10 @@
 #include <cerebri/core/log_utils.h>
 #include <synapse_topic_list.h>
 
+#if defined(CONFIG_CEREBRI_SYNAPSE_USB_MSC)
+#include <usb_msc.h>
+#endif
+
 #include "input_mapping.h"
 
 #define MY_STACK_SIZE 3072
@@ -81,6 +85,7 @@ struct status_input {
 	bool mode_set;
 	bool fuel_low;
 	bool fuel_critical;
+	bool usb_connected;
 };
 
 struct context {
@@ -164,13 +169,27 @@ static void fsm_compute_input(struct status_input *input, const struct context *
 	input->safe = false;
 #endif
 
+#if defined(CONFIG_CEREBRI_SYNAPSE_USB_MSC)
+	/* Block arming when USB host is connected (SD card in use by host) */
+	input->usb_connected = usb_msc_is_connected();
+#else
+	input->usb_connected = false;
+#endif
+
 #ifdef CONFIG_CEREBRI_SENSE_POWER
-	input->fuel_low = ctx->battery_state.voltage <
-			  CONFIG_CEREBRI_RDD2_BATTERY_NCELLS *
-				  CONFIG_CEREBRI_RDD2_BATTERY_CELL_LOW_MILLIVOLT / 1000.0;
-	input->fuel_critical = ctx->battery_state.voltage <
-			       CONFIG_CEREBRI_RDD2_BATTERY_NCELLS *
-				       CONFIG_CEREBRI_RDD2_BATTERY_CELL_MIN_MILLIVOLT / 1000.0;
+	/* Suppress fuel alarms when running on USB power (no battery expected) */
+	if (input->usb_connected) {
+		input->fuel_low = false;
+		input->fuel_critical = false;
+	} else {
+		input->fuel_low = ctx->battery_state.voltage <
+				  CONFIG_CEREBRI_RDD2_BATTERY_NCELLS *
+					  CONFIG_CEREBRI_RDD2_BATTERY_CELL_LOW_MILLIVOLT / 1000.0;
+		input->fuel_critical = ctx->battery_state.voltage <
+				       CONFIG_CEREBRI_RDD2_BATTERY_NCELLS *
+					       CONFIG_CEREBRI_RDD2_BATTERY_CELL_MIN_MILLIVOLT /
+					       1000.0;
+	}
 #else
 	input->fuel_low = false;
 	input->fuel_critical = false;
@@ -188,10 +207,10 @@ static void fsm_update(synapse_pb_Status *status, const struct status_input *inp
 		   status->status_message, sizeof(status->status_message), // status
 		   &status->request_seq, &status->request_rejected,        // request
 		   // guards
-		   5, status->mode == synapse_pb_Status_Mode_MODE_UNKNOWN, "mode not set",
+		   6, status->mode == synapse_pb_Status_Mode_MODE_UNKNOWN, "mode not set",
 		   status->mode == synapse_pb_Status_Mode_MODE_CALIBRATION, "mode calibration",
 		   input->safe, "safety on", input->fuel_critical, "fuel_critical", input->fuel_low,
-		   "fuel_low");
+		   "fuel_low", input->usb_connected, "USB connected");
 
 	// disarm transitions
 	transition(&status->arming,                                        // state

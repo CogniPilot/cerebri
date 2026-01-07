@@ -9,5 +9,6 @@ rsource "topic/Kconfig"
 rsource "vesc_can/Kconfig"
 rsource "log_sdcard/Kconfig"
 rsource "rpmsg/Kconfig"
+rsource "usb_msc/Kconfig"
 
 endmenu

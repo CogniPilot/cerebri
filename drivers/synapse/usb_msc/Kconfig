@@ -1,0 +1,21 @@
+# Copyright (c) 2024, CogniPilot Foundation
+# SPDX-License-Identifier: Apache-2.0
+
+config CEREBRI_SYNAPSE_USB_MSC
+	bool "USB Mass Storage for SD card access"
+	default n
+	depends on USB_DEVICE_STACK_NEXT
+	depends on USBD_MSC_CLASS
+	depends on DISK_DRIVER_SDMMC
+	help
+	  This option enables USB Mass Storage mode for downloading
+	  log files from the SD card. When enabled, shell commands
+	  allow switching between logging mode and USB MSC mode.
+
+if CEREBRI_SYNAPSE_USB_MSC
+
+module = CEREBRI_SYNAPSE_USB_MSC
+module-str = synapse_usb_msc
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # CEREBRI_SYNAPSE_USB_MSC

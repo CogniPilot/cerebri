@@ -4,9 +4,12 @@
  */
 
 #include <stdio.h>
+#include <time.h>
 
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
+
+#include <log_sdcard.h>
 
 #if CONFIG_FAT_FILESYSTEM_ELM
 #include <ff.h>
@@ -18,10 +21,24 @@
 #include <synapse_rpmsg.h>
 #endif
 
+#include <zros/private/zros_node_struct.h>
+#include <zros/private/zros_sub_struct.h>
+#include <zros/zros_node.h>
+#include <zros/zros_sub.h>
+#include <synapse_topic_list.h>
+
 #define FS_RET_OK     FR_OK
 #define MY_STACK_SIZE 2048
 #define MY_PRIORITY   1
 #define BUF_SIZE      512
+
+/* Minimum valid epoch timestamp (2020-01-01 00:00:00 UTC) */
+#define MIN_VALID_EPOCH 1577836800
+
+/* Maximum filename length: /SD:/YYYY-MM-DD_HHMMSS.pb = 27 chars + null
+ * Using 64 to satisfy compiler warning about potential truncation with large int values
+ */
+#define MAX_FILENAME_LEN 64
 
 extern struct ring_buf rb_sdcard;
 
@@ -55,6 +72,90 @@ static struct context g_ctx = {
 };
 
 static const char *disk_mount_pt = "/SD:";
+
+/* ZROS node and subscriber for NavSatFix */
+static struct zros_node g_node;
+static struct zros_sub g_sub_nav_sat_fix;
+static synapse_pb_NavSatFix g_nav_sat_fix;
+static bool g_zros_initialized = false;
+
+/**
+ * @brief Convert epoch seconds to a formatted filename
+ * @param epoch_secs Unix epoch seconds
+ * @param buf Output buffer for filename
+ * @param len Buffer length
+ */
+static void epoch_to_filename(int64_t epoch_secs, char *buf, size_t len)
+{
+	time_t t = (time_t)epoch_secs;
+	struct tm *tm = gmtime(&t);
+	if (tm == NULL) {
+		snprintf(buf, len, "/SD:/data.pb");
+		return;
+	}
+	snprintf(buf, len, "/SD:/%04d-%02d-%02d_%02d%02d%02d.pb", tm->tm_year + 1900,
+		 tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+}
+
+/**
+ * @brief Find the next available sequence number for log files
+ * @return Next available sequence number (1-9999)
+ */
+static int find_next_sequence_number(void)
+{
+	struct fs_dir_t dir;
+	struct fs_dirent entry;
+	int max_seq = 0;
+
+	fs_dir_t_init(&dir);
+	if (fs_opendir(&dir, disk_mount_pt) != 0) {
+		return 1;
+	}
+
+	while (fs_readdir(&dir, &entry) == 0 && entry.name[0] != '\0') {
+		int seq;
+		/* Match pattern log_NNNN.pb */
+		if (sscanf(entry.name, "log_%d.pb", &seq) == 1) {
+			if (seq > max_seq) {
+				max_seq = seq;
+			}
+		}
+	}
+
+	fs_closedir(&dir);
+	return max_seq + 1;
+}
+
+/**
+ * @brief Generate a log filename based on GPS time or sequence number
+ * @param buf Output buffer for filename
+ * @param len Buffer length
+ */
+static void generate_log_filename(char *buf, size_t len)
+{
+	/* Initialize ZROS subscription if not done */
+	if (!g_zros_initialized) {
+		zros_node_init(&g_node, "log_sdcard_writer");
+		zros_sub_init(&g_sub_nav_sat_fix, &g_node, &topic_nav_sat_fix, &g_nav_sat_fix, 1);
+		g_zros_initialized = true;
+	}
+
+	/* Try to get GPS time from NavSatFix topic */
+	if (zros_sub_update_available(&g_sub_nav_sat_fix)) {
+		zros_sub_update(&g_sub_nav_sat_fix);
+	}
+
+	/* Check if we have a valid GPS timestamp */
+	if (g_nav_sat_fix.has_stamp && g_nav_sat_fix.stamp.seconds > MIN_VALID_EPOCH) {
+		epoch_to_filename(g_nav_sat_fix.stamp.seconds, buf, len);
+		LOG_INF("Using GPS timestamp for log file: %s", buf);
+	} else {
+		/* Fallback to sequential naming */
+		int seq = find_next_sequence_number();
+		snprintf(buf, len, "/SD:/log_%04d.pb", seq);
+		LOG_INF("No GPS fix, using sequential log file: %s", buf);
+	}
+}
 
 static int mount_sd_card(void)
 {
@@ -109,6 +210,7 @@ static int mount_sd_card(void)
 static int log_sdcard_writer_init(struct context *ctx)
 {
 	int ret = 0;
+	char filename[MAX_FILENAME_LEN];
 
 	ret = mount_sd_card();
 	if (ret < 0) {
@@ -126,19 +228,20 @@ static int log_sdcard_writer_init(struct context *ctx)
 	k_sleep(K_MSEC(100));
 #endif
 
-	// delete old file if it exists
-	fs_unlink("/SD:/data.pb");
+	/* Generate filename based on GPS time or sequence number */
+	generate_log_filename(filename, sizeof(filename));
 
-	// open file
-	ret = fs_open(&ctx->file, "/SD:/data.pb", FS_O_WRITE | FS_O_CREATE | FS_O_APPEND);
+	/* Open log file (never overwrites existing files) */
+	ret = fs_open(&ctx->file, filename, FS_O_WRITE | FS_O_CREATE | FS_O_APPEND);
 	if (ret < 0) {
+		LOG_ERR("Failed to open log file: %s (%d)", filename, ret);
 		return ret;
 	}
 
 	k_sem_take(&ctx->running, K_FOREVER);
-	LOG_INF("writer init");
+	LOG_INF("writer init: %s", filename);
 	return ret;
-};
+}
 
 static int log_sdcard_writer_fini(struct context *ctx)
 {
@@ -222,6 +325,29 @@ static int start(struct context *ctx)
 	return 0;
 }
 
+/* Public API functions */
+int log_sdcard_writer_start(void)
+{
+	if (k_sem_count_get(&g_ctx.running) == 0) {
+		return -EALREADY;
+	}
+	return start(&g_ctx);
+}
+
+int log_sdcard_writer_stop(void)
+{
+	if (k_sem_count_get(&g_ctx.running) != 0) {
+		return -EALREADY;
+	}
+	k_sem_give(&g_ctx.running);
+	return 0;
+}
+
+bool log_sdcard_writer_is_running(void)
+{
+	return k_sem_count_get(&g_ctx.running) == 0;
+}
+
 static int log_sdcard_writer_cmd_handler(const struct shell *sh, size_t argc, char **argv,
 					 void *data)
 {
@@ -229,20 +355,18 @@ static int log_sdcard_writer_cmd_handler(const struct shell *sh, size_t argc, ch
 	struct context *ctx = data;
 
 	if (strcmp(argv[0], "start") == 0) {
-		if (k_sem_count_get(&g_ctx.running) == 0) {
+		int ret = log_sdcard_writer_start();
+		if (ret == -EALREADY) {
 			shell_print(sh, "already running");
-		} else {
-			start(ctx);
 		}
 	} else if (strcmp(argv[0], "stop") == 0) {
-		if (k_sem_count_get(&g_ctx.running) == 0) {
-			k_sem_give(&g_ctx.running);
-		} else {
+		int ret = log_sdcard_writer_stop();
+		if (ret == -EALREADY) {
 			shell_print(sh, "not running");
 		}
 	} else if (strcmp(argv[0], "status") == 0) {
 		shell_print(sh, "running: %d size written: %10.3f MB",
-			    (int)k_sem_count_get(&g_ctx.running) == 0,
+			    log_sdcard_writer_is_running(),
 			    ((double)ctx->total_size_written) / 1048576L);
 	}
 	return 0;
@@ -254,12 +378,6 @@ SHELL_SUBCMD_DICT_SET_CREATE(sub_log_sdcard_writer, log_sdcard_writer_cmd_handle
 
 SHELL_CMD_REGISTER(log_sdcard_writer, &sub_log_sdcard_writer, "log_sdcard_writer commands", NULL);
 
-static int log_sdcard_writer_sys_init(void)
-{
-	return start(&g_ctx);
-	return 0;
-};
-
-SYS_INIT(log_sdcard_writer_sys_init, APPLICATION, 99);
+/* Note: Auto-start removed - logging is now controlled by arming state */
 
 // vi: ts=4 sw=4 et

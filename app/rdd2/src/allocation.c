@@ -114,7 +114,7 @@ static void rdd2_allocation_run(void *p0, void *p1, void *p2)
 		int rc = 0;
 		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(100));
 		if (rc != 0) {
-			LOG_DBG("not receiving moment_sp");
+			LOG_DBG_RATELIMIT_RATE(30000, "not receiving moment_sp");
 		}
 
 		// update subscriptions

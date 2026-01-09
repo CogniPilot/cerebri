@@ -7,6 +7,8 @@
 
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
+
+#include <log_sdcard.h>
 #include <zros/private/zros_node_struct.h>
 #include <zros/private/zros_sub_struct.h>
 
@@ -364,25 +366,46 @@ static int start(struct context *ctx)
 	return 0;
 }
 
+/* Public API functions */
+int log_sdcard_start(void)
+{
+	if (k_sem_count_get(&g_ctx.running) == 0) {
+		return -EALREADY;
+	}
+	return start(&g_ctx);
+}
+
+int log_sdcard_stop(void)
+{
+	if (k_sem_count_get(&g_ctx.running) != 0) {
+		return -EALREADY;
+	}
+	k_sem_give(&g_ctx.running);
+	return 0;
+}
+
+bool log_sdcard_is_running(void)
+{
+	return k_sem_count_get(&g_ctx.running) == 0;
+}
+
 static int log_sdcard_cmd_handler(const struct shell *sh, size_t argc, char **argv, void *data)
 {
 	ARG_UNUSED(argc);
-	struct context *ctx = data;
+	ARG_UNUSED(data);
 
 	if (strcmp(argv[0], "start") == 0) {
-		if (k_sem_count_get(&g_ctx.running) == 0) {
+		int ret = log_sdcard_start();
+		if (ret == -EALREADY) {
 			shell_print(sh, "already running");
-		} else {
-			start(ctx);
 		}
 	} else if (strcmp(argv[0], "stop") == 0) {
-		if (k_sem_count_get(&g_ctx.running) == 0) {
-			k_sem_give(&g_ctx.running);
-		} else {
+		int ret = log_sdcard_stop();
+		if (ret == -EALREADY) {
 			shell_print(sh, "not running");
 		}
 	} else if (strcmp(argv[0], "status") == 0) {
-		shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
+		shell_print(sh, "running: %d", log_sdcard_is_running());
 	}
 	return 0;
 }
@@ -392,11 +415,132 @@ SHELL_SUBCMD_DICT_SET_CREATE(sub_log_sdcard, log_sdcard_cmd_handler, (start, &g_
 
 SHELL_CMD_REGISTER(log_sdcard, &sub_log_sdcard, "log_sdcard commands", NULL);
 
-static int log_sdcard_sys_init(void)
-{
-	return start(&g_ctx);
+/*
+ * Arming Monitor - starts/stops logging based on arming state
+ */
+#define ARMING_MONITOR_STACK_SIZE 2048
+#define ARMING_MONITOR_PRIORITY   5
+
+static K_THREAD_STACK_DEFINE(g_arming_monitor_stack, ARMING_MONITOR_STACK_SIZE);
+static struct k_thread g_arming_monitor_thread;
+
+struct arming_monitor_ctx {
+	struct zros_node node;
+	struct zros_sub sub_status;
+	synapse_pb_Status status;
+	synapse_pb_Status_Arming last_arming;
+	bool logging_active;
 };
 
-SYS_INIT(log_sdcard_sys_init, APPLICATION, 99);
+static struct arming_monitor_ctx g_arming_ctx = {
+	.node = {},
+	.sub_status = {},
+	.status = synapse_pb_Status_init_default,
+	.last_arming = synapse_pb_Status_Arming_ARMING_UNKNOWN,
+	.logging_active = false,
+};
+
+static void start_logging(struct arming_monitor_ctx *ctx)
+{
+	if (ctx->logging_active) {
+		return;
+	}
+
+	LOG_INF("Arming detected - starting logging");
+
+	/* Start writer first (mounts SD card and creates file) */
+	int ret = log_sdcard_writer_start();
+	if (ret < 0 && ret != -EALREADY) {
+		LOG_ERR("Failed to start writer: %d", ret);
+		return;
+	}
+
+	/* Give writer time to initialize */
+	k_msleep(100);
+
+	/* Then start reader (subscribes to topics) */
+	ret = log_sdcard_start();
+	if (ret < 0 && ret != -EALREADY) {
+		LOG_ERR("Failed to start reader: %d", ret);
+		log_sdcard_writer_stop();
+		return;
+	}
+
+	ctx->logging_active = true;
+	LOG_INF("Logging started");
+}
+
+static void stop_logging(struct arming_monitor_ctx *ctx)
+{
+	if (!ctx->logging_active) {
+		return;
+	}
+
+	LOG_INF("Disarm detected - stopping logging");
+
+	/* Stop reader first */
+	log_sdcard_stop();
+	k_msleep(100);
+
+	/* Then stop writer (closes file and unmounts) */
+	log_sdcard_writer_stop();
+	k_msleep(500);
+
+	ctx->logging_active = false;
+	LOG_INF("Logging stopped");
+}
+
+static void arming_monitor_run(void *p0, void *p1, void *p2)
+{
+	struct arming_monitor_ctx *ctx = p0;
+	ARG_UNUSED(p1);
+	ARG_UNUSED(p2);
+
+	/* Initialize ZROS subscription */
+	zros_node_init(&ctx->node, "log_sdcard_arming_monitor");
+	zros_sub_init(&ctx->sub_status, &ctx->node, &topic_status, &ctx->status, 10);
+
+	LOG_INF("Arming monitor started - logging will start when armed");
+
+	while (true) {
+		/* Poll for status updates */
+		struct k_poll_event events[] = {
+			*zros_sub_get_event(&ctx->sub_status),
+		};
+
+		int rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(1000));
+		if (rc == 0 && zros_sub_update_available(&ctx->sub_status)) {
+			zros_sub_update(&ctx->sub_status);
+
+			/* Check for arming state transition */
+			synapse_pb_Status_Arming current_arming = ctx->status.arming;
+
+			if (ctx->last_arming != current_arming) {
+				/* State changed */
+				if (current_arming == synapse_pb_Status_Arming_ARMING_ARMED) {
+					start_logging(ctx);
+				} else if (current_arming ==
+						   synapse_pb_Status_Arming_ARMING_DISARMED &&
+					   ctx->last_arming ==
+						   synapse_pb_Status_Arming_ARMING_ARMED) {
+					stop_logging(ctx);
+				}
+
+				ctx->last_arming = current_arming;
+			}
+		}
+	}
+}
+
+static int arming_monitor_init(void)
+{
+	k_tid_t tid = k_thread_create(&g_arming_monitor_thread, g_arming_monitor_stack,
+				      ARMING_MONITOR_STACK_SIZE, arming_monitor_run, &g_arming_ctx,
+				      NULL, NULL, ARMING_MONITOR_PRIORITY, 0, K_NO_WAIT);
+	k_thread_name_set(tid, "log_arming_monitor");
+	return 0;
+}
+
+SYS_INIT(arming_monitor_init, APPLICATION, 99);
 
 // vi: ts=4 sw=4 et

@@ -140,7 +140,7 @@ static void rdd2_angular_velocity_run(void *p0, void *p1, void *p2)
 		int rc = 0;
 		rc = k_poll(events, ARRAY_SIZE(events), K_MSEC(100));
 		if (rc != 0) {
-			LOG_DBG("not receiving estimator odometry");
+			LOG_DBG_RATELIMIT_RATE(30000, "not receiving estimator odometry");
 		}
 
 		// update subscriptions
@@ -154,7 +154,7 @@ static void rdd2_angular_velocity_run(void *p0, void *p1, void *p2)
 		ctx->dt = (double)(ticks_now - ticks_last) / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
 		ticks_last = ticks_now;
 		if (ctx->dt < 0 || ctx->dt > 0.1) {
-			LOG_DBG("odometry rate too low");
+			LOG_DBG_RATELIMIT_RATE(30000, "odometry rate too low");
 			continue;
 		}
 

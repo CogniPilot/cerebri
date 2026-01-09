@@ -43,8 +43,7 @@
 	aliases {
 		can0 = &flexcan3;
 		telem1 = &lpuart5;
-		accel0 = &icm45686;
-		gyro0 = &icm45686;
+		imu-stream-0 = &icm45686;
 		mag0 = &ist8310;
 		mag1 = &bmm350;
 		baro0 = &bmp390;

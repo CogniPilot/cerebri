@@ -112,6 +112,41 @@ elif debug_runner == "jlink":
         "device": device,
         "gdbPath": gdb_path,
     }
+elif debug_runner == "pyocd":
+    # Extract GDB path
+    gdb_path = runner_data.get("config", {}).get("gdb")
+    if not gdb_path:
+        raise ValueError("GDB path not found in runner.yaml")
+
+    # Extract device from runner args
+    device = None
+
+    serverArgs = list()
+
+    for arg in runner_args:
+        if "--device=" in arg:
+            device = arg.split("=", 1)[1]
+        elif "--target=" in arg:
+            device = arg.split("=", 1)[1]
+        elif 'vtor=' in arg:
+            serverArgs.append("-O")
+            serverArgs.append("vtor=" + arg.split('=')[1])
+        elif '--frequency=' in arg:
+            serverArgs.append("--frequency=" + arg.split('=')[1])
+
+    if device is None:
+        raise ValueError(f"Could not find device in runner args for {debug_runner}")
+
+    update_fields = {
+        "name": config_name,
+        "type": "cortex-debug",
+        "request": "launch",
+        "executable": elf_file,
+        "servertype": debug_runner,
+        "targetId": device,
+        "gdbPath": gdb_path,
+        "serverArgs": serverArgs
+    }
 
 # Look for existing config
 for i, cfg in enumerate(launch_data["configurations"]):

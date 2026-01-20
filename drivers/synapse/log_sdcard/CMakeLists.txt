@@ -3,8 +3,8 @@
 
 zephyr_library_named(cerebri_synapse_log_sdcard)
 
-# we need to be able to include generated header files
-zephyr_include_directories()
+# Public API header for log_sdcard control
+zephyr_include_directories(include)
 
 zephyr_library_sources(
   src/main.c

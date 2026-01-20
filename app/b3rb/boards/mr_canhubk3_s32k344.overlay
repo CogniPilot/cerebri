@@ -59,8 +59,7 @@
 		can3 = &flexcan3;
 		can4 = &flexcan4;
 		can5 = &flexcan5;
-		accel0 = &icm42688_mr_canhubk3_adap;
-		gyro0 = &icm42688_mr_canhubk3_adap;
+		imu-stream-0 = &icm42688_mr_canhubk3_adap;
 		mag0 = &bmm150_mr_canhubk3_adap;
 		mag1 = &ist8310_mr_canhubk3_adap;
 		led0 = &gps_led_mr_canhubk3_adap;
@@ -370,16 +369,20 @@ uart0: &lpuart7 {
 	cs-gpios = <&gpiob_l 8 GPIO_ACTIVE_LOW>;
 
 	icm42688_mr_canhubk3_adap: icm42688p0@0 {
-		fifo-hires;
 		compatible = "invensense,icm42688", "invensense,icm4268x";
 		reg = <0>;
 		int-gpios = <&gpioe_h 5 NXP_SIUL2_GPIO_INT_WKPU>;
-		spi-max-frequency = <15000000>;
+		spi-max-frequency = <12500000>;
+		spi-cs-setup-delay-ns = <50>;
+		spi-cs-hold-delay-ns = <50>;
+		spi-interframe-delay-ns = <50>;
 		accel-pwr-mode = <ICM42688_DT_ACCEL_LN>;
 		accel-odr = <ICM42688_DT_ACCEL_ODR_200>;
 		accel-fs = <ICM42688_DT_ACCEL_FS_16>;
 		gyro-pwr-mode = <ICM42688_DT_GYRO_LN>;
 		gyro-odr = <ICM42688_DT_GYRO_ODR_200>;
 		gyro-fs = <ICM42688_DT_GYRO_FS_2000>;
+		fifo-hires;
+		interrupt1-drdy;
 	};
 };

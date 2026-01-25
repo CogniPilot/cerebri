@@ -19,7 +19,7 @@ manifest:
     - name: zephyr
       remote: cognipilot
       west-commands: scripts/west-commands.yml
-      revision: 31c94a74df06697e2091abfeaf5e327c2ec35df9 # main-with-patches 01/06/26
+      revision: 296bdc1e5b0a72c9fb8083a330c3810760dddef8 # crsf 01/25/26
       import:
         - name-allowlist:
           - nanopb
@@ -54,5 +54,5 @@ manifest:
       path: modules/lib/zros_drivers
     - name: zephyr_boards
       remote: cognipilot
-      revision: c353dcae1e94f6223b5959845521e9aa25dcc3df
+      revision: b71c4264d4368e086dfca4da63f659b104938825 # tropic-crsf
       path: modules/lib/zephyr_boards

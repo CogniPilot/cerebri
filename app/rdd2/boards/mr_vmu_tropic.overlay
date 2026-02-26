@@ -120,7 +120,7 @@ uart0: &lpuart2 {
 		};
 
 		ch2 {
-			pin-id = <7>;
+			pin-id = <9>;
 		};
 
 		ch3 {
@@ -128,7 +128,7 @@ uart0: &lpuart2 {
 		};
 
 		ch4 {
-			pin-id = <9>;
+			pin-id = <7>;
 		};
 
 	};

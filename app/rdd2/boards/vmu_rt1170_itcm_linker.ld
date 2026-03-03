@@ -44,6 +44,21 @@
 *(.text.work_queue_main)
 *(.text.z_thread_entry)
 
+/* SPI RTIO tuning for ICM */
+*(.text.icm4268*)
+*(.text.spi_context*)
+*(.text.spi_rtio*)
+*(.text.lpspi*)
+*(.text.rtio*)
+*(.text.process_events)
+*(.text.GPIO_PinWrite)
+*(.text.lpspi_isr)
+*(.text.lpspi_rtio*)
+*(.text.spi_iodev*)
+*(.text.dma_mcux_edma*)
+*(.text.EDMA_*)
+*(.text.sensor_iodev_submit)
+
 /* Auto-generated from trace */
 *(.text.z_impl_k_sem_give)
 *(.text.sys_clock_announce)

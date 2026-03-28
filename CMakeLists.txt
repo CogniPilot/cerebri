@@ -137,3 +137,56 @@ target_include_directories(app PRIVATE
   ${CEREBRI2_FLATBUFFER_GENERATED_DIR}
   ${ZEPHYR_BASE}/../modules/hal/nxp/mcux/mcux-sdk-ng/drivers/flexio
 )
+
+set(RUMOCA_PATH $ENV{ZEPHYR_BASE}/../modules/lib/rumoca)
+
+set(flags
+  -std=c11
+  -Wall
+  -Wextra
+  -Werror
+  -Wstrict-prototypes
+  -Waggregate-return
+  -Wbad-function-cast
+  -Wcast-align
+  -Wcast-qual
+  -Wfloat-equal
+  -Wformat-security
+  -Wlogical-op
+  -Wmissing-declarations
+  # ubxlib includes geographiclib which dir doesn't exist
+  #-Wmissing-include-dirs
+  -Wmissing-prototypes
+  -Wnested-externs
+  -Wpointer-arith
+  -Wredundant-decls
+  -Wsequence-point
+  -Wshadow
+  -Wstrict-prototypes
+  -Wswitch
+  -Wundef
+  -Wunreachable-code
+  -Wunused-but-set-parameter
+  -Wwrite-strings
+  )
+string(JOIN " " flags ${flags})
+
+set(SOURCE_FILES
+	src/boot_banner.c
+	src/input_mapping.c
+	)
+
+set(RUMOCA_DEST_DIR ${CMAKE_BINARY_DIR}/app/rumoca)
+
+set(RUMOCA_FILES
+	# export-embedded-c generates a pid.c/h file (I dont think we actually need this)
+	${RUMOCA_DEST_DIR}/pid.h
+	${RUMOCA_DEST_DIR}/pid.c
+	)
+
+if (CONFIG_CEREBRI_RUMOCA)
+	list(APPEND SOURCE_FILES ${RUMOCA_FILES})
+endif()
+
+add_custom_command(
+)

@@ -172,21 +172,36 @@ set(flags
 string(JOIN " " flags ${flags})
 
 set(SOURCE_FILES
-	src/boot_banner.c
-	src/input_mapping.c
 	)
 
 set(RUMOCA_DEST_DIR ${CMAKE_BINARY_DIR}/app/rumoca)
 
 set(RUMOCA_FILES
 	# export-embedded-c generates a pid.c/h file (I dont think we actually need this)
-	${RUMOCA_DEST_DIR}/pid.h
-	${RUMOCA_DEST_DIR}/pid.c
+	${RUMOCA_DEST_DIR}/adder.c
 	)
 
 if (CONFIG_CEREBRI_RUMOCA)
 	list(APPEND SOURCE_FILES ${RUMOCA_FILES})
 endif()
 
-add_custom_command(
+# RUMOCA EMBEDDED C
+add_custom_command(OUTPUT ${RUMOCA_DEST_DIR}/adder.c ${RUMOCA_DEST_DIR}/adder.h
+	COMMAND rumoca compile -b embedded-c -m Adder ${RUMOCA_PATH}/models/Adder.mo > ${RUMOCA_DEST_DIR}/adder.h
+	COMMAND echo "" > ${RUMOCA_DEST_DIR}/adder.c
+	DEPENDS ${RUMOCA_PATH}/models/Adder.mo
+)
+
+set_source_files_properties(
+	${SOURCE_FILES}
+	PROPERTIES COMPILE_FLAGS
+	"${flags}"
+)
+
+target_sources(app PRIVATE ${SOURCE_FILES})
+
+target_include_directories(app SYSTEM BEFORE PRIVATE
+	${ZEPHYR_BASE}/include
+	${CMAKE_BINARY_DIR}
+	${RUMOCA_DEST_DIR}
 )

@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <limits.h>
+
 #include <zephyr/device.h>
 #include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
@@ -82,6 +84,9 @@ struct context {
 	k_thread_stack_t *stack_area;
 	struct k_thread thread_data;
 	int last_event;
+	bool cal_recording;
+	int32_t raw_min[16];
+	int32_t raw_max[16];
 #ifdef CRSF_TELEMETRY
 	enum crsf_telem telem_state;
 	synapse_pb_BatteryState battery_state;
@@ -102,6 +107,9 @@ static struct context g_ctx = {
 	.stack_area = g_my_stack_area,
 	.thread_data = {},
 	.last_event = 0,
+	.cal_recording = false,
+	.raw_min = {},
+	.raw_max = {},
 #ifdef CRSF_TELEMETRY
 	.telem_state = CRSF_GPS,
 	.battery_state = synapse_pb_BatteryState_init_default,
@@ -345,11 +353,20 @@ static void input_cb(struct input_event *evt, void *userdata)
 		return;
 	}
 
-	float x0 = 1024;
-	float scale = 784;
+	float x0 = 1500;
+	float scale = 500;
 
 	if (evt->code > 0 && evt->code <= ctx->input.channel_count) {
-		ctx->input.channel[evt->code - 1] = (evt->value - x0) / scale;
+		int idx = evt->code - 1;
+		if (ctx->cal_recording) {
+			if (evt->value < ctx->raw_min[idx]) {
+				ctx->raw_min[idx] = evt->value;
+			}
+			if (evt->value > ctx->raw_max[idx]) {
+				ctx->raw_max[idx] = evt->value;
+			}
+		}
+		ctx->input.channel[idx] = (evt->value - x0) / scale;
 	} else {
 		LOG_DBG("unhandled event: %d %d %d %d", evt->code, evt->sync, evt->type,
 			evt->value);
@@ -383,12 +400,46 @@ static int sense_rc_cmd_handler(const struct shell *sh, size_t argc, char **argv
 		}
 	} else if (strcmp(argv[0], "status") == 0) {
 		shell_print(sh, "running: %d", (int)k_sem_count_get(&g_ctx.running) == 0);
+	} else if (strcmp(argv[0], "cal_start") == 0) {
+		if (ctx->cal_recording) {
+			shell_print(sh, "already recording");
+		} else {
+			for (int i = 0; i < 16; i++) {
+				ctx->raw_min[i] = INT32_MAX;
+				ctx->raw_max[i] = INT32_MIN;
+			}
+			ctx->cal_recording = true;
+			shell_print(sh, "recording started — move all sticks and switches to extremes");
+			shell_print(sh, "run 'sense_rc cal_stop' when done");
+		}
+	} else if (strcmp(argv[0], "cal_stop") == 0) {
+		if (!ctx->cal_recording) {
+			shell_print(sh, "not recording");
+		} else {
+			ctx->cal_recording = false;
+			shell_print(sh, "recording stopped\n");
+			shell_print(sh, "ch |   raw_min |   raw_max |   center |    scale");
+			shell_print(sh, "---|----------|----------|----------|----------");
+			for (int i = 0; i < ctx->input.channel_count; i++) {
+				if (ctx->raw_min[i] == INT32_MAX) {
+					shell_print(sh, "%2d | no data", i);
+					continue;
+				}
+				int32_t center = (ctx->raw_min[i] + ctx->raw_max[i]) / 2;
+				int32_t half_range = (ctx->raw_max[i] - ctx->raw_min[i]) / 2;
+				shell_print(sh, "%2d | %8d | %8d | %8d | %8d", i,
+					    ctx->raw_min[i], ctx->raw_max[i],
+					    center, half_range);
+			}
+		}
 	}
 	return 0;
 }
 
 SHELL_SUBCMD_DICT_SET_CREATE(sub_sense_rc, sense_rc_cmd_handler, (start, &g_ctx, "start"),
-			     (stop, &g_ctx, "stop"), (status, &g_ctx, "status"));
+			     (stop, &g_ctx, "stop"), (status, &g_ctx, "status"),
+			     (cal_start, &g_ctx, "start recording raw channel min/max"),
+			     (cal_stop, &g_ctx, "stop recording and print results"));
 
 SHELL_CMD_REGISTER(sense_rc, &sub_sense_rc, "sense rc args", NULL);
 

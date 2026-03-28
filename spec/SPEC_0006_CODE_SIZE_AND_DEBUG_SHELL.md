@@ -1,0 +1,42 @@
+# SPEC_0006: Code Size and Debug Shell
+
+## Status
+ACCEPTED
+
+## Summary
+Source files stay under 2000 lines, and shell-based topic diagnostics are isolated from the flight hot path in a singleton low-priority module.
+
+## Specification
+
+**REQUIRED:**
+- Every hand-written `.c` file in this repo stays under 2000 lines.
+- When a module grows toward that limit, split by responsibility rather than adding comments or regions to justify size.
+- Topic diagnostics live in `src/topic_shell.c`, not in the control-loop implementation file.
+- The topic watcher uses exactly one diagnostics thread.
+- That diagnostics thread runs at `K_LOWEST_APPLICATION_THREAD_PRIO`.
+- `topic echo` and `topic hz` reuse the existing diagnostics thread instead of spawning one per command.
+- Runtime shell snapshots come from stored state, not from adding prints to the control loop.
+- In-memory topic state should use small named structs such as `status`, `rate`, and `rc` rather than one flat field bag.
+- When data has stable semantic names such as `roll`, `pitch`, and `yaw`, prefer named struct fields over anonymous arrays in snapshot/topic state.
+- In hot-path code, prefer one local context object that holds the current-cycle state and publish snapshots from that object instead of maintaining duplicate locals and then copying them field-by-field.
+- Shared topic state uses a lockless double-buffered store with a generation check rather than a mutex-protected shared struct.
+- Topic readers retry locally on generation changes instead of blocking the publisher.
+
+**PROHIBITED:**
+- Per-command topic watcher threads.
+- Shell printing from the 1 kHz control loop.
+- Folding growing shell/debug code back into `src/main.c`.
+- Blocking the control loop on shell/debug state reads.
+- Using file size as an excuse to introduce abstraction layers with no ownership benefit.
+
+## Motivation
+
+- The hot path must remain obvious and easy to audit.
+- Debug features should not distort flight timing.
+- Small source files are easier for humans and AI agents to navigate safely.
+
+## References
+
+- `../src/main.c`
+- `../src/topic_shell.c`
+- `SPEC_0002_LATENCY_DRIVEN_ARCHITECTURE.md`

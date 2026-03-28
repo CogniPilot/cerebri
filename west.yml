@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+
+manifest:
+  self:
+    path: cerebri2
+
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+    - name: cognipilot
+      url-base: https://github.com/CogniPilot
+
+  projects:
+    - name: zephyr
+      remote: cognipilot
+      revision: 2ca24fe101319435b88aa0381e9ff5f78c88a1c3 # loaded in ~/cognipilot/ws/zephyr
+      path: zephyr
+    - name: cmsis
+      remote: zephyrproject-rtos
+      revision: 512cc7e895e8491696b61f7ba8066b4a182569b8 # loaded in ~/cognipilot/ws/modules/hal/cmsis
+      path: modules/hal/cmsis
+    - name: cmsis_6
+      remote: zephyrproject-rtos
+      revision: 30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74 # loaded in ~/cognipilot/ws/modules/hal/cmsis_6
+      path: modules/hal/cmsis_6
+    - name: hal_nxp
+      remote: cognipilot
+      revision: cf8f1631e862528ee044850bcc70273975b90771 # loaded in ~/cognipilot/ws/modules/hal/nxp
+      path: modules/hal/nxp
+    - name: zephyr_boards
+      remote: cognipilot
+      revision: eed56ecf0b667552d9d82aa46d1123317f0ef36d # loaded in ~/cognipilot/ws/modules/lib/zephyr_boards
+      path: modules/lib/zephyr_boards

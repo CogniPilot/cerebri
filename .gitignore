@@ -1,0 +1,6 @@
+dev/
+build/
+twister-out/
+.cache/
+.west/
+.vscode/

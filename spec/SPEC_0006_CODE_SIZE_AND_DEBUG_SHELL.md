@@ -21,6 +21,7 @@ Source files stay under 2000 lines, and shell-based topic diagnostics are isolat
 - In hot-path code, prefer one local context object that holds the current-cycle state and publish snapshots from that object instead of maintaining duplicate locals and then copying them field-by-field.
 - Shared topic state uses a lockless double-buffered store with a generation check rather than a mutex-protected shared struct.
 - Topic readers retry locally on generation changes instead of blocking the publisher.
+- Topic payload layout is governed by `SPEC_0007` and the shared `.fbs` schema files in `modules/lib/synapse_msgs_fbs/fbs/cerebri2/`.
 
 **PROHIBITED:**
 - Per-command topic watcher threads.

@@ -3,6 +3,7 @@
  */
 
 #include "topic_shell.h"
+#include "topic_flatbuffer.h"
 
 #include <limits.h>
 #include <stdlib.h>
@@ -54,19 +55,14 @@ static const char *const g_topic_names[] = {
 };
 
 struct flight_snapshot_store {
-	struct flight_snapshot slots[2];
+	uint8_t slots[2][CEREBRI2_TOPIC_FB_FLIGHT_SNAPSHOT_SIZE];
+	uint16_t lengths[2];
 	atomic_t generation;
 };
 
-struct motor_output_msg {
-	float motors[4];
-	uint16_t raw[4];
-	bool armed;
-	bool test_mode;
-};
-
 struct motor_output_store {
-	struct motor_output_msg slots[2];
+	uint8_t slots[2][CEREBRI2_TOPIC_FB_MOTOR_OUTPUT_SIZE];
+	uint16_t lengths[2];
 	atomic_t generation;
 };
 
@@ -154,48 +150,90 @@ static uint32_t topic_seq_get(enum topic_id topic)
 
 static void flight_snapshot_store_publish(const struct flight_snapshot *snapshot)
 {
-	uint32_t next_generation =
-		(uint32_t)atomic_get(&g_flight_snapshot_store.generation) + 1U;
+	size_t length;
+	uint32_t next_generation;
+	uint32_t slot;
 
-	g_flight_snapshot_store.slots[next_generation & 1U] = *snapshot;
+	next_generation = (uint32_t)atomic_get(&g_flight_snapshot_store.generation) + 1U;
+	slot = next_generation & 1U;
+	length = cerebri2_topic_fb_pack_flight_snapshot(
+		g_flight_snapshot_store.slots[slot],
+		sizeof(g_flight_snapshot_store.slots[slot]), snapshot);
+	g_flight_snapshot_store.lengths[slot] = (uint16_t)length;
 	atomic_set(&g_flight_snapshot_store.generation, (atomic_val_t)next_generation);
 }
 
 static struct flight_snapshot flight_snapshot_store_snapshot(void)
 {
+	uint8_t buf[CEREBRI2_TOPIC_FB_FLIGHT_SNAPSHOT_SIZE];
 	struct flight_snapshot snapshot;
 	uint32_t generation_start;
 	uint32_t generation_end;
+	uint32_t slot;
+	uint16_t length;
 
+	memset(&snapshot, 0, sizeof(snapshot));
 	do {
 		generation_start = (uint32_t)atomic_get(&g_flight_snapshot_store.generation);
-		snapshot = g_flight_snapshot_store.slots[generation_start & 1U];
+		slot = generation_start & 1U;
+		length = g_flight_snapshot_store.lengths[slot];
+		if (length > sizeof(buf)) {
+			length = 0U;
+		}
+		if (length > 0U) {
+			memcpy(buf, g_flight_snapshot_store.slots[slot], length);
+		}
 		generation_end = (uint32_t)atomic_get(&g_flight_snapshot_store.generation);
 	} while (generation_start != generation_end);
+
+	if (length == sizeof(buf)) {
+		(void)cerebri2_topic_fb_unpack_flight_snapshot(buf, length, &snapshot);
+	}
 
 	return snapshot;
 }
 
 static void motor_output_store_publish(const struct motor_output_msg *output)
 {
-	uint32_t next_generation =
-		(uint32_t)atomic_get(&g_motor_output_store.generation) + 1U;
+	size_t length;
+	uint32_t next_generation;
+	uint32_t slot;
 
-	g_motor_output_store.slots[next_generation & 1U] = *output;
+	next_generation = (uint32_t)atomic_get(&g_motor_output_store.generation) + 1U;
+	slot = next_generation & 1U;
+	length = cerebri2_topic_fb_pack_motor_output(
+		g_motor_output_store.slots[slot],
+		sizeof(g_motor_output_store.slots[slot]), output);
+	g_motor_output_store.lengths[slot] = (uint16_t)length;
 	atomic_set(&g_motor_output_store.generation, (atomic_val_t)next_generation);
 }
 
 static struct motor_output_msg motor_output_store_snapshot(void)
 {
+	uint8_t buf[CEREBRI2_TOPIC_FB_MOTOR_OUTPUT_SIZE];
 	struct motor_output_msg output;
 	uint32_t generation_start;
 	uint32_t generation_end;
+	uint32_t slot;
+	uint16_t length;
 
+	memset(&output, 0, sizeof(output));
 	do {
 		generation_start = (uint32_t)atomic_get(&g_motor_output_store.generation);
-		output = g_motor_output_store.slots[generation_start & 1U];
+		slot = generation_start & 1U;
+		length = g_motor_output_store.lengths[slot];
+		if (length > sizeof(buf)) {
+			length = 0U;
+		}
+		if (length > 0U) {
+			memcpy(buf, g_motor_output_store.slots[slot], length);
+		}
 		generation_end = (uint32_t)atomic_get(&g_motor_output_store.generation);
 	} while (generation_start != generation_end);
+
+	if (length == sizeof(buf)) {
+		(void)cerebri2_topic_fb_unpack_motor_output(buf, length, &output);
+	}
 
 	return output;
 }

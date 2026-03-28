@@ -26,6 +26,15 @@ Build from the workspace root or any child directory inside the same west worksp
 west build -b mr_vmu_tropic/mimxrt1064 /home/jgoppert/cognipilot/ws/cerebri2 -d /home/jgoppert/cognipilot/ws/cerebri2/build
 ```
 
+If `flatcc` is installed, CMake stages generated FlatBuffer headers and a copy of the
+active schemas from `modules/lib/synapse_msgs_fbs/fbs/cerebri2` under
+`${CMAKE_BINARY_DIR}/generated/flatbuffers`. Generated files are not kept in the source
+tree.
+
+The same `flatcc` tool also generates `.bfbs` binary schemas for
+`cerebri2_topics.fbs` and `cerebri2_log.fbs` from that module in the same build-tree
+directory for self-describing SD-card log streams.
+
 To bootstrap a fresh minimal workspace from this repo's manifest, check out this repo at
 `<workspace>/cerebri2` and initialize west from the workspace root:
 

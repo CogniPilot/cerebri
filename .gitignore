@@ -1,5 +1,6 @@
 dev/
 build/
+build-flatfb/
 twister-out/
 .cache/
 .west/

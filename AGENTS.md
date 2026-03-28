@@ -28,6 +28,8 @@ Read additional specs by area:
 - Repo structure or module ownership: `SPEC_0001`
 - Control behavior or mixer work: `SPEC_0003`
 - GNSS work: `SPEC_0005`
+- Topic schema or diagnostics payload work: `SPEC_0007`
+- SD-card log format work: `SPEC_0008`
 
 ## Mandatory Workflow For Agents
 

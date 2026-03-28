@@ -2,7 +2,7 @@
 
 manifest:
   self:
-    path: cerebri2
+    path: cerebri
 
   remotes:
     - name: zephyrproject-rtos
@@ -15,6 +15,7 @@ manifest:
       remote: cognipilot
       revision: 2ca24fe101319435b88aa0381e9ff5f78c88a1c3 # loaded in ~/cognipilot/ws/zephyr
       path: zephyr
+      west-commands: scripts/west-commands.yml
     - name: cmsis
       remote: zephyrproject-rtos
       revision: 512cc7e895e8491696b61f7ba8066b4a182569b8 # loaded in ~/cognipilot/ws/modules/hal/cmsis
@@ -31,3 +32,7 @@ manifest:
       remote: cognipilot
       revision: eed56ecf0b667552d9d82aa46d1123317f0ef36d # loaded in ~/cognipilot/ws/modules/lib/zephyr_boards
       path: modules/lib/zephyr_boards
+    - name: synapse_msgs_fbs
+      url: https://github.com/CogniPilot/synapse_msgs_fbs.git
+      revision: 07cfe35889aab4e1ed9720e7880973a207bcb007
+      path: modules/lib/synapse_msgs_fbs

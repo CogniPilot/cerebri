@@ -13,9 +13,13 @@ This directory is the source of truth for `cerebri2`.
 | [SPEC_0004](SPEC_0004_TROPIC_HARDWARE_SCOPE.md) | Tropic Hardware Scope | hardware | ~45 | ACCEPTED |
 | [SPEC_0005](SPEC_0005_GNSS_STAGING.md) | GNSS Staging | hardware | ~35 | DRAFT |
 | [SPEC_0006](SPEC_0006_CODE_SIZE_AND_DEBUG_SHELL.md) | Code Size and Debug Shell | convention | ~35 | ACCEPTED |
+| [SPEC_0007](SPEC_0007_FLATBUFFER_TOPICS.md) | FlatBuffer Topic Format | convention | ~30 | ACCEPTED |
+| [SPEC_0008](SPEC_0008_SELF_DESCRIBING_LOG_RECORDS.md) | Self-Describing Log Records | logging | ~30 | ACCEPTED |
 
 ## Usage
 
 - Read this file first.
 - Read `SPEC_0002`, `SPEC_0004`, and `SPEC_0006` before changing flight-path code.
+- Read `SPEC_0007` before changing topic payload layout or debug topic publication.
+- Read `SPEC_0008` before adding SD-card logging or changing log-record format.
 - Read `SPEC_0000` before adding or changing specs.

@@ -13,7 +13,7 @@ manifest:
   projects:
     - name: zephyr
       remote: cognipilot
-      revision: 2ca24fe101319435b88aa0381e9ff5f78c88a1c3 # loaded in ~/cognipilot/ws/zephyr
+      revision: imu-rework # loaded in ~/cognipilot/ws/zephyr
       path: zephyr
       west-commands: scripts/west-commands.yml
     - name: cmsis

@@ -121,6 +121,7 @@ target_sources(app PRIVATE
   src/topic_flatbuffer.c
   src/topic_shell.c
   drivers/nxp_flexio_dshot.c
+  src/rdd2.c
 )
 
 if(TARGET cerebri2_flatbuffer_codegen)

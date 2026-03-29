@@ -18,6 +18,8 @@
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/atomic.h>
 
+#include "PIDAxis.h"
+
 LOG_MODULE_REGISTER(cerebri2, LOG_LEVEL_INF);
 
 #define RC_NODE DT_ALIAS(rc)
@@ -44,6 +46,7 @@ LOG_MODULE_REGISTER(cerebri2, LOG_LEVEL_INF);
 #define PID_I_LIMIT               0.20f
 #define DTERM_LPF_ALPHA           0.15f
 
+/*
 struct pid_axis {
 	float kp;
 	float ki;
@@ -52,6 +55,7 @@ struct pid_axis {
 	float prev_measurement;
 	float derivative_lpf;
 };
+*/
 
 struct motor_mix {
 	float roll;
@@ -317,13 +321,23 @@ static void motor_raw_test_clear(void)
 	irq_unlock(key);
 }
 
+/*
 static void pid_reset(struct pid_axis *pid)
 {
 	pid->integrator = 0.0f;
 	pid->prev_measurement = 0.0f;
 	pid->derivative_lpf = 0.0f;
 }
+*/
 
+static void pid_axis_reset(PIDAxis_t *pid)
+{
+	pid->e_int = 0.0f;
+	pid->meas_filt = 0.0f;
+	pid->error = 0.0f;
+}
+
+/*
 static float pid_step(struct pid_axis *pid, float setpoint, float measurement, float dt,
 		      bool integrate)
 {
@@ -343,6 +357,7 @@ static float pid_step(struct pid_axis *pid, float setpoint, float measurement, f
 	return clampf((pid->kp * error) + pid->integrator - (pid->kd * pid->derivative_lpf),
 		      -PID_OUTPUT_LIMIT, PID_OUTPUT_LIMIT);
 }
+*/
 
 static void mix_quad_x(float throttle, float roll_cmd, float pitch_cmd, float yaw_cmd,
 		       float out[4])
@@ -718,9 +733,20 @@ int main(void)
 	const struct device *const imu_dev = DEVICE_DT_GET(DT_NODELABEL(icm45686));
 	const struct device *const dshot_dev = DEVICE_DT_GET(DSHOT_NODE);
 	const struct device *const gnss_dev = DEVICE_DT_GET_OR_NULL(GNSS_NODE);
+
+	PIDAxis_t pid_roll, pid_pitch, pid_yaw;
+
+	PIDAxis_init(&pid_roll);
+	PIDAxis_init(&pid_pitch);
+	PIDAxis_init(&pid_yaw);
+
+
+	/*
 	struct pid_axis pid_roll = { .kp = 0.12f, .ki = 0.35f, .kd = 0.0015f };
 	struct pid_axis pid_pitch = { .kp = 0.12f, .ki = 0.35f, .kd = 0.0015f };
 	struct pid_axis pid_yaw = { .kp = 0.20f, .ki = 0.20f, .kd = 0.0000f };
+	*/
+
 	struct control_context ctx = {
 		.last_cycle = k_cycle_get_32(),
 	};
@@ -788,9 +814,14 @@ int main(void)
 		} else if (!ctx.snapshot.status.armed &&
 			   ctx.rc_input.us[THROTTLE_CHANNEL_INDEX] <= THROTTLE_ARM_MAX) {
 			ctx.snapshot.status.armed = true;
+			pid_axis_reset(&pid_roll);
+			pid_axis_reset(&pid_pitch);
+			pid_axis_reset(&pid_yaw);
+			/*
 			pid_reset(&pid_roll);
 			pid_reset(&pid_pitch);
 			pid_reset(&pid_yaw);
+			*/
 		}
 
 		for (size_t i = 0; i < RC_CHANNEL_COUNT; i++) {
@@ -830,6 +861,7 @@ int main(void)
 					    (ctx.throttle_input * (1.0f - IDLE_THROTTLE)))
 					 : 0.0f;
 
+		/*
 		ctx.snapshot.rate.cmd.roll = pid_step(&pid_roll, ctx.snapshot.rate.desired.roll,
 						      ctx.snapshot.imu.gyro_rad_s[0], ctx.dt,
 						      ctx.snapshot.status.armed &&
@@ -842,6 +874,25 @@ int main(void)
 						    ctx.snapshot.imu.gyro_rad_s[2], ctx.dt,
 						    ctx.snapshot.status.armed &&
 							    ctx.throttle_input > 0.02f);
+		*/
+
+		pid_roll.setpoint = ctx.snapshot.rate.desired.roll;
+		pid_roll.measurement = ctx.snapshot.imu.gyro_rad_s[0];
+		pid_roll.integrate = (ctx.snapshot.status.armed && ctx.throttle_input > 0.02f) ? 1.0f : 0.0f;
+		PIDAxis_step(&pid_roll, 0.0f, ctx.dt);
+		ctx.snapshot.rate.cmd.roll = pid_roll.u;
+
+		pid_pitch.setpoint = ctx.snapshot.rate.desired.pitch;
+		pid_pitch.measurement = ctx.snapshot.imu.gyro_rad_s[1];
+		pid_pitch.integrate = (ctx.snapshot.status.armed && ctx.throttle_input > 0.02f) ? 1.0f : 0.0f;
+		PIDAxis_step(&pid_pitch, 0.0f, ctx.dt);
+		ctx.snapshot.rate.cmd.pitch = pid_pitch.u;
+
+		pid_yaw.setpoint = ctx.snapshot.rate.desired.yaw;
+		pid_yaw.measurement = ctx.snapshot.imu.gyro_rad_s[2];
+		pid_yaw.integrate = (ctx.snapshot.status.armed && ctx.throttle_input > 0.02f) ? 1.0f : 0.0f;
+		PIDAxis_step(&pid_yaw, 0.0f, ctx.dt);
+		ctx.snapshot.rate.cmd.yaw = pid_yaw.u;
 
 		mix_quad_x(ctx.throttle_cmd, ctx.snapshot.rate.cmd.roll, ctx.snapshot.rate.cmd.pitch,
 			   ctx.snapshot.rate.cmd.yaw, ctx.motors);

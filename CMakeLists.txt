@@ -120,6 +120,7 @@ target_sources(app PRIVATE
   src/main.c
   src/topic_flatbuffer.c
   src/topic_shell.c
+  src/PIDAxis.c
   drivers/nxp_flexio_dshot.c
 )
 
@@ -137,3 +138,59 @@ target_include_directories(app PRIVATE
   ${CEREBRI2_FLATBUFFER_GENERATED_DIR}
   ${ZEPHYR_BASE}/../modules/hal/nxp/mcux/mcux-sdk-ng/drivers/flexio
 )
+
+# Automatically takes modelica model and generates it into C code
+# Will be uncommented once rumoca is updated with new embedded-c backend
+# And updated
+
+#[[
+if(TARGET cerebri_flatbuffer_schema_codegen)
+  add_dependencies(app cerebri2_flatbuffer_schema_codegen)
+endif()
+
+target_include_directories(app PRIVATE
+  include
+  src
+  ${CEREBRI2_FLATBUFFER_GENERATED_DIR}
+  ${ZEPHYR_BASE}/../modules/hal/nxp/mcux/mcux-sdk-ng/drivers/flexio
+)
+
+# RUMOCA CODE GENERATION
+set(RUMOCA_PATH ${WORKSPACE_ROOT}/modules/lib/rumoca)
+set(RUMOCA_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated/rumoca)
+set(RUMOCA_STAMP ${RUMOCA_GENERATED_DIR}/.rumoca.stamp)
+
+option(CEREBRI2_RUMOCA_CODEGEN
+  "Generate rumoca embedded C"
+  ON
+)
+
+find_program(CEREBRI2_RUMOCA_EXECUTABLE NAMES rumoca)
+
+if (CEREBRI2_RUMOCA_CODEGEN AND CEREBRI2_RUMOCA_EXECUTABLE AND EXISTS ${RUMOCA_PATH}/models/Adder.mo)
+  add_custom_command(
+    OUTPUT ${RUMOCA_STAMP}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${RUMOCA_GENERATED_DIR}
+    COMMAND ${CEREBRI2_RUMOCA_EXECUTABLE} compile -b embedded-c -m Adder ${RUMOCA_PATH}/models/Adder.mo > ${RUMOCA_GENERATED_DIR}/adder.h
+    COMMAND ${CMAKE_COMMAND} -E touch ${RUMOCA_STAMP}
+    DEPENDS ${RUMOCA_PATH}/models/Adder.mo
+    COMMENT "Generating rumoca embedded C code into ${RUMOCA_GENERATED_DIR}"
+    VERBATIM
+  )
+
+  add_custom_target(cerebri2_rumoca_codegen DEPENDS ${RUMOCA_STAMP})
+
+  if(TARGET cerebri2_rumoca_codegen)
+    add_dependencies(app cerebri2_rumoca_codegen)
+  endif()
+
+elseif(CEREBRI2_RUMOCA_CODEGEN)
+  message(STATUS
+    "rumoca not found or Adder.mo missing; skipping rumoca code generation"
+  )
+endif()
+
+target_include_directories(app PRIVATE
+  ${RUMOCA_GENERATED_DIR}
+)
+]]

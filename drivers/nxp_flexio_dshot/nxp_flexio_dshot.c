@@ -32,6 +32,15 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_LOG_DEFAULT_LEVEL);
 #define NIBBLES_SIZE             4u
 #define DSHOT_NUMBER_OF_NIBBLES  3u
 
+/* BDSHOT baudrate training constants */
+#define BDSHOT_TCMP_MIN_OFFSET    -16
+#define BDSHOT_TCMP_MAX_OFFSET    15
+#define BDSHOT_TCMP_TO_MASK(x)    ((x) - BDSHOT_TCMP_MIN_OFFSET)
+#define BDSHOT_TRAINING_TRIES     200
+#define BDSHOT_TRAINING_SUCCESS   198
+#define BDSHOT_ZERO_RESPONSE      0x52951
+#define BDSHOT_OFFLINE_COUNT      400
+
 static const uint32_t gcr_decode[32] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x9, 0xA,
 					0xB, 0x0, 0xD, 0xE, 0xF, 0x0, 0x0, 0x2, 0x3, 0x0, 0x5,
 					0x6, 0x7, 0x0, 0x0, 0x8, 0x1, 0x0, 0x4, 0xC, 0x0};
@@ -64,7 +73,6 @@ struct nxp_flexio_dshot_config {
 struct nxp_flexio_dshot_data {
 	uint32_t flexio_clk;
 	uint32_t dshot_tcmp;
-	uint32_t bdshot_tcmp;
 	uint32_t dshot_mask;
 	uint32_t dshot_timer_mask;
 	uint32_t bdshot_recv_mask;
@@ -78,14 +86,32 @@ struct nxp_flexio_dshot_channel_config {
 	uint32_t data_seg1;
 	uint32_t irq_data;
 	dshot_state state;
-	bool bdshot;
 	uint32_t raw_response;
 	uint16_t erpm;
 	uint32_t crc_error_cnt;
 	uint32_t frame_error_cnt;
 	uint32_t no_response_cnt;
 	uint32_t last_no_response_cnt;
+	bool bdshot;
+	uint32_t bdshot_tcmp;
+	uint32_t bdshot_training_mask;
+	uint8_t bdshot_training_count;
+	uint8_t bdshot_training_success;
+	bool bdshot_training_done;
+	int8_t bdshot_tcmp_offset;
 };
+
+static void nxp_flexio_dshot_set_bdshot_tcmp(const struct device *dev, uint32_t channel)
+{
+	const struct nxp_flexio_dshot_config *config = dev->config;
+	struct nxp_flexio_dshot_data *data = dev->data;
+	struct nxp_flexio_dshot_channel_config *dshot_info = &config->channel->dshot_info[channel];
+	const int dshot_pwm_freq = config->speed * 1000;
+
+	dshot_info->bdshot_tcmp = 0x2900 |
+		(((data->flexio_clk / (dshot_pwm_freq * 5 / 4) / 2) +
+		  dshot_info->bdshot_tcmp_offset) & 0xFF);
+}
 
 static void nxp_flexio_dshot_output(const struct device *dev, uint32_t channel)
 {
@@ -146,7 +172,6 @@ static void nxp_flexio_dshot_output(const struct device *dev, uint32_t channel)
 static void nxp_flexio_bdshot_input(const struct device *dev, uint32_t channel)
 {
 	const struct nxp_flexio_dshot_config *config = dev->config;
-	struct nxp_flexio_dshot_data *data = dev->data;
 	FLEXIO_Type *flexio_base = (FLEXIO_Type *)(config->flexio_base);
 	struct nxp_flexio_child *child = (struct nxp_flexio_child *)(config->child);
 	struct nxp_flexio_dshot_channel_config *dshot_info = &config->channel->dshot_info[channel];
@@ -185,7 +210,8 @@ static void nxp_flexio_bdshot_input(const struct device *dev, uint32_t channel)
 	timerConfig.timerStop = kFLEXIO_TimerStopBitEnableOnTimerDisable;
 	timerConfig.timerStart = kFLEXIO_TimerStartBitEnabled;
 
-	timerConfig.timerCompare = data->bdshot_tcmp;
+	/* Use per-channel trained bdshot_tcmp */
+	timerConfig.timerCompare = dshot_info->bdshot_tcmp;
 
 	/* Baud mode, Trigger on shifter write */
 	timerConfig.triggerSelect = FLEXIO_TIMER_TRIGGER_SEL_PININPUT(dshot_info->pin_id);
@@ -270,8 +296,6 @@ static int nxp_flexio_dshot_init(const struct device *dev)
 
 	/* Calculate dshot timings based on dshot_pwm_freq */
 	data->dshot_tcmp = 0x2F00 | (((data->flexio_clk / (dshot_pwm_freq * 3) / 2) - 1) & 0xFF);
-	data->bdshot_tcmp =
-		0x2900 | (((data->flexio_clk / (dshot_pwm_freq * 5 / 4) / 2) - 3) & 0xFF);
 
 	err = pinctrl_apply_state(config->pincfg, PINCTRL_STATE_DEFAULT);
 	if (err) {
@@ -289,8 +313,21 @@ static int nxp_flexio_dshot_init(const struct device *dev)
 	data->dshot_timer_mask = 0;
 
 	for (channel = 0; channel < config->channel->dshot_channel_count; channel++) {
+		struct nxp_flexio_dshot_channel_config *ch_info =
+			&config->channel->dshot_info[channel];
+
+		/* Initialize per-channel bdshot training state */
+		if (ch_info->bdshot) {
+			ch_info->bdshot_training_mask = 0;
+			ch_info->bdshot_tcmp_offset = BDSHOT_TCMP_MIN_OFFSET;
+			ch_info->bdshot_training_done = false;
+			ch_info->bdshot_training_count = 0;
+			ch_info->bdshot_training_success = 0;
+			nxp_flexio_dshot_set_bdshot_tcmp(dev, channel);
+		}
+
 		nxp_flexio_dshot_output(dev, channel);
-		config->channel->dshot_info[channel].init = true;
+		ch_info->init = true;
 		data->dshot_mask |= (1 << child->res.shifter_index[channel]);
 		data->dshot_timer_mask |= (1 << child->res.timer_index[channel]);
 	}
@@ -409,6 +446,51 @@ static void nxp_flexio_dshot_hw_data_set(const struct device *dev, unsigned chan
 	}
 }
 
+static void nxp_flexio_bdshot_training(const struct device *dev, uint32_t channel, uint32_t value)
+{
+	const struct nxp_flexio_dshot_config *config = dev->config;
+	struct nxp_flexio_dshot_channel_config *ch = &config->channel->dshot_info[channel];
+
+	if (value == BDSHOT_ZERO_RESPONSE) {
+		ch->bdshot_training_success++;
+	} else if ((value & 0x1) == 0) {
+		/* Frame error — invalidate this offset immediately */
+		ch->bdshot_training_count = BDSHOT_TRAINING_TRIES - 1;
+	}
+
+	ch->bdshot_training_count++;
+
+	if (ch->bdshot_training_count == BDSHOT_TRAINING_TRIES) {
+		if (ch->bdshot_training_success >= BDSHOT_TRAINING_SUCCESS) {
+			ch->bdshot_training_mask |=
+				(1 << BDSHOT_TCMP_TO_MASK(ch->bdshot_tcmp_offset));
+		}
+
+		ch->bdshot_training_count = 0;
+		ch->bdshot_training_success = 0;
+		ch->bdshot_tcmp_offset++;
+
+		if (ch->bdshot_tcmp_offset == BDSHOT_TCMP_MAX_OFFSET) {
+			if (ch->bdshot_training_mask == 0) {
+				/* No candidates, retry from beginning */
+				ch->bdshot_tcmp_offset = BDSHOT_TCMP_MIN_OFFSET;
+			} else {
+				/* Training done — pick midpoint of successful range */
+				int low = __builtin_ctz(ch->bdshot_training_mask);
+				int high = 31 - __builtin_clz(ch->bdshot_training_mask);
+
+				ch->bdshot_tcmp_offset =
+					((low + high) / 2) + BDSHOT_TCMP_MIN_OFFSET;
+				ch->bdshot_training_done = true;
+				LOG_INF("BDSHOT ch%u training done, offset=%d", channel,
+					ch->bdshot_tcmp_offset);
+			}
+		}
+
+		nxp_flexio_dshot_set_bdshot_tcmp(dev, channel);
+	}
+}
+
 int up_bdshot_decode_erpm(const struct device *dev)
 {
 	const struct nxp_flexio_dshot_config *config = dev->config;
@@ -429,6 +511,15 @@ int up_bdshot_decode_erpm(const struct device *dev)
 		shifter_flag = 1 << child->res.shifter_index[channel];
 		if (data->bdshot_recv_mask & shifter_flag) {
 			value = ~config->channel->dshot_info[channel].raw_response & 0xFFFFF;
+
+			/*
+			 * BDSHOT ESC hardware varies and timings differ between units.
+			 * Run training to estimate the correct baudrate to lock onto.
+			 */
+			if (!config->channel->dshot_info[channel].bdshot_training_done) {
+				nxp_flexio_bdshot_training(dev, channel, value);
+				continue;
+			}
 
 			/* if lowest significant isn't 1 we've got a framing error */
 			if (value & 0x1) {

@@ -116,6 +116,13 @@ if(CEREBRI2_FLATBUFFER_CODEGEN AND CEREBRI2_FLATCC_EXECUTABLE)
   add_custom_target(cerebri2_flatbuffer_codegen DEPENDS ${CEREBRI2_FLATBUFFER_STAMP})
   add_custom_command(
     OUTPUT ${CEREBRI2_FLATBUFFER_BFBS_STAMP}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CEREBRI2_FLATBUFFER_GENERATED_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CEREBRI2_FLATBUFFER_SCHEMA}
+            ${CEREBRI2_FLATBUFFER_GENERATED_DIR}/cerebri2_topics.fbs
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CEREBRI2_FLATBUFFER_LOG_SCHEMA}
+            ${CEREBRI2_FLATBUFFER_GENERATED_DIR}/cerebri2_log.fbs
     COMMAND ${CEREBRI2_FLATCC_EXECUTABLE}
             --schema
             -I${CEREBRI2_FLATBUFFER_SCHEMA_DIR}
@@ -156,6 +163,7 @@ target_sources(app PRIVATE
   src/topic_flatbuffer.c
   src/topic_shell.c
   drivers/nxp_flexio_dshot_api.c
+  src/rdd2.c
 )
 
 if(CONFIG_CEREBRI2_DSHOT)

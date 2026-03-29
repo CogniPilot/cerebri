@@ -4,6 +4,8 @@
 
 #include "rc_input.h"
 #include "topic_shell.h"
+#include "casadi.h"
+#include "rdd2.h"
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -74,6 +76,14 @@ struct control_context {
 	bool rc_stale;
 	bool motor_test_active;
 	bool motor_raw_test_active;
+	// Estimator state
+	float x[10];           // State vector
+	float q[4];            // Quaternion
+	float P_pos[9];        // Position covariance
+	float P_att[9];        // Attitude covariance
+	float decl_WL;         // Magnetic declination
+	float accel_gain;      // Accelerometer gain
+	float mag_gain;        // Magnetometer gain
 };
 
 static atomic_t g_motor_test_active;
@@ -753,6 +763,87 @@ int main(void)
 		}
 
 		ctx.snapshot.status.arm_switch = rc_switch_high(ctx.rc_input.us[ARM_CHANNEL_INDEX]);
+
+		// Estimator: Strapdown INS propagation
+		{
+			CASADI_FUNC_ARGS(strapdown_ins_propagate)
+			/* strapdown_ins_propagate:(x0[10],a_b[3],omega_b[3],g,dt)->(x1[10]) */
+
+			float a_b[3] = {ctx.snapshot.imu.accel_m_s2[0],
+					  ctx.snapshot.imu.accel_m_s2[1],
+					  ctx.snapshot.imu.accel_m_s2[2]};
+			float omega_b[3] = {ctx.snapshot.imu.gyro_rad_s[0],
+					     ctx.snapshot.imu.gyro_rad_s[1],
+					     ctx.snapshot.imu.gyro_rad_s[2]};
+			float g = 9.81;
+
+			args[0] = ctx.x;
+			args[1] = a_b;
+			args[2] = omega_b;
+			args[3] = &g;
+			args[4] = &ctx.dt;
+
+			res[0] = ctx.x;
+
+			CASADI_FUNC_CALL(strapdown_ins_propagate)
+		}
+
+		// Update quaternion from state
+		ctx.q[0] = ctx.x[6];
+		ctx.q[1] = ctx.x[7];
+		ctx.q[2] = ctx.x[8];
+		ctx.q[3] = ctx.x[9];
+
+		// // Estimator: Position correction
+		// {
+		// 	CASADI_FUNC_ARGS(position_correction)
+
+		// 	float gps[3] = {0.0, 0.0, 0.0};  // TODO: Get from odometry_ethernet
+
+		// 	args[0] = ctx.x;
+		// 	args[1] = gps;
+		// 	args[2] = &ctx.dt;
+		// 	args[3] = ctx.P_pos;
+
+		// 	res[0] = ctx.x;
+		// 	res[1] = ctx.P_pos;
+
+		// 	CASADI_FUNC_CALL(position_correction)
+		// }
+
+		// // Estimator: Attitude estimator
+		// {
+		// 	CASADI_FUNC_ARGS(attitude_estimator)
+
+		// 	float a_b[3] = {ctx.snapshot.imu.accel_m_s2[0],
+		// 			  ctx.snapshot.imu.accel_m_s2[1],
+		// 			  ctx.snapshot.imu.accel_m_s2[2]};
+		// 	float omega_b[3] = {ctx.snapshot.imu.gyro_rad_s[0],
+		// 			     ctx.snapshot.imu.gyro_rad_s[1],
+		// 			     ctx.snapshot.imu.gyro_rad_s[2]};
+		// 	float mag[3] = {0.0, 0.0, 0.0};  // TODO: Get from magnetometer
+
+		// 	args[0] = ctx.q;
+		// 	args[1] = mag;
+		// 	args[2] = &ctx.decl_WL;
+		// 	args[3] = omega_b;
+		// 	args[4] = a_b;
+		// 	args[5] = &ctx.accel_gain;
+		// 	args[6] = &ctx.mag_gain;
+		// 	args[7] = &ctx.dt;
+		// 	args[8] = ctx.P_att;
+
+		// 	res[0] = ctx.q;
+		// 	res[1] = ctx.P_att;
+
+		// 	CASADI_FUNC_CALL(attitude_estimator)
+		// }
+
+		// // Store updated quaternion back to state
+		// ctx.x[6] = ctx.q[0];
+		// ctx.x[7] = ctx.q[1];
+		// ctx.x[8] = ctx.q[2];
+		// ctx.x[9] = ctx.q[3];
 
 		if (!ctx.snapshot.status.imu_ok || ctx.rc_stale || !ctx.snapshot.status.arm_switch) {
 			ctx.snapshot.status.armed = false;

@@ -4,7 +4,7 @@
 ACCEPTED
 
 ## Summary
-`cerebri2` v1 flight hardware is locked to the Tropic stack of CRSF, FlexIO DSHOT, ICM45686, and staged M10 GNSS on `mr_vmu_tropic`, while `native_sim` is allowed only for non-flight SITL.
+`cerebri` v1 flight hardware is locked to the Tropic stack of CRSF, FlexIO DSHOT, ICM45686, and staged M10 GNSS on `mr_vmu_tropic`, while `native_sim` is allowed only for non-flight SITL.
 
 ## Specification
 
@@ -22,6 +22,8 @@ ACCEPTED
 - Application code consumes the `rc`, `imu0`, and `motors` aliases, not board-specific node labels.
 - DSHOT defaults to `DSHOT600`.
 - `DSHOT300` is the first fallback check if ESC signaling is marginal.
+- The `ICM45686` gyro and accel run at `800 Hz` ODR for the flight loop.
+- The `ICM45686` FIFO watermark is `1`, so each watermark event advances one `800 Hz` control iteration.
 - IMU data is remapped into `FRD` body axes before control use:
   - body roll / `x` = sensor gyro `y`
   - body pitch / `y` = sensor gyro `x`

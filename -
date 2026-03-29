@@ -1,0 +1,1 @@
+"cmsis-dsp":"/home/jgoppert/cognipilot/ws/modules/lib/cmsis-dsp":"${ZEPHYR_CMSIS_DSP_CMAKE_DIR}"

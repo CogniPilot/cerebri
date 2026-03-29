@@ -1,6 +1,6 @@
-# Cerebri2 Specification Index
+# Cerebri Specification Index
 
-This directory is the source of truth for `cerebri2`.
+This directory is the source of truth for `cerebri`.
 
 ## Active Specifications
 

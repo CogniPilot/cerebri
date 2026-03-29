@@ -4,27 +4,30 @@
 ACCEPTED
 
 ## Summary
-`native_sim` runs the same 1 kHz rate-mode loop as flight firmware, but simulator IO terminates in native-sim RC, IMU, and DSHOT devices backed by one low-priority UDP coordinator and FlatBuffer schemas in `synapse_msgs_fbs`.
+`native_sim` runs the same 800 Hz rate-mode loop as flight firmware, but simulator IO terminates in native-sim RC, IMU, and DSHOT devices backed by one low-priority SITL subsystem transport and FlatBuffer schemas in `synapse_msgs_fbs`.
 
 ## Specification
 
 **REQUIRED:**
 - The `native_sim` target is for SITL and debug only.
-- The controller still runs in the main 1 kHz application thread on `native_sim`.
+- The controller still runs in the main 800 Hz application thread on `native_sim`.
 - Host simulator IO must stay out of the hot path and run in a lower-priority thread than the main control loop.
 - `src/main.c` must remain free of `native_sim`-specific control-path branches.
 - The simulator boundary must terminate at board-selected `rc`, `imu0`, and `motors` devices, not at ad hoc app-level IO hooks.
-- Inbound simulator packets use `fbs/cerebri2/cerebri2_sil.fbs` `SimInput`.
-- Outbound simulator packets reuse `cerebri2_topics.fbs` `FlightSnapshot` and `MotorOutput`.
-- SITL message schemas live in `modules/lib/synapse_msgs_fbs/fbs/cerebri2/`.
+- Inbound simulator packets use `fbs/cerebri/cerebri_sil.fbs` `SimInput`.
+- Outbound simulator packets reuse `cerebri_topics.fbs` `FlightSnapshot` and `MotorOutput`.
+- SITL message schemas live in `modules/lib/synapse_msgs_fbs/fbs/cerebri/`.
 - The SITL UDP coordinator must stage the latest inbound `SimInput` as a FlatBuffer blob instead of queueing per-sample work into the controller.
 - Shared SITL state between the UDP coordinator and fake drivers must remain FlatBuffer blobs, not shared native structs.
-- Driver-local fetch code may decode transient native locals from the staged FlatBuffer blob.
+- Driver-local fetch code may decode transient locals from the staged FlatBuffer blob, but schema-shaped values must use the generated flatcc struct types instead of handwritten mirrors.
+- SITL transport and shared FlatBuffer staging live under `subsys/sitl/`, not `src/`.
+- Fake native-sim device adapters live under driver-family directories, not under one generic `drivers/sitl/` bucket.
+- The SITL transport is initialized as subsystem code, not as a standalone devicetree device node.
 - SITL board-specific configuration lives in `boards/native_sim.conf`.
 - SITL device selection lives in `boards/native_sim.overlay`.
 
 **PROHIBITED:**
-- Blocking socket IO in the 1 kHz control loop.
+- Blocking socket IO in the 800 Hz control loop.
 - A simulation-only control loop separate from `src/main.c`.
 - SITL message definitions that bypass `modules/lib/synapse_msgs_fbs`.
 - Per-packet heap allocation in the hot path.
@@ -43,14 +46,14 @@ ACCEPTED
 - `../boards/native_sim.overlay`
 - `../src/main.c`
 - `../src/rc_input.c`
-- `../src/sitl_flatbuffer.c`
-- `../src/sitl_udp_coordinator.h`
-- `../drivers/sitl_udp_coordinator.c`
-- `../drivers/sitl_rc.c`
-- `../drivers/sitl_imu.c`
-- `../drivers/sitl_dshot.c`
-- `../../modules/lib/synapse_msgs_fbs/fbs/cerebri2/cerebri2_sil.fbs`
-- `../../modules/lib/synapse_msgs_fbs/fbs/cerebri2/cerebri2_topics.fbs`
+- `../subsys/sitl/sitl_flatbuffer.c`
+- `../subsys/sitl/sitl_udp_coordinator.h`
+- `../subsys/sitl/sitl_udp_coordinator.c`
+- `../drivers/input/sitl_rc.c`
+- `../drivers/sensor/sitl_imu.c`
+- `../drivers/nxp_flexio_dshot/sitl_dshot.c`
+- `../../modules/lib/synapse_msgs_fbs/fbs/cerebri/cerebri_sil.fbs`
+- `../../modules/lib/synapse_msgs_fbs/fbs/cerebri/cerebri_topics.fbs`
 - `SPEC_0002_LATENCY_DRIVEN_ARCHITECTURE.md`
 - `SPEC_0004_TROPIC_HARDWARE_SCOPE.md`
 - `SPEC_0007_FLATBUFFER_TOPICS.md`

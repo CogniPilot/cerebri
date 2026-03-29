@@ -20,6 +20,10 @@ manifest:
       remote: zephyrproject-rtos
       revision: 512cc7e895e8491696b61f7ba8066b4a182569b8 # loaded in ~/cognipilot/ws/modules/hal/cmsis
       path: modules/hal/cmsis
+    - name: cmsis-dsp
+      remote: zephyrproject-rtos
+      revision: 97512610ec92058f0119450b9e743eeb7e95b5c8 # loaded in ~/cognipilot/ws/modules/lib/cmsis-dsp
+      path: modules/lib/cmsis-dsp
     - name: cmsis_6
       remote: zephyrproject-rtos
       revision: 30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74 # loaded in ~/cognipilot/ws/modules/hal/cmsis_6
@@ -34,5 +38,5 @@ manifest:
       path: modules/lib/zephyr_boards
     - name: synapse_msgs_fbs
       url: https://github.com/CogniPilot/synapse_msgs_fbs.git
-      revision: 8c961882844ec45615437453a20878e500e0a603
+      revision: 1f8ebe2e52d9ed6fe4048404f8664e8445be38ab 
       path: modules/lib/synapse_msgs_fbs

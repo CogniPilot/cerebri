@@ -4,7 +4,7 @@
 ACCEPTED
 
 ## Summary
-Every active `cerebri2` spec lives in `spec/`, uses a numbered `SPEC_NNNN_*.md` filename, and states its rules in fast-to-scan REQUIRED/PROHIBITED form.
+Every active `cerebri` spec lives in `spec/`, uses a numbered `SPEC_NNNN_*.md` filename, and states its rules in fast-to-scan REQUIRED/PROHIBITED form.
 
 ## Specification
 

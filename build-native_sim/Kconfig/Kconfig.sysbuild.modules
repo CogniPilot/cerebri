@@ -1,9 +1,0 @@
-config ZEPHYR_CMSIS_6_MODULE
-   bool
-   default y
-config ZEPHYR_HAL_NXP_MODULE
-   bool
-   default y
-config ZEPHYR_ZEPHYR_BOARDS_MODULE
-   bool
-   default y

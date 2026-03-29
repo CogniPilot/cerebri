@@ -9,7 +9,7 @@ SD-card logging uses a dedicated FlatBuffer log-envelope schema plus generated b
 ## Specification
 
 **REQUIRED:**
-- Log records use `modules/lib/synapse_msgs_fbs/fbs/cerebri2/cerebri2_log.fbs`, not ad-hoc raw byte dumps.
+- Log records use `modules/lib/synapse_msgs_fbs/fbs/cerebri/cerebri_log.fbs`, not ad-hoc raw byte dumps.
 - Logged topic payloads are wrapped in a typed FlatBuffer union record.
 - The log format supports a `SchemaRecord` that carries the generated `.bfbs` schema bytes.
 - Build outputs place generated `.bfbs` files under `${CMAKE_BINARY_DIR}/generated/flatbuffers`.
@@ -17,7 +17,7 @@ SD-card logging uses a dedicated FlatBuffer log-envelope schema plus generated b
 
 **PROHIBITED:**
 - Writing anonymous topic bytes to storage with no typed envelope.
-- Doing reflection parsing or schema serialization in the 1 kHz control loop.
+- Doing reflection parsing or schema serialization in the 800 Hz control loop.
 
 ## Motivation
 
@@ -27,6 +27,6 @@ SD-card logging uses a dedicated FlatBuffer log-envelope schema plus generated b
 
 ## References
 
-- `../../modules/lib/synapse_msgs_fbs/fbs/cerebri2/cerebri2_log.fbs`
-- `../../modules/lib/synapse_msgs_fbs/fbs/cerebri2/cerebri2_topics.fbs`
+- `../../modules/lib/synapse_msgs_fbs/fbs/cerebri/cerebri_log.fbs`
+- `../../modules/lib/synapse_msgs_fbs/fbs/cerebri/cerebri_topics.fbs`
 - `SPEC_0007_FLATBUFFER_TOPICS.md`

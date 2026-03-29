@@ -4,16 +4,18 @@
 ACCEPTED
 
 ## Summary
-Minimal latency is a primary system driver, so the flight stack keeps one application hot-path thread and removes unnecessary synchronization from RC input to motor output.
+Minimal latency is a primary system driver, so the flight stack keeps one application hot-path thread, paces flight hardware from the IMU FIFO watermark at 800 Hz, and removes unnecessary synchronization from RC input to motor output.
 
 ## Specification
 
 **REQUIRED:**
 - The application hot path uses one thread only: the main control loop in `src/main.c`.
-- The control loop owns IMU polling, PID, mixing, and DSHOT trigger.
-- RC handoff into the app is a bounded snapshot update, not a queue.
-- Hot-path publication to diagnostics uses one lockless snapshot publish step into a double-buffered store.
-- Diagnostics readers consume published snapshots without blocking the control loop.
+- On `mr_vmu_tropic`, the main control loop is paced by the `ICM45686` FIFO watermark at 800 Hz.
+- The control loop consumes the latest decoded IMU sample, PID, mixing, and DSHOT trigger in that one thread.
+- Once IMU pacing is active on `mr_vmu_tropic`, the hot path does not add a second fixed-period sleep on top of that pacing source.
+- RC handoff into the app is a bounded latest-sample update, not a queue.
+- Hot-path publication to diagnostics uses one lockless publish step into a double-buffered latest-value store.
+- Diagnostics readers consume the latest published data without blocking the control loop.
 - Hot-path math uses `float`, not `double`.
 - No heap allocation occurs after boot.
 - Hot-path synchronization points stay explicit and few.
@@ -25,8 +27,9 @@ Minimal latency is a primary system driver, so the flight stack keeps one applic
 **PROHIBITED:**
 - Additional application threads in the flight hot path.
 - Queues between RC state, estimator, controller, mixer, and motor output.
-- Mutexes, semaphores, or workqueues in the hot-path snapshot publish path.
-- Periodic shell or log output from the 1 kHz control loop.
+- Mutexes, semaphores, or workqueues in the hot-path publish path.
+- Synchronous IMU bus reads from the flight control loop on `mr_vmu_tropic`.
+- Periodic shell or log output from the 800 Hz control loop.
 - Adding latency-oriented abstractions without measured justification on `mr_vmu_tropic`.
 
 ## Motivation

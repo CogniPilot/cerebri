@@ -1,0 +1,5 @@
+menu "Subsystems"
+
+rsource "sitl/Kconfig"
+
+endmenu

@@ -1,0 +1,8 @@
+config CEREBRI_DSHOT
+	bool "Enable cerebri FlexIO DSHOT support"
+	depends on DT_HAS_NXP_FLEXIO_ENABLED
+	default y
+	select MCUX_FLEXIO
+	help
+	  Select the Zephyr FlexIO support required by the local cerebri
+	  DSHOT driver.

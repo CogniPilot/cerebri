@@ -7,11 +7,6 @@
 		motors = &sitl_dshot0;
 	};
 
-	sitl_udp0: sitl_udp {
-		compatible = "cognipilot,sitl-udp";
-		status = "okay";
-	};
-
 	sitl_rc0: sitl_rc {
 		compatible = "cognipilot,sitl-rc";
 		status = "okay";

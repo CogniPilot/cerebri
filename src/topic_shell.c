@@ -15,6 +15,8 @@
 
 #define TOPIC_THREAD_STACK_SIZE 1536
 #define THROTTLE_CHANNEL_INDEX  2
+#define TOPIC_VEC3_FMT          "[%9.5f %9.5f %9.5f]"
+#define TOPIC_RATE_FMT          "[%9.6f %9.6f %9.6f]"
 
 enum topic_id {
 	TOPIC_STATUS = 0,
@@ -54,19 +56,19 @@ static const char *const g_topic_names[] = {
 	"status",
 };
 
-struct flight_snapshot_store {
-	uint8_t slots[2][CEREBRI2_TOPIC_FB_FLIGHT_SNAPSHOT_SIZE];
+struct flight_state_store {
+	uint8_t slots[2][CEREBRI_TOPIC_FB_FLIGHT_STATE_SIZE];
 	uint16_t lengths[2];
 	atomic_t generation;
 };
 
 struct motor_output_store {
-	uint8_t slots[2][CEREBRI2_TOPIC_FB_MOTOR_OUTPUT_SIZE];
+	uint8_t slots[2][CEREBRI_TOPIC_FB_MOTOR_OUTPUT_SIZE];
 	uint16_t lengths[2];
 	atomic_t generation;
 };
 
-static struct flight_snapshot_store g_flight_snapshot_store;
+static struct flight_state_store g_flight_state_store;
 static struct motor_output_store g_motor_output_store;
 
 K_SEM_DEFINE(g_topic_watch_sem, 0, 1);
@@ -148,52 +150,110 @@ static uint32_t topic_seq_get(enum topic_id topic)
 	return (uint32_t)atomic_get(&g_topic_seq[topic]);
 }
 
-static void flight_snapshot_store_publish(const struct flight_snapshot *snapshot)
+static bool flight_state_store_copy_latest_blob(uint8_t *buf, size_t buf_size, size_t *len)
 {
-	size_t length;
-	uint32_t next_generation;
-	uint32_t slot;
-
-	next_generation = (uint32_t)atomic_get(&g_flight_snapshot_store.generation) + 1U;
-	slot = next_generation & 1U;
-	length = cerebri2_topic_fb_pack_flight_snapshot(
-		g_flight_snapshot_store.slots[slot],
-		sizeof(g_flight_snapshot_store.slots[slot]), snapshot);
-	g_flight_snapshot_store.lengths[slot] = (uint16_t)length;
-	atomic_set(&g_flight_snapshot_store.generation, (atomic_val_t)next_generation);
-}
-
-static struct flight_snapshot flight_snapshot_store_snapshot(void)
-{
-	uint8_t buf[CEREBRI2_TOPIC_FB_FLIGHT_SNAPSHOT_SIZE];
-	struct flight_snapshot snapshot;
 	uint32_t generation_start;
 	uint32_t generation_end;
 	uint32_t slot;
 	uint16_t length;
 
-	memset(&snapshot, 0, sizeof(snapshot));
-	do {
-		generation_start = (uint32_t)atomic_get(&g_flight_snapshot_store.generation);
-		slot = generation_start & 1U;
-		length = g_flight_snapshot_store.lengths[slot];
-		if (length > sizeof(buf)) {
-			length = 0U;
-		}
-		if (length > 0U) {
-			memcpy(buf, g_flight_snapshot_store.slots[slot], length);
-		}
-		generation_end = (uint32_t)atomic_get(&g_flight_snapshot_store.generation);
-	} while (generation_start != generation_end);
-
-	if (length == sizeof(buf)) {
-		(void)cerebri2_topic_fb_unpack_flight_snapshot(buf, length, &snapshot);
+	if (buf == NULL || len == NULL) {
+		return false;
 	}
 
-	return snapshot;
+	do {
+		generation_start = (uint32_t)atomic_get(&g_flight_state_store.generation);
+		if (generation_start == 0U) {
+			return false;
+		}
+
+		slot = generation_start & 1U;
+		length = g_flight_state_store.lengths[slot];
+		if (length == 0U || length > buf_size) {
+			return false;
+		}
+
+		memcpy(buf, g_flight_state_store.slots[slot], length);
+		generation_end = (uint32_t)atomic_get(&g_flight_state_store.generation);
+	} while (generation_start != generation_end);
+
+	*len = length;
+	return true;
 }
 
-static void motor_output_store_publish(const struct motor_output_msg *output)
+static bool motor_output_store_copy_latest_blob(uint8_t *buf, size_t buf_size, size_t *len)
+{
+	uint32_t generation_start;
+	uint32_t generation_end;
+	uint32_t slot;
+	uint16_t length;
+
+	if (buf == NULL || len == NULL) {
+		return false;
+	}
+
+	do {
+		generation_start = (uint32_t)atomic_get(&g_motor_output_store.generation);
+		if (generation_start == 0U) {
+			return false;
+		}
+
+		slot = generation_start & 1U;
+		length = g_motor_output_store.lengths[slot];
+		if (length == 0U || length > buf_size) {
+			return false;
+		}
+
+		memcpy(buf, g_motor_output_store.slots[slot], length);
+		generation_end = (uint32_t)atomic_get(&g_motor_output_store.generation);
+	} while (generation_start != generation_end);
+
+	*len = length;
+	return true;
+}
+
+static void flight_state_store_publish(
+	const cerebri_topic_Vec3f_t *gyro, const cerebri_topic_Vec3f_t *accel,
+	const cerebri_topic_RcChannels16_t *rc, const cerebri_topic_ControlStatus_t *status,
+	const cerebri_topic_RateTriplet_t *rate_desired,
+	const cerebri_topic_RateTriplet_t *rate_cmd)
+{
+	size_t length;
+	uint32_t next_generation;
+	uint32_t slot;
+
+	next_generation = (uint32_t)atomic_get(&g_flight_state_store.generation) + 1U;
+	slot = next_generation & 1U;
+	length = cerebri_topic_fb_pack_flight_state(
+		g_flight_state_store.slots[slot],
+		sizeof(g_flight_state_store.slots[slot]), gyro, accel, rc, status, rate_desired,
+		rate_cmd);
+	if (length == 0U) {
+		return;
+	}
+	g_flight_state_store.lengths[slot] = (uint16_t)length;
+	atomic_set(&g_flight_state_store.generation, (atomic_val_t)next_generation);
+}
+
+static bool flight_state_store_get_latest(
+	cerebri_topic_Vec3f_t *gyro, cerebri_topic_Vec3f_t *accel,
+	cerebri_topic_RcChannels16_t *rc, cerebri_topic_ControlStatus_t *status,
+	cerebri_topic_RateTriplet_t *rate_desired, cerebri_topic_RateTriplet_t *rate_cmd)
+{
+	uint8_t buf[CEREBRI_TOPIC_FB_FLIGHT_STATE_SIZE];
+	size_t len;
+
+	if (!flight_state_store_copy_latest_blob(buf, sizeof(buf), &len)) {
+		return false;
+	}
+
+	return cerebri_topic_fb_unpack_flight_state(buf, len, gyro, accel, rc, status,
+						     rate_desired, rate_cmd);
+}
+
+static void motor_output_store_publish(const cerebri_topic_MotorValues4f_t *motors,
+				       const cerebri_topic_MotorRaw4u16_t *raw, bool armed,
+				       bool test_mode)
 {
 	size_t length;
 	uint32_t next_generation;
@@ -201,41 +261,28 @@ static void motor_output_store_publish(const struct motor_output_msg *output)
 
 	next_generation = (uint32_t)atomic_get(&g_motor_output_store.generation) + 1U;
 	slot = next_generation & 1U;
-	length = cerebri2_topic_fb_pack_motor_output(
+	length = cerebri_topic_fb_pack_motor_output(
 		g_motor_output_store.slots[slot],
-		sizeof(g_motor_output_store.slots[slot]), output);
+		sizeof(g_motor_output_store.slots[slot]), motors, raw, armed, test_mode);
+	if (length == 0U) {
+		return;
+	}
 	g_motor_output_store.lengths[slot] = (uint16_t)length;
 	atomic_set(&g_motor_output_store.generation, (atomic_val_t)next_generation);
 }
 
-static struct motor_output_msg motor_output_store_snapshot(void)
+static bool motor_output_store_get_latest(cerebri_topic_MotorValues4f_t *motors,
+					  cerebri_topic_MotorRaw4u16_t *raw, bool *armed,
+					  bool *test_mode)
 {
-	uint8_t buf[CEREBRI2_TOPIC_FB_MOTOR_OUTPUT_SIZE];
-	struct motor_output_msg output;
-	uint32_t generation_start;
-	uint32_t generation_end;
-	uint32_t slot;
-	uint16_t length;
+	uint8_t buf[CEREBRI_TOPIC_FB_MOTOR_OUTPUT_SIZE];
+	size_t len;
 
-	memset(&output, 0, sizeof(output));
-	do {
-		generation_start = (uint32_t)atomic_get(&g_motor_output_store.generation);
-		slot = generation_start & 1U;
-		length = g_motor_output_store.lengths[slot];
-		if (length > sizeof(buf)) {
-			length = 0U;
-		}
-		if (length > 0U) {
-			memcpy(buf, g_motor_output_store.slots[slot], length);
-		}
-		generation_end = (uint32_t)atomic_get(&g_motor_output_store.generation);
-	} while (generation_start != generation_end);
-
-	if (length == sizeof(buf)) {
-		(void)cerebri2_topic_fb_unpack_motor_output(buf, length, &output);
+	if (!motor_output_store_copy_latest_blob(buf, sizeof(buf), &len)) {
+		return false;
 	}
 
-	return output;
+	return cerebri_topic_fb_unpack_motor_output(buf, len, motors, raw, armed, test_mode);
 }
 
 static void topic_dynamic_get(size_t idx, struct shell_static_entry *entry)
@@ -250,69 +297,67 @@ static void topic_dynamic_get(size_t idx, struct shell_static_entry *entry)
 	}
 }
 
-void cerebri2_topic_rc_published(void)
+void cerebri_topic_rc_published(void)
 {
 	topic_seq_bump(TOPIC_RC);
 }
 
-void cerebri2_topic_motor_output_update(const float motors[4], const uint16_t raw[4], bool armed,
-					bool test_mode)
+void cerebri_topic_motor_output_publish(const cerebri_topic_MotorValues4f_t *motors,
+					 const cerebri_topic_MotorRaw4u16_t *raw, bool armed,
+					 bool test_mode)
 {
-	struct motor_output_msg output = {
-		.armed = armed,
-		.test_mode = test_mode,
-	};
-
-	for (size_t i = 0; i < 4; i++) {
-		output.motors[i] = motors[i];
-		output.raw[i] = raw[i];
-	}
-
-	motor_output_store_publish(&output);
+	motor_output_store_publish(motors, raw, armed, test_mode);
 	topic_seq_bump(TOPIC_MOTOR);
 }
 
-void cerebri2_topic_motor_output_get(float motors[4], uint16_t raw[4], bool *armed, bool *test_mode)
+bool cerebri_topic_motor_output_get(cerebri_topic_MotorValues4f_t *motors,
+				     cerebri_topic_MotorRaw4u16_t *raw, bool *armed,
+				     bool *test_mode)
 {
-	struct motor_output_msg output = motor_output_store_snapshot();
-
-	for (size_t i = 0; i < 4; i++) {
-		motors[i] = output.motors[i];
-		raw[i] = output.raw[i];
-	}
-	*armed = output.armed;
-	*test_mode = output.test_mode;
+	return motor_output_store_get_latest(motors, raw, armed, test_mode);
 }
 
-struct motor_output_msg cerebri2_topic_motor_output_snapshot(void)
+bool cerebri_topic_motor_output_copy_blob(uint8_t *buf, size_t buf_size, size_t *len)
 {
-	return motor_output_store_snapshot();
+	return motor_output_store_copy_latest_blob(buf, buf_size, len);
 }
 
-uint32_t cerebri2_topic_motor_output_generation(void)
+uint32_t cerebri_topic_motor_output_generation(void)
 {
 	return (uint32_t)atomic_get(&g_motor_output_store.generation);
 }
 
-void cerebri2_topic_flight_snapshot_update(const struct flight_snapshot *snapshot)
+void cerebri_topic_flight_state_publish(
+	const cerebri_topic_Vec3f_t *gyro, const cerebri_topic_Vec3f_t *accel,
+	const cerebri_topic_RcChannels16_t *rc, const cerebri_topic_ControlStatus_t *status,
+	const cerebri_topic_RateTriplet_t *rate_desired,
+	const cerebri_topic_RateTriplet_t *rate_cmd)
 {
-	flight_snapshot_store_publish(snapshot);
+	flight_state_store_publish(gyro, accel, rc, status, rate_desired, rate_cmd);
 	topic_seq_bump(TOPIC_STATUS);
-	if (snapshot->status.imu_ok) {
+	if (status->imu_ok) {
 		topic_seq_bump(TOPIC_IMU);
 	}
 	topic_seq_bump(TOPIC_DESIRED_ANGULAR_RATE);
 	topic_seq_bump(TOPIC_ANGULAR_RATE_CMD);
 }
 
-struct flight_snapshot cerebri2_topic_flight_snapshot_get(void)
+bool cerebri_topic_flight_state_get(
+	cerebri_topic_Vec3f_t *gyro, cerebri_topic_Vec3f_t *accel,
+	cerebri_topic_RcChannels16_t *rc, cerebri_topic_ControlStatus_t *status,
+	cerebri_topic_RateTriplet_t *rate_desired, cerebri_topic_RateTriplet_t *rate_cmd)
 {
-	return flight_snapshot_store_snapshot();
+	return flight_state_store_get_latest(gyro, accel, rc, status, rate_desired, rate_cmd);
 }
 
-uint32_t cerebri2_topic_flight_snapshot_generation(void)
+bool cerebri_topic_flight_state_copy_blob(uint8_t *buf, size_t buf_size, size_t *len)
 {
-	return (uint32_t)atomic_get(&g_flight_snapshot_store.generation);
+	return flight_state_store_copy_latest_blob(buf, buf_size, len);
+}
+
+uint32_t cerebri_topic_flight_state_generation(void)
+{
+	return (uint32_t)atomic_get(&g_flight_state_store.generation);
 }
 
 static void topic_watch_stop(void)
@@ -350,103 +395,164 @@ static void topic_watch_start(const struct shell *sh, enum topic_id topic,
 	k_sem_give(&g_topic_watch_sem);
 }
 
+static void topic_latest_flight_state(cerebri_topic_Vec3f_t *gyro, cerebri_topic_Vec3f_t *accel,
+				      cerebri_topic_RcChannels16_t *rc,
+				      cerebri_topic_ControlStatus_t *status,
+				      cerebri_topic_RateTriplet_t *rate_desired,
+				      cerebri_topic_RateTriplet_t *rate_cmd)
+{
+	memset(gyro, 0, sizeof(*gyro));
+	memset(accel, 0, sizeof(*accel));
+	memset(rc, 0, sizeof(*rc));
+	memset(status, 0, sizeof(*status));
+	memset(rate_desired, 0, sizeof(*rate_desired));
+	memset(rate_cmd, 0, sizeof(*rate_cmd));
+	(void)cerebri_topic_flight_state_get(gyro, accel, rc, status, rate_desired, rate_cmd);
+}
+
+static void topic_latest_motor_output(cerebri_topic_MotorValues4f_t *motors,
+				      cerebri_topic_MotorRaw4u16_t *raw, bool *armed,
+				      bool *test_mode)
+{
+	memset(motors, 0, sizeof(*motors));
+	memset(raw, 0, sizeof(*raw));
+	*armed = false;
+	*test_mode = false;
+	(void)cerebri_topic_motor_output_get(motors, raw, armed, test_mode);
+}
+
 static void topic_print_status(const struct shell *sh)
 {
-	struct flight_snapshot snapshot = cerebri2_topic_flight_snapshot_get();
+	cerebri_topic_Vec3f_t gyro;
+	cerebri_topic_Vec3f_t accel;
+	cerebri_topic_RcChannels16_t rc;
+	cerebri_topic_ControlStatus_t status;
+	cerebri_topic_RateTriplet_t rate_desired;
+	cerebri_topic_RateTriplet_t rate_cmd;
 	int64_t now_ms = k_uptime_get();
-	int64_t rc_age_ms =
-		snapshot.status.rc_valid ? (now_ms - snapshot.status.rc_stamp_ms) : -1;
+
+	topic_latest_flight_state(&gyro, &accel, &rc, &status, &rate_desired, &rate_cmd);
+
+	int64_t rc_age_ms = status.rc_valid ? (now_ms - status.rc_stamp_ms) : -1;
 
 	shell_print(sh,
-		    "status armed=%d imu_ok=%d rc_valid=%d rc_stale=%d arm_switch=%d rc_age_ms=%lld lq=%u throttle_us=%ld desired_rate=[%0.3f %0.3f %0.3f] rate_cmd=[%0.3f %0.3f %0.3f]",
-		    snapshot.status.armed ? 1 : 0,
-		    snapshot.status.imu_ok ? 1 : 0,
-		    snapshot.status.rc_valid ? 1 : 0,
-		    snapshot.status.rc_stale ? 1 : 0,
-		    snapshot.status.arm_switch ? 1 : 0,
+		    "status armed=%1d imu_ok=%1d rc_valid=%1d rc_stale=%1d arm_switch=%1d rc_age_ms=%6lld lq=%3u throttle_us=%4ld desired_rate=[%8.3f %8.3f %8.3f] rate_cmd=[%8.3f %8.3f %8.3f]",
+		    status.armed ? 1 : 0,
+		    status.imu_ok ? 1 : 0,
+		    status.rc_valid ? 1 : 0,
+		    status.rc_stale ? 1 : 0,
+		    status.arm_switch ? 1 : 0,
 		    (long long)rc_age_ms,
-		    (unsigned int)snapshot.status.rc_link_quality,
-		    (long)snapshot.status.throttle_us,
-		    (double)snapshot.rate.desired.roll,
-		    (double)snapshot.rate.desired.pitch,
-		    (double)snapshot.rate.desired.yaw,
-		    (double)snapshot.rate.cmd.roll,
-		    (double)snapshot.rate.cmd.pitch,
-		    (double)snapshot.rate.cmd.yaw);
+		    (unsigned int)status.rc_link_quality,
+		    (long)status.throttle_us,
+		    (double)rate_desired.roll,
+		    (double)rate_desired.pitch,
+		    (double)rate_desired.yaw,
+		    (double)rate_cmd.roll,
+		    (double)rate_cmd.pitch,
+		    (double)rate_cmd.yaw);
 }
 
 static void topic_print_imu(const struct shell *sh)
 {
-	struct flight_snapshot snapshot = cerebri2_topic_flight_snapshot_get();
+	cerebri_topic_Vec3f_t gyro;
+	cerebri_topic_Vec3f_t accel;
+	cerebri_topic_RcChannels16_t rc;
+	cerebri_topic_ControlStatus_t status;
+	cerebri_topic_RateTriplet_t rate_desired;
+	cerebri_topic_RateTriplet_t rate_cmd;
+
+	topic_latest_flight_state(&gyro, &accel, &rc, &status, &rate_desired, &rate_cmd);
 
 	shell_print(sh,
-		    "imu gyro_rad_s=[%0.5f %0.5f %0.5f] accel_m_s2=[%0.5f %0.5f %0.5f]",
-		    (double)snapshot.imu.gyro_rad_s[0],
-		    (double)snapshot.imu.gyro_rad_s[1],
-		    (double)snapshot.imu.gyro_rad_s[2],
-		    (double)snapshot.imu.accel_m_s2[0],
-		    (double)snapshot.imu.accel_m_s2[1],
-		    (double)snapshot.imu.accel_m_s2[2]);
+		    "imu gyro_rad_s=" TOPIC_VEC3_FMT " accel_m_s2=" TOPIC_VEC3_FMT,
+		    (double)gyro.x,
+		    (double)gyro.y,
+		    (double)gyro.z,
+		    (double)accel.x,
+		    (double)accel.y,
+		    (double)accel.z);
 }
 
 static void topic_print_rc(const struct shell *sh)
 {
-	struct flight_snapshot snapshot = cerebri2_topic_flight_snapshot_get();
+	cerebri_topic_Vec3f_t gyro;
+	cerebri_topic_Vec3f_t accel;
+	cerebri_topic_RcChannels16_t rc;
+	cerebri_topic_ControlStatus_t status;
+	cerebri_topic_RateTriplet_t rate_desired;
+	cerebri_topic_RateTriplet_t rate_cmd;
 	int64_t now_ms = k_uptime_get();
-	int64_t rc_age_ms =
-		snapshot.status.rc_valid ? (now_ms - snapshot.status.rc_stamp_ms) : -1;
+
+	topic_latest_flight_state(&gyro, &accel, &rc, &status, &rate_desired, &rate_cmd);
+
+	int64_t rc_age_ms = status.rc_valid ? (now_ms - status.rc_stamp_ms) : -1;
 
 	shell_print(sh,
-		    "rc valid=%d age_ms=%lld lq=%u ch=[%ld %ld %ld %ld %ld %ld %ld %ld]",
-		    snapshot.status.rc_valid ? 1 : 0,
+		    "rc valid=%1d age_ms=%6lld lq=%3u ch=[%4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld]",
+		    status.rc_valid ? 1 : 0,
 		    (long long)rc_age_ms,
-		    (unsigned int)snapshot.status.rc_link_quality,
-		    (long)snapshot.rc.us[0],
-		    (long)snapshot.rc.us[1],
-		    (long)snapshot.rc.us[2],
-		    (long)snapshot.rc.us[3],
-		    (long)snapshot.rc.us[4],
-		    (long)snapshot.rc.us[5],
-		    (long)snapshot.rc.us[6],
-		    (long)snapshot.rc.us[7]);
+		    (unsigned int)status.rc_link_quality,
+		    (long)rc.ch0,
+		    (long)rc.ch1,
+		    (long)rc.ch2,
+		    (long)rc.ch3,
+		    (long)rc.ch4,
+		    (long)rc.ch5,
+		    (long)rc.ch6,
+		    (long)rc.ch7);
 }
 
 static void topic_print_motor(const struct shell *sh)
 {
-	float motors[4];
-	uint16_t raw[4];
+	cerebri_topic_MotorValues4f_t motors;
+	cerebri_topic_MotorRaw4u16_t raw;
 	bool armed;
 	bool test_mode;
 
-	cerebri2_topic_motor_output_get(motors, raw, &armed, &test_mode);
+	topic_latest_motor_output(&motors, &raw, &armed, &test_mode);
 	shell_print(sh,
-		    "motor armed=%d test_mode=%d out=[%0.3f/%u %0.3f/%u %0.3f/%u %0.3f/%u]",
+		    "motor armed=%1d test_mode=%1d out=[%6.3f/%4u %6.3f/%4u %6.3f/%4u %6.3f/%4u]",
 		    armed ? 1 : 0,
 		    test_mode ? 1 : 0,
-		    (double)motors[0], (unsigned int)raw[0],
-		    (double)motors[1], (unsigned int)raw[1],
-		    (double)motors[2], (unsigned int)raw[2],
-		    (double)motors[3], (unsigned int)raw[3]);
+		    (double)motors.m0, (unsigned int)raw.m0,
+		    (double)motors.m1, (unsigned int)raw.m1,
+		    (double)motors.m2, (unsigned int)raw.m2,
+		    (double)motors.m3, (unsigned int)raw.m3);
 }
 
 static void topic_print_desired_angular_rate(const struct shell *sh)
 {
-	struct flight_snapshot snapshot = cerebri2_topic_flight_snapshot_get();
+	cerebri_topic_Vec3f_t gyro;
+	cerebri_topic_Vec3f_t accel;
+	cerebri_topic_RcChannels16_t rc;
+	cerebri_topic_ControlStatus_t status;
+	cerebri_topic_RateTriplet_t rate_desired;
+	cerebri_topic_RateTriplet_t rate_cmd;
 
-	shell_print(sh, "rate_desired { roll: %0.6f, pitch: %0.6f, yaw: %0.6f }",
-		    (double)snapshot.rate.desired.roll,
-		    (double)snapshot.rate.desired.pitch,
-		    (double)snapshot.rate.desired.yaw);
+	topic_latest_flight_state(&gyro, &accel, &rc, &status, &rate_desired, &rate_cmd);
+
+	shell_print(sh, "rate_desired xyz=" TOPIC_RATE_FMT,
+		    (double)rate_desired.roll,
+		    (double)rate_desired.pitch,
+		    (double)rate_desired.yaw);
 }
 
 static void topic_print_angular_rate_cmd(const struct shell *sh)
 {
-	struct flight_snapshot snapshot = cerebri2_topic_flight_snapshot_get();
+	cerebri_topic_Vec3f_t gyro;
+	cerebri_topic_Vec3f_t accel;
+	cerebri_topic_RcChannels16_t rc;
+	cerebri_topic_ControlStatus_t status;
+	cerebri_topic_RateTriplet_t rate_desired;
+	cerebri_topic_RateTriplet_t rate_cmd;
 
-	shell_print(sh, "rate_cmd { roll: %0.6f, pitch: %0.6f, yaw: %0.6f }",
-		    (double)snapshot.rate.cmd.roll,
-		    (double)snapshot.rate.cmd.pitch,
-		    (double)snapshot.rate.cmd.yaw);
+	topic_latest_flight_state(&gyro, &accel, &rc, &status, &rate_desired, &rate_cmd);
+
+	shell_print(sh, "rate_cmd     xyz=" TOPIC_RATE_FMT,
+		    (double)rate_cmd.roll,
+		    (double)rate_cmd.pitch,
+		    (double)rate_cmd.yaw);
 }
 
 static void topic_print(const struct shell *sh, enum topic_id topic)

@@ -1,5 +1,0 @@
-west:
-  command: /opt/.venv-zephyr/bin/west build -p always -b native_sim /home/jgoppert/cognipilot/ws/cerebri
-    -d /home/jgoppert/cognipilot/ws/cerebri/build-native_sim
-  topdir: /home/jgoppert/cognipilot/ws
-  version: 1.5.0

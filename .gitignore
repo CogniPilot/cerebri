@@ -1,5 +1,6 @@
 dev/
 build/
+build-native_sim/
 build-flatfb/
 twister-out/
 .cache/

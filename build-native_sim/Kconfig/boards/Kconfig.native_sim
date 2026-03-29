@@ -1,2 +1,0 @@
-# Load board Kconfig descriptions.
-osource "/home/jgoppert/cognipilot/ws/zephyr/boards/native/native_sim/Kconfig.native_sim"

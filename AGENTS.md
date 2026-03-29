@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file tells coding agents how to work in `cerebri2` without drifting from
+This file tells coding agents how to work in `cerebri` without drifting from
 the repo's flight-stack, latency, and code-organization rules.
 
 ## Scope
@@ -75,8 +75,8 @@ before expanding the implementation.
 At minimum, run the relevant build:
 
 ```sh
-west build -b mr_vmu_tropic/mimxrt1064 /home/jgoppert/cognipilot/ws/cerebri2 \
-  -d /home/jgoppert/cognipilot/ws/cerebri2/build
+west build -b mr_vmu_tropic/mimxrt1064 /home/jgoppert/cognipilot/ws/cerebri \
+  -d /home/jgoppert/cognipilot/ws/cerebri/build
 ```
 
 If you could not run hardware validation, say so explicitly.

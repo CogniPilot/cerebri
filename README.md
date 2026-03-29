@@ -1,8 +1,8 @@
-# cerebri2
+# cerebri
 
-`cerebri2` is a clean-slate Zephyr multirotor codebase for `mr_vmu_tropic`.
+`cerebri` is a clean-slate Zephyr multirotor codebase for `mr_vmu_tropic`.
 
-Start with [spec/README.md](/home/jgoppert/cognipilot/ws/cerebri2/spec/README.md) for project rules and [AGENTS.md](/home/jgoppert/cognipilot/ws/cerebri2/AGENTS.md) for contributor/agent workflow.
+Start with [spec/README.md](/home/jgoppert/cognipilot/ws/cerebri/spec/README.md) for project rules and [AGENTS.md](/home/jgoppert/cognipilot/ws/cerebri/AGENTS.md) for contributor/agent workflow.
 
 V1 goals:
 - `mr_vmu_tropic` only
@@ -23,28 +23,28 @@ Current implementation scope:
 Build from the workspace root or any child directory inside the same west workspace:
 
 ```sh
-west build -b mr_vmu_tropic/mimxrt1064 /home/jgoppert/cognipilot/ws/cerebri2 -d /home/jgoppert/cognipilot/ws/cerebri2/build
+west build -b mr_vmu_tropic/mimxrt1064 /home/jgoppert/cognipilot/ws/cerebri -d /home/jgoppert/cognipilot/ws/cerebri/build
 ```
 
 If `flatcc` is installed, CMake stages generated FlatBuffer headers and a copy of the
-active schemas from `modules/lib/synapse_msgs_fbs/fbs/cerebri2` under
+active schemas from `modules/lib/synapse_msgs_fbs/fbs/cerebri` under
 `${CMAKE_BINARY_DIR}/generated/flatbuffers`. Generated files are not kept in the source
 tree.
 
 The same `flatcc` tool also generates `.bfbs` binary schemas for
-`cerebri2_topics.fbs` and `cerebri2_log.fbs` from that module in the same build-tree
+`cerebri_topics.fbs` and `cerebri_log.fbs` from that module in the same build-tree
 directory for self-describing SD-card log streams.
 
 To bootstrap a fresh minimal workspace from this repo's manifest, check out this repo at
-`<workspace>/cerebri2` and initialize west from the workspace root:
+`<workspace>/cerebri` and initialize west from the workspace root:
 
 ```sh
-mkdir -p /tmp/cerebri2-ws
-git clone <repo-url> /tmp/cerebri2-ws/cerebri2
-cd /tmp/cerebri2-ws
-west init -l cerebri2
+mkdir -p /tmp/cerebri-ws
+git clone <repo-url> /tmp/cerebri-ws/cerebri
+cd /tmp/cerebri-ws
+west init -l cerebri
 west update
-west build -b mr_vmu_tropic/mimxrt1064 cerebri2 -d build/cerebri2
+west build -b mr_vmu_tropic/mimxrt1064 cerebri -d build/cerebri
 ```
 
 Important assumptions:

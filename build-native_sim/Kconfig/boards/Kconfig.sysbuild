@@ -1,2 +1,0 @@
-# Load Sysbuild board Kconfig descriptions.
-osource "/home/jgoppert/cognipilot/ws/zephyr/boards/native/native_sim/Kconfig.sysbuild"

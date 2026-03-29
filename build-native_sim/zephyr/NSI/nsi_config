@@ -1,0 +1,14 @@
+NSI_NATIVE=1
+NSI_AR:=/usr/bin/ar
+NSI_BUILD_OPTIONS:=-m32 -msse2 -mfpmath=sse
+NSI_BUILD_PATH:=/home/jgoppert/cognipilot/ws/cerebri/build-native_sim/zephyr/NSI
+NSI_CC:=ccache /usr/bin/gcc
+NSI_OBJCOPY:=/usr/bin/objcopy
+NSI_EMBEDDED_CPU_SW:=/home/jgoppert/cognipilot/ws/cerebri/build-native_sim/zephyr/zephyr.elf 
+NSI_EXE:=/home/jgoppert/cognipilot/ws/cerebri/build-native_sim/zephyr/zephyr.exe
+NSI_EXTRA_SRCS:=/home/jgoppert/cognipilot/ws/zephyr/drivers/serial/uart_native_pty_bottom.c
+NSI_LINK_OPTIONS:=-m32 -T /home/jgoppert/cognipilot/ws/zephyr/boards/native/common/natsim_linker_script.ld
+NSI_EXTRA_LIBS:=
+NSI_PATH:=/home/jgoppert/cognipilot/ws/zephyr/scripts/native_simulator/
+NSI_N_CPUS:=1
+NSI_LOCALIZE_OPTIONS:=--localize-symbol=CONFIG_* 

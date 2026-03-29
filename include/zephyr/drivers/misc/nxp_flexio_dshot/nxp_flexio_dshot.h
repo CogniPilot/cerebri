@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <zephyr/device.h>
+#include <zephyr/drivers/sensor.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +28,14 @@ extern "C" {
 #define DSHOT_CMD_SAVE_SETTINGS    12
 #define DSHOT_MIN                  48
 #define DSHOT_MAX                  2047
+
+struct nxp_flexio_dshot_driver_api {
+	struct sensor_driver_api sensor;
+	void (*data_set)(const struct device *dev, unsigned channel, uint16_t throttle,
+			 bool telemetry);
+	void (*trigger)(const struct device *dev);
+	uint8_t (*channel_count)(const struct device *dev);
+};
 
 void nxp_flexio_dshot_data_set(const struct device *dev, unsigned channel, uint16_t throttle,
 			       bool telemetry);

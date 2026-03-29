@@ -7,9 +7,11 @@
 #include "casadi.h"
 #include "rdd2.h"
 
+#include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <zephyr/drivers/misc/nxp_flexio_dshot/nxp_flexio_dshot.h>
 #include <zephyr/device.h>
@@ -84,6 +86,7 @@ struct control_context {
 	float decl_WL;         // Magnetic declination
 	float accel_gain;      // Accelerometer gain
 	float mag_gain;        // Magnetometer gain
+	float attitude_sp[4];  // Attitude setpoint (quaternion)
 };
 
 static atomic_t g_motor_test_active;
@@ -719,6 +722,25 @@ int main(void)
 	};
 	int rc;
 
+	// Initialize motor outputs to zero
+	memset(ctx.motors, 0, sizeof(ctx.motors));
+
+	// Initialize state vector: position/velocity zeros, quaternion identity (q0=1)
+	memset(ctx.x, 0, sizeof(ctx.x));
+	ctx.x[6] = 1.0f;
+
+	// Initialize quaternion to identity (w=1, x=y=z=0)
+	ctx.q[0] = 1.0f;
+	ctx.q[1] = 0.0f;
+	ctx.q[2] = 0.0f;
+	ctx.q[3] = 0.0f;
+
+	// Initialize attitude setpoint to identity quaternion
+	ctx.attitude_sp[0] = 1.0f;
+	ctx.attitude_sp[1] = 0.0f;
+	ctx.attitude_sp[2] = 0.0f;
+	ctx.attitude_sp[3] = 0.0f;
+
 	rc_frame_set_defaults(&ctx.rc_input);
 	motor_test_clear();
 	motor_raw_test_clear();
@@ -793,6 +815,31 @@ int main(void)
 		ctx.q[1] = ctx.x[7];
 		ctx.q[2] = ctx.x[8];
 		ctx.q[3] = ctx.x[9];
+
+	
+		// Attidude controller
+		float q_r[4] = {ctx.attitude_sp[0], ctx.attitude_sp[1], ctx.attitude_sp[2], ctx.attitude_sp[3]};
+		float omega[3];
+
+		static const float kp[3] = {
+			5,
+			5,
+			2,
+		};
+
+
+		{
+			// attitude_control:(kp[3],q[4],q_r[4])->(omega[3])
+			CASADI_FUNC_ARGS(attitude_control);
+
+			args[0] = kp;
+			args[1] = ctx.q;
+			args[2] = q_r;
+
+			res[0] = omega;
+
+			CASADI_FUNC_CALL(attitude_control);
+		}
 
 		// // Estimator: Position correction
 		// {
@@ -877,14 +924,40 @@ int main(void)
 			continue;
 		}
 
-		ctx.snapshot.rate.desired.roll =
+		// ctx.snapshot.rate.desired.roll =
+		// 	rc_norm_centered(ctx.rc_input.us[ROLL_CHANNEL_INDEX]) *
+		// 	MAX_ROLL_PITCH_RATE_RAD_S;
+		// ctx.snapshot.rate.desired.pitch =
+		// 	-1*rc_norm_centered(ctx.rc_input.us[PITCH_CHANNEL_INDEX]) *
+		// 	MAX_ROLL_PITCH_RATE_RAD_S;
+		// ctx.snapshot.rate.desired.yaw =
+		// 	rc_norm_centered(ctx.rc_input.us[YAW_CHANNEL_INDEX]) * MAX_YAW_RATE_RAD_S;
+
+		float MAX_ROLL = 0.4f;
+		float MAX_PITCH = 0.4f;
+		float MAX_YAW = 1.5f;
+
+		float des_roll =
 			rc_norm_centered(ctx.rc_input.us[ROLL_CHANNEL_INDEX]) *
-			MAX_ROLL_PITCH_RATE_RAD_S;
-		ctx.snapshot.rate.desired.pitch =
+			MAX_ROLL;
+		float des_pitch =
 			-1*rc_norm_centered(ctx.rc_input.us[PITCH_CHANNEL_INDEX]) *
-			MAX_ROLL_PITCH_RATE_RAD_S;
-		ctx.snapshot.rate.desired.yaw =
-			rc_norm_centered(ctx.rc_input.us[YAW_CHANNEL_INDEX]) * MAX_YAW_RATE_RAD_S;
+			MAX_PITCH;
+		float des_yaw =
+			rc_norm_centered(ctx.rc_input.us[YAW_CHANNEL_INDEX]) * MAX_YAW;
+
+		// Convert desired Euler angles to quaternion
+		float cy = cosf(des_yaw * 0.5f);
+		float sy = sinf(des_yaw * 0.5f);
+		float cp = cosf(des_pitch * 0.5f);
+		float sp = sinf(des_pitch * 0.5f);
+		float cr = cosf(des_roll * 0.5f);
+		float sr = sinf(des_roll * 0.5f);
+
+		ctx.attitude_sp[0] = cy * cp * cr + sy * sp * sr;  // w
+		ctx.attitude_sp[1] = cy * cp * sr - sy * sp * cr;  // x
+		ctx.attitude_sp[2] = cy * sp * cr + sy * cp * sr;  // y
+		ctx.attitude_sp[3] = sy * cp * cr - cy * sp * sr;  // z
 
 		ctx.throttle_input = rc_norm_throttle(ctx.rc_input.us[THROTTLE_CHANNEL_INDEX]);
 		ctx.throttle_cmd = ctx.snapshot.status.armed

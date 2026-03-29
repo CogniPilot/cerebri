@@ -21,7 +21,7 @@ extern "C" {
 #include <math.h>
 
 #ifndef casadi_real
-#define casadi_real float
+#define casadi_real double
 #endif
 
 #ifndef casadi_int
@@ -93,6 +93,1666 @@ static const casadi_int casadi_s2[3] = {4, 1, 1};
 static const casadi_int casadi_s3[3] = {10, 1, 1};
 static const casadi_int casadi_s4[3] = {6, 1, 1};
 static const casadi_int casadi_s5[3] = {6, 6, 1};
+
+/* attitude_rate_control:(kp[3],ki[3],kd[3],f_cut,i_max[3],omega[3],omega_r[3],i0[3],e0[3],de0[3],dt)->(M[3],i1[3],e1[3],de1[3],alpha) */
+static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+  w[0]=2.1666666666666671e-02;
+  w[1]=arg[0]? arg[0][0] : 0;
+  w[2]=arg[6]? arg[6][0] : 0;
+  w[3]=arg[5]? arg[5][0] : 0;
+  w[2]=(w[2]-w[3]);
+  w[1]=(w[1]*w[2]);
+  w[3]=arg[1]? arg[1][0] : 0;
+  w[4]=arg[4]? arg[4][0] : 0;
+  w[5]=arg[7]? arg[7][0] : 0;
+  w[6]=arg[10]? arg[10][0] : 0;
+  w[7]=(w[2]*w[6]);
+  w[5]=(w[5]+w[7]);
+  w[7]=(w[4]<w[5]);
+  w[8]=(w[7]?w[4]:0);
+  w[7]=(!w[7]);
+  w[4]=(-w[4]);
+  w[9]=(w[5]<w[4]);
+  w[4]=(w[9]?w[4]:0);
+  w[9]=(!w[9]);
+  w[9]=(w[9]?w[5]:0);
+  w[4]=(w[4]+w[9]);
+  w[7]=(w[7]?w[4]:0);
+  w[8]=(w[8]+w[7]);
+  w[3]=(w[3]*w[8]);
+  w[1]=(w[1]+w[3]);
+  w[3]=arg[2]? arg[2][0] : 0;
+  w[7]=6.2831853071795862e+00;
+  w[4]=(w[7]*w[6]);
+  w[9]=arg[3]? arg[3][0] : 0;
+  w[4]=(w[4]*w[9]);
+  w[7]=(w[7]*w[6]);
+  w[7]=(w[7]*w[9]);
+  w[9]=1.;
+  w[7]=(w[7]+w[9]);
+  w[4]=(w[4]/w[7]);
+  w[7]=arg[8]? arg[8][0] : 0;
+  w[7]=(w[2]-w[7]);
+  w[7]=(w[7]/w[6]);
+  w[7]=(w[4]*w[7]);
+  w[9]=(w[9]-w[4]);
+  w[5]=arg[9]? arg[9][0] : 0;
+  w[5]=(w[9]*w[5]);
+  w[7]=(w[7]+w[5]);
+  w[3]=(w[3]*w[7]);
+  w[1]=(w[1]+w[3]);
+  w[1]=(w[0]*w[1]);
+  if (res[0]!=0) res[0][0]=w[1];
+  w[1]=arg[0]? arg[0][1] : 0;
+  w[3]=arg[6]? arg[6][1] : 0;
+  w[5]=arg[5]? arg[5][1] : 0;
+  w[3]=(w[3]-w[5]);
+  w[1]=(w[1]*w[3]);
+  w[5]=arg[1]? arg[1][1] : 0;
+  w[10]=arg[4]? arg[4][1] : 0;
+  w[11]=arg[7]? arg[7][1] : 0;
+  w[12]=(w[3]*w[6]);
+  w[11]=(w[11]+w[12]);
+  w[12]=(w[10]<w[11]);
+  w[13]=(w[12]?w[10]:0);
+  w[12]=(!w[12]);
+  w[10]=(-w[10]);
+  w[14]=(w[11]<w[10]);
+  w[10]=(w[14]?w[10]:0);
+  w[14]=(!w[14]);
+  w[14]=(w[14]?w[11]:0);
+  w[10]=(w[10]+w[14]);
+  w[12]=(w[12]?w[10]:0);
+  w[13]=(w[13]+w[12]);
+  w[5]=(w[5]*w[13]);
+  w[1]=(w[1]+w[5]);
+  w[5]=arg[2]? arg[2][1] : 0;
+  w[12]=arg[8]? arg[8][1] : 0;
+  w[12]=(w[3]-w[12]);
+  w[12]=(w[12]/w[6]);
+  w[12]=(w[4]*w[12]);
+  w[10]=arg[9]? arg[9][1] : 0;
+  w[10]=(w[9]*w[10]);
+  w[12]=(w[12]+w[10]);
+  w[5]=(w[5]*w[12]);
+  w[1]=(w[1]+w[5]);
+  w[0]=(w[0]*w[1]);
+  if (res[0]!=0) res[0][1]=w[0];
+  w[0]=4.0000000000000008e-02;
+  w[1]=arg[0]? arg[0][2] : 0;
+  w[5]=arg[6]? arg[6][2] : 0;
+  w[10]=arg[5]? arg[5][2] : 0;
+  w[5]=(w[5]-w[10]);
+  w[1]=(w[1]*w[5]);
+  w[10]=arg[1]? arg[1][2] : 0;
+  w[14]=arg[4]? arg[4][2] : 0;
+  w[11]=arg[7]? arg[7][2] : 0;
+  w[15]=(w[5]*w[6]);
+  w[11]=(w[11]+w[15]);
+  w[15]=(w[14]<w[11]);
+  w[16]=(w[15]?w[14]:0);
+  w[15]=(!w[15]);
+  w[14]=(-w[14]);
+  w[17]=(w[11]<w[14]);
+  w[14]=(w[17]?w[14]:0);
+  w[17]=(!w[17]);
+  w[17]=(w[17]?w[11]:0);
+  w[14]=(w[14]+w[17]);
+  w[15]=(w[15]?w[14]:0);
+  w[16]=(w[16]+w[15]);
+  w[10]=(w[10]*w[16]);
+  w[1]=(w[1]+w[10]);
+  w[10]=arg[2]? arg[2][2] : 0;
+  w[15]=arg[8]? arg[8][2] : 0;
+  w[15]=(w[5]-w[15]);
+  w[15]=(w[15]/w[6]);
+  w[15]=(w[4]*w[15]);
+  w[6]=arg[9]? arg[9][2] : 0;
+  w[9]=(w[9]*w[6]);
+  w[15]=(w[15]+w[9]);
+  w[10]=(w[10]*w[15]);
+  w[1]=(w[1]+w[10]);
+  w[0]=(w[0]*w[1]);
+  if (res[0]!=0) res[0][2]=w[0];
+  if (res[1]!=0) res[1][0]=w[8];
+  if (res[1]!=0) res[1][1]=w[13];
+  if (res[1]!=0) res[1][2]=w[16];
+  if (res[2]!=0) res[2][0]=w[2];
+  if (res[2]!=0) res[2][1]=w[3];
+  if (res[2]!=0) res[2][2]=w[5];
+  if (res[3]!=0) res[3][0]=w[7];
+  if (res[3]!=0) res[3][1]=w[12];
+  if (res[3]!=0) res[3][2]=w[15];
+  if (res[4]!=0) res[4][0]=w[4];
+  return 0;
+}
+
+int attitude_rate_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+  return casadi_f0(arg, res, iw, w, mem);
+}
+
+int attitude_rate_control_alloc_mem(void) {
+  return 0;
+}
+
+int attitude_rate_control_init_mem(int mem) {
+  return 0;
+}
+
+void attitude_rate_control_free_mem(int mem) {
+}
+
+int attitude_rate_control_checkout(void) {
+  return 0;
+}
+
+void attitude_rate_control_release(int mem) {
+}
+
+void attitude_rate_control_incref(void) {
+}
+
+void attitude_rate_control_decref(void) {
+}
+
+casadi_int attitude_rate_control_n_in(void) { return 11;}
+
+casadi_int attitude_rate_control_n_out(void) { return 5;}
+
+casadi_real attitude_rate_control_default_in(casadi_int i) {
+  switch (i) {
+    default: return 0;
+  }
+}
+
+const char* attitude_rate_control_name_in(casadi_int i) {
+  switch (i) {
+    case 0: return "kp";
+    case 1: return "ki";
+    case 2: return "kd";
+    case 3: return "f_cut";
+    case 4: return "i_max";
+    case 5: return "omega";
+    case 6: return "omega_r";
+    case 7: return "i0";
+    case 8: return "e0";
+    case 9: return "de0";
+    case 10: return "dt";
+    default: return 0;
+  }
+}
+
+const char* attitude_rate_control_name_out(casadi_int i) {
+  switch (i) {
+    case 0: return "M";
+    case 1: return "i1";
+    case 2: return "e1";
+    case 3: return "de1";
+    case 4: return "alpha";
+    default: return 0;
+  }
+}
+
+const casadi_int* attitude_rate_control_sparsity_in(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s0;
+    case 1: return casadi_s0;
+    case 2: return casadi_s0;
+    case 3: return casadi_s1;
+    case 4: return casadi_s0;
+    case 5: return casadi_s0;
+    case 6: return casadi_s0;
+    case 7: return casadi_s0;
+    case 8: return casadi_s0;
+    case 9: return casadi_s0;
+    case 10: return casadi_s1;
+    default: return 0;
+  }
+}
+
+const casadi_int* attitude_rate_control_sparsity_out(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s0;
+    case 1: return casadi_s0;
+    case 2: return casadi_s0;
+    case 3: return casadi_s0;
+    case 4: return casadi_s1;
+    default: return 0;
+  }
+}
+
+int attitude_rate_control_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 11;
+  if (sz_res) *sz_res = 5;
+  if (sz_iw) *sz_iw = 0;
+  if (sz_w) *sz_w = 18;
+  return 0;
+}
+
+int attitude_rate_control_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 11*sizeof(const casadi_real*);
+  if (sz_res) *sz_res = 5*sizeof(casadi_real*);
+  if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
+  if (sz_w) *sz_w = 18*sizeof(casadi_real);
+  return 0;
+}
+
+/* attitude_control:(kp[3],q[4],q_r[4])->(omega[3]) */
+static int casadi_f1(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+  w[0]=arg[0]? arg[0][0] : 0;
+  w[1]=2.;
+  w[2]=arg[1]? arg[1][0] : 0;
+  w[3]=arg[2]? arg[2][1] : 0;
+  w[4]=(w[2]*w[3]);
+  w[5]=arg[1]? arg[1][1] : 0;
+  w[6]=arg[2]? arg[2][0] : 0;
+  w[7]=(w[5]*w[6]);
+  w[4]=(w[4]-w[7]);
+  w[7]=arg[1]? arg[1][3] : 0;
+  w[8]=arg[2]? arg[2][2] : 0;
+  w[9]=(w[7]*w[8]);
+  w[4]=(w[4]+w[9]);
+  w[9]=arg[1]? arg[1][2] : 0;
+  w[10]=arg[2]? arg[2][3] : 0;
+  w[11]=(w[9]*w[10]);
+  w[4]=(w[4]-w[11]);
+  w[11]=(w[2]*w[6]);
+  w[12]=(w[5]*w[3]);
+  w[11]=(w[11]+w[12]);
+  w[12]=(w[9]*w[8]);
+  w[11]=(w[11]+w[12]);
+  w[12]=(w[7]*w[10]);
+  w[11]=(w[11]+w[12]);
+  w[12]=casadi_sq(w[11]);
+  w[13]=casadi_sq(w[4]);
+  w[12]=(w[12]+w[13]);
+  w[13]=(w[2]*w[8]);
+  w[14]=(w[9]*w[6]);
+  w[15]=(w[7]*w[3]);
+  w[14]=(w[14]+w[15]);
+  w[13]=(w[13]-w[14]);
+  w[14]=(w[5]*w[10]);
+  w[13]=(w[13]+w[14]);
+  w[14]=casadi_sq(w[13]);
+  w[12]=(w[12]+w[14]);
+  w[9]=(w[9]*w[3]);
+  w[7]=(w[7]*w[6]);
+  w[9]=(w[9]-w[7]);
+  w[5]=(w[5]*w[8]);
+  w[9]=(w[9]-w[5]);
+  w[2]=(w[2]*w[10]);
+  w[9]=(w[9]+w[2]);
+  w[2]=casadi_sq(w[9]);
+  w[12]=(w[12]+w[2]);
+  w[12]=sqrt(w[12]);
+  w[2]=1.0000000000000000e-10;
+  w[12]=casadi_fmax(w[12],w[2]);
+  w[4]=(w[4]/w[12]);
+  w[11]=(w[11]/w[12]);
+  w[2]=-1.;
+  w[11]=casadi_fmax(w[11],w[2]);
+  w[2]=1.;
+  w[11]=casadi_fmin(w[11],w[2]);
+  w[11]=acos(w[11]);
+  w[11]=(w[1]*w[11]);
+  w[10]=6.2831853071795862e+00;
+  w[11]=remainder(w[11],w[10]);
+  w[10]=(w[11]/w[1]);
+  w[5]=casadi_fabs(w[10]);
+  w[8]=1.0000000000000000e-04;
+  w[5]=(w[5]<w[8]);
+  w[8]=1.6666666666666666e-01;
+  w[7]=casadi_sq(w[10]);
+  w[8]=(w[8]*w[7]);
+  w[2]=(w[2]+w[8]);
+  w[8]=1.9444444444444445e-02;
+  w[7]=casadi_sq(w[10]);
+  w[7]=casadi_sq(w[7]);
+  w[8]=(w[8]*w[7]);
+  w[2]=(w[2]+w[8]);
+  w[2]=(w[5]?w[2]:0);
+  w[5]=(!w[5]);
+  w[8]=sin(w[10]);
+  w[10]=(w[10]/w[8]);
+  w[5]=(w[5]?w[10]:0);
+  w[2]=(w[2]+w[5]);
+  w[4]=(w[4]*w[2]);
+  w[4]=(w[1]*w[4]);
+  w[11]=casadi_sign(w[11]);
+  w[4]=(w[4]*w[11]);
+  w[0]=(w[0]*w[4]);
+  if (res[0]!=0) res[0][0]=w[0];
+  w[0]=arg[0]? arg[0][1] : 0;
+  w[13]=(w[13]/w[12]);
+  w[13]=(w[13]*w[2]);
+  w[13]=(w[1]*w[13]);
+  w[13]=(w[13]*w[11]);
+  w[0]=(w[0]*w[13]);
+  if (res[0]!=0) res[0][1]=w[0];
+  w[0]=arg[0]? arg[0][2] : 0;
+  w[9]=(w[9]/w[12]);
+  w[9]=(w[9]*w[2]);
+  w[1]=(w[1]*w[9]);
+  w[1]=(w[1]*w[11]);
+  w[0]=(w[0]*w[1]);
+  if (res[0]!=0) res[0][2]=w[0];
+  return 0;
+}
+
+int attitude_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+  return casadi_f1(arg, res, iw, w, mem);
+}
+
+int attitude_control_alloc_mem(void) {
+  return 0;
+}
+
+int attitude_control_init_mem(int mem) {
+  return 0;
+}
+
+void attitude_control_free_mem(int mem) {
+}
+
+int attitude_control_checkout(void) {
+  return 0;
+}
+
+void attitude_control_release(int mem) {
+}
+
+void attitude_control_incref(void) {
+}
+
+void attitude_control_decref(void) {
+}
+
+casadi_int attitude_control_n_in(void) { return 3;}
+
+casadi_int attitude_control_n_out(void) { return 1;}
+
+casadi_real attitude_control_default_in(casadi_int i) {
+  switch (i) {
+    default: return 0;
+  }
+}
+
+const char* attitude_control_name_in(casadi_int i) {
+  switch (i) {
+    case 0: return "kp";
+    case 1: return "q";
+    case 2: return "q_r";
+    default: return 0;
+  }
+}
+
+const char* attitude_control_name_out(casadi_int i) {
+  switch (i) {
+    case 0: return "omega";
+    default: return 0;
+  }
+}
+
+const casadi_int* attitude_control_sparsity_in(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s0;
+    case 1: return casadi_s2;
+    case 2: return casadi_s2;
+    default: return 0;
+  }
+}
+
+const casadi_int* attitude_control_sparsity_out(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s0;
+    default: return 0;
+  }
+}
+
+int attitude_control_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 3;
+  if (sz_res) *sz_res = 1;
+  if (sz_iw) *sz_iw = 0;
+  if (sz_w) *sz_w = 16;
+  return 0;
+}
+
+int attitude_control_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 3*sizeof(const casadi_real*);
+  if (sz_res) *sz_res = 1*sizeof(casadi_real*);
+  if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
+  if (sz_w) *sz_w = 16*sizeof(casadi_real);
+  return 0;
+}
+
+/* velocity_control:(dt,psi_sp,pw_sp[3],pw[3],vb[3],psi_vel_sp,reset_position)->(psi_sp1,pw_sp1[3],vw_sp[3],aw_sp[3],q_sp[4]) */
+static int casadi_f2(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+  w[0]=arg[1]? arg[1][0] : 0;
+  w[1]=arg[5]? arg[5][0] : 0;
+  w[2]=arg[0]? arg[0][0] : 0;
+  w[1]=(w[1]*w[2]);
+  w[0]=(w[0]+w[1]);
+  w[1]=6.2831853071795862e+00;
+  w[0]=remainder(w[0],w[1]);
+  if (res[0]!=0) res[0][0]=w[0];
+  w[1]=arg[3]? arg[3][0] : 0;
+  w[3]=2.;
+  w[4]=arg[6]? arg[6][0] : 0;
+  w[5]=(w[4]?w[1]:0);
+  w[6]=(!w[4]);
+  w[7]=arg[2]? arg[2][0] : 0;
+  w[8]=arg[4]? arg[4][0] : 0;
+  w[9]=cos(w[0]);
+  w[10]=(w[8]*w[9]);
+  w[11]=arg[4]? arg[4][1] : 0;
+  w[12]=sin(w[0]);
+  w[13]=(w[11]*w[12]);
+  w[10]=(w[10]-w[13]);
+  w[13]=(w[10]*w[2]);
+  w[7]=(w[7]+w[13]);
+  w[7]=(w[6]?w[7]:0);
+  w[5]=(w[5]+w[7]);
+  w[5]=(w[5]-w[1]);
+  w[7]=casadi_sq(w[5]);
+  w[13]=arg[3]? arg[3][1] : 0;
+  w[14]=(w[4]?w[13]:0);
+  w[15]=arg[2]? arg[2][1] : 0;
+  w[8]=(w[8]*w[12]);
+  w[11]=(w[11]*w[9]);
+  w[8]=(w[8]+w[11]);
+  w[11]=(w[8]*w[2]);
+  w[15]=(w[15]+w[11]);
+  w[15]=(w[6]?w[15]:0);
+  w[14]=(w[14]+w[15]);
+  w[14]=(w[14]-w[13]);
+  w[15]=casadi_sq(w[14]);
+  w[7]=(w[7]+w[15]);
+  w[15]=arg[3]? arg[3][2] : 0;
+  w[4]=(w[4]?w[15]:0);
+  w[11]=arg[2]? arg[2][2] : 0;
+  w[9]=arg[4]? arg[4][2] : 0;
+  w[2]=(w[9]*w[2]);
+  w[11]=(w[11]+w[2]);
+  w[6]=(w[6]?w[11]:0);
+  w[4]=(w[4]+w[6]);
+  w[4]=(w[4]-w[15]);
+  w[6]=casadi_sq(w[4]);
+  w[7]=(w[7]+w[6]);
+  w[7]=sqrt(w[7]);
+  w[6]=(w[3]<w[7]);
+  w[11]=(w[3]*w[5]);
+  w[11]=(w[11]/w[7]);
+  w[11]=(w[6]?w[11]:0);
+  w[2]=(!w[6]);
+  w[5]=(w[2]?w[5]:0);
+  w[11]=(w[11]+w[5]);
+  w[1]=(w[1]+w[11]);
+  if (res[1]!=0) res[1][0]=w[1];
+  w[1]=(w[3]*w[14]);
+  w[1]=(w[1]/w[7]);
+  w[1]=(w[6]?w[1]:0);
+  w[14]=(w[2]?w[14]:0);
+  w[1]=(w[1]+w[14]);
+  w[13]=(w[13]+w[1]);
+  if (res[1]!=0) res[1][1]=w[13];
+  w[3]=(w[3]*w[4]);
+  w[3]=(w[3]/w[7]);
+  w[6]=(w[6]?w[3]:0);
+  w[2]=(w[2]?w[4]:0);
+  w[6]=(w[6]+w[2]);
+  w[15]=(w[15]+w[6]);
+  if (res[1]!=0) res[1][2]=w[15];
+  if (res[2]!=0) res[2][0]=w[10];
+  if (res[2]!=0) res[2][1]=w[8];
+  if (res[2]!=0) res[2][2]=w[9];
+  w[9]=0.;
+  if (res[3]!=0) res[3][0]=w[9];
+  if (res[3]!=0) res[3][1]=w[9];
+  if (res[3]!=0) res[3][2]=w[9];
+  w[8]=cos(w[0]);
+  w[10]=(w[8]+w[8]);
+  w[15]=1.;
+  w[10]=(w[10]+w[15]);
+  w[10]=(w[9]<w[10]);
+  w[6]=5.0000000000000000e-01;
+  w[2]=(w[15]+w[8]);
+  w[2]=(w[2]+w[8]);
+  w[2]=(w[2]+w[15]);
+  w[4]=1.0000000000000000e-10;
+  w[2]=casadi_fmax(w[2],w[4]);
+  w[2]=sqrt(w[2]);
+  w[2]=(w[6]*w[2]);
+  w[3]=(w[10]?w[2]:0);
+  w[7]=(!w[10]);
+  w[13]=(w[15]<w[8]);
+  w[9]=(w[9]&&w[13]);
+  w[13]=(!w[9]);
+  w[1]=(w[15]<w[8]);
+  w[14]=(!w[1]);
+  w[0]=sin(w[0]);
+  w[11]=(w[0]+w[0]);
+  w[5]=4.;
+  w[12]=(w[15]-w[8]);
+  w[12]=(w[12]-w[8]);
+  w[12]=(w[12]+w[15]);
+  w[12]=casadi_fmax(w[12],w[4]);
+  w[12]=sqrt(w[12]);
+  w[6]=(w[6]*w[12]);
+  w[12]=casadi_fmax(w[6],w[4]);
+  w[12]=(w[5]*w[12]);
+  w[11]=(w[11]/w[12]);
+  w[11]=(w[14]?w[11]:0);
+  w[11]=(w[13]?w[11]:0);
+  w[11]=(w[7]?w[11]:0);
+  w[3]=(w[3]+w[11]);
+  if (res[4]!=0) res[4][0]=w[3];
+  w[3]=5.0000000000000004e-06;
+  w[9]=(w[9]?w[3]:0);
+  w[9]=(w[7]?w[9]:0);
+  if (res[4]!=0) res[4][1]=w[9];
+  w[1]=(w[1]?w[3]:0);
+  w[1]=(w[13]?w[1]:0);
+  w[1]=(w[7]?w[1]:0);
+  if (res[4]!=0) res[4][2]=w[1];
+  w[0]=(w[0]+w[0]);
+  w[2]=casadi_fmax(w[2],w[4]);
+  w[5]=(w[5]*w[2]);
+  w[0]=(w[0]/w[5]);
+  w[10]=(w[10]?w[0]:0);
+  w[14]=(w[14]?w[6]:0);
+  w[13]=(w[13]?w[14]:0);
+  w[7]=(w[7]?w[13]:0);
+  w[10]=(w[10]+w[7]);
+  if (res[4]!=0) res[4][3]=w[10];
+  return 0;
+}
+
+int velocity_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+  return casadi_f2(arg, res, iw, w, mem);
+}
+
+int velocity_control_alloc_mem(void) {
+  return 0;
+}
+
+int velocity_control_init_mem(int mem) {
+  return 0;
+}
+
+void velocity_control_free_mem(int mem) {
+}
+
+int velocity_control_checkout(void) {
+  return 0;
+}
+
+void velocity_control_release(int mem) {
+}
+
+void velocity_control_incref(void) {
+}
+
+void velocity_control_decref(void) {
+}
+
+casadi_int velocity_control_n_in(void) { return 7;}
+
+casadi_int velocity_control_n_out(void) { return 5;}
+
+casadi_real velocity_control_default_in(casadi_int i) {
+  switch (i) {
+    default: return 0;
+  }
+}
+
+const char* velocity_control_name_in(casadi_int i) {
+  switch (i) {
+    case 0: return "dt";
+    case 1: return "psi_sp";
+    case 2: return "pw_sp";
+    case 3: return "pw";
+    case 4: return "vb";
+    case 5: return "psi_vel_sp";
+    case 6: return "reset_position";
+    default: return 0;
+  }
+}
+
+const char* velocity_control_name_out(casadi_int i) {
+  switch (i) {
+    case 0: return "psi_sp1";
+    case 1: return "pw_sp1";
+    case 2: return "vw_sp";
+    case 3: return "aw_sp";
+    case 4: return "q_sp";
+    default: return 0;
+  }
+}
+
+const casadi_int* velocity_control_sparsity_in(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s1;
+    case 1: return casadi_s1;
+    case 2: return casadi_s0;
+    case 3: return casadi_s0;
+    case 4: return casadi_s0;
+    case 5: return casadi_s1;
+    case 6: return casadi_s1;
+    default: return 0;
+  }
+}
+
+const casadi_int* velocity_control_sparsity_out(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s1;
+    case 1: return casadi_s0;
+    case 2: return casadi_s0;
+    case 3: return casadi_s0;
+    case 4: return casadi_s2;
+    default: return 0;
+  }
+}
+
+int velocity_control_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 7;
+  if (sz_res) *sz_res = 5;
+  if (sz_iw) *sz_iw = 0;
+  if (sz_w) *sz_w = 16;
+  return 0;
+}
+
+int velocity_control_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 7*sizeof(const casadi_real*);
+  if (sz_res) *sz_res = 5*sizeof(casadi_real*);
+  if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
+  if (sz_w) *sz_w = 16*sizeof(casadi_real);
+  return 0;
+}
+
+/* position_control:(thrust_trim,pt_w[3],vt_w[3],at_w[3],qc_wb[4],p_w[3],v_w[3],z_i[3],dt)->(nT,qr_wb[4],z_i_2[3]) */
+static int casadi_f3(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+  w[0]=5.8799999999999999e+00;
+  w[1]=-2.;
+  w[2]=arg[5]? arg[5][0] : 0;
+  w[3]=arg[1]? arg[1][0] : 0;
+  w[2]=(w[2]-w[3]);
+  w[3]=(w[1]*w[2]);
+  w[4]=4.;
+  w[5]=arg[6]? arg[6][0] : 0;
+  w[6]=arg[2]? arg[2][0] : 0;
+  w[5]=(w[5]-w[6]);
+  w[5]=(w[4]*w[5]);
+  w[3]=(w[3]-w[5]);
+  w[5]=2.;
+  w[6]=arg[3]? arg[3][0] : 0;
+  w[6]=(w[5]*w[6]);
+  w[3]=(w[3]+w[6]);
+  w[6]=casadi_sq(w[3]);
+  w[7]=arg[5]? arg[5][1] : 0;
+  w[8]=arg[1]? arg[1][1] : 0;
+  w[7]=(w[7]-w[8]);
+  w[8]=(w[1]*w[7]);
+  w[9]=arg[6]? arg[6][1] : 0;
+  w[10]=arg[2]? arg[2][1] : 0;
+  w[9]=(w[9]-w[10]);
+  w[9]=(w[4]*w[9]);
+  w[8]=(w[8]-w[9]);
+  w[9]=arg[3]? arg[3][1] : 0;
+  w[9]=(w[5]*w[9]);
+  w[8]=(w[8]+w[9]);
+  w[9]=casadi_sq(w[8]);
+  w[6]=(w[6]+w[9]);
+  w[9]=arg[5]? arg[5][2] : 0;
+  w[10]=arg[1]? arg[1][2] : 0;
+  w[9]=(w[9]-w[10]);
+  w[1]=(w[1]*w[9]);
+  w[10]=arg[6]? arg[6][2] : 0;
+  w[11]=arg[2]? arg[2][2] : 0;
+  w[10]=(w[10]-w[11]);
+  w[10]=(w[4]*w[10]);
+  w[1]=(w[1]-w[10]);
+  w[10]=arg[3]? arg[3][2] : 0;
+  w[10]=(w[5]*w[10]);
+  w[1]=(w[1]+w[10]);
+  w[10]=casadi_sq(w[1]);
+  w[6]=(w[6]+w[10]);
+  w[6]=sqrt(w[6]);
+  w[10]=(w[0]<w[6]);
+  w[11]=(w[0]*w[3]);
+  w[11]=(w[11]/w[6]);
+  w[11]=(w[10]?w[11]:0);
+  w[12]=(!w[10]);
+  w[3]=(w[12]?w[3]:0);
+  w[11]=(w[11]+w[3]);
+  w[3]=1.0000000000000001e-01;
+  w[13]=arg[7]? arg[7][0] : 0;
+  w[14]=(w[3]*w[13]);
+  w[11]=(w[11]+w[14]);
+  w[14]=casadi_sq(w[11]);
+  w[15]=(w[0]*w[8]);
+  w[15]=(w[15]/w[6]);
+  w[15]=(w[10]?w[15]:0);
+  w[8]=(w[12]?w[8]:0);
+  w[15]=(w[15]+w[8]);
+  w[8]=arg[7]? arg[7][1] : 0;
+  w[16]=(w[3]*w[8]);
+  w[15]=(w[15]+w[16]);
+  w[16]=casadi_sq(w[15]);
+  w[14]=(w[14]+w[16]);
+  w[0]=(w[0]*w[1]);
+  w[0]=(w[0]/w[6]);
+  w[10]=(w[10]?w[0]:0);
+  w[12]=(w[12]?w[1]:0);
+  w[10]=(w[10]+w[12]);
+  w[12]=arg[0]? arg[0][0] : 0;
+  w[10]=(w[10]+w[12]);
+  w[1]=arg[7]? arg[7][2] : 0;
+  w[3]=(w[3]*w[1]);
+  w[10]=(w[10]+w[3]);
+  w[3]=casadi_sq(w[10]);
+  w[14]=(w[14]+w[3]);
+  w[14]=sqrt(w[14]);
+  if (res[0]!=0) res[0][0]=w[14];
+  w[3]=0.;
+  w[0]=1.0000000000000000e-03;
+  w[6]=(w[0]<w[14]);
+  w[10]=(w[10]/w[14]);
+  w[10]=(w[6]?w[10]:0);
+  w[16]=(!w[6]);
+  w[17]=1.;
+  w[16]=(w[16]?w[17]:0);
+  w[10]=(w[10]+w[16]);
+  w[16]=arg[4]? arg[4][1] : 0;
+  w[18]=arg[4]? arg[4][3] : 0;
+  w[19]=(w[16]*w[18]);
+  w[20]=arg[4]? arg[4][0] : 0;
+  w[21]=arg[4]? arg[4][2] : 0;
+  w[22]=(w[20]*w[21]);
+  w[23]=(w[19]-w[22]);
+  w[23]=(w[5]*w[23]);
+  w[23]=(-w[23]);
+  w[24]=-1.;
+  w[23]=casadi_fmax(w[23],w[24]);
+  w[23]=casadi_fmin(w[23],w[17]);
+  w[23]=asin(w[23]);
+  w[24]=1.5707963267948966e+00;
+  w[25]=(w[23]-w[24]);
+  w[25]=casadi_fabs(w[25]);
+  w[25]=(w[25]<w[0]);
+  w[26]=(w[21]*w[18]);
+  w[27]=(w[20]*w[16]);
+  w[26]=(w[26]-w[27]);
+  w[26]=(w[5]*w[26]);
+  w[19]=(w[19]+w[22]);
+  w[19]=(w[5]*w[19]);
+  w[22]=atan2(w[26],w[19]);
+  w[22]=(w[25]?w[22]:0);
+  w[25]=(!w[25]);
+  w[23]=(w[23]+w[24]);
+  w[23]=casadi_fabs(w[23]);
+  w[23]=(w[23]<w[0]);
+  w[26]=(-w[26]);
+  w[19]=(-w[19]);
+  w[26]=atan2(w[26],w[19]);
+  w[26]=(w[23]?w[26]:0);
+  w[23]=(!w[23]);
+  w[19]=(w[16]*w[21]);
+  w[24]=(w[20]*w[18]);
+  w[19]=(w[19]+w[24]);
+  w[5]=(w[5]*w[19]);
+  w[20]=casadi_sq(w[20]);
+  w[16]=casadi_sq(w[16]);
+  w[20]=(w[20]+w[16]);
+  w[21]=casadi_sq(w[21]);
+  w[20]=(w[20]-w[21]);
+  w[18]=casadi_sq(w[18]);
+  w[20]=(w[20]-w[18]);
+  w[5]=atan2(w[5],w[20]);
+  w[23]=(w[23]?w[5]:0);
+  w[26]=(w[26]+w[23]);
+  w[25]=(w[25]?w[26]:0);
+  w[22]=(w[22]+w[25]);
+  w[25]=sin(w[22]);
+  w[26]=(w[10]*w[25]);
+  w[23]=casadi_sq(w[26]);
+  w[22]=cos(w[22]);
+  w[5]=(w[10]*w[22]);
+  w[20]=casadi_sq(w[5]);
+  w[23]=(w[23]+w[20]);
+  w[11]=(w[11]/w[14]);
+  w[25]=(w[11]*w[25]);
+  w[25]=(w[6]?w[25]:0);
+  w[15]=(w[15]/w[14]);
+  w[22]=(w[15]*w[22]);
+  w[22]=(w[6]?w[22]:0);
+  w[25]=(w[25]-w[22]);
+  w[22]=casadi_sq(w[25]);
+  w[23]=(w[23]+w[22]);
+  w[23]=sqrt(w[23]);
+  w[0]=(w[0]<w[23]);
+  w[5]=(w[5]/w[23]);
+  w[22]=(w[5]*w[10]);
+  w[22]=(w[0]?w[22]:0);
+  w[25]=(w[25]/w[23]);
+  w[14]=(w[25]*w[15]);
+  w[14]=(w[0]?w[14]:0);
+  w[14]=(w[6]?w[14]:0);
+  w[22]=(w[22]-w[14]);
+  w[14]=(w[0]?w[5]:0);
+  w[20]=(w[22]+w[14]);
+  w[20]=(w[20]+w[10]);
+  w[3]=(w[3]<w[20]);
+  w[20]=5.0000000000000000e-01;
+  w[18]=(w[17]+w[22]);
+  w[18]=(w[18]+w[14]);
+  w[18]=(w[18]+w[10]);
+  w[21]=1.0000000000000000e-10;
+  w[18]=casadi_fmax(w[18],w[21]);
+  w[18]=sqrt(w[18]);
+  w[18]=(w[20]*w[18]);
+  w[16]=(w[3]?w[18]:0);
+  w[19]=(!w[3]);
+  w[24]=(w[14]<w[22]);
+  w[27]=(w[10]<w[22]);
+  w[24]=(w[24]&&w[27]);
+  w[27]=(w[0]?w[25]:0);
+  w[28]=(w[6]?w[15]:0);
+  w[29]=(w[27]-w[28]);
+  w[30]=(w[17]+w[22]);
+  w[30]=(w[30]-w[14]);
+  w[30]=(w[30]-w[10]);
+  w[30]=casadi_fmax(w[30],w[21]);
+  w[30]=sqrt(w[30]);
+  w[30]=(w[20]*w[30]);
+  w[31]=casadi_fmax(w[30],w[21]);
+  w[31]=(w[4]*w[31]);
+  w[29]=(w[29]/w[31]);
+  w[29]=(w[24]?w[29]:0);
+  w[31]=(!w[24]);
+  w[32]=(w[10]<w[14]);
+  w[33]=(w[6]?w[11]:0);
+  w[26]=(w[26]/w[23]);
+  w[26]=(-w[26]);
+  w[26]=(w[0]?w[26]:0);
+  w[23]=(!w[0]);
+  w[23]=(w[23]?w[17]:0);
+  w[26]=(w[26]+w[23]);
+  w[15]=(w[26]*w[15]);
+  w[15]=(w[6]?w[15]:0);
+  w[5]=(w[5]*w[11]);
+  w[5]=(w[0]?w[5]:0);
+  w[5]=(w[6]?w[5]:0);
+  w[15]=(w[15]-w[5]);
+  w[5]=(w[33]-w[15]);
+  w[23]=(w[17]-w[22]);
+  w[23]=(w[23]+w[14]);
+  w[23]=(w[23]-w[10]);
+  w[23]=casadi_fmax(w[23],w[21]);
+  w[23]=sqrt(w[23]);
+  w[23]=(w[20]*w[23]);
+  w[34]=casadi_fmax(w[23],w[21]);
+  w[34]=(w[4]*w[34]);
+  w[5]=(w[5]/w[34]);
+  w[5]=(w[32]?w[5]:0);
+  w[34]=(!w[32]);
+  w[25]=(w[25]*w[11]);
+  w[0]=(w[0]?w[25]:0);
+  w[6]=(w[6]?w[0]:0);
+  w[0]=(w[26]*w[10]);
+  w[6]=(w[6]-w[0]);
+  w[0]=(w[6]-w[26]);
+  w[17]=(w[17]-w[22]);
+  w[17]=(w[17]-w[14]);
+  w[17]=(w[17]+w[10]);
+  w[17]=casadi_fmax(w[17],w[21]);
+  w[17]=sqrt(w[17]);
+  w[20]=(w[20]*w[17]);
+  w[17]=casadi_fmax(w[20],w[21]);
+  w[17]=(w[4]*w[17]);
+  w[0]=(w[0]/w[17]);
+  w[0]=(w[34]?w[0]:0);
+  w[5]=(w[5]+w[0]);
+  w[5]=(w[31]?w[5]:0);
+  w[29]=(w[29]+w[5]);
+  w[29]=(w[19]?w[29]:0);
+  w[16]=(w[16]+w[29]);
+  if (res[1]!=0) res[1][0]=w[16];
+  w[16]=(w[27]-w[28]);
+  w[29]=casadi_fmax(w[18],w[21]);
+  w[29]=(w[4]*w[29]);
+  w[16]=(w[16]/w[29]);
+  w[16]=(w[3]?w[16]:0);
+  w[29]=(w[24]?w[30]:0);
+  w[5]=(w[26]+w[6]);
+  w[0]=casadi_fmax(w[23],w[21]);
+  w[0]=(w[4]*w[0]);
+  w[5]=(w[5]/w[0]);
+  w[5]=(w[32]?w[5]:0);
+  w[0]=(w[33]+w[15]);
+  w[17]=casadi_fmax(w[20],w[21]);
+  w[17]=(w[4]*w[17]);
+  w[0]=(w[0]/w[17]);
+  w[0]=(w[34]?w[0]:0);
+  w[5]=(w[5]+w[0]);
+  w[5]=(w[31]?w[5]:0);
+  w[29]=(w[29]+w[5]);
+  w[29]=(w[19]?w[29]:0);
+  w[16]=(w[16]+w[29]);
+  if (res[1]!=0) res[1][1]=w[16];
+  w[16]=(w[33]-w[15]);
+  w[29]=casadi_fmax(w[18],w[21]);
+  w[29]=(w[4]*w[29]);
+  w[16]=(w[16]/w[29]);
+  w[16]=(w[3]?w[16]:0);
+  w[29]=(w[26]+w[6]);
+  w[5]=casadi_fmax(w[30],w[21]);
+  w[5]=(w[4]*w[5]);
+  w[29]=(w[29]/w[5]);
+  w[29]=(w[24]?w[29]:0);
+  w[5]=(w[32]?w[23]:0);
+  w[0]=(w[28]+w[27]);
+  w[17]=casadi_fmax(w[20],w[21]);
+  w[17]=(w[4]*w[17]);
+  w[0]=(w[0]/w[17]);
+  w[0]=(w[34]?w[0]:0);
+  w[5]=(w[5]+w[0]);
+  w[5]=(w[31]?w[5]:0);
+  w[29]=(w[29]+w[5]);
+  w[29]=(w[19]?w[29]:0);
+  w[16]=(w[16]+w[29]);
+  if (res[1]!=0) res[1][2]=w[16];
+  w[6]=(w[6]-w[26]);
+  w[18]=casadi_fmax(w[18],w[21]);
+  w[18]=(w[4]*w[18]);
+  w[6]=(w[6]/w[18]);
+  w[3]=(w[3]?w[6]:0);
+  w[33]=(w[33]+w[15]);
+  w[30]=casadi_fmax(w[30],w[21]);
+  w[30]=(w[4]*w[30]);
+  w[33]=(w[33]/w[30]);
+  w[24]=(w[24]?w[33]:0);
+  w[28]=(w[28]+w[27]);
+  w[23]=casadi_fmax(w[23],w[21]);
+  w[4]=(w[4]*w[23]);
+  w[28]=(w[28]/w[4]);
+  w[32]=(w[32]?w[28]:0);
+  w[34]=(w[34]?w[20]:0);
+  w[32]=(w[32]+w[34]);
+  w[31]=(w[31]?w[32]:0);
+  w[24]=(w[24]+w[31]);
+  w[19]=(w[19]?w[24]:0);
+  w[3]=(w[3]+w[19]);
+  if (res[1]!=0) res[1][3]=w[3];
+  w[3]=arg[8]? arg[8][0] : 0;
+  w[2]=(w[2]*w[3]);
+  w[13]=(w[13]-w[2]);
+  w[2]=(w[12]<w[13]);
+  w[19]=(w[2]?w[12]:0);
+  w[2]=(!w[2]);
+  w[24]=(-w[12]);
+  w[31]=(w[13]<w[24]);
+  w[32]=(w[31]?w[24]:0);
+  w[31]=(!w[31]);
+  w[31]=(w[31]?w[13]:0);
+  w[32]=(w[32]+w[31]);
+  w[2]=(w[2]?w[32]:0);
+  w[19]=(w[19]+w[2]);
+  if (res[2]!=0) res[2][0]=w[19];
+  w[7]=(w[7]*w[3]);
+  w[8]=(w[8]-w[7]);
+  w[7]=(w[12]<w[8]);
+  w[19]=(w[7]?w[12]:0);
+  w[7]=(!w[7]);
+  w[2]=(w[8]<w[24]);
+  w[32]=(w[2]?w[24]:0);
+  w[2]=(!w[2]);
+  w[2]=(w[2]?w[8]:0);
+  w[32]=(w[32]+w[2]);
+  w[7]=(w[7]?w[32]:0);
+  w[19]=(w[19]+w[7]);
+  if (res[2]!=0) res[2][1]=w[19];
+  w[9]=(w[9]*w[3]);
+  w[1]=(w[1]-w[9]);
+  w[9]=(w[12]<w[1]);
+  w[12]=(w[9]?w[12]:0);
+  w[9]=(!w[9]);
+  w[3]=(w[1]<w[24]);
+  w[24]=(w[3]?w[24]:0);
+  w[3]=(!w[3]);
+  w[3]=(w[3]?w[1]:0);
+  w[24]=(w[24]+w[3]);
+  w[9]=(w[9]?w[24]:0);
+  w[12]=(w[12]+w[9]);
+  if (res[2]!=0) res[2][2]=w[12];
+  return 0;
+}
+
+int position_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+  return casadi_f3(arg, res, iw, w, mem);
+}
+
+int position_control_alloc_mem(void) {
+  return 0;
+}
+
+int position_control_init_mem(int mem) {
+  return 0;
+}
+
+void position_control_free_mem(int mem) {
+}
+
+int position_control_checkout(void) {
+  return 0;
+}
+
+void position_control_release(int mem) {
+}
+
+void position_control_incref(void) {
+}
+
+void position_control_decref(void) {
+}
+
+casadi_int position_control_n_in(void) { return 9;}
+
+casadi_int position_control_n_out(void) { return 3;}
+
+casadi_real position_control_default_in(casadi_int i) {
+  switch (i) {
+    default: return 0;
+  }
+}
+
+const char* position_control_name_in(casadi_int i) {
+  switch (i) {
+    case 0: return "thrust_trim";
+    case 1: return "pt_w";
+    case 2: return "vt_w";
+    case 3: return "at_w";
+    case 4: return "qc_wb";
+    case 5: return "p_w";
+    case 6: return "v_w";
+    case 7: return "z_i";
+    case 8: return "dt";
+    default: return 0;
+  }
+}
+
+const char* position_control_name_out(casadi_int i) {
+  switch (i) {
+    case 0: return "nT";
+    case 1: return "qr_wb";
+    case 2: return "z_i_2";
+    default: return 0;
+  }
+}
+
+const casadi_int* position_control_sparsity_in(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s1;
+    case 1: return casadi_s0;
+    case 2: return casadi_s0;
+    case 3: return casadi_s0;
+    case 4: return casadi_s2;
+    case 5: return casadi_s0;
+    case 6: return casadi_s0;
+    case 7: return casadi_s0;
+    case 8: return casadi_s1;
+    default: return 0;
+  }
+}
+
+const casadi_int* position_control_sparsity_out(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s1;
+    case 1: return casadi_s2;
+    case 2: return casadi_s0;
+    default: return 0;
+  }
+}
+
+int position_control_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 9;
+  if (sz_res) *sz_res = 3;
+  if (sz_iw) *sz_iw = 0;
+  if (sz_w) *sz_w = 35;
+  return 0;
+}
+
+int position_control_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 9*sizeof(const casadi_real*);
+  if (sz_res) *sz_res = 3*sizeof(casadi_real*);
+  if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
+  if (sz_w) *sz_w = 35*sizeof(casadi_real);
+  return 0;
+}
+
+/* input_acro:(thrust_trim,thrust_delta,input_aetr[4])->(omega[3],thrust) */
+static int casadi_f4(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+  w[0]=1.0471975511965976e+00;
+  w[1]=arg[2]? arg[2][0] : 0;
+  w[1]=(w[0]*w[1]);
+  if (res[0]!=0) res[0][0]=w[1];
+  w[1]=arg[2]? arg[2][1] : 0;
+  w[1]=(w[0]*w[1]);
+  if (res[0]!=0) res[0][1]=w[1];
+  w[1]=arg[2]? arg[2][3] : 0;
+  w[0]=(w[0]*w[1]);
+  if (res[0]!=0) res[0][2]=w[0];
+  w[0]=arg[2]? arg[2][2] : 0;
+  w[1]=arg[1]? arg[1][0] : 0;
+  w[0]=(w[0]*w[1]);
+  w[1]=arg[0]? arg[0][0] : 0;
+  w[0]=(w[0]+w[1]);
+  if (res[1]!=0) res[1][0]=w[0];
+  return 0;
+}
+
+int input_acro(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+  return casadi_f4(arg, res, iw, w, mem);
+}
+
+int input_acro_alloc_mem(void) {
+  return 0;
+}
+
+int input_acro_init_mem(int mem) {
+  return 0;
+}
+
+void input_acro_free_mem(int mem) {
+}
+
+int input_acro_checkout(void) {
+  return 0;
+}
+
+void input_acro_release(int mem) {
+}
+
+void input_acro_incref(void) {
+}
+
+void input_acro_decref(void) {
+}
+
+casadi_int input_acro_n_in(void) { return 3;}
+
+casadi_int input_acro_n_out(void) { return 2;}
+
+casadi_real input_acro_default_in(casadi_int i) {
+  switch (i) {
+    default: return 0;
+  }
+}
+
+const char* input_acro_name_in(casadi_int i) {
+  switch (i) {
+    case 0: return "thrust_trim";
+    case 1: return "thrust_delta";
+    case 2: return "input_aetr";
+    default: return 0;
+  }
+}
+
+const char* input_acro_name_out(casadi_int i) {
+  switch (i) {
+    case 0: return "omega";
+    case 1: return "thrust";
+    default: return 0;
+  }
+}
+
+const casadi_int* input_acro_sparsity_in(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s1;
+    case 1: return casadi_s1;
+    case 2: return casadi_s2;
+    default: return 0;
+  }
+}
+
+const casadi_int* input_acro_sparsity_out(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s0;
+    case 1: return casadi_s1;
+    default: return 0;
+  }
+}
+
+int input_acro_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 3;
+  if (sz_res) *sz_res = 2;
+  if (sz_iw) *sz_iw = 0;
+  if (sz_w) *sz_w = 2;
+  return 0;
+}
+
+int input_acro_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 3*sizeof(const casadi_real*);
+  if (sz_res) *sz_res = 2*sizeof(casadi_real*);
+  if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
+  if (sz_w) *sz_w = 2*sizeof(casadi_real);
+  return 0;
+}
+
+/* input_auto_level:(thrust_trim,thrust_delta,input_aetr[4],q[4])->(q_r[4],thrust) */
+static int casadi_f5(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+  w[0]=0.;
+  w[1]=2.;
+  w[2]=arg[3]? arg[3][1] : 0;
+  w[3]=arg[3]? arg[3][3] : 0;
+  w[4]=(w[2]*w[3]);
+  w[5]=arg[3]? arg[3][0] : 0;
+  w[6]=arg[3]? arg[3][2] : 0;
+  w[7]=(w[5]*w[6]);
+  w[8]=(w[4]-w[7]);
+  w[8]=(w[1]*w[8]);
+  w[8]=(-w[8]);
+  w[9]=-1.;
+  w[8]=casadi_fmax(w[8],w[9]);
+  w[9]=1.;
+  w[8]=casadi_fmin(w[8],w[9]);
+  w[8]=asin(w[8]);
+  w[10]=1.5707963267948966e+00;
+  w[11]=(w[8]-w[10]);
+  w[11]=casadi_fabs(w[11]);
+  w[12]=1.0000000000000000e-03;
+  w[11]=(w[11]<w[12]);
+  w[13]=(w[6]*w[3]);
+  w[14]=(w[5]*w[2]);
+  w[13]=(w[13]-w[14]);
+  w[13]=(w[1]*w[13]);
+  w[4]=(w[4]+w[7]);
+  w[4]=(w[1]*w[4]);
+  w[7]=atan2(w[13],w[4]);
+  w[7]=(w[11]?w[7]:0);
+  w[11]=(!w[11]);
+  w[8]=(w[8]+w[10]);
+  w[8]=casadi_fabs(w[8]);
+  w[8]=(w[8]<w[12]);
+  w[13]=(-w[13]);
+  w[4]=(-w[4]);
+  w[13]=atan2(w[13],w[4]);
+  w[13]=(w[8]?w[13]:0);
+  w[8]=(!w[8]);
+  w[4]=(w[2]*w[6]);
+  w[12]=(w[5]*w[3]);
+  w[4]=(w[4]+w[12]);
+  w[1]=(w[1]*w[4]);
+  w[5]=casadi_sq(w[5]);
+  w[2]=casadi_sq(w[2]);
+  w[5]=(w[5]+w[2]);
+  w[6]=casadi_sq(w[6]);
+  w[5]=(w[5]-w[6]);
+  w[3]=casadi_sq(w[3]);
+  w[5]=(w[5]-w[3]);
+  w[1]=atan2(w[1],w[5]);
+  w[8]=(w[8]?w[1]:0);
+  w[13]=(w[13]+w[8]);
+  w[11]=(w[11]?w[13]:0);
+  w[7]=(w[7]+w[11]);
+  w[11]=1.0471975511965976e+00;
+  w[13]=arg[2]? arg[2][3] : 0;
+  w[11]=(w[11]*w[13]);
+  w[7]=(w[7]+w[11]);
+  w[11]=cos(w[7]);
+  w[13]=5.2359877559829882e-01;
+  w[8]=arg[2]? arg[2][1] : 0;
+  w[8]=(w[13]*w[8]);
+  w[1]=cos(w[8]);
+  w[5]=(w[11]*w[1]);
+  w[3]=arg[2]? arg[2][0] : 0;
+  w[13]=(w[13]*w[3]);
+  w[3]=cos(w[13]);
+  w[6]=(w[11]*w[3]);
+  w[7]=sin(w[7]);
+  w[8]=sin(w[8]);
+  w[2]=(w[7]*w[8]);
+  w[13]=sin(w[13]);
+  w[4]=(w[2]*w[13]);
+  w[6]=(w[6]+w[4]);
+  w[4]=(w[5]+w[6]);
+  w[12]=(w[1]*w[3]);
+  w[4]=(w[4]+w[12]);
+  w[0]=(w[0]<w[4]);
+  w[4]=5.0000000000000000e-01;
+  w[10]=(w[9]+w[5]);
+  w[10]=(w[10]+w[6]);
+  w[10]=(w[10]+w[12]);
+  w[14]=1.0000000000000000e-10;
+  w[10]=casadi_fmax(w[10],w[14]);
+  w[10]=sqrt(w[10]);
+  w[10]=(w[4]*w[10]);
+  w[15]=(w[0]?w[10]:0);
+  w[16]=(!w[0]);
+  w[17]=(w[6]<w[5]);
+  w[18]=(w[12]<w[5]);
+  w[17]=(w[17]&&w[18]);
+  w[18]=(w[1]*w[13]);
+  w[2]=(w[2]*w[3]);
+  w[19]=(w[11]*w[13]);
+  w[2]=(w[2]-w[19]);
+  w[19]=(w[18]-w[2]);
+  w[20]=4.;
+  w[21]=(w[9]+w[5]);
+  w[21]=(w[21]-w[6]);
+  w[21]=(w[21]-w[12]);
+  w[21]=casadi_fmax(w[21],w[14]);
+  w[21]=sqrt(w[21]);
+  w[21]=(w[4]*w[21]);
+  w[22]=casadi_fmax(w[21],w[14]);
+  w[22]=(w[20]*w[22]);
+  w[19]=(w[19]/w[22]);
+  w[19]=(w[17]?w[19]:0);
+  w[22]=(!w[17]);
+  w[23]=(w[12]<w[6]);
+  w[24]=(w[7]*w[13]);
+  w[11]=(w[11]*w[8]);
+  w[25]=(w[11]*w[3]);
+  w[24]=(w[24]+w[25]);
+  w[25]=(w[24]+w[8]);
+  w[26]=(w[9]-w[5]);
+  w[26]=(w[26]+w[6]);
+  w[26]=(w[26]-w[12]);
+  w[26]=casadi_fmax(w[26],w[14]);
+  w[26]=sqrt(w[26]);
+  w[26]=(w[4]*w[26]);
+  w[27]=casadi_fmax(w[26],w[14]);
+  w[27]=(w[20]*w[27]);
+  w[25]=(w[25]/w[27]);
+  w[25]=(w[23]?w[25]:0);
+  w[27]=(!w[23]);
+  w[1]=(w[7]*w[1]);
+  w[11]=(w[11]*w[13]);
+  w[7]=(w[7]*w[3]);
+  w[11]=(w[11]-w[7]);
+  w[7]=(w[1]-w[11]);
+  w[9]=(w[9]-w[5]);
+  w[9]=(w[9]-w[6]);
+  w[9]=(w[9]+w[12]);
+  w[9]=casadi_fmax(w[9],w[14]);
+  w[9]=sqrt(w[9]);
+  w[4]=(w[4]*w[9]);
+  w[9]=casadi_fmax(w[4],w[14]);
+  w[9]=(w[20]*w[9]);
+  w[7]=(w[7]/w[9]);
+  w[7]=(w[27]?w[7]:0);
+  w[25]=(w[25]+w[7]);
+  w[25]=(w[22]?w[25]:0);
+  w[19]=(w[19]+w[25]);
+  w[19]=(w[16]?w[19]:0);
+  w[15]=(w[15]+w[19]);
+  if (res[0]!=0) res[0][0]=w[15];
+  w[15]=(w[18]-w[2]);
+  w[19]=casadi_fmax(w[10],w[14]);
+  w[19]=(w[20]*w[19]);
+  w[15]=(w[15]/w[19]);
+  w[15]=(w[0]?w[15]:0);
+  w[19]=(w[17]?w[21]:0);
+  w[25]=(w[11]+w[1]);
+  w[7]=casadi_fmax(w[26],w[14]);
+  w[7]=(w[20]*w[7]);
+  w[25]=(w[25]/w[7]);
+  w[25]=(w[23]?w[25]:0);
+  w[7]=(w[24]-w[8]);
+  w[9]=casadi_fmax(w[4],w[14]);
+  w[9]=(w[20]*w[9]);
+  w[7]=(w[7]/w[9]);
+  w[7]=(w[27]?w[7]:0);
+  w[25]=(w[25]+w[7]);
+  w[25]=(w[22]?w[25]:0);
+  w[19]=(w[19]+w[25]);
+  w[19]=(w[16]?w[19]:0);
+  w[15]=(w[15]+w[19]);
+  if (res[0]!=0) res[0][1]=w[15];
+  w[15]=(w[24]+w[8]);
+  w[19]=casadi_fmax(w[10],w[14]);
+  w[19]=(w[20]*w[19]);
+  w[15]=(w[15]/w[19]);
+  w[15]=(w[0]?w[15]:0);
+  w[19]=(w[11]+w[1]);
+  w[25]=casadi_fmax(w[21],w[14]);
+  w[25]=(w[20]*w[25]);
+  w[19]=(w[19]/w[25]);
+  w[19]=(w[17]?w[19]:0);
+  w[25]=(w[23]?w[26]:0);
+  w[7]=(w[2]+w[18]);
+  w[9]=casadi_fmax(w[4],w[14]);
+  w[9]=(w[20]*w[9]);
+  w[7]=(w[7]/w[9]);
+  w[7]=(w[27]?w[7]:0);
+  w[25]=(w[25]+w[7]);
+  w[25]=(w[22]?w[25]:0);
+  w[19]=(w[19]+w[25]);
+  w[19]=(w[16]?w[19]:0);
+  w[15]=(w[15]+w[19]);
+  if (res[0]!=0) res[0][2]=w[15];
+  w[1]=(w[1]-w[11]);
+  w[10]=casadi_fmax(w[10],w[14]);
+  w[10]=(w[20]*w[10]);
+  w[1]=(w[1]/w[10]);
+  w[0]=(w[0]?w[1]:0);
+  w[24]=(w[24]-w[8]);
+  w[21]=casadi_fmax(w[21],w[14]);
+  w[21]=(w[20]*w[21]);
+  w[24]=(w[24]/w[21]);
+  w[17]=(w[17]?w[24]:0);
+  w[2]=(w[2]+w[18]);
+  w[26]=casadi_fmax(w[26],w[14]);
+  w[20]=(w[20]*w[26]);
+  w[2]=(w[2]/w[20]);
+  w[23]=(w[23]?w[2]:0);
+  w[27]=(w[27]?w[4]:0);
+  w[23]=(w[23]+w[27]);
+  w[22]=(w[22]?w[23]:0);
+  w[17]=(w[17]+w[22]);
+  w[16]=(w[16]?w[17]:0);
+  w[0]=(w[0]+w[16]);
+  if (res[0]!=0) res[0][3]=w[0];
+  w[0]=arg[2]? arg[2][2] : 0;
+  w[16]=arg[1]? arg[1][0] : 0;
+  w[0]=(w[0]*w[16]);
+  w[16]=arg[0]? arg[0][0] : 0;
+  w[0]=(w[0]+w[16]);
+  if (res[1]!=0) res[1][0]=w[0];
+  return 0;
+}
+
+int input_auto_level(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+  return casadi_f5(arg, res, iw, w, mem);
+}
+
+int input_auto_level_alloc_mem(void) {
+  return 0;
+}
+
+int input_auto_level_init_mem(int mem) {
+  return 0;
+}
+
+void input_auto_level_free_mem(int mem) {
+}
+
+int input_auto_level_checkout(void) {
+  return 0;
+}
+
+void input_auto_level_release(int mem) {
+}
+
+void input_auto_level_incref(void) {
+}
+
+void input_auto_level_decref(void) {
+}
+
+casadi_int input_auto_level_n_in(void) { return 4;}
+
+casadi_int input_auto_level_n_out(void) { return 2;}
+
+casadi_real input_auto_level_default_in(casadi_int i) {
+  switch (i) {
+    default: return 0;
+  }
+}
+
+const char* input_auto_level_name_in(casadi_int i) {
+  switch (i) {
+    case 0: return "thrust_trim";
+    case 1: return "thrust_delta";
+    case 2: return "input_aetr";
+    case 3: return "q";
+    default: return 0;
+  }
+}
+
+const char* input_auto_level_name_out(casadi_int i) {
+  switch (i) {
+    case 0: return "q_r";
+    case 1: return "thrust";
+    default: return 0;
+  }
+}
+
+const casadi_int* input_auto_level_sparsity_in(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s1;
+    case 1: return casadi_s1;
+    case 2: return casadi_s2;
+    case 3: return casadi_s2;
+    default: return 0;
+  }
+}
+
+const casadi_int* input_auto_level_sparsity_out(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s2;
+    case 1: return casadi_s1;
+    default: return 0;
+  }
+}
+
+int input_auto_level_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 4;
+  if (sz_res) *sz_res = 2;
+  if (sz_iw) *sz_iw = 0;
+  if (sz_w) *sz_w = 28;
+  return 0;
+}
+
+int input_auto_level_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 4*sizeof(const casadi_real*);
+  if (sz_res) *sz_res = 2*sizeof(casadi_real*);
+  if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
+  if (sz_w) *sz_w = 28*sizeof(casadi_real);
+  return 0;
+}
+
+/* input_velocity:(input_aetr[4])->(vb[3],psi_vel_sp) */
+static int casadi_f6(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+  w[0]=2.;
+  w[1]=arg[0]? arg[0][1] : 0;
+  w[0]=(w[0]*w[1]);
+  if (res[0]!=0) res[0][0]=w[0];
+  w[0]=-2.;
+  w[1]=arg[0]? arg[0][0] : 0;
+  w[0]=(w[0]*w[1]);
+  if (res[0]!=0) res[0][1]=w[0];
+  w[0]=arg[0]? arg[0][2] : 0;
+  if (res[0]!=0) res[0][2]=w[0];
+  w[0]=1.0471975511965976e+00;
+  w[1]=arg[0]? arg[0][3] : 0;
+  w[0]=(w[0]*w[1]);
+  if (res[1]!=0) res[1][0]=w[0];
+  return 0;
+}
+
+int input_velocity(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+  return casadi_f6(arg, res, iw, w, mem);
+}
+
+int input_velocity_alloc_mem(void) {
+  return 0;
+}
+
+int input_velocity_init_mem(int mem) {
+  return 0;
+}
+
+void input_velocity_free_mem(int mem) {
+}
+
+int input_velocity_checkout(void) {
+  return 0;
+}
+
+void input_velocity_release(int mem) {
+}
+
+void input_velocity_incref(void) {
+}
+
+void input_velocity_decref(void) {
+}
+
+casadi_int input_velocity_n_in(void) { return 1;}
+
+casadi_int input_velocity_n_out(void) { return 2;}
+
+casadi_real input_velocity_default_in(casadi_int i) {
+  switch (i) {
+    default: return 0;
+  }
+}
+
+const char* input_velocity_name_in(casadi_int i) {
+  switch (i) {
+    case 0: return "input_aetr";
+    default: return 0;
+  }
+}
+
+const char* input_velocity_name_out(casadi_int i) {
+  switch (i) {
+    case 0: return "vb";
+    case 1: return "psi_vel_sp";
+    default: return 0;
+  }
+}
+
+const casadi_int* input_velocity_sparsity_in(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s2;
+    default: return 0;
+  }
+}
+
+const casadi_int* input_velocity_sparsity_out(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s0;
+    case 1: return casadi_s1;
+    default: return 0;
+  }
+}
+
+int input_velocity_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 1;
+  if (sz_res) *sz_res = 2;
+  if (sz_iw) *sz_iw = 0;
+  if (sz_w) *sz_w = 2;
+  return 0;
+}
+
+int input_velocity_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 1*sizeof(const casadi_real*);
+  if (sz_res) *sz_res = 2*sizeof(casadi_real*);
+  if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
+  if (sz_w) *sz_w = 2*sizeof(casadi_real);
+  return 0;
+}
 
 /* strapdown_ins_propagate:(x0[10],a_b[3],omega_b[3],g,dt)->(x1[10]) */
 static int casadi_f7(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
@@ -586,6 +2246,368 @@ int strapdown_ins_propagate_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, c
   if (sz_res) *sz_res = 1*sizeof(casadi_real*);
   if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
   if (sz_w) *sz_w = 48*sizeof(casadi_real);
+  return 0;
+}
+
+/* control_allocation:(F_max,l,Cm,Ct,T,M[3])->(omega[4],Fp_sum[4],F_moment[4],F_thrust[4],M_sat[3]) */
+static int casadi_f8(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+  w[0]=arg[0]? arg[0][0] : 0;
+  w[1]=-1.;
+  w[2]=4.;
+  w[3]=arg[1]? arg[1][0] : 0;
+  w[4]=(w[2]*w[3]);
+  w[4]=(w[1]/w[4]);
+  w[5]=(w[2]*w[0]);
+  w[6]=(w[3]*w[5]);
+  w[7]=2.;
+  w[6]=(w[6]/w[7]);
+  w[8]=arg[5]? arg[5][0] : 0;
+  w[9]=(w[6]<w[8]);
+  w[10]=(w[9]?w[6]:0);
+  w[9]=(!w[9]);
+  w[11]=(-w[6]);
+  w[12]=(w[8]<w[11]);
+  w[13]=(w[12]?w[11]:0);
+  w[12]=(!w[12]);
+  w[12]=(w[12]?w[8]:0);
+  w[13]=(w[13]+w[12]);
+  w[9]=(w[9]?w[13]:0);
+  w[10]=(w[10]+w[9]);
+  w[4]=(w[4]*w[10]);
+  w[9]=(w[2]*w[3]);
+  w[9]=(w[1]/w[9]);
+  w[13]=arg[5]? arg[5][1] : 0;
+  w[12]=(w[6]<w[13]);
+  w[8]=(w[12]?w[6]:0);
+  w[12]=(!w[12]);
+  w[14]=(w[13]<w[11]);
+  w[15]=(w[14]?w[11]:0);
+  w[14]=(!w[14]);
+  w[14]=(w[14]?w[13]:0);
+  w[15]=(w[15]+w[14]);
+  w[12]=(w[12]?w[15]:0);
+  w[8]=(w[8]+w[12]);
+  w[9]=(w[9]*w[8]);
+  w[4]=(w[4]+w[9]);
+  w[9]=arg[2]? arg[2][0] : 0;
+  w[12]=(w[2]*w[9]);
+  w[12]=(w[1]/w[12]);
+  w[15]=arg[5]? arg[5][2] : 0;
+  w[14]=(w[6]<w[15]);
+  w[6]=(w[14]?w[6]:0);
+  w[14]=(!w[14]);
+  w[13]=(w[15]<w[11]);
+  w[11]=(w[13]?w[11]:0);
+  w[13]=(!w[13]);
+  w[13]=(w[13]?w[15]:0);
+  w[11]=(w[11]+w[13]);
+  w[14]=(w[14]?w[11]:0);
+  w[6]=(w[6]+w[14]);
+  w[12]=(w[12]*w[6]);
+  w[4]=(w[4]+w[12]);
+  w[12]=2.5000000000000000e-01;
+  w[14]=arg[4]? arg[4][0] : 0;
+  w[11]=(w[5]<w[14]);
+  w[5]=(w[11]?w[5]:0);
+  w[11]=(!w[11]);
+  w[13]=0.;
+  w[15]=(w[14]<w[13]);
+  w[15]=(!w[15]);
+  w[15]=(w[15]?w[14]:0);
+  w[11]=(w[11]?w[15]:0);
+  w[5]=(w[5]+w[11]);
+  w[11]=(w[12]*w[5]);
+  w[15]=(w[4]+w[11]);
+  w[14]=(w[2]*w[3]);
+  w[14]=(w[10]/w[14]);
+  w[16]=(w[2]*w[3]);
+  w[16]=(w[8]/w[16]);
+  w[14]=(w[14]+w[16]);
+  w[16]=(w[2]*w[9]);
+  w[16]=(w[1]/w[16]);
+  w[16]=(w[16]*w[6]);
+  w[14]=(w[14]+w[16]);
+  w[16]=(w[12]*w[5]);
+  w[17]=(w[14]+w[16]);
+  w[18]=casadi_fmax(w[15],w[17]);
+  w[19]=(w[2]*w[3]);
+  w[19]=(w[10]/w[19]);
+  w[20]=(w[2]*w[3]);
+  w[20]=(w[1]/w[20]);
+  w[20]=(w[20]*w[8]);
+  w[19]=(w[19]+w[20]);
+  w[20]=(w[2]*w[9]);
+  w[20]=(w[6]/w[20]);
+  w[19]=(w[19]+w[20]);
+  w[20]=(w[12]*w[5]);
+  w[21]=(w[19]+w[20]);
+  w[18]=casadi_fmax(w[18],w[21]);
+  w[22]=(w[2]*w[3]);
+  w[1]=(w[1]/w[22]);
+  w[1]=(w[1]*w[10]);
+  w[3]=(w[2]*w[3]);
+  w[3]=(w[8]/w[3]);
+  w[1]=(w[1]+w[3]);
+  w[2]=(w[2]*w[9]);
+  w[2]=(w[6]/w[2]);
+  w[1]=(w[1]+w[2]);
+  w[12]=(w[12]*w[5]);
+  w[5]=(w[1]+w[12]);
+  w[18]=casadi_fmax(w[18],w[5]);
+  w[18]=(w[0]-w[18]);
+  w[2]=(w[18]<w[13]);
+  w[15]=casadi_fmin(w[15],w[17]);
+  w[15]=casadi_fmin(w[15],w[21]);
+  w[15]=casadi_fmin(w[15],w[5]);
+  w[5]=(w[15]<w[13]);
+  w[2]=(w[2]&&w[5]);
+  w[5]=1.0000000000000001e-05;
+  w[21]=casadi_fabs(w[4]);
+  w[17]=casadi_fabs(w[14]);
+  w[21]=casadi_fmax(w[21],w[17]);
+  w[17]=casadi_fabs(w[19]);
+  w[21]=casadi_fmax(w[21],w[17]);
+  w[17]=casadi_fabs(w[1]);
+  w[21]=casadi_fmax(w[21],w[17]);
+  w[5]=(w[5]<w[21]);
+  w[2]=(w[2]&&w[5]);
+  w[5]=(w[0]/w[7]);
+  w[17]=(w[5]*w[4]);
+  w[17]=(w[17]/w[21]);
+  w[17]=(w[2]?w[17]:0);
+  w[9]=(!w[2]);
+  w[3]=(w[9]?w[4]:0);
+  w[17]=(w[17]+w[3]);
+  w[3]=(w[13]<w[18]);
+  w[22]=(w[13]<w[15]);
+  w[23]=(w[22]?w[11]:0);
+  w[24]=(!w[22]);
+  w[25]=(w[11]-w[15]);
+  w[25]=(w[24]?w[25]:0);
+  w[23]=(w[23]+w[25]);
+  w[23]=(w[3]?w[23]:0);
+  w[25]=(!w[3]);
+  w[26]=(w[13]<w[15]);
+  w[27]=(w[11]+w[18]);
+  w[27]=(w[26]?w[27]:0);
+  w[28]=(!w[26]);
+  w[7]=(w[0]/w[7]);
+  w[29]=(w[28]?w[7]:0);
+  w[27]=(w[27]+w[29]);
+  w[27]=(w[25]?w[27]:0);
+  w[23]=(w[23]+w[27]);
+  w[17]=(w[17]+w[23]);
+  w[23]=(w[0]<w[17]);
+  w[27]=(w[23]?w[0]:0);
+  w[23]=(!w[23]);
+  w[29]=(w[17]<w[13]);
+  w[29]=(!w[29]);
+  w[29]=(w[29]?w[17]:0);
+  w[23]=(w[23]?w[29]:0);
+  w[27]=(w[27]+w[23]);
+  w[23]=arg[3]? arg[3][0] : 0;
+  w[29]=(w[27]/w[23]);
+  w[29]=sqrt(w[29]);
+  if (res[0]!=0) res[0][0]=w[29];
+  w[29]=(w[5]*w[14]);
+  w[29]=(w[29]/w[21]);
+  w[29]=(w[2]?w[29]:0);
+  w[17]=(w[9]?w[14]:0);
+  w[29]=(w[29]+w[17]);
+  w[17]=(w[22]?w[16]:0);
+  w[30]=(w[16]-w[15]);
+  w[30]=(w[24]?w[30]:0);
+  w[17]=(w[17]+w[30]);
+  w[17]=(w[3]?w[17]:0);
+  w[30]=(w[16]+w[18]);
+  w[30]=(w[26]?w[30]:0);
+  w[31]=(w[28]?w[7]:0);
+  w[30]=(w[30]+w[31]);
+  w[30]=(w[25]?w[30]:0);
+  w[17]=(w[17]+w[30]);
+  w[29]=(w[29]+w[17]);
+  w[17]=(w[0]<w[29]);
+  w[30]=(w[17]?w[0]:0);
+  w[17]=(!w[17]);
+  w[31]=(w[29]<w[13]);
+  w[31]=(!w[31]);
+  w[31]=(w[31]?w[29]:0);
+  w[17]=(w[17]?w[31]:0);
+  w[30]=(w[30]+w[17]);
+  w[17]=(w[30]/w[23]);
+  w[17]=sqrt(w[17]);
+  if (res[0]!=0) res[0][1]=w[17];
+  w[17]=(w[5]*w[19]);
+  w[17]=(w[17]/w[21]);
+  w[17]=(w[2]?w[17]:0);
+  w[31]=(w[9]?w[19]:0);
+  w[17]=(w[17]+w[31]);
+  w[31]=(w[22]?w[20]:0);
+  w[29]=(w[20]-w[15]);
+  w[29]=(w[24]?w[29]:0);
+  w[31]=(w[31]+w[29]);
+  w[31]=(w[3]?w[31]:0);
+  w[29]=(w[20]+w[18]);
+  w[29]=(w[26]?w[29]:0);
+  w[32]=(w[28]?w[7]:0);
+  w[29]=(w[29]+w[32]);
+  w[29]=(w[25]?w[29]:0);
+  w[31]=(w[31]+w[29]);
+  w[17]=(w[17]+w[31]);
+  w[31]=(w[0]<w[17]);
+  w[29]=(w[31]?w[0]:0);
+  w[31]=(!w[31]);
+  w[32]=(w[17]<w[13]);
+  w[32]=(!w[32]);
+  w[32]=(w[32]?w[17]:0);
+  w[31]=(w[31]?w[32]:0);
+  w[29]=(w[29]+w[31]);
+  w[31]=(w[29]/w[23]);
+  w[31]=sqrt(w[31]);
+  if (res[0]!=0) res[0][2]=w[31];
+  w[5]=(w[5]*w[1]);
+  w[5]=(w[5]/w[21]);
+  w[2]=(w[2]?w[5]:0);
+  w[9]=(w[9]?w[1]:0);
+  w[2]=(w[2]+w[9]);
+  w[22]=(w[22]?w[12]:0);
+  w[15]=(w[12]-w[15]);
+  w[24]=(w[24]?w[15]:0);
+  w[22]=(w[22]+w[24]);
+  w[3]=(w[3]?w[22]:0);
+  w[18]=(w[12]+w[18]);
+  w[26]=(w[26]?w[18]:0);
+  w[28]=(w[28]?w[7]:0);
+  w[26]=(w[26]+w[28]);
+  w[25]=(w[25]?w[26]:0);
+  w[3]=(w[3]+w[25]);
+  w[2]=(w[2]+w[3]);
+  w[3]=(w[0]<w[2]);
+  w[0]=(w[3]?w[0]:0);
+  w[3]=(!w[3]);
+  w[13]=(w[2]<w[13]);
+  w[13]=(!w[13]);
+  w[13]=(w[13]?w[2]:0);
+  w[3]=(w[3]?w[13]:0);
+  w[0]=(w[0]+w[3]);
+  w[23]=(w[0]/w[23]);
+  w[23]=sqrt(w[23]);
+  if (res[0]!=0) res[0][3]=w[23];
+  if (res[1]!=0) res[1][0]=w[27];
+  if (res[1]!=0) res[1][1]=w[30];
+  if (res[1]!=0) res[1][2]=w[29];
+  if (res[1]!=0) res[1][3]=w[0];
+  if (res[2]!=0) res[2][0]=w[4];
+  if (res[2]!=0) res[2][1]=w[14];
+  if (res[2]!=0) res[2][2]=w[19];
+  if (res[2]!=0) res[2][3]=w[1];
+  if (res[3]!=0) res[3][0]=w[11];
+  if (res[3]!=0) res[3][1]=w[16];
+  if (res[3]!=0) res[3][2]=w[20];
+  if (res[3]!=0) res[3][3]=w[12];
+  if (res[4]!=0) res[4][0]=w[10];
+  if (res[4]!=0) res[4][1]=w[8];
+  if (res[4]!=0) res[4][2]=w[6];
+  return 0;
+}
+
+int control_allocation(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+  return casadi_f8(arg, res, iw, w, mem);
+}
+
+int control_allocation_alloc_mem(void) {
+  return 0;
+}
+
+int control_allocation_init_mem(int mem) {
+  return 0;
+}
+
+void control_allocation_free_mem(int mem) {
+}
+
+int control_allocation_checkout(void) {
+  return 0;
+}
+
+void control_allocation_release(int mem) {
+}
+
+void control_allocation_incref(void) {
+}
+
+void control_allocation_decref(void) {
+}
+
+casadi_int control_allocation_n_in(void) { return 6;}
+
+casadi_int control_allocation_n_out(void) { return 5;}
+
+casadi_real control_allocation_default_in(casadi_int i) {
+  switch (i) {
+    default: return 0;
+  }
+}
+
+const char* control_allocation_name_in(casadi_int i) {
+  switch (i) {
+    case 0: return "F_max";
+    case 1: return "l";
+    case 2: return "Cm";
+    case 3: return "Ct";
+    case 4: return "T";
+    case 5: return "M";
+    default: return 0;
+  }
+}
+
+const char* control_allocation_name_out(casadi_int i) {
+  switch (i) {
+    case 0: return "omega";
+    case 1: return "Fp_sum";
+    case 2: return "F_moment";
+    case 3: return "F_thrust";
+    case 4: return "M_sat";
+    default: return 0;
+  }
+}
+
+const casadi_int* control_allocation_sparsity_in(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s1;
+    case 1: return casadi_s1;
+    case 2: return casadi_s1;
+    case 3: return casadi_s1;
+    case 4: return casadi_s1;
+    case 5: return casadi_s0;
+    default: return 0;
+  }
+}
+
+const casadi_int* control_allocation_sparsity_out(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s2;
+    case 1: return casadi_s2;
+    case 2: return casadi_s2;
+    case 3: return casadi_s2;
+    case 4: return casadi_s0;
+    default: return 0;
+  }
+}
+
+int control_allocation_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 6;
+  if (sz_res) *sz_res = 5;
+  if (sz_iw) *sz_iw = 0;
+  if (sz_w) *sz_w = 33;
+  return 0;
+}
+
+int control_allocation_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 6*sizeof(const casadi_real*);
+  if (sz_res) *sz_res = 5*sizeof(casadi_real*);
+  if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
+  if (sz_w) *sz_w = 33*sizeof(casadi_real);
   return 0;
 }
 
@@ -1337,6 +3359,501 @@ int attitude_estimator_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi
   if (sz_res) *sz_res = 2*sizeof(casadi_real*);
   if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
   if (sz_w) *sz_w = 29*sizeof(casadi_real);
+  return 0;
+}
+
+/* yaw_init:(mag_b[3],mag_decl)->(q_init[4]) */
+static int casadi_f12(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+  w[0]=0.;
+  w[1]=3.1415926535897931e+00;
+  w[2]=arg[0]? arg[0][1] : 0;
+  w[3]=arg[0]? arg[0][0] : 0;
+  w[2]=atan2(w[2],w[3]);
+  w[3]=arg[1]? arg[1][0] : 0;
+  w[2]=(w[2]+w[3]);
+  w[3]=1.5707963267948966e+00;
+  w[2]=(w[2]-w[3]);
+  w[3]=6.2831853071795862e+00;
+  w[2]=fmod(w[2],w[3]);
+  w[4]=(w[2]<w[0]);
+  w[5]=(w[2]+w[3]);
+  w[5]=(w[4]?w[5]:0);
+  w[4]=(!w[4]);
+  w[4]=(w[4]?w[2]:0);
+  w[5]=(w[5]+w[4]);
+  w[1]=(w[1]<w[5]);
+  w[3]=(w[5]-w[3]);
+  w[3]=(w[1]?w[3]:0);
+  w[1]=(!w[1]);
+  w[1]=(w[1]?w[5]:0);
+  w[3]=(w[3]+w[1]);
+  w[3]=(-w[3]);
+  w[1]=cos(w[3]);
+  w[5]=(w[1]+w[1]);
+  w[4]=1.;
+  w[5]=(w[5]+w[4]);
+  w[5]=(w[0]<w[5]);
+  w[2]=5.0000000000000000e-01;
+  w[6]=(w[4]+w[1]);
+  w[6]=(w[6]+w[1]);
+  w[6]=(w[6]+w[4]);
+  w[7]=1.0000000000000000e-10;
+  w[6]=casadi_fmax(w[6],w[7]);
+  w[6]=sqrt(w[6]);
+  w[6]=(w[2]*w[6]);
+  w[8]=(w[5]?w[6]:0);
+  w[9]=(!w[5]);
+  w[10]=(w[4]<w[1]);
+  w[0]=(w[0]&&w[10]);
+  w[10]=(!w[0]);
+  w[11]=(w[4]<w[1]);
+  w[12]=(!w[11]);
+  w[3]=sin(w[3]);
+  w[13]=(w[3]+w[3]);
+  w[14]=4.;
+  w[15]=(w[4]-w[1]);
+  w[15]=(w[15]-w[1]);
+  w[15]=(w[15]+w[4]);
+  w[15]=casadi_fmax(w[15],w[7]);
+  w[15]=sqrt(w[15]);
+  w[2]=(w[2]*w[15]);
+  w[15]=casadi_fmax(w[2],w[7]);
+  w[15]=(w[14]*w[15]);
+  w[13]=(w[13]/w[15]);
+  w[13]=(w[12]?w[13]:0);
+  w[13]=(w[10]?w[13]:0);
+  w[13]=(w[9]?w[13]:0);
+  w[8]=(w[8]+w[13]);
+  if (res[0]!=0) res[0][0]=w[8];
+  w[8]=5.0000000000000004e-06;
+  w[0]=(w[0]?w[8]:0);
+  w[0]=(w[9]?w[0]:0);
+  if (res[0]!=0) res[0][1]=w[0];
+  w[11]=(w[11]?w[8]:0);
+  w[11]=(w[10]?w[11]:0);
+  w[11]=(w[9]?w[11]:0);
+  if (res[0]!=0) res[0][2]=w[11];
+  w[3]=(w[3]+w[3]);
+  w[6]=casadi_fmax(w[6],w[7]);
+  w[14]=(w[14]*w[6]);
+  w[3]=(w[3]/w[14]);
+  w[5]=(w[5]?w[3]:0);
+  w[12]=(w[12]?w[2]:0);
+  w[10]=(w[10]?w[12]:0);
+  w[9]=(w[9]?w[10]:0);
+  w[5]=(w[5]+w[9]);
+  if (res[0]!=0) res[0][3]=w[5];
+  return 0;
+}
+
+int yaw_init(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+  return casadi_f12(arg, res, iw, w, mem);
+}
+
+int yaw_init_alloc_mem(void) {
+  return 0;
+}
+
+int yaw_init_init_mem(int mem) {
+  return 0;
+}
+
+void yaw_init_free_mem(int mem) {
+}
+
+int yaw_init_checkout(void) {
+  return 0;
+}
+
+void yaw_init_release(int mem) {
+}
+
+void yaw_init_incref(void) {
+}
+
+void yaw_init_decref(void) {
+}
+
+casadi_int yaw_init_n_in(void) { return 2;}
+
+casadi_int yaw_init_n_out(void) { return 1;}
+
+casadi_real yaw_init_default_in(casadi_int i) {
+  switch (i) {
+    default: return 0;
+  }
+}
+
+const char* yaw_init_name_in(casadi_int i) {
+  switch (i) {
+    case 0: return "mag_b";
+    case 1: return "mag_decl";
+    default: return 0;
+  }
+}
+
+const char* yaw_init_name_out(casadi_int i) {
+  switch (i) {
+    case 0: return "q_init";
+    default: return 0;
+  }
+}
+
+const casadi_int* yaw_init_sparsity_in(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s0;
+    case 1: return casadi_s1;
+    default: return 0;
+  }
+}
+
+const casadi_int* yaw_init_sparsity_out(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s2;
+    default: return 0;
+  }
+}
+
+int yaw_init_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 2;
+  if (sz_res) *sz_res = 1;
+  if (sz_iw) *sz_iw = 0;
+  if (sz_w) *sz_w = 16;
+  return 0;
+}
+
+int yaw_init_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 2*sizeof(const casadi_real*);
+  if (sz_res) *sz_res = 1*sizeof(casadi_real*);
+  if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
+  if (sz_w) *sz_w = 16*sizeof(casadi_real);
+  return 0;
+}
+
+/* attitude_init:(mag_b[3],accel_b[3],mag_decl)->(q_init[4]) */
+static int casadi_f13(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+  w[0]=0.;
+  w[1]=3.1415926535897931e+00;
+  w[2]=arg[1]? arg[1][2] : 0;
+  w[3]=arg[1]? arg[1][0] : 0;
+  w[4]=casadi_sq(w[3]);
+  w[5]=arg[1]? arg[1][1] : 0;
+  w[6]=casadi_sq(w[5]);
+  w[4]=(w[4]+w[6]);
+  w[6]=casadi_sq(w[2]);
+  w[4]=(w[4]+w[6]);
+  w[4]=sqrt(w[4]);
+  w[2]=(w[2]/w[4]);
+  w[5]=(w[5]/w[4]);
+  w[6]=atan2(w[2],w[5]);
+  w[7]=1.5707963267948966e+00;
+  w[6]=(w[6]-w[7]);
+  w[8]=6.2831853071795862e+00;
+  w[6]=fmod(w[6],w[8]);
+  w[9]=(w[6]<w[0]);
+  w[10]=(w[6]+w[8]);
+  w[10]=(w[9]?w[10]:0);
+  w[9]=(!w[9]);
+  w[9]=(w[9]?w[6]:0);
+  w[10]=(w[10]+w[9]);
+  w[9]=(w[1]<w[10]);
+  w[6]=(w[10]-w[8]);
+  w[6]=(w[9]?w[6]:0);
+  w[9]=(!w[9]);
+  w[9]=(w[9]?w[10]:0);
+  w[6]=(w[6]+w[9]);
+  w[6]=(-w[6]);
+  w[9]=cos(w[6]);
+  w[10]=arg[0]? arg[0][1] : 0;
+  w[11]=(w[9]*w[10]);
+  w[12]=sin(w[6]);
+  w[13]=arg[0]? arg[0][2] : 0;
+  w[14]=(w[12]*w[13]);
+  w[11]=(w[11]-w[14]);
+  w[5]=casadi_sq(w[5]);
+  w[2]=casadi_sq(w[2]);
+  w[5]=(w[5]+w[2]);
+  w[5]=sqrt(w[5]);
+  w[3]=(w[3]/w[4]);
+  w[5]=atan2(w[5],w[3]);
+  w[5]=(w[5]-w[7]);
+  w[5]=fmod(w[5],w[8]);
+  w[3]=(w[5]<w[0]);
+  w[4]=(w[5]+w[8]);
+  w[4]=(w[3]?w[4]:0);
+  w[3]=(!w[3]);
+  w[3]=(w[3]?w[5]:0);
+  w[4]=(w[4]+w[3]);
+  w[3]=(w[1]<w[4]);
+  w[5]=(w[4]-w[8]);
+  w[5]=(w[3]?w[5]:0);
+  w[3]=(!w[3]);
+  w[3]=(w[3]?w[4]:0);
+  w[5]=(w[5]+w[3]);
+  w[3]=cos(w[5]);
+  w[4]=arg[0]? arg[0][0] : 0;
+  w[3]=(w[3]*w[4]);
+  w[4]=sin(w[5]);
+  w[12]=(w[4]*w[12]);
+  w[12]=(w[12]*w[10]);
+  w[3]=(w[3]+w[12]);
+  w[4]=(w[4]*w[9]);
+  w[4]=(w[4]*w[13]);
+  w[3]=(w[3]+w[4]);
+  w[11]=atan2(w[11],w[3]);
+  w[3]=arg[2]? arg[2][0] : 0;
+  w[11]=(w[11]+w[3]);
+  w[11]=(w[11]-w[7]);
+  w[11]=fmod(w[11],w[8]);
+  w[7]=(w[11]<w[0]);
+  w[3]=(w[11]+w[8]);
+  w[3]=(w[7]?w[3]:0);
+  w[7]=(!w[7]);
+  w[7]=(w[7]?w[11]:0);
+  w[3]=(w[3]+w[7]);
+  w[1]=(w[1]<w[3]);
+  w[8]=(w[3]-w[8]);
+  w[8]=(w[1]?w[8]:0);
+  w[1]=(!w[1]);
+  w[1]=(w[1]?w[3]:0);
+  w[8]=(w[8]+w[1]);
+  w[8]=(-w[8]);
+  w[1]=cos(w[8]);
+  w[3]=cos(w[5]);
+  w[7]=(w[1]*w[3]);
+  w[11]=cos(w[6]);
+  w[4]=(w[1]*w[11]);
+  w[8]=sin(w[8]);
+  w[5]=sin(w[5]);
+  w[13]=(w[8]*w[5]);
+  w[6]=sin(w[6]);
+  w[9]=(w[13]*w[6]);
+  w[4]=(w[4]+w[9]);
+  w[9]=(w[7]+w[4]);
+  w[12]=(w[3]*w[11]);
+  w[9]=(w[9]+w[12]);
+  w[0]=(w[0]<w[9]);
+  w[9]=5.0000000000000000e-01;
+  w[10]=1.;
+  w[2]=(w[10]+w[7]);
+  w[2]=(w[2]+w[4]);
+  w[2]=(w[2]+w[12]);
+  w[14]=1.0000000000000000e-10;
+  w[2]=casadi_fmax(w[2],w[14]);
+  w[2]=sqrt(w[2]);
+  w[2]=(w[9]*w[2]);
+  w[15]=(w[0]?w[2]:0);
+  w[16]=(!w[0]);
+  w[17]=(w[4]<w[7]);
+  w[18]=(w[12]<w[7]);
+  w[17]=(w[17]&&w[18]);
+  w[18]=(w[3]*w[6]);
+  w[13]=(w[13]*w[11]);
+  w[19]=(w[1]*w[6]);
+  w[13]=(w[13]-w[19]);
+  w[19]=(w[18]-w[13]);
+  w[20]=4.;
+  w[21]=(w[10]+w[7]);
+  w[21]=(w[21]-w[4]);
+  w[21]=(w[21]-w[12]);
+  w[21]=casadi_fmax(w[21],w[14]);
+  w[21]=sqrt(w[21]);
+  w[21]=(w[9]*w[21]);
+  w[22]=casadi_fmax(w[21],w[14]);
+  w[22]=(w[20]*w[22]);
+  w[19]=(w[19]/w[22]);
+  w[19]=(w[17]?w[19]:0);
+  w[22]=(!w[17]);
+  w[23]=(w[12]<w[4]);
+  w[24]=(w[8]*w[6]);
+  w[1]=(w[1]*w[5]);
+  w[25]=(w[1]*w[11]);
+  w[24]=(w[24]+w[25]);
+  w[25]=(w[24]+w[5]);
+  w[26]=(w[10]-w[7]);
+  w[26]=(w[26]+w[4]);
+  w[26]=(w[26]-w[12]);
+  w[26]=casadi_fmax(w[26],w[14]);
+  w[26]=sqrt(w[26]);
+  w[26]=(w[9]*w[26]);
+  w[27]=casadi_fmax(w[26],w[14]);
+  w[27]=(w[20]*w[27]);
+  w[25]=(w[25]/w[27]);
+  w[25]=(w[23]?w[25]:0);
+  w[27]=(!w[23]);
+  w[3]=(w[8]*w[3]);
+  w[1]=(w[1]*w[6]);
+  w[8]=(w[8]*w[11]);
+  w[1]=(w[1]-w[8]);
+  w[8]=(w[3]-w[1]);
+  w[10]=(w[10]-w[7]);
+  w[10]=(w[10]-w[4]);
+  w[10]=(w[10]+w[12]);
+  w[10]=casadi_fmax(w[10],w[14]);
+  w[10]=sqrt(w[10]);
+  w[9]=(w[9]*w[10]);
+  w[10]=casadi_fmax(w[9],w[14]);
+  w[10]=(w[20]*w[10]);
+  w[8]=(w[8]/w[10]);
+  w[8]=(w[27]?w[8]:0);
+  w[25]=(w[25]+w[8]);
+  w[25]=(w[22]?w[25]:0);
+  w[19]=(w[19]+w[25]);
+  w[19]=(w[16]?w[19]:0);
+  w[15]=(w[15]+w[19]);
+  if (res[0]!=0) res[0][0]=w[15];
+  w[15]=(w[18]-w[13]);
+  w[19]=casadi_fmax(w[2],w[14]);
+  w[19]=(w[20]*w[19]);
+  w[15]=(w[15]/w[19]);
+  w[15]=(w[0]?w[15]:0);
+  w[19]=(w[17]?w[21]:0);
+  w[25]=(w[1]+w[3]);
+  w[8]=casadi_fmax(w[26],w[14]);
+  w[8]=(w[20]*w[8]);
+  w[25]=(w[25]/w[8]);
+  w[25]=(w[23]?w[25]:0);
+  w[8]=(w[24]-w[5]);
+  w[10]=casadi_fmax(w[9],w[14]);
+  w[10]=(w[20]*w[10]);
+  w[8]=(w[8]/w[10]);
+  w[8]=(w[27]?w[8]:0);
+  w[25]=(w[25]+w[8]);
+  w[25]=(w[22]?w[25]:0);
+  w[19]=(w[19]+w[25]);
+  w[19]=(w[16]?w[19]:0);
+  w[15]=(w[15]+w[19]);
+  if (res[0]!=0) res[0][1]=w[15];
+  w[15]=(w[24]+w[5]);
+  w[19]=casadi_fmax(w[2],w[14]);
+  w[19]=(w[20]*w[19]);
+  w[15]=(w[15]/w[19]);
+  w[15]=(w[0]?w[15]:0);
+  w[19]=(w[1]+w[3]);
+  w[25]=casadi_fmax(w[21],w[14]);
+  w[25]=(w[20]*w[25]);
+  w[19]=(w[19]/w[25]);
+  w[19]=(w[17]?w[19]:0);
+  w[25]=(w[23]?w[26]:0);
+  w[8]=(w[13]+w[18]);
+  w[10]=casadi_fmax(w[9],w[14]);
+  w[10]=(w[20]*w[10]);
+  w[8]=(w[8]/w[10]);
+  w[8]=(w[27]?w[8]:0);
+  w[25]=(w[25]+w[8]);
+  w[25]=(w[22]?w[25]:0);
+  w[19]=(w[19]+w[25]);
+  w[19]=(w[16]?w[19]:0);
+  w[15]=(w[15]+w[19]);
+  if (res[0]!=0) res[0][2]=w[15];
+  w[3]=(w[3]-w[1]);
+  w[2]=casadi_fmax(w[2],w[14]);
+  w[2]=(w[20]*w[2]);
+  w[3]=(w[3]/w[2]);
+  w[0]=(w[0]?w[3]:0);
+  w[24]=(w[24]-w[5]);
+  w[21]=casadi_fmax(w[21],w[14]);
+  w[21]=(w[20]*w[21]);
+  w[24]=(w[24]/w[21]);
+  w[17]=(w[17]?w[24]:0);
+  w[13]=(w[13]+w[18]);
+  w[26]=casadi_fmax(w[26],w[14]);
+  w[20]=(w[20]*w[26]);
+  w[13]=(w[13]/w[20]);
+  w[23]=(w[23]?w[13]:0);
+  w[27]=(w[27]?w[9]:0);
+  w[23]=(w[23]+w[27]);
+  w[22]=(w[22]?w[23]:0);
+  w[17]=(w[17]+w[22]);
+  w[16]=(w[16]?w[17]:0);
+  w[0]=(w[0]+w[16]);
+  if (res[0]!=0) res[0][3]=w[0];
+  return 0;
+}
+
+int attitude_init(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem){
+  return casadi_f13(arg, res, iw, w, mem);
+}
+
+int attitude_init_alloc_mem(void) {
+  return 0;
+}
+
+int attitude_init_init_mem(int mem) {
+  return 0;
+}
+
+void attitude_init_free_mem(int mem) {
+}
+
+int attitude_init_checkout(void) {
+  return 0;
+}
+
+void attitude_init_release(int mem) {
+}
+
+void attitude_init_incref(void) {
+}
+
+void attitude_init_decref(void) {
+}
+
+casadi_int attitude_init_n_in(void) { return 3;}
+
+casadi_int attitude_init_n_out(void) { return 1;}
+
+casadi_real attitude_init_default_in(casadi_int i) {
+  switch (i) {
+    default: return 0;
+  }
+}
+
+const char* attitude_init_name_in(casadi_int i) {
+  switch (i) {
+    case 0: return "mag_b";
+    case 1: return "accel_b";
+    case 2: return "mag_decl";
+    default: return 0;
+  }
+}
+
+const char* attitude_init_name_out(casadi_int i) {
+  switch (i) {
+    case 0: return "q_init";
+    default: return 0;
+  }
+}
+
+const casadi_int* attitude_init_sparsity_in(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s0;
+    case 1: return casadi_s0;
+    case 2: return casadi_s1;
+    default: return 0;
+  }
+}
+
+const casadi_int* attitude_init_sparsity_out(casadi_int i) {
+  switch (i) {
+    case 0: return casadi_s2;
+    default: return 0;
+  }
+}
+
+int attitude_init_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 3;
+  if (sz_res) *sz_res = 1;
+  if (sz_iw) *sz_iw = 0;
+  if (sz_w) *sz_w = 28;
+  return 0;
+}
+
+int attitude_init_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w) {
+  if (sz_arg) *sz_arg = 3*sizeof(const casadi_real*);
+  if (sz_res) *sz_res = 1*sizeof(casadi_real*);
+  if (sz_iw) *sz_iw = 0*sizeof(casadi_int);
+  if (sz_w) *sz_w = 28*sizeof(casadi_real);
   return 0;
 }
 

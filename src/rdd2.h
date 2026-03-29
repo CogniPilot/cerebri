@@ -17,6 +17,153 @@ extern "C" {
 #define casadi_int long long int
 #endif
 
+int attitude_rate_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int attitude_rate_control_alloc_mem(void);
+int attitude_rate_control_init_mem(int mem);
+void attitude_rate_control_free_mem(int mem);
+int attitude_rate_control_checkout(void);
+void attitude_rate_control_release(int mem);
+void attitude_rate_control_incref(void);
+void attitude_rate_control_decref(void);
+casadi_int attitude_rate_control_n_in(void);
+casadi_int attitude_rate_control_n_out(void);
+casadi_real attitude_rate_control_default_in(casadi_int i);
+const char* attitude_rate_control_name_in(casadi_int i);
+const char* attitude_rate_control_name_out(casadi_int i);
+const casadi_int* attitude_rate_control_sparsity_in(casadi_int i);
+const casadi_int* attitude_rate_control_sparsity_out(casadi_int i);
+int attitude_rate_control_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int attitude_rate_control_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+#define attitude_rate_control_SZ_ARG 11
+#define attitude_rate_control_SZ_RES 5
+#define attitude_rate_control_SZ_IW 0
+#define attitude_rate_control_SZ_W 18
+int attitude_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int attitude_control_alloc_mem(void);
+int attitude_control_init_mem(int mem);
+void attitude_control_free_mem(int mem);
+int attitude_control_checkout(void);
+void attitude_control_release(int mem);
+void attitude_control_incref(void);
+void attitude_control_decref(void);
+casadi_int attitude_control_n_in(void);
+casadi_int attitude_control_n_out(void);
+casadi_real attitude_control_default_in(casadi_int i);
+const char* attitude_control_name_in(casadi_int i);
+const char* attitude_control_name_out(casadi_int i);
+const casadi_int* attitude_control_sparsity_in(casadi_int i);
+const casadi_int* attitude_control_sparsity_out(casadi_int i);
+int attitude_control_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int attitude_control_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+#define attitude_control_SZ_ARG 3
+#define attitude_control_SZ_RES 1
+#define attitude_control_SZ_IW 0
+#define attitude_control_SZ_W 16
+int velocity_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int velocity_control_alloc_mem(void);
+int velocity_control_init_mem(int mem);
+void velocity_control_free_mem(int mem);
+int velocity_control_checkout(void);
+void velocity_control_release(int mem);
+void velocity_control_incref(void);
+void velocity_control_decref(void);
+casadi_int velocity_control_n_in(void);
+casadi_int velocity_control_n_out(void);
+casadi_real velocity_control_default_in(casadi_int i);
+const char* velocity_control_name_in(casadi_int i);
+const char* velocity_control_name_out(casadi_int i);
+const casadi_int* velocity_control_sparsity_in(casadi_int i);
+const casadi_int* velocity_control_sparsity_out(casadi_int i);
+int velocity_control_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int velocity_control_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+#define velocity_control_SZ_ARG 7
+#define velocity_control_SZ_RES 5
+#define velocity_control_SZ_IW 0
+#define velocity_control_SZ_W 16
+int position_control(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int position_control_alloc_mem(void);
+int position_control_init_mem(int mem);
+void position_control_free_mem(int mem);
+int position_control_checkout(void);
+void position_control_release(int mem);
+void position_control_incref(void);
+void position_control_decref(void);
+casadi_int position_control_n_in(void);
+casadi_int position_control_n_out(void);
+casadi_real position_control_default_in(casadi_int i);
+const char* position_control_name_in(casadi_int i);
+const char* position_control_name_out(casadi_int i);
+const casadi_int* position_control_sparsity_in(casadi_int i);
+const casadi_int* position_control_sparsity_out(casadi_int i);
+int position_control_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int position_control_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+#define position_control_SZ_ARG 9
+#define position_control_SZ_RES 3
+#define position_control_SZ_IW 0
+#define position_control_SZ_W 35
+int input_acro(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int input_acro_alloc_mem(void);
+int input_acro_init_mem(int mem);
+void input_acro_free_mem(int mem);
+int input_acro_checkout(void);
+void input_acro_release(int mem);
+void input_acro_incref(void);
+void input_acro_decref(void);
+casadi_int input_acro_n_in(void);
+casadi_int input_acro_n_out(void);
+casadi_real input_acro_default_in(casadi_int i);
+const char* input_acro_name_in(casadi_int i);
+const char* input_acro_name_out(casadi_int i);
+const casadi_int* input_acro_sparsity_in(casadi_int i);
+const casadi_int* input_acro_sparsity_out(casadi_int i);
+int input_acro_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int input_acro_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+#define input_acro_SZ_ARG 3
+#define input_acro_SZ_RES 2
+#define input_acro_SZ_IW 0
+#define input_acro_SZ_W 2
+int input_auto_level(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int input_auto_level_alloc_mem(void);
+int input_auto_level_init_mem(int mem);
+void input_auto_level_free_mem(int mem);
+int input_auto_level_checkout(void);
+void input_auto_level_release(int mem);
+void input_auto_level_incref(void);
+void input_auto_level_decref(void);
+casadi_int input_auto_level_n_in(void);
+casadi_int input_auto_level_n_out(void);
+casadi_real input_auto_level_default_in(casadi_int i);
+const char* input_auto_level_name_in(casadi_int i);
+const char* input_auto_level_name_out(casadi_int i);
+const casadi_int* input_auto_level_sparsity_in(casadi_int i);
+const casadi_int* input_auto_level_sparsity_out(casadi_int i);
+int input_auto_level_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int input_auto_level_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+#define input_auto_level_SZ_ARG 4
+#define input_auto_level_SZ_RES 2
+#define input_auto_level_SZ_IW 0
+#define input_auto_level_SZ_W 28
+int input_velocity(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int input_velocity_alloc_mem(void);
+int input_velocity_init_mem(int mem);
+void input_velocity_free_mem(int mem);
+int input_velocity_checkout(void);
+void input_velocity_release(int mem);
+void input_velocity_incref(void);
+void input_velocity_decref(void);
+casadi_int input_velocity_n_in(void);
+casadi_int input_velocity_n_out(void);
+casadi_real input_velocity_default_in(casadi_int i);
+const char* input_velocity_name_in(casadi_int i);
+const char* input_velocity_name_out(casadi_int i);
+const casadi_int* input_velocity_sparsity_in(casadi_int i);
+const casadi_int* input_velocity_sparsity_out(casadi_int i);
+int input_velocity_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int input_velocity_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+#define input_velocity_SZ_ARG 1
+#define input_velocity_SZ_RES 2
+#define input_velocity_SZ_IW 0
+#define input_velocity_SZ_W 2
 int strapdown_ins_propagate(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 int strapdown_ins_propagate_alloc_mem(void);
 int strapdown_ins_propagate_init_mem(int mem);
@@ -38,6 +185,27 @@ int strapdown_ins_propagate_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, c
 #define strapdown_ins_propagate_SZ_RES 1
 #define strapdown_ins_propagate_SZ_IW 0
 #define strapdown_ins_propagate_SZ_W 48
+int control_allocation(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int control_allocation_alloc_mem(void);
+int control_allocation_init_mem(int mem);
+void control_allocation_free_mem(int mem);
+int control_allocation_checkout(void);
+void control_allocation_release(int mem);
+void control_allocation_incref(void);
+void control_allocation_decref(void);
+casadi_int control_allocation_n_in(void);
+casadi_int control_allocation_n_out(void);
+casadi_real control_allocation_default_in(casadi_int i);
+const char* control_allocation_name_in(casadi_int i);
+const char* control_allocation_name_out(casadi_int i);
+const casadi_int* control_allocation_sparsity_in(casadi_int i);
+const casadi_int* control_allocation_sparsity_out(casadi_int i);
+int control_allocation_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int control_allocation_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+#define control_allocation_SZ_ARG 6
+#define control_allocation_SZ_RES 5
+#define control_allocation_SZ_IW 0
+#define control_allocation_SZ_W 33
 int rotate_vector_w_to_b(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 int rotate_vector_w_to_b_alloc_mem(void);
 int rotate_vector_w_to_b_init_mem(int mem);
@@ -101,6 +269,48 @@ int attitude_estimator_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi
 #define attitude_estimator_SZ_RES 2
 #define attitude_estimator_SZ_IW 0
 #define attitude_estimator_SZ_W 29
+int yaw_init(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int yaw_init_alloc_mem(void);
+int yaw_init_init_mem(int mem);
+void yaw_init_free_mem(int mem);
+int yaw_init_checkout(void);
+void yaw_init_release(int mem);
+void yaw_init_incref(void);
+void yaw_init_decref(void);
+casadi_int yaw_init_n_in(void);
+casadi_int yaw_init_n_out(void);
+casadi_real yaw_init_default_in(casadi_int i);
+const char* yaw_init_name_in(casadi_int i);
+const char* yaw_init_name_out(casadi_int i);
+const casadi_int* yaw_init_sparsity_in(casadi_int i);
+const casadi_int* yaw_init_sparsity_out(casadi_int i);
+int yaw_init_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int yaw_init_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+#define yaw_init_SZ_ARG 2
+#define yaw_init_SZ_RES 1
+#define yaw_init_SZ_IW 0
+#define yaw_init_SZ_W 16
+int attitude_init(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
+int attitude_init_alloc_mem(void);
+int attitude_init_init_mem(int mem);
+void attitude_init_free_mem(int mem);
+int attitude_init_checkout(void);
+void attitude_init_release(int mem);
+void attitude_init_incref(void);
+void attitude_init_decref(void);
+casadi_int attitude_init_n_in(void);
+casadi_int attitude_init_n_out(void);
+casadi_real attitude_init_default_in(casadi_int i);
+const char* attitude_init_name_in(casadi_int i);
+const char* attitude_init_name_out(casadi_int i);
+const casadi_int* attitude_init_sparsity_in(casadi_int i);
+const casadi_int* attitude_init_sparsity_out(casadi_int i);
+int attitude_init_work(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+int attitude_init_work_bytes(casadi_int *sz_arg, casadi_int* sz_res, casadi_int *sz_iw, casadi_int *sz_w);
+#define attitude_init_SZ_ARG 3
+#define attitude_init_SZ_RES 1
+#define attitude_init_SZ_IW 0
+#define attitude_init_SZ_W 28
 int position_correction(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem);
 int position_correction_alloc_mem(void);
 int position_correction_init_mem(int mem);

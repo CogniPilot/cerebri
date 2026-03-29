@@ -1,9 +1,0 @@
-# SPDX-License-Identifier: Apache-2.0
-
-add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_ACCEL accel)
-add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_ICM42688 icm42688)
-add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_RC rc)
-add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_POWER power)
-add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_SAFETY safety)
-add_subdirectory_ifdef(CONFIG_CEREBRI_SENSE_WHEEL_ODOMETRY wheel_odometry)
-add_subdirectory_ifdef(CONFIG_CEREBRI_SYNAPSE_VESC_CAN_STATUS vesc_can_status)

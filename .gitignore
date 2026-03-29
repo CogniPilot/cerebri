@@ -1,18 +1,7 @@
-# editors
-.gdbinit
-.vscode
-*.swp
-*~
-
-# python
-.venv
-
-# build
-build/
-install/
-
-__pycache__/
-
-manifest-tmp/
-twister-out*
+/build/
+/build-native_sim/
+/build-flatfb/
+/twister-out/
 .cache/
+.west/
+.vscode/

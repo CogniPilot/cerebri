@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: RDD2 native_sim DSHOT output device
+
+compatible: "cognipilot,sitl-dshot"
+
+include: sensor-device.yaml
+
+properties:
+  channel-count:
+    type: int
+    required: true
+    description: Number of simulated motor output channels.

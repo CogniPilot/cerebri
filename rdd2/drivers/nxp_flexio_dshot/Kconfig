@@ -1,0 +1,8 @@
+config RDD2_DSHOT
+	bool "Enable RDD2 FlexIO DSHOT support"
+	depends on DT_HAS_NXP_FLEXIO_ENABLED
+	default y
+	select MCUX_FLEXIO
+	help
+	  Select the Zephyr FlexIO support required by the local RDD2
+	  DSHOT driver.

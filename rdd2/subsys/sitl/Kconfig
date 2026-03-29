@@ -1,0 +1,52 @@
+config RDD2_SITL
+	bool "Enable native_sim software-in-the-loop support"
+	depends on BOARD_NATIVE_SIM
+	default y
+	help
+	  Enable the native_sim UDP transport and shared FlatBuffer staging used
+	  by the fake RC, IMU, and DSHOT device adapters.
+
+if RDD2_SITL
+
+config RDD2_SITL_HOST
+	string "SITL host IPv4 address"
+	default "127.0.0.1"
+	help
+	  IPv4 address of the host process that receives outbound SITL topic
+	  datagrams.
+
+config RDD2_SITL_RX_PORT
+	int "SITL input UDP port"
+	range 1 65535
+	default 4242
+	help
+	  UDP port on which native_sim receives FlatBuffer SimInput datagrams.
+
+config RDD2_SITL_TX_FLIGHT_SNAPSHOT_PORT
+	int "SITL flight state UDP port"
+	range 1 65535
+	default 4243
+	help
+	  UDP port to which native_sim publishes outbound flight-state blobs
+	  encoded as FlightSnapshot.
+
+config RDD2_SITL_TX_MOTOR_OUTPUT_PORT
+	int "SITL motor output UDP port"
+	range 1 65535
+	default 4244
+	help
+	  UDP port to which native_sim publishes MotorOutput blobs.
+
+config RDD2_SITL_THREAD_PRIORITY
+	int "SITL transport thread priority"
+	default 5
+	help
+	  Low-priority thread that handles non-blocking host UDP transport.
+
+config RDD2_SITL_THREAD_STACK_SIZE
+	int "SITL transport thread stack size"
+	default 4096
+	help
+	  Stack size for the low-priority SITL transport thread.
+
+endif

@@ -1,0 +1,25 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/ {
+	aliases {
+		rc = &sitl_rc0;
+		imu0 = &sitl_imu0;
+		motors = &sitl_dshot0;
+	};
+
+	sitl_rc0: sitl_rc {
+		compatible = "cognipilot,sitl-rc";
+		status = "okay";
+	};
+
+	sitl_imu0: sitl_imu {
+		compatible = "cognipilot,sitl-imu";
+		status = "okay";
+	};
+
+	sitl_dshot0: sitl_dshot {
+		compatible = "cognipilot,sitl-dshot";
+		status = "okay";
+		channel-count = <4>;
+	};
+};

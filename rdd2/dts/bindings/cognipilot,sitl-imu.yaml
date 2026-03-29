@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: RDD2 native_sim IMU sensor device
+
+compatible: "cognipilot,sitl-imu"
+
+include: sensor-device.yaml

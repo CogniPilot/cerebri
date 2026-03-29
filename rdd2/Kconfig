@@ -1,0 +1,8 @@
+source "Kconfig.zephyr"
+
+menu "RDD2"
+
+rsource "subsys/Kconfig"
+rsource "drivers/Kconfig"
+
+endmenu

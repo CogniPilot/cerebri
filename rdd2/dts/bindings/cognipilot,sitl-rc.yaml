@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: RDD2 native_sim RC input device
+
+compatible: "cognipilot,sitl-rc"
+
+include: base.yaml

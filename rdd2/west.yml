@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: Apache-2.0
+
+manifest:
+  self:
+    path: cerebri/rdd2
+
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+    - name: cognipilot
+      url-base: https://github.com/CogniPilot
+
+  projects:
+    - name: zephyr
+      remote: cognipilot
+      revision: cerebri2-base
+      path: zephyr
+      west-commands: scripts/west-commands.yml
+    - name: cmsis
+      remote: zephyrproject-rtos
+      revision: 512cc7e895e8491696b61f7ba8066b4a182569b8 # loaded in ~/cognipilot/ws/modules/hal/cmsis
+      path: modules/hal/cmsis
+    - name: cmsis-dsp
+      remote: zephyrproject-rtos
+      revision: 97512610ec92058f0119450b9e743eeb7e95b5c8 # loaded in ~/cognipilot/ws/modules/lib/cmsis-dsp
+      path: modules/lib/cmsis-dsp
+    - name: cmsis_6
+      remote: zephyrproject-rtos
+      revision: 30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74 # loaded in ~/cognipilot/ws/modules/hal/cmsis_6
+      path: modules/hal/cmsis_6
+    - name: hal_nxp
+      remote: cognipilot
+      revision: cf8f1631e862528ee044850bcc70273975b90771 # loaded in ~/cognipilot/ws/modules/hal/nxp
+      path: modules/hal/nxp
+    - name: zephyr_boards
+      remote: cognipilot
+      revision: cerebri2-base
+      path: modules/lib/zephyr_boards
+    - name: synapse_msgs_fbs
+      url: https://github.com/CogniPilot/synapse_msgs_fbs.git
+      revision: cerebri2
+      path: modules/lib/synapse_msgs_fbs

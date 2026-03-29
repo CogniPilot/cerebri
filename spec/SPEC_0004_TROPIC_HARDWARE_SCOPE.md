@@ -4,12 +4,13 @@
 ACCEPTED
 
 ## Summary
-`cerebri2` v1 is locked to the Tropic stack of CRSF, FlexIO DSHOT, ICM45686, and staged M10 GNSS on `mr_vmu_tropic`.
+`cerebri2` v1 flight hardware is locked to the Tropic stack of CRSF, FlexIO DSHOT, ICM45686, and staged M10 GNSS on `mr_vmu_tropic`, while `native_sim` is allowed only for non-flight SITL.
 
 ## Specification
 
 **REQUIRED:**
-- Board target is `mr_vmu_tropic`.
+- `mr_vmu_tropic` is the only supported flight-hardware target.
+- `native_sim` is allowed only for SITL and debug builds.
 - RC input uses the Zephyr CRSF driver on `DT_ALIAS(rc)`.
 - Motor output uses FlexIO DSHOT only.
 - IMU is the onboard `ICM45686`.
@@ -18,7 +19,7 @@ ACCEPTED
 
 **CURRENT BOARD ASSUMPTIONS:**
 - The board DTS exposes the CRSF receiver path as a `tbs,crsf` device even though the node label is legacy `sbus0`.
-- Application code consumes the `rc` alias, not the node label.
+- Application code consumes the `rc`, `imu0`, and `motors` aliases, not board-specific node labels.
 - DSHOT defaults to `DSHOT600`.
 - `DSHOT300` is the first fallback check if ESC signaling is marginal.
 - IMU data is remapped into `FRD` body axes before control use:
@@ -32,14 +33,17 @@ ACCEPTED
 - Alternate RC protocols in v1.
 - Alternate motor-protocol abstractions in v1.
 - Adding legacy `cerebri` hardware shims.
+- Treating `native_sim` as a supported flight-hardware target.
 
 ## Motivation
 
 - Hardware lock reduces ambiguity during bring-up.
 - Tropic is the only supported target for first flight.
+- `native_sim` is useful for controller and tooling iteration, but it must not loosen the flight-hardware contract.
 - A narrow hardware matrix keeps bench debugging tractable.
 
 ## References
 
 - `../boards/mr_vmu_tropic.overlay`
+- `SPEC_0009_NATIVE_SIM_SITL.md`
 - `SPEC_0005_GNSS_STAGING.md`

@@ -1,0 +1,3 @@
+"cmsis_6":"/home/jgoppert/cognipilot/ws/modules/hal/cmsis_6":"${ZEPHYR_CMSIS_6_CMAKE_DIR}"
+"hal_nxp":"/home/jgoppert/cognipilot/ws/modules/hal/nxp":"${ZEPHYR_HAL_NXP_CMAKE_DIR}"
+"zephyr_boards":"/home/jgoppert/cognipilot/ws/modules/lib/zephyr_boards":""

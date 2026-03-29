@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+
+description: Cerebri2 native_sim UDP coordinator
+
+compatible: "cognipilot,sitl-udp"
+
+include: base.yaml

@@ -21,6 +21,9 @@ set(CEREBRI2_FLATBUFFER_SCHEMA
 set(CEREBRI2_FLATBUFFER_LOG_SCHEMA
   ${CEREBRI2_FLATBUFFER_SCHEMA_DIR}/cerebri2_log.fbs
 )
+set(CEREBRI2_FLATBUFFER_SIL_SCHEMA
+  ${CEREBRI2_FLATBUFFER_SCHEMA_DIR}/cerebri2_sil.fbs
+)
 set(CEREBRI2_FLATBUFFER_GENERATED_DIR
   ${CMAKE_CURRENT_BINARY_DIR}/generated/flatbuffers
 )
@@ -29,6 +32,9 @@ set(CEREBRI2_FLATBUFFER_STAMP
 )
 set(CEREBRI2_FLATBUFFER_BFBS_STAMP
   ${CEREBRI2_FLATBUFFER_GENERATED_DIR}/.bfbs.stamp
+)
+set(CEREBRI2_FLATBUFFER_STAGE_STAMP
+  ${CEREBRI2_FLATBUFFER_GENERATED_DIR}/.schema-copy.stamp
 )
 option(CEREBRI2_FLATBUFFER_CODEGEN
   "Generate FlatBuffer C headers and binary schemas into the build tree when flatcc is available"
@@ -51,9 +57,16 @@ if(NOT EXISTS ${CEREBRI2_FLATBUFFER_LOG_SCHEMA})
   )
 endif()
 
+if(NOT EXISTS ${CEREBRI2_FLATBUFFER_SIL_SCHEMA})
+  message(FATAL_ERROR
+    "Missing FlatBuffer SITL schema: ${CEREBRI2_FLATBUFFER_SIL_SCHEMA}. "
+    "Run west update to fetch modules/lib/synapse_msgs_fbs."
+  )
+endif()
+
 if(CEREBRI2_FLATBUFFER_CODEGEN AND CEREBRI2_FLATCC_EXECUTABLE)
   add_custom_command(
-    OUTPUT ${CEREBRI2_FLATBUFFER_STAMP}
+    OUTPUT ${CEREBRI2_FLATBUFFER_STAGE_STAMP}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CEREBRI2_FLATBUFFER_GENERATED_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${CEREBRI2_FLATBUFFER_SCHEMA}
@@ -61,6 +74,20 @@ if(CEREBRI2_FLATBUFFER_CODEGEN AND CEREBRI2_FLATCC_EXECUTABLE)
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${CEREBRI2_FLATBUFFER_LOG_SCHEMA}
             ${CEREBRI2_FLATBUFFER_GENERATED_DIR}/cerebri2_log.fbs
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CEREBRI2_FLATBUFFER_SIL_SCHEMA}
+            ${CEREBRI2_FLATBUFFER_GENERATED_DIR}/cerebri2_sil.fbs
+    COMMAND ${CMAKE_COMMAND} -E touch ${CEREBRI2_FLATBUFFER_STAGE_STAMP}
+    DEPENDS
+      ${CEREBRI2_FLATBUFFER_SCHEMA}
+      ${CEREBRI2_FLATBUFFER_LOG_SCHEMA}
+      ${CEREBRI2_FLATBUFFER_SIL_SCHEMA}
+    COMMENT "Staging FlatBuffer schemas into ${CEREBRI2_FLATBUFFER_GENERATED_DIR}"
+    VERBATIM
+  )
+
+  add_custom_command(
+    OUTPUT ${CEREBRI2_FLATBUFFER_STAMP}
     COMMAND ${CEREBRI2_FLATCC_EXECUTABLE}
             -a
             -I${CEREBRI2_FLATBUFFER_SCHEMA_DIR}
@@ -71,10 +98,17 @@ if(CEREBRI2_FLATBUFFER_CODEGEN AND CEREBRI2_FLATCC_EXECUTABLE)
             -I${CEREBRI2_FLATBUFFER_SCHEMA_DIR}
             -o${CEREBRI2_FLATBUFFER_GENERATED_DIR}
             ${CEREBRI2_FLATBUFFER_LOG_SCHEMA}
+    COMMAND ${CEREBRI2_FLATCC_EXECUTABLE}
+            -a
+            -I${CEREBRI2_FLATBUFFER_SCHEMA_DIR}
+            -o${CEREBRI2_FLATBUFFER_GENERATED_DIR}
+            ${CEREBRI2_FLATBUFFER_SIL_SCHEMA}
     COMMAND ${CMAKE_COMMAND} -E touch ${CEREBRI2_FLATBUFFER_STAMP}
     DEPENDS
+      ${CEREBRI2_FLATBUFFER_STAGE_STAMP}
       ${CEREBRI2_FLATBUFFER_SCHEMA}
       ${CEREBRI2_FLATBUFFER_LOG_SCHEMA}
+      ${CEREBRI2_FLATBUFFER_SIL_SCHEMA}
     COMMENT "Generating FlatBuffer headers into ${CEREBRI2_FLATBUFFER_GENERATED_DIR}"
     VERBATIM
   )
@@ -99,10 +133,17 @@ if(CEREBRI2_FLATBUFFER_CODEGEN AND CEREBRI2_FLATCC_EXECUTABLE)
             -I${CEREBRI2_FLATBUFFER_SCHEMA_DIR}
             -o${CEREBRI2_FLATBUFFER_GENERATED_DIR}
             ${CEREBRI2_FLATBUFFER_LOG_SCHEMA}
+    COMMAND ${CEREBRI2_FLATCC_EXECUTABLE}
+            --schema
+            -I${CEREBRI2_FLATBUFFER_SCHEMA_DIR}
+            -o${CEREBRI2_FLATBUFFER_GENERATED_DIR}
+            ${CEREBRI2_FLATBUFFER_SIL_SCHEMA}
     COMMAND ${CMAKE_COMMAND} -E touch ${CEREBRI2_FLATBUFFER_BFBS_STAMP}
     DEPENDS
+      ${CEREBRI2_FLATBUFFER_STAGE_STAMP}
       ${CEREBRI2_FLATBUFFER_SCHEMA}
       ${CEREBRI2_FLATBUFFER_LOG_SCHEMA}
+      ${CEREBRI2_FLATBUFFER_SIL_SCHEMA}
     COMMENT "Generating FlatBuffer binary schemas into ${CEREBRI2_FLATBUFFER_GENERATED_DIR}"
     VERBATIM
   )
@@ -118,11 +159,28 @@ endif()
 
 target_sources(app PRIVATE
   src/main.c
+  src/rc_input.c
   src/topic_flatbuffer.c
   src/topic_shell.c
   src/PIDAxis.c
   drivers/nxp_flexio_dshot.c
+  drivers/nxp_flexio_dshot_api.c
+  src/rdd2.c
 )
+
+if(CONFIG_CEREBRI2_DSHOT)
+  target_sources(app PRIVATE drivers/nxp_flexio_dshot.c)
+endif()
+
+if(CONFIG_CEREBRI2_SITL)
+  target_sources(app PRIVATE
+    src/sitl_flatbuffer.c
+    drivers/sitl_dshot.c
+    drivers/sitl_imu.c
+    drivers/sitl_rc.c
+    drivers/sitl_udp_coordinator.c
+  )
+endif()
 
 if(TARGET cerebri2_flatbuffer_codegen)
   add_dependencies(app cerebri2_flatbuffer_codegen)

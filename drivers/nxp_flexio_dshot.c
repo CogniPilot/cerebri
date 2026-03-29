@@ -12,6 +12,7 @@
 #include <fsl_flexio.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/pinctrl.h>
+#include <zephyr/drivers/misc/nxp_flexio_dshot/nxp_flexio_dshot.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_LOG_DEFAULT_LEVEL);
@@ -297,7 +298,7 @@ static int nxp_flexio_dshot_init(const struct device *dev)
 	return 0;
 }
 
-void nxp_flexio_dshot_trigger(const struct device *dev)
+static void nxp_flexio_dshot_hw_trigger(const struct device *dev)
 {
 	const struct nxp_flexio_dshot_config *config = dev->config;
 	struct nxp_flexio_dshot_data *data = dev->data;
@@ -325,7 +326,7 @@ void nxp_flexio_dshot_trigger(const struct device *dev)
 	FLEXIO_EnableTimerStatusInterrupts(flexio_base, data->dshot_timer_mask);
 }
 
-uint8_t nxp_flexio_dshot_channel_count(const struct device *dev)
+static uint8_t nxp_flexio_dshot_hw_channel_count(const struct device *dev)
 {
 	const struct nxp_flexio_dshot_config *config = dev->config;
 
@@ -358,8 +359,8 @@ uint64_t nxp_flexio_dshot_expand_data(uint16_t packet)
  *steps of throttle resolution) bit 	12		- dshot telemetry
  *enable/disable bits 	13-16	- XOR checksum
  **/
-void nxp_flexio_dshot_data_set(const struct device *dev, unsigned channel, uint16_t throttle,
-			       bool telemetry)
+static void nxp_flexio_dshot_hw_data_set(const struct device *dev, unsigned channel,
+					 uint16_t throttle, bool telemetry)
 {
 	const struct nxp_flexio_dshot_config *config = dev->config;
 	struct nxp_flexio_dshot_data *data = dev->data;
@@ -601,9 +602,15 @@ static int nxp_flexio_dshot_channel_get(const struct device *dev, enum sensor_ch
 	return 0;
 }
 
-static const struct sensor_driver_api nxp_flexio_dshot_api_funcs = {
-	.sample_fetch = nxp_flexio_dshot_sample_fetch,
-	.channel_get = nxp_flexio_dshot_channel_get,
+static const struct nxp_flexio_dshot_driver_api nxp_flexio_dshot_api_funcs = {
+	.sensor =
+		{
+			.sample_fetch = nxp_flexio_dshot_sample_fetch,
+			.channel_get = nxp_flexio_dshot_channel_get,
+		},
+	.data_set = nxp_flexio_dshot_hw_data_set,
+	.trigger = nxp_flexio_dshot_hw_trigger,
+	.channel_count = nxp_flexio_dshot_hw_channel_count,
 };
 
 #define _FLEXIO_DSHOT_GEN_CONFIG(n)                                                                \

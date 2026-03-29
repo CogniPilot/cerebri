@@ -13,7 +13,7 @@ manifest:
   projects:
     - name: zephyr
       remote: cognipilot
-      revision: 2ca24fe101319435b88aa0381e9ff5f78c88a1c3 # loaded in ~/cognipilot/ws/zephyr
+      revision: imu-rework # loaded in ~/cognipilot/ws/zephyr
       path: zephyr
       west-commands: scripts/west-commands.yml
     - name: cmsis
@@ -34,5 +34,5 @@ manifest:
       path: modules/lib/zephyr_boards
     - name: synapse_msgs_fbs
       url: https://github.com/CogniPilot/synapse_msgs_fbs.git
-      revision: 07cfe35889aab4e1ed9720e7880973a207bcb007
+      revision: 8c961882844ec45615437453a20878e500e0a603
       path: modules/lib/synapse_msgs_fbs

@@ -284,6 +284,16 @@ void cerebri2_topic_motor_output_get(float motors[4], uint16_t raw[4], bool *arm
 	*test_mode = output.test_mode;
 }
 
+struct motor_output_msg cerebri2_topic_motor_output_snapshot(void)
+{
+	return motor_output_store_snapshot();
+}
+
+uint32_t cerebri2_topic_motor_output_generation(void)
+{
+	return (uint32_t)atomic_get(&g_motor_output_store.generation);
+}
+
 void cerebri2_topic_flight_snapshot_update(const struct flight_snapshot *snapshot)
 {
 	flight_snapshot_store_publish(snapshot);
@@ -298,6 +308,11 @@ void cerebri2_topic_flight_snapshot_update(const struct flight_snapshot *snapsho
 struct flight_snapshot cerebri2_topic_flight_snapshot_get(void)
 {
 	return flight_snapshot_store_snapshot();
+}
+
+uint32_t cerebri2_topic_flight_snapshot_generation(void)
+{
+	return (uint32_t)atomic_get(&g_flight_snapshot_store.generation);
 }
 
 static void topic_watch_stop(void)

@@ -2,17 +2,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "rc_input.h"
 #include "topic_shell.h"
+#include "casadi.h"
+#include "rdd2.h"
 
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <zephyr/device.h>
-#include <zephyr/drivers/input/input_crsf.h>
 #include <zephyr/drivers/misc/nxp_flexio_dshot/nxp_flexio_dshot.h>
+#include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
-#include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
@@ -22,9 +23,10 @@
 
 LOG_MODULE_REGISTER(cerebri2, LOG_LEVEL_INF);
 
-#define RC_NODE DT_ALIAS(rc)
-#define DSHOT_NODE DT_NODELABEL(dshot)
-#define GNSS_NODE DT_ALIAS(gnss)
+#define RC_NODE    DT_ALIAS(rc)
+#define IMU_NODE   DT_ALIAS(imu0)
+#define DSHOT_NODE DT_ALIAS(motors)
+#define GNSS_NODE  DT_ALIAS(gnss)
 
 #define CONTROL_PERIOD_US         1000
 #define RC_CHANNEL_COUNT          16
@@ -66,7 +68,7 @@ struct motor_mix {
 struct control_context {
 	struct flight_snapshot snapshot;
 	struct rc_frame rc_input;
-	struct crsf_link_stats rc_link;
+	uint8_t rc_link_quality;
 	float motors[4];
 	uint16_t raw_test[4];
 	float throttle_input;
@@ -78,15 +80,16 @@ struct control_context {
 	bool rc_stale;
 	bool motor_test_active;
 	bool motor_raw_test_active;
+	// Estimator state
+	float x[10];           // State vector
+	float q[4];            // Quaternion
+	float P_pos[9];        // Position covariance
+	float P_att[9];        // Attitude covariance
+	float decl_WL;         // Magnetic declination
+	float accel_gain;      // Accelerometer gain
+	float mag_gain;        // Magnetometer gain
 };
 
-static struct rc_frame g_rc_staging = {
-	.us = { [0 ... RC_CHANNEL_COUNT - 1] = RC_US_CENTER },
-};
-static struct rc_frame g_rc_latest = {
-	.us = { [0 ... RC_CHANNEL_COUNT - 1] = RC_US_CENTER },
-};
-static atomic_t g_rc_seq;
 static atomic_t g_motor_test_active;
 static float g_motor_test_values[4];
 static atomic_t g_motor_raw_test_active;
@@ -123,20 +126,15 @@ static float clampf(float value, float min_value, float max_value)
 	return value;
 }
 
-static void rc_set_defaults(void)
+static void rc_frame_set_defaults(struct rc_frame *frame)
 {
 	for (size_t i = 0; i < RC_CHANNEL_COUNT; i++) {
-		g_rc_staging.us[i] = RC_US_CENTER;
-		g_rc_latest.us[i] = RC_US_CENTER;
+		frame->us[i] = RC_US_CENTER;
 	}
 
-	g_rc_staging.us[THROTTLE_CHANNEL_INDEX] = RC_US_MIN;
-	g_rc_latest.us[THROTTLE_CHANNEL_INDEX] = RC_US_MIN;
-	g_rc_staging.valid = false;
-	g_rc_latest.valid = false;
-	g_rc_staging.stamp_ms = 0;
-	g_rc_latest.stamp_ms = 0;
-	atomic_set(&g_rc_seq, 0);
+	frame->us[THROTTLE_CHANNEL_INDEX] = RC_US_MIN;
+	frame->valid = false;
+	frame->stamp_ms = 0;
 }
 
 static float rc_norm_centered(int32_t pulse_us)
@@ -153,45 +151,6 @@ static bool rc_switch_high(int32_t pulse_us)
 {
 	return pulse_us > ARM_SWITCH_THRESHOLD_US;
 }
-
-static struct rc_frame rc_snapshot(void)
-{
-	struct rc_frame frame;
-	atomic_val_t seq_start;
-	atomic_val_t seq_end = 0;
-
-	do {
-		seq_start = atomic_get(&g_rc_seq);
-		if ((seq_start & 1) != 0) {
-			continue;
-		}
-
-		frame = g_rc_latest;
-		seq_end = atomic_get(&g_rc_seq);
-	} while (seq_start != seq_end);
-
-	return frame;
-}
-
-static void crsf_input_cb(struct input_event *evt, void *user_data)
-{
-	ARG_UNUSED(user_data);
-
-	if (evt->type == INPUT_EV_ABS && evt->code >= 1 && evt->code <= RC_CHANNEL_COUNT) {
-		g_rc_staging.us[evt->code - 1] = evt->value;
-	}
-
-	if (evt->sync) {
-		atomic_inc(&g_rc_seq);
-		g_rc_latest = g_rc_staging;
-		g_rc_latest.stamp_ms = k_uptime_get();
-		g_rc_latest.valid = true;
-		atomic_inc(&g_rc_seq);
-		cerebri2_topic_rc_published();
-	}
-}
-
-INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(RC_NODE), crsf_input_cb, NULL);
 
 static bool imu_fetch(const struct device *imu_dev, struct imu_sample *sample)
 {
@@ -410,8 +369,7 @@ static uint16_t motor_to_dshot(float normalized, bool armed)
 	return (uint16_t)(DSHOT_MIN + (clamped * span) + 0.5f);
 }
 
-static void dshot_write_all(const struct device *dshot_dev, const float motors[4], bool armed,
-			    bool test_mode)
+static void motor_output_write_all(const float motors[4], bool armed, bool test_mode)
 {
 	float min_output = (armed && !test_mode) ? IDLE_THROTTLE : 0.0f;
 	float applied[4];
@@ -420,15 +378,14 @@ static void dshot_write_all(const struct device *dshot_dev, const float motors[4
 	for (size_t i = 0; i < 4; i++) {
 		applied[i] = armed ? clampf(motors[i], min_output, 1.0f) : 0.0f;
 		raw[i] = motor_to_dshot(applied[i], armed && applied[i] > 0.0f);
-
-		nxp_flexio_dshot_data_set(dshot_dev, i, raw[i], false);
+		nxp_flexio_dshot_data_set(DEVICE_DT_GET(DSHOT_NODE), i, raw[i], false);
 	}
 
 	cerebri2_topic_motor_output_update(applied, raw, armed, test_mode);
-	nxp_flexio_dshot_trigger(dshot_dev);
+	nxp_flexio_dshot_trigger(DEVICE_DT_GET(DSHOT_NODE));
 }
 
-static void dshot_write_all_raw(const struct device *dshot_dev, const uint16_t raw[4], bool test_mode)
+static void motor_output_write_all_raw(const uint16_t raw[4], bool test_mode)
 {
 	float applied[4];
 	uint16_t clamped[4];
@@ -451,12 +408,11 @@ static void dshot_write_all_raw(const struct device *dshot_dev, const uint16_t r
 			applied[i] = (float)(value - DSHOT_MIN) / (float)(DSHOT_MAX - DSHOT_MIN);
 			armed = true;
 		}
-
-		nxp_flexio_dshot_data_set(dshot_dev, i, value, false);
+		nxp_flexio_dshot_data_set(DEVICE_DT_GET(DSHOT_NODE), i, value, false);
 	}
 
 	cerebri2_topic_motor_output_update(applied, clamped, armed, test_mode);
-	nxp_flexio_dshot_trigger(dshot_dev);
+	nxp_flexio_dshot_trigger(DEVICE_DT_GET(DSHOT_NODE));
 }
 
 static bool ready_or_log(const struct device *dev, const char *name)
@@ -467,6 +423,52 @@ static bool ready_or_log(const struct device *dev, const char *name)
 	}
 
 	return true;
+}
+
+static int control_io_init(void)
+{
+	const struct device *const rc_dev = DEVICE_DT_GET(RC_NODE);
+	const struct device *const imu_dev = DEVICE_DT_GET(IMU_NODE);
+	const struct device *const dshot_dev = DEVICE_DT_GET(DSHOT_NODE);
+	const struct device *const gnss_dev = DEVICE_DT_GET_OR_NULL(GNSS_NODE);
+
+	cerebri2_rc_input_init();
+
+	if (!ready_or_log(dshot_dev, "dshot")) {
+		return -ENODEV;
+	}
+
+	ready_or_log(rc_dev, "rc");
+	ready_or_log(imu_dev, "imu");
+
+	if (gnss_dev != NULL && device_is_ready(gnss_dev)) {
+		LOG_INF("gnss path ready");
+	}
+
+	if (nxp_flexio_dshot_channel_count(dshot_dev) != 4U) {
+		LOG_ERR("expected 4 dshot channels");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static bool motor_output_ready(void)
+{
+	return device_is_ready(DEVICE_DT_GET(DSHOT_NODE));
+}
+
+static struct rc_frame control_input_snapshot(struct imu_sample *imu, uint8_t *rc_link_quality,
+					      bool *imu_ok)
+{
+	*imu_ok = imu_fetch(DEVICE_DT_GET(IMU_NODE), imu);
+	*rc_link_quality = cerebri2_rc_input_link_quality_get(DEVICE_DT_GET(RC_NODE));
+	return cerebri2_rc_input_snapshot();
+}
+
+static void publish_flight_snapshot(const struct flight_snapshot *snapshot)
+{
+	cerebri2_topic_flight_snapshot_update(snapshot);
 }
 
 static int cmd_motor_status(const struct shell *sh, size_t argc, char **argv)
@@ -588,17 +590,15 @@ static int cmd_fc_rc(const struct shell *sh, size_t argc, char **argv)
 
 static int cmd_motor_stop(const struct shell *sh, size_t argc, char **argv)
 {
-	const struct device *const dshot_dev = DEVICE_DT_GET(DSHOT_NODE);
-
 	ARG_UNUSED(argc);
 	ARG_UNUSED(argv);
 
 	motor_test_clear();
 	motor_raw_test_clear();
-	if (device_is_ready(dshot_dev)) {
+	if (motor_output_ready()) {
 		float motors[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
-		dshot_write_all(dshot_dev, motors, false, false);
+		motor_output_write_all(motors, false, false);
 	}
 	shell_print(sh, "all motor tests stopped");
 
@@ -610,11 +610,10 @@ static int cmd_motor_spin(const struct shell *sh, size_t argc, char **argv)
 	char *end = NULL;
 	long index;
 	float value;
-	const struct device *const dshot_dev = DEVICE_DT_GET(DSHOT_NODE);
 
 	ARG_UNUSED(argc);
 
-	if (!device_is_ready(dshot_dev)) {
+	if (!motor_output_ready()) {
 		shell_error(sh, "dshot not ready");
 		return -ENODEV;
 	}
@@ -643,11 +642,10 @@ static int cmd_motor_raw(const struct shell *sh, size_t argc, char **argv)
 	char *end = NULL;
 	long index;
 	long value;
-	const struct device *const dshot_dev = DEVICE_DT_GET(DSHOT_NODE);
 
 	ARG_UNUSED(argc);
 
-	if (!device_is_ready(dshot_dev)) {
+	if (!motor_output_ready()) {
 		shell_error(sh, "dshot not ready");
 		return -ENODEV;
 	}
@@ -680,11 +678,10 @@ static int cmd_motor_raw_all(const struct shell *sh, size_t argc, char **argv)
 {
 	char *end = NULL;
 	long value;
-	const struct device *const dshot_dev = DEVICE_DT_GET(DSHOT_NODE);
 
 	ARG_UNUSED(argc);
 
-	if (!device_is_ready(dshot_dev)) {
+	if (!motor_output_ready()) {
 		shell_error(sh, "dshot not ready");
 		return -ENODEV;
 	}
@@ -750,8 +747,9 @@ int main(void)
 	struct control_context ctx = {
 		.last_cycle = k_cycle_get_32(),
 	};
+	int rc;
 
-	rc_set_defaults();
+	rc_frame_set_defaults(&ctx.rc_input);
 	motor_test_clear();
 	motor_raw_test_clear();
 	cerebri2_topic_motor_output_update((float[4]){0.0f, 0.0f, 0.0f, 0.0f},
@@ -759,27 +757,16 @@ int main(void)
 							 DSHOT_DISARMED, DSHOT_DISARMED},
 					   false, false);
 
-	if (!ready_or_log(dshot_dev, "dshot")) {
-		return -ENODEV;
-	}
-
-	ready_or_log(rc_dev, "crsf");
-	ready_or_log(imu_dev, "icm45686");
-
-	if (gnss_dev != NULL && device_is_ready(gnss_dev)) {
-		LOG_INF("gnss path ready");
-	}
-
-	if (nxp_flexio_dshot_channel_count(dshot_dev) != 4U) {
-		LOG_ERR("expected 4 dshot channels");
-		return -EINVAL;
+	rc = control_io_init();
+	if (rc != 0) {
+		return rc;
 	}
 
 	LOG_INF("cerebri2 rate-mode stack starting");
 
 	while (true) {
-		ctx.rc_input = rc_snapshot();
-		ctx.snapshot.imu = (struct imu_sample){0};
+		ctx.rc_input = control_input_snapshot(&ctx.snapshot.imu, &ctx.rc_link_quality,
+						      &ctx.snapshot.status.imu_ok);
 		ctx.now_cycle = k_cycle_get_32();
 		ctx.dt = (float)k_cyc_to_us_floor32(ctx.now_cycle - ctx.last_cycle) * 1.0e-6f;
 		ctx.now_ms = k_uptime_get();
@@ -793,21 +780,100 @@ int main(void)
 
 		motor_test_snapshot(ctx.motors, &ctx.motor_test_active);
 		if (ctx.motor_test_active) {
-			dshot_write_all(dshot_dev, ctx.motors, true, true);
+			motor_output_write_all(ctx.motors, true, true);
 			k_sleep(K_USEC(CONTROL_PERIOD_US));
 			continue;
 		}
 
 		motor_raw_test_snapshot(ctx.raw_test, &ctx.motor_raw_test_active);
 		if (ctx.motor_raw_test_active) {
-			dshot_write_all_raw(dshot_dev, ctx.raw_test, true);
+			motor_output_write_all_raw(ctx.raw_test, true);
 			k_sleep(K_USEC(CONTROL_PERIOD_US));
 			continue;
 		}
 
-		ctx.snapshot.status.imu_ok = imu_fetch(imu_dev, &ctx.snapshot.imu);
 		ctx.snapshot.status.arm_switch = rc_switch_high(ctx.rc_input.us[ARM_CHANNEL_INDEX]);
-		ctx.rc_link = input_crsf_get_link_stats(rc_dev);
+
+		// Estimator: Strapdown INS propagation
+		{
+			CASADI_FUNC_ARGS(strapdown_ins_propagate)
+			/* strapdown_ins_propagate:(x0[10],a_b[3],omega_b[3],g,dt)->(x1[10]) */
+
+			float a_b[3] = {ctx.snapshot.imu.accel_m_s2[0],
+					  ctx.snapshot.imu.accel_m_s2[1],
+					  ctx.snapshot.imu.accel_m_s2[2]};
+			float omega_b[3] = {ctx.snapshot.imu.gyro_rad_s[0],
+					     ctx.snapshot.imu.gyro_rad_s[1],
+					     ctx.snapshot.imu.gyro_rad_s[2]};
+			float g = 9.81;
+
+			args[0] = ctx.x;
+			args[1] = a_b;
+			args[2] = omega_b;
+			args[3] = &g;
+			args[4] = &ctx.dt;
+
+			res[0] = ctx.x;
+
+			CASADI_FUNC_CALL(strapdown_ins_propagate)
+		}
+
+		// Update quaternion from state
+		ctx.q[0] = ctx.x[6];
+		ctx.q[1] = ctx.x[7];
+		ctx.q[2] = ctx.x[8];
+		ctx.q[3] = ctx.x[9];
+
+		// // Estimator: Position correction
+		// {
+		// 	CASADI_FUNC_ARGS(position_correction)
+
+		// 	float gps[3] = {0.0, 0.0, 0.0};  // TODO: Get from odometry_ethernet
+
+		// 	args[0] = ctx.x;
+		// 	args[1] = gps;
+		// 	args[2] = &ctx.dt;
+		// 	args[3] = ctx.P_pos;
+
+		// 	res[0] = ctx.x;
+		// 	res[1] = ctx.P_pos;
+
+		// 	CASADI_FUNC_CALL(position_correction)
+		// }
+
+		// // Estimator: Attitude estimator
+		// {
+		// 	CASADI_FUNC_ARGS(attitude_estimator)
+
+		// 	float a_b[3] = {ctx.snapshot.imu.accel_m_s2[0],
+		// 			  ctx.snapshot.imu.accel_m_s2[1],
+		// 			  ctx.snapshot.imu.accel_m_s2[2]};
+		// 	float omega_b[3] = {ctx.snapshot.imu.gyro_rad_s[0],
+		// 			     ctx.snapshot.imu.gyro_rad_s[1],
+		// 			     ctx.snapshot.imu.gyro_rad_s[2]};
+		// 	float mag[3] = {0.0, 0.0, 0.0};  // TODO: Get from magnetometer
+
+		// 	args[0] = ctx.q;
+		// 	args[1] = mag;
+		// 	args[2] = &ctx.decl_WL;
+		// 	args[3] = omega_b;
+		// 	args[4] = a_b;
+		// 	args[5] = &ctx.accel_gain;
+		// 	args[6] = &ctx.mag_gain;
+		// 	args[7] = &ctx.dt;
+		// 	args[8] = ctx.P_att;
+
+		// 	res[0] = ctx.q;
+		// 	res[1] = ctx.P_att;
+
+		// 	CASADI_FUNC_CALL(attitude_estimator)
+		// }
+
+		// // Store updated quaternion back to state
+		// ctx.x[6] = ctx.q[0];
+		// ctx.x[7] = ctx.q[1];
+		// ctx.x[8] = ctx.q[2];
+		// ctx.x[9] = ctx.q[3];
 
 		if (!ctx.snapshot.status.imu_ok || ctx.rc_stale || !ctx.snapshot.status.arm_switch) {
 			ctx.snapshot.status.armed = false;
@@ -829,7 +895,7 @@ int main(void)
 		}
 		ctx.snapshot.status.rc_stamp_ms = ctx.rc_input.stamp_ms;
 		ctx.snapshot.status.throttle_us = ctx.rc_input.us[THROTTLE_CHANNEL_INDEX];
-		ctx.snapshot.status.rc_link_quality = ctx.rc_link.uplink_link_quality;
+		ctx.snapshot.status.rc_link_quality = ctx.rc_link_quality;
 		ctx.snapshot.status.rc_valid = ctx.rc_input.valid;
 		ctx.snapshot.status.rc_stale = ctx.rc_stale;
 		ctx.snapshot.rate.desired.roll = 0.0f;
@@ -840,8 +906,8 @@ int main(void)
 		ctx.snapshot.rate.cmd.yaw = 0.0f;
 
 		if (!ctx.snapshot.status.imu_ok || ctx.rc_stale) {
-			cerebri2_topic_flight_snapshot_update(&ctx.snapshot);
-			dshot_write_all(dshot_dev, ctx.motors, false, false);
+			publish_flight_snapshot(&ctx.snapshot);
+			motor_output_write_all(ctx.motors, false, false);
 			k_sleep(K_USEC(CONTROL_PERIOD_US));
 			continue;
 		}
@@ -896,8 +962,8 @@ int main(void)
 
 		mix_quad_x(ctx.throttle_cmd, ctx.snapshot.rate.cmd.roll, ctx.snapshot.rate.cmd.pitch,
 			   ctx.snapshot.rate.cmd.yaw, ctx.motors);
-		cerebri2_topic_flight_snapshot_update(&ctx.snapshot);
-		dshot_write_all(dshot_dev, ctx.motors, ctx.snapshot.status.armed, false);
+		publish_flight_snapshot(&ctx.snapshot);
+		motor_output_write_all(ctx.motors, ctx.snapshot.status.armed, false);
 
 		k_sleep(K_USEC(CONTROL_PERIOD_US));
 	}

@@ -61,6 +61,8 @@ if "configurations" not in launch_data or not isinstance(launch_data["configurat
 # New Zephyr debug config
 config_name = f"Debug Zephyr {board_name}"
 
+update_fields = None
+
 if debug_runner == "native":
     update_fields = {
         "name": config_name,
@@ -148,19 +150,21 @@ elif debug_runner == "pyocd":
         "serverArgs": serverArgs
     }
 
-# Look for existing config
-for i, cfg in enumerate(launch_data["configurations"]):
-    if cfg.get("name") == config_name:
-        # Merge fields, keeping anything else (like svdFile)
-        cfg.update(update_fields)
-        launch_data["configurations"][i] = cfg
-        break
-else:
-    # If it doesn’t exist, append new config
-    new_cfg = {"name": config_name}
-    new_cfg.update(update_fields)
-    launch_data["configurations"].append(new_cfg)
+if update_fields is not None:
 
-# Write back launch.json (JSON only, comments will be lost)
-with open(vscode_launch, "w") as f:
-    json.dump(launch_data, f, indent=4)
+    # Look for existing config
+    for i, cfg in enumerate(launch_data["configurations"]):
+        if cfg.get("name") == config_name:
+            # Merge fields, keeping anything else (like svdFile)
+            cfg.update(update_fields)
+            launch_data["configurations"][i] = cfg
+            break
+    else:
+        # If it doesn’t exist, append new config
+        new_cfg = {"name": config_name}
+        new_cfg.update(update_fields)
+        launch_data["configurations"].append(new_cfg)
+
+    # Write back launch.json (JSON only, comments will be lost)
+    with open(vscode_launch, "w") as f:
+        json.dump(launch_data, f, indent=4)

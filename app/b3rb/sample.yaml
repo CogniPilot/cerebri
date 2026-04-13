@@ -19,3 +19,8 @@ tests:
       - b3rb
     integration_platforms:
       - mr_navq95a/mimx9596/m7/flash
+  b3rb.mr_navq95b/mimx9596/m7/flash:
+    tags:
+      - b3rb
+    integration_platforms:
+      - mr_navq95b/mimx9596/m7/flash

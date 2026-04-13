@@ -24,3 +24,8 @@ tests:
       - rdd2
     integration_platforms:
       - mr_navq95a/mimx9596/m7/flash
+  rdd2.mr_navq95b/mimx9596/m7/flash:
+    tags:
+      - rdd2
+    integration_platforms:
+      - mr_navq95b/mimx9596/m7/flash

@@ -23,22 +23,22 @@ SUPPORTED_SUFFIXES = {
 }
 FORMAT_BATCH_SIZE = 100
 
-AUTOFORMAT_DESCRIPTION = f"""\
+FORMAT_DESCRIPTION = f"""\
 Format tracked C/C++ files with a pinned clang-format toolchain.
 
-This command bootstraps a workspace-local virtualenv in `.west/tools/autoformat`
+This command bootstraps a workspace-local virtualenv in `.west/tools/format`
 and installs `{CLANG_FORMAT_PACKAGE}` there. By default it formats tracked
 source files under the current app directory (`rdd2/`). Pass files or
 directories to target other tracked paths in the workspace.
 """
 
 
-class Autoformat(WestCommand):
+class Format(WestCommand):
     def __init__(self):
         super().__init__(
-            "autoformat",
+            "format",
             "format tracked C/C++ files with pinned clang-format",
-            AUTOFORMAT_DESCRIPTION,
+            FORMAT_DESCRIPTION,
             accepts_unknown_args=False,
         )
 
@@ -117,7 +117,7 @@ class Autoformat(WestCommand):
         return sorted(files)
 
     def _ensure_clang_format(self, topdir):
-        tools_dir = topdir / ".west" / "tools" / "autoformat"
+        tools_dir = topdir / ".west" / "tools" / "format"
         venv_dir = tools_dir / "venv"
         stamp = tools_dir / "clang-format.version"
         python = self._venv_executable(venv_dir, "python")
@@ -135,7 +135,7 @@ class Autoformat(WestCommand):
 
         if needs_install:
             if not python.is_file():
-                self.inf(f"creating autoformat virtualenv at {venv_dir}")
+                self.inf(f"creating format virtualenv at {venv_dir}")
                 self._run([sys.executable, "-m", "venv", str(venv_dir)])
 
             self.inf(f"installing {CLANG_FORMAT_PACKAGE}")

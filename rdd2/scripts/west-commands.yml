@@ -1,7 +1,7 @@
 # Keep the help strings in sync with the values in the .py files!
 west-commands:
-  - file: rdd2/scripts/west_commands/autoformat.py
+  - file: rdd2/scripts/west_commands/format.py
     commands:
-      - name: autoformat
-        class: Autoformat
+      - name: format
+        class: Format
         help: format tracked C/C++ files with pinned clang-format

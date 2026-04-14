@@ -4,106 +4,144 @@
  */
 #include "PIDAxis.h"
 
-static void PIDAxis_algebraics(PIDAxis_t *m, real_t t) {
+static void PIDAxis_algebraics(PIDAxis_t *m, real_t t)
+{
 
-    const real_t e_int = m->e_int; (void)e_int;
-    const real_t meas_filt = m->meas_filt; (void)meas_filt;
+	const real_t e_int = m->e_int;
+	(void)e_int;
+	const real_t meas_filt = m->meas_filt;
+	(void)meas_filt;
 
-    const real_t setpoint = m->setpoint; (void)setpoint;
-    const real_t measurement = m->measurement; (void)measurement;
-    const real_t integrate = m->integrate; (void)integrate;
+	const real_t setpoint = m->setpoint;
+	(void)setpoint;
+	const real_t measurement = m->measurement;
+	(void)measurement;
+	const real_t integrate = m->integrate;
+	(void)integrate;
 
-    const real_t kp = m->kp; (void)kp;
-    const real_t ki = m->ki; (void)ki;
-    const real_t kd = m->kd; (void)kd;
-    const real_t i_limit = m->i_limit; (void)i_limit;
-    const real_t output_limit = m->output_limit; (void)output_limit;
-    const real_t f_cut = m->f_cut; (void)f_cut;
-    real_t error = m->error;
-    real_t u = m->u;
-    (void)t;
-    error = (setpoint - measurement);
-    m->error = error;
-    u = fmax((-output_limit), fmin(output_limit, (((kp * error) + e_int) - (kd * ((measurement - meas_filt) / (1.0 / ((2.0 * 3.14159265358979) * f_cut)))))));
-    m->u = u;
+	const real_t kp = m->kp;
+	(void)kp;
+	const real_t ki = m->ki;
+	(void)ki;
+	const real_t kd = m->kd;
+	(void)kd;
+	const real_t i_limit = m->i_limit;
+	(void)i_limit;
+	const real_t output_limit = m->output_limit;
+	(void)output_limit;
+	const real_t f_cut = m->f_cut;
+	(void)f_cut;
+	real_t error = m->error;
+	real_t u = m->u;
+	(void)t;
+	error = (setpoint - measurement);
+	m->error = error;
+	u = fmax((-output_limit),
+		 fmin(output_limit, (((kp * error) + e_int) -
+				     (kd * ((measurement - meas_filt) /
+					    (1.0 / ((2.0 * 3.14159265358979) * f_cut)))))));
+	m->u = u;
 }
 
-void PIDAxis_derivatives(const PIDAxis_t *m, real_t t, real_t xdot[PIDAXIS_N_X]) {
+void PIDAxis_derivatives(const PIDAxis_t *m, real_t t, real_t xdot[PIDAXIS_N_X])
+{
 
-    const real_t e_int = m->e_int; (void)e_int;
-    const real_t meas_filt = m->meas_filt; (void)meas_filt;
+	const real_t e_int = m->e_int;
+	(void)e_int;
+	const real_t meas_filt = m->meas_filt;
+	(void)meas_filt;
 
-    const real_t error = m->error; (void)error;
+	const real_t error = m->error;
+	(void)error;
 
-    const real_t setpoint = m->setpoint; (void)setpoint;
-    const real_t measurement = m->measurement; (void)measurement;
-    const real_t integrate = m->integrate; (void)integrate;
+	const real_t setpoint = m->setpoint;
+	(void)setpoint;
+	const real_t measurement = m->measurement;
+	(void)measurement;
+	const real_t integrate = m->integrate;
+	(void)integrate;
 
-    const real_t kp = m->kp; (void)kp;
-    const real_t ki = m->ki; (void)ki;
-    const real_t kd = m->kd; (void)kd;
-    const real_t i_limit = m->i_limit; (void)i_limit;
-    const real_t output_limit = m->output_limit; (void)output_limit;
-    const real_t f_cut = m->f_cut; (void)f_cut;
+	const real_t kp = m->kp;
+	(void)kp;
+	const real_t ki = m->ki;
+	(void)ki;
+	const real_t kd = m->kd;
+	(void)kd;
+	const real_t i_limit = m->i_limit;
+	(void)i_limit;
+	const real_t output_limit = m->output_limit;
+	(void)output_limit;
+	const real_t f_cut = m->f_cut;
+	(void)f_cut;
 
-    const real_t u = m->u; (void)u;
-    (void)t;
-    xdot[0] = ((!integrate) ? (-(e_int / 0.001)) : (((e_int >= i_limit) && ((error * ki) > 0)) ? 0 : (((e_int <= (-i_limit)) && ((error * ki) < 0)) ? 0 : (error * ki))));
-    xdot[1] = ((measurement - meas_filt) / (1.0 / ((2.0 * 3.14159265358979) * f_cut)));
+	const real_t u = m->u;
+	(void)u;
+	(void)t;
+	xdot[0] = ((!integrate) ? (-(e_int / 0.001))
+				: (((e_int >= i_limit) && ((error * ki) > 0))
+					   ? 0
+					   : (((e_int <= (-i_limit)) && ((error * ki) < 0))
+						      ? 0
+						      : (error * ki))));
+	xdot[1] = ((measurement - meas_filt) / (1.0 / ((2.0 * 3.14159265358979) * f_cut)));
 }
 
-void PIDAxis_init(PIDAxis_t *m) {
-    real_t kp = REAL_C(0.0);
-    real_t ki = REAL_C(0.0);
-    real_t kd = REAL_C(0.0);
-    real_t i_limit = REAL_C(0.0);
-    real_t output_limit = REAL_C(0.0);
-    real_t f_cut = REAL_C(0.0);
-    kp = 0.12;
-    m->kp = kp;
-    ki = 0.35;
-    m->ki = ki;
-    kd = 0.0015;
-    m->kd = kd;
-    i_limit = 0.2;
-    m->i_limit = i_limit;
-    output_limit = 0.35;
-    m->output_limit = output_limit;
-    f_cut = 25.0;
-    m->f_cut = f_cut;
-    m->e_int = 0.0;
-    m->meas_filt = 0.0;
-    m->setpoint = 0.0;
-    m->measurement = 0.0;
-    m->integrate = 0.0;
-    PIDAxis_algebraics(m, REAL_C(0.0));
+void PIDAxis_init(PIDAxis_t *m)
+{
+	real_t kp = REAL_C(0.0);
+	real_t ki = REAL_C(0.0);
+	real_t kd = REAL_C(0.0);
+	real_t i_limit = REAL_C(0.0);
+	real_t output_limit = REAL_C(0.0);
+	real_t f_cut = REAL_C(0.0);
+	kp = 0.12;
+	m->kp = kp;
+	ki = 0.35;
+	m->ki = ki;
+	kd = 0.0015;
+	m->kd = kd;
+	i_limit = 0.2;
+	m->i_limit = i_limit;
+	output_limit = 0.35;
+	m->output_limit = output_limit;
+	f_cut = 25.0;
+	m->f_cut = f_cut;
+	m->e_int = 0.0;
+	m->meas_filt = 0.0;
+	m->setpoint = 0.0;
+	m->measurement = 0.0;
+	m->integrate = 0.0;
+	PIDAxis_algebraics(m, REAL_C(0.0));
 }
 
-void PIDAxis_step(PIDAxis_t *m, real_t t, real_t dt) {
-    real_t k1[PIDAXIS_N_X], k2[PIDAXIS_N_X];
-    real_t k3[PIDAXIS_N_X], k4[PIDAXIS_N_X];
-    real_t x_save[PIDAXIS_N_X];
-    x_save[0] = m->e_int;
-    x_save[1] = m->meas_filt;
+void PIDAxis_step(PIDAxis_t *m, real_t t, real_t dt)
+{
+	real_t k1[PIDAXIS_N_X], k2[PIDAXIS_N_X];
+	real_t k3[PIDAXIS_N_X], k4[PIDAXIS_N_X];
+	real_t x_save[PIDAXIS_N_X];
+	x_save[0] = m->e_int;
+	x_save[1] = m->meas_filt;
 
-    PIDAxis_algebraics(m, t);
-    PIDAxis_derivatives(m, t, k1);
+	PIDAxis_algebraics(m, t);
+	PIDAxis_derivatives(m, t, k1);
 
-    m->e_int = x_save[0] + REAL_C(0.5) * dt * k1[0];
-    m->meas_filt = x_save[1] + REAL_C(0.5) * dt * k1[1];
-    PIDAxis_algebraics(m, t + REAL_C(0.5) * dt);
-    PIDAxis_derivatives(m, t + REAL_C(0.5) * dt, k2);
+	m->e_int = x_save[0] + REAL_C(0.5) * dt * k1[0];
+	m->meas_filt = x_save[1] + REAL_C(0.5) * dt * k1[1];
+	PIDAxis_algebraics(m, t + REAL_C(0.5) * dt);
+	PIDAxis_derivatives(m, t + REAL_C(0.5) * dt, k2);
 
-    m->e_int = x_save[0] + REAL_C(0.5) * dt * k2[0];
-    m->meas_filt = x_save[1] + REAL_C(0.5) * dt * k2[1];
-    PIDAxis_algebraics(m, t + REAL_C(0.5) * dt);
-    PIDAxis_derivatives(m, t + REAL_C(0.5) * dt, k3);
+	m->e_int = x_save[0] + REAL_C(0.5) * dt * k2[0];
+	m->meas_filt = x_save[1] + REAL_C(0.5) * dt * k2[1];
+	PIDAxis_algebraics(m, t + REAL_C(0.5) * dt);
+	PIDAxis_derivatives(m, t + REAL_C(0.5) * dt, k3);
 
-    m->e_int = x_save[0] + REAL_C(1.0) * dt * k3[0];
-    m->meas_filt = x_save[1] + REAL_C(1.0) * dt * k3[1];
-    PIDAxis_algebraics(m, t + dt);
-    PIDAxis_derivatives(m, t + dt, k4);
-    m->e_int = x_save[0] + (dt / REAL_C(6.0)) * (k1[0] + REAL_C(2.0) * k2[0] + REAL_C(2.0) * k3[0] + k4[0]);
-    m->meas_filt = x_save[1] + (dt / REAL_C(6.0)) * (k1[1] + REAL_C(2.0) * k2[1] + REAL_C(2.0) * k3[1] + k4[1]);
-    PIDAxis_algebraics(m, t + dt);
+	m->e_int = x_save[0] + REAL_C(1.0) * dt * k3[0];
+	m->meas_filt = x_save[1] + REAL_C(1.0) * dt * k3[1];
+	PIDAxis_algebraics(m, t + dt);
+	PIDAxis_derivatives(m, t + dt, k4);
+	m->e_int = x_save[0] +
+		   (dt / REAL_C(6.0)) * (k1[0] + REAL_C(2.0) * k2[0] + REAL_C(2.0) * k3[0] + k4[0]);
+	m->meas_filt = x_save[1] + (dt / REAL_C(6.0)) * (k1[1] + REAL_C(2.0) * k2[1] +
+							 REAL_C(2.0) * k3[1] + k4[1]);
+	PIDAxis_algebraics(m, t + dt);
 }

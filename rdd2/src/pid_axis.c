@@ -92,5 +92,5 @@ void rdd2_pid_axis_step(struct rdd2_pid_axis *pid, float dt, bool integrate)
 	}
 
 	pid->u = clampf((pid->kp * pid->error) + pid->e_int - (pid->kd * derivative),
-		       -pid->output_limit, pid->output_limit);
+			-pid->output_limit, pid->output_limit);
 }

@@ -64,8 +64,7 @@ static bool loop_divider_expired(uint32_t *countdown, uint32_t divisor)
 }
 
 static bool attitude_update_due(enum rdd2_flight_mode mode, bool armed,
-				uint32_t *autolevel_countdown,
-				uint32_t *background_countdown)
+				uint32_t *autolevel_countdown, uint32_t *background_countdown)
 {
 	if (armed && mode == RDD2_FLIGHT_MODE_AUTO_LEVEL) {
 		return loop_divider_expired(autolevel_countdown, RDD2_ATTITUDE_AUTOLEVEL_DIV);
@@ -77,8 +76,8 @@ static bool attitude_update_due(enum rdd2_flight_mode mode, bool armed,
 static int flight_state_topic_init(void)
 {
 	zros_node_init(&g_rdd2_main_node, "rdd2_main");
-	return zros_pub_init(&g_rdd2_flight_state_pub, &g_rdd2_main_node,
-			     &topic_flight_state, &g_rdd2_flight_state_blob);
+	return zros_pub_init(&g_rdd2_flight_state_pub, &g_rdd2_main_node, &topic_flight_state,
+			     &g_rdd2_flight_state_blob);
 }
 
 static void publish_flight_state(const struct control_context *ctx)
@@ -90,12 +89,10 @@ static void publish_flight_state(const struct control_context *ctx)
 		return;
 	}
 
-	len = rdd2_topic_fb_pack_flight_state(g_rdd2_flight_state_blob,
-					      sizeof(g_rdd2_flight_state_blob), &ctx->gyro,
-					      &ctx->accel, &ctx->rc, &ctx->status,
-					      &ctx->attitude, &ctx->attitude_desired,
-					      &ctx->rate_desired, &ctx->rate_cmd,
-					      ctx->imu_to_motor_latency_us);
+	len = rdd2_topic_fb_pack_flight_state(
+		g_rdd2_flight_state_blob, sizeof(g_rdd2_flight_state_blob), &ctx->gyro, &ctx->accel,
+		&ctx->rc, &ctx->status, &ctx->attitude, &ctx->attitude_desired, &ctx->rate_desired,
+		&ctx->rate_cmd, ctx->imu_to_motor_latency_us);
 	if (len != sizeof(g_rdd2_flight_state_blob)) {
 		return;
 	}
@@ -176,9 +173,8 @@ int main(void)
 		rdd2_control_input_wait(&ctx->gyro, &ctx->accel, &ctx->rc, &ctx->status, &ctx->dt,
 					&imu_interrupt_timestamp_ns);
 		ctx->now_ms = k_uptime_get();
-		ctx->rc_stale =
-			!ctx->status.rc_valid ||
-			((ctx->now_ms - ctx->status.rc_stamp_ms) > RDD2_RC_STALE_TIMEOUT_MS);
+		ctx->rc_stale = !ctx->status.rc_valid || ((ctx->now_ms - ctx->status.rc_stamp_ms) >
+							  RDD2_RC_STALE_TIMEOUT_MS);
 		ctx->flight_mode = rdd2_flight_mode_from_rc(&ctx->rc);
 		ctx->status.flight_mode = (uint8_t)ctx->flight_mode;
 
@@ -195,15 +191,13 @@ int main(void)
 
 		if (!ctx->status.imu_ok || ctx->rc_stale || !ctx->status.arm_switch) {
 			ctx->status.armed = false;
-		} else if (!ctx->status.armed &&
-			   ctx->status.throttle_us <= RDD2_THROTTLE_ARM_MAX) {
+		} else if (!ctx->status.armed && ctx->status.throttle_us <= RDD2_THROTTLE_ARM_MAX) {
 			ctx->status.armed = true;
 		}
 
-		run_attitude_update =
-			attitude_update_due(ctx->flight_mode, ctx->status.armed,
-					    &autolevel_attitude_countdown,
-					    &background_attitude_countdown);
+		run_attitude_update = attitude_update_due(ctx->flight_mode, ctx->status.armed,
+							  &autolevel_attitude_countdown,
+							  &background_attitude_countdown);
 		controller_reset_required =
 			!ctx->status.armed || !was_armed || ctx->flight_mode != previous_mode;
 
@@ -229,16 +223,17 @@ int main(void)
 		if (!ctx->status.armed) {
 			if (ctx->status.imu_ok && run_attitude_update) {
 				rdd2_attitude_estimator_reset_from_accel(&g_attitude_estimator,
-								 &ctx->accel);
+									 &ctx->accel);
 				rdd2_attitude_estimator_get_attitude(&g_attitude_estimator,
-								 &ctx->attitude);
+								     &ctx->attitude);
 				ctx->attitude_desired = ctx->attitude;
 				attitude_gyro_accum = (synapse_topic_Vec3f_t){0};
 				attitude_accel_accum = (synapse_topic_Vec3f_t){0};
 				attitude_dt_accum = 0.0f;
 				attitude_sample_count = 0U;
 			}
-		} else if (ctx->status.imu_ok && run_attitude_update && attitude_sample_count > 0U) {
+		} else if (ctx->status.imu_ok && run_attitude_update &&
+			   attitude_sample_count > 0U) {
 			float sample_scale = 1.0f / (float)attitude_sample_count;
 			synapse_topic_Vec3f_t avg_gyro = {
 				.x = attitude_gyro_accum.x * sample_scale,
@@ -252,10 +247,9 @@ int main(void)
 			};
 
 			attitude_dt = attitude_dt_accum;
-			rdd2_attitude_estimator_predict(&g_attitude_estimator, &avg_gyro, &avg_accel,
-							   attitude_dt);
-			rdd2_attitude_estimator_get_attitude(&g_attitude_estimator,
-							 &ctx->attitude);
+			rdd2_attitude_estimator_predict(&g_attitude_estimator, &avg_gyro,
+							&avg_accel, attitude_dt);
+			rdd2_attitude_estimator_get_attitude(&g_attitude_estimator, &ctx->attitude);
 			attitude_gyro_accum = (synapse_topic_Vec3f_t){0};
 			attitude_accel_accum = (synapse_topic_Vec3f_t){0};
 			attitude_dt_accum = 0.0f;
@@ -290,10 +284,10 @@ int main(void)
 
 		switch (ctx->flight_mode) {
 		case RDD2_FLIGHT_MODE_AUTO_LEVEL:
-			if (ctx->status.imu_ok &&
-			    (controller_reset_required || (run_attitude_update && attitude_dt > 0.0f))) {
+			if (ctx->status.imu_ok && (controller_reset_required ||
+						   (run_attitude_update && attitude_dt > 0.0f))) {
 				rdd2_attitude_desired_from_rc(&ctx->rc, &ctx->attitude,
-								 &ctx->attitude_desired);
+							      &ctx->attitude_desired);
 				rdd2_attitude_controller_step(
 					&g_attitude_controller, &ctx->attitude,
 					&ctx->attitude_desired, &ctx->rc,
@@ -312,12 +306,10 @@ int main(void)
 		ctx->throttle_input = rdd2_rate_throttle_input_from_rc(&ctx->rc);
 		ctx->throttle_cmd =
 			rdd2_rate_throttle_command(ctx->throttle_input, ctx->status.armed);
-		rdd2_rate_controller_step(&g_rate_controller, &ctx->rate_desired,
-					     &ctx->gyro, ctx->dt,
-					     ctx->status.armed &&
-						     ctx->throttle_input >
-							     RDD2_PID_INTEGRATE_THROTTLE_MIN,
-					     &ctx->rate_cmd);
+		rdd2_rate_controller_step(
+			&g_rate_controller, &ctx->rate_desired, &ctx->gyro, ctx->dt,
+			ctx->status.armed && ctx->throttle_input > RDD2_PID_INTEGRATE_THROTTLE_MIN,
+			&ctx->rate_cmd);
 		rdd2_mix_quad_x(ctx->throttle_cmd, &ctx->rate_cmd, &ctx->motors);
 		motor_signal_timestamp_ns =
 			rdd2_motor_output_write_all(&ctx->motors, ctx->status.armed, false);

@@ -13,8 +13,7 @@ enum rdd2_flight_mode {
 	RDD2_FLIGHT_MODE_AUTO_LEVEL = 1,
 };
 
-enum rdd2_flight_mode rdd2_flight_mode_from_rc(
-	const synapse_topic_RcChannels16_t *rc);
+enum rdd2_flight_mode rdd2_flight_mode_from_rc(const synapse_topic_RcChannels16_t *rc);
 const char *rdd2_flight_mode_name(enum rdd2_flight_mode mode);
 
 #endif

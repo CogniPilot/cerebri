@@ -32,7 +32,8 @@ static struct zros_pub g_rdd2_rc_pub;
 static synapse_topic_RcChannels16_t g_rdd2_rc_msg;
 static bool g_rdd2_rc_pub_ready;
 
-static void rc_channels_set_defaults(synapse_topic_RcChannels16_t *rc, bool *valid, int64_t *stamp_ms)
+static void rc_channels_set_defaults(synapse_topic_RcChannels16_t *rc, bool *valid,
+				     int64_t *stamp_ms)
 {
 	int32_t *channels = rdd2_topic_rc_channels_data(rc);
 
@@ -62,8 +63,7 @@ void rdd2_rc_input_init(void)
 	g_rdd2_rc_pub_ready = (rc == 0);
 }
 
-void rdd2_rc_input_latest_get(synapse_topic_RcChannels16_t *rc, int64_t *stamp_ms,
-				  bool *valid)
+void rdd2_rc_input_latest_get(synapse_topic_RcChannels16_t *rc, int64_t *stamp_ms, bool *valid)
 {
 	atomic_val_t seq_start;
 	atomic_val_t seq_end = 0;

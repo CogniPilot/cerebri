@@ -7,48 +7,48 @@
 #include <math.h>
 
 typedef float real_t;
-#define REAL_C(x) x##f
-#define SIN(x) sinf(x)
-#define COS(x) cosf(x)
-#define TAN(x) tanf(x)
-#define ASIN(x) asinf(x)
-#define ACOS(x) acosf(x)
-#define ATAN2(x,y) atan2f(x,y)
-#define SQRT(x) sqrtf(x)
-#define FABS(x) fabsf(x)
-#define POW(x,y) powf(x,y)
-#define EXP(x) expf(x)
-#define LOG(x) logf(x)
-#define FMOD(x,y) fmodf(x,y)
-#define FLOOR(x) floorf(x)
-#define CEIL(x) ceilf(x)
+#define REAL_C(x)   x##f
+#define SIN(x)      sinf(x)
+#define COS(x)      cosf(x)
+#define TAN(x)      tanf(x)
+#define ASIN(x)     asinf(x)
+#define ACOS(x)     acosf(x)
+#define ATAN2(x, y) atan2f(x, y)
+#define SQRT(x)     sqrtf(x)
+#define FABS(x)     fabsf(x)
+#define POW(x, y)   powf(x, y)
+#define EXP(x)      expf(x)
+#define LOG(x)      logf(x)
+#define FMOD(x, y)  fmodf(x, y)
+#define FLOOR(x)    floorf(x)
+#define CEIL(x)     ceilf(x)
 
 #define PIDAXIS_N_X 2
 
 typedef struct {
-    /* States */
+	/* States */
 
-    real_t e_int;
-    real_t meas_filt;
-    /* Algebraic */
+	real_t e_int;
+	real_t meas_filt;
+	/* Algebraic */
 
-    real_t error;
-    /* Inputs */
+	real_t error;
+	/* Inputs */
 
-    real_t setpoint;
-    real_t measurement;
-    real_t integrate;
-    /* Outputs */
+	real_t setpoint;
+	real_t measurement;
+	real_t integrate;
+	/* Outputs */
 
-    real_t u;
-    /* Parameters */
+	real_t u;
+	/* Parameters */
 
-    real_t kp;
-    real_t ki;
-    real_t kd;
-    real_t i_limit;
-    real_t output_limit;
-    real_t f_cut;
+	real_t kp;
+	real_t ki;
+	real_t kd;
+	real_t i_limit;
+	real_t output_limit;
+	real_t f_cut;
 } PIDAxis_t;
 
 void PIDAxis_init(PIDAxis_t *m);

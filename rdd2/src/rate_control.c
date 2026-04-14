@@ -6,10 +6,10 @@
 
 #include "motor_output.h"
 
-#define RC_US_CENTER              1500
-#define RC_US_MIN                 1000
-#define RC_US_MAX                 2000
-#define ARM_SWITCH_THRESHOLD_US   1600
+#define RC_US_CENTER            1500
+#define RC_US_MIN               1000
+#define RC_US_MAX               2000
+#define ARM_SWITCH_THRESHOLD_US 1600
 
 struct motor_mix {
 	float roll;
@@ -31,10 +31,10 @@ struct motor_mix {
  * previous FRD convention.
  */
 static const struct motor_mix g_motor_mix[4] = {
-	{ .roll = -1.0f, .pitch = -1.0f, .yaw = -1.0f },
-	{ .roll = -1.0f, .pitch = 1.0f, .yaw = 1.0f },
-	{ .roll = 1.0f, .pitch = 1.0f, .yaw = -1.0f },
-	{ .roll = 1.0f, .pitch = -1.0f, .yaw = 1.0f },
+	{.roll = -1.0f, .pitch = -1.0f, .yaw = -1.0f},
+	{.roll = -1.0f, .pitch = 1.0f, .yaw = 1.0f},
+	{.roll = 1.0f, .pitch = 1.0f, .yaw = -1.0f},
+	{.roll = 1.0f, .pitch = -1.0f, .yaw = 1.0f},
 };
 
 static float clampf(float value, float min_value, float max_value)
@@ -98,36 +98,31 @@ float rdd2_rate_throttle_command(float throttle_input, bool armed)
 		return 0.0f;
 	}
 
-	return RDD2_MOTOR_IDLE_THROTTLE +
-	       (throttle_input * (1.0f - RDD2_MOTOR_IDLE_THROTTLE));
+	return RDD2_MOTOR_IDLE_THROTTLE + (throttle_input * (1.0f - RDD2_MOTOR_IDLE_THROTTLE));
 }
 
 float rdd2_rate_yaw_desired_from_rc(const synapse_topic_RcChannels16_t *rc)
 {
-	return -rc_norm_centered(
-		rdd2_topic_rc_channels_data_const(rc)[RDD2_YAW_CHANNEL_INDEX]) *
+	return -rc_norm_centered(rdd2_topic_rc_channels_data_const(rc)[RDD2_YAW_CHANNEL_INDEX]) *
 	       RDD2_MAX_YAW_RATE_RAD_S;
 }
 
 void rdd2_rate_desired_from_rc(const synapse_topic_RcChannels16_t *rc,
-				  synapse_topic_RateTriplet_t *rate_desired)
+			       synapse_topic_RateTriplet_t *rate_desired)
 {
 	const int32_t *channels = rdd2_topic_rc_channels_data_const(rc);
 
-	rate_desired->roll =
-		rc_norm_centered(channels[RDD2_ROLL_CHANNEL_INDEX]) *
-		RDD2_MAX_ROLL_PITCH_RATE_RAD_S;
-	rate_desired->pitch =
-		rc_norm_centered(channels[RDD2_PITCH_CHANNEL_INDEX]) *
-		RDD2_MAX_ROLL_PITCH_RATE_RAD_S;
+	rate_desired->roll = rc_norm_centered(channels[RDD2_ROLL_CHANNEL_INDEX]) *
+			     RDD2_MAX_ROLL_PITCH_RATE_RAD_S;
+	rate_desired->pitch = rc_norm_centered(channels[RDD2_PITCH_CHANNEL_INDEX]) *
+			      RDD2_MAX_ROLL_PITCH_RATE_RAD_S;
 	rate_desired->yaw = rdd2_rate_yaw_desired_from_rc(rc);
 }
 
 void rdd2_rate_controller_step(struct rdd2_rate_controller *controller,
-				  const synapse_topic_RateTriplet_t *rate_desired,
-				  const synapse_topic_Vec3f_t *gyro, float dt,
-				  bool integrate,
-				  synapse_topic_RateTriplet_t *rate_cmd)
+			       const synapse_topic_RateTriplet_t *rate_desired,
+			       const synapse_topic_Vec3f_t *gyro, float dt, bool integrate,
+			       synapse_topic_RateTriplet_t *rate_cmd)
 {
 	if (dt <= 0.0f) {
 		*rate_cmd = (synapse_topic_RateTriplet_t){0};
@@ -151,7 +146,7 @@ void rdd2_rate_controller_step(struct rdd2_rate_controller *controller,
 }
 
 void rdd2_mix_quad_x(float throttle, const synapse_topic_RateTriplet_t *rate_cmd,
-			synapse_topic_MotorValues4f_t *motors)
+		     synapse_topic_MotorValues4f_t *motors)
 {
 	float max_up = 0.0f;
 	float max_down = 0.0f;

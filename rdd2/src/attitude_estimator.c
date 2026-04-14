@@ -7,7 +7,7 @@
 #include <math.h>
 #include <string.h>
 
-#define RDD2_GRAVITY_M_S2 9.81f
+#define RDD2_GRAVITY_M_S2           9.81f
 #define RDD2_ATTITUDE_CORRECTION_KP 0.35f
 #define RDD2_ATTITUDE_CORRECTION_KI 0.02f
 #define RDD2_ATTITUDE_ACCEL_MIN_G   0.6f
@@ -65,16 +65,18 @@ static void quaternion_from_euler(struct rdd2_attitude_estimator *estimator, flo
 static void attitude_from_quaternion(const struct rdd2_attitude_estimator *estimator,
 				     synapse_topic_AttitudeEuler_t *attitude)
 {
-	float sinr_cosp = (2.0f * estimator->q_w * estimator->q_x) +
-			  (2.0f * estimator->q_y * estimator->q_z);
-	float cosr_cosp = 1.0f - (2.0f * ((estimator->q_x * estimator->q_x) +
-				      (estimator->q_y * estimator->q_y)));
-	float sinp = (2.0f * estimator->q_w * estimator->q_y) -
-		     (2.0f * estimator->q_z * estimator->q_x);
-	float siny_cosp = (2.0f * estimator->q_w * estimator->q_z) +
-			  (2.0f * estimator->q_x * estimator->q_y);
-	float cosy_cosp = 1.0f - (2.0f * ((estimator->q_y * estimator->q_y) +
-				      (estimator->q_z * estimator->q_z)));
+	float sinr_cosp =
+		(2.0f * estimator->q_w * estimator->q_x) + (2.0f * estimator->q_y * estimator->q_z);
+	float cosr_cosp =
+		1.0f -
+		(2.0f * ((estimator->q_x * estimator->q_x) + (estimator->q_y * estimator->q_y)));
+	float sinp =
+		(2.0f * estimator->q_w * estimator->q_y) - (2.0f * estimator->q_z * estimator->q_x);
+	float siny_cosp =
+		(2.0f * estimator->q_w * estimator->q_z) + (2.0f * estimator->q_x * estimator->q_y);
+	float cosy_cosp =
+		1.0f -
+		(2.0f * ((estimator->q_y * estimator->q_y) + (estimator->q_z * estimator->q_z)));
 
 	attitude->roll = atan2f(sinr_cosp, cosr_cosp);
 	attitude->pitch = asinf(clampf(sinp, -1.0f, 1.0f));
@@ -86,8 +88,7 @@ static bool accel_correction_valid(const synapse_topic_Vec3f_t *accel, float *ax
 {
 	float accel_norm;
 
-	accel_norm =
-		sqrtf((accel->x * accel->x) + (accel->y * accel->y) + (accel->z * accel->z));
+	accel_norm = sqrtf((accel->x * accel->x) + (accel->y * accel->y) + (accel->z * accel->z));
 	if (accel_norm < (RDD2_ATTITUDE_ACCEL_MIN_G * RDD2_GRAVITY_M_S2) ||
 	    accel_norm > (RDD2_ATTITUDE_ACCEL_MAX_G * RDD2_GRAVITY_M_S2)) {
 		return false;
@@ -109,8 +110,8 @@ void rdd2_attitude_estimator_init(struct rdd2_attitude_estimator *estimator)
 	estimator->q_w = 1.0f;
 }
 
-void rdd2_attitude_estimator_reset_from_accel(
-	struct rdd2_attitude_estimator *estimator, const synapse_topic_Vec3f_t *accel)
+void rdd2_attitude_estimator_reset_from_accel(struct rdd2_attitude_estimator *estimator,
+					      const synapse_topic_Vec3f_t *accel)
 {
 	float roll = 0.0f;
 	float pitch = 0.0f;
@@ -131,8 +132,8 @@ void rdd2_attitude_estimator_reset_from_accel(
 }
 
 void rdd2_attitude_estimator_predict(struct rdd2_attitude_estimator *estimator,
-					const synapse_topic_Vec3f_t *gyro,
-					const synapse_topic_Vec3f_t *accel, float dt)
+				     const synapse_topic_Vec3f_t *gyro,
+				     const synapse_topic_Vec3f_t *accel, float dt)
 {
 	float gx;
 	float gy;
@@ -157,9 +158,9 @@ void rdd2_attitude_estimator_predict(struct rdd2_attitude_estimator *estimator,
 
 		if (accel_correction_valid(accel, &ax, &ay, &az)) {
 			float gravity_x = 2.0f * ((estimator->q_x * estimator->q_z) -
-						 (estimator->q_w * estimator->q_y));
+						  (estimator->q_w * estimator->q_y));
 			float gravity_y = 2.0f * ((estimator->q_w * estimator->q_x) +
-						 (estimator->q_y * estimator->q_z));
+						  (estimator->q_y * estimator->q_z));
 			float gravity_z = (estimator->q_w * estimator->q_w) -
 					  (estimator->q_x * estimator->q_x) -
 					  (estimator->q_y * estimator->q_y) +
@@ -195,9 +196,8 @@ void rdd2_attitude_estimator_predict(struct rdd2_attitude_estimator *estimator,
 	quaternion_normalize(estimator);
 }
 
-void rdd2_attitude_estimator_get_attitude(
-	const struct rdd2_attitude_estimator *estimator,
-	synapse_topic_AttitudeEuler_t *attitude)
+void rdd2_attitude_estimator_get_attitude(const struct rdd2_attitude_estimator *estimator,
+					  synapse_topic_AttitudeEuler_t *attitude)
 {
 	if (estimator == NULL || attitude == NULL) {
 		return;

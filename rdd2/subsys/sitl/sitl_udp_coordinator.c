@@ -109,8 +109,8 @@ static void sitl_input_store_publish(const uint8_t *buf, size_t len)
 	atomic_set(&g_sitl_input_store.generation, (atomic_val_t)next_generation);
 }
 
-bool rdd2_sitl_udp_latest_input_get(
-	uint8_t *buf, size_t buf_size, size_t *len, uint32_t *generation)
+bool rdd2_sitl_udp_latest_input_get(uint8_t *buf, size_t buf_size, size_t *len,
+				    uint32_t *generation)
 {
 	uint32_t generation_start;
 	uint32_t generation_end;
@@ -153,14 +153,13 @@ static void sitl_report_rc_input(const synapse_topic_RcChannels16_t *rc, uint8_t
 	}
 
 	for (size_t i = 0; i < 16U; i++) {
-		(void)input_report_abs(rc_dev, (uint16_t)(i + 1U), channels[i], false,
-				       K_FOREVER);
+		(void)input_report_abs(rc_dev, (uint16_t)(i + 1U), channels[i], false, K_FOREVER);
 	}
 
-	(void)input_report(rc_dev, INPUT_EV_MSC, RDD2_RC_INPUT_EVENT_LINK_QUALITY,
-			   rc_link_quality, false, K_FOREVER);
-	(void)input_report(rc_dev, INPUT_EV_MSC, RDD2_RC_INPUT_EVENT_VALID,
-			   rc_valid ? 1 : 0, true, K_FOREVER);
+	(void)input_report(rc_dev, INPUT_EV_MSC, RDD2_RC_INPUT_EVENT_LINK_QUALITY, rc_link_quality,
+			   false, K_FOREVER);
+	(void)input_report(rc_dev, INPUT_EV_MSC, RDD2_RC_INPUT_EVENT_VALID, rc_valid ? 1 : 0, true,
+			   K_FOREVER);
 }
 
 static void sitl_rx_drain(void)
@@ -183,8 +182,8 @@ static void sitl_rx_drain(void)
 			break;
 		}
 
-		if (!rdd2_sitl_fb_unpack_input(buf, (size_t)len, NULL, NULL, &rc,
-						   &rc_link_quality, &rc_valid, NULL)) {
+		if (!rdd2_sitl_fb_unpack_input(buf, (size_t)len, NULL, NULL, &rc, &rc_link_quality,
+					       &rc_valid, NULL)) {
 			source_addr_len = sizeof(source_addr);
 			continue;
 		}
@@ -270,27 +269,26 @@ static int rdd2_sitl_init(void)
 	}
 
 	rc = sitl_destination_init(&g_sitl_tx_flight_addr,
-				       CONFIG_RDD2_SITL_TX_FLIGHT_SNAPSHOT_PORT);
+				   CONFIG_RDD2_SITL_TX_FLIGHT_SNAPSHOT_PORT);
 	if (rc != 0) {
 		LOG_ERR("sitl flight destination init failed");
 		return rc;
 	}
 
-	rc = sitl_destination_init(&g_sitl_tx_motor_addr,
-				       CONFIG_RDD2_SITL_TX_MOTOR_OUTPUT_PORT);
+	rc = sitl_destination_init(&g_sitl_tx_motor_addr, CONFIG_RDD2_SITL_TX_MOTOR_OUTPUT_PORT);
 	if (rc != 0) {
 		LOG_ERR("sitl motor destination init failed");
 		return rc;
 	}
 
 	k_thread_create(&g_sitl_thread, g_sitl_thread_stack,
-			K_THREAD_STACK_SIZEOF(g_sitl_thread_stack), sitl_transport_thread,
-			NULL, NULL, NULL, CONFIG_RDD2_SITL_THREAD_PRIORITY, 0, K_NO_WAIT);
+			K_THREAD_STACK_SIZEOF(g_sitl_thread_stack), sitl_transport_thread, NULL,
+			NULL, NULL, CONFIG_RDD2_SITL_THREAD_PRIORITY, 0, K_NO_WAIT);
 	k_thread_name_set(&g_sitl_thread, "rdd2_sitl");
 
-	LOG_INF("sitl udp rx=%d tx_flight=%d tx_motor=%d host=%s",
-		CONFIG_RDD2_SITL_RX_PORT, CONFIG_RDD2_SITL_TX_FLIGHT_SNAPSHOT_PORT,
-		CONFIG_RDD2_SITL_TX_MOTOR_OUTPUT_PORT, CONFIG_RDD2_SITL_HOST);
+	LOG_INF("sitl udp rx=%d tx_flight=%d tx_motor=%d host=%s", CONFIG_RDD2_SITL_RX_PORT,
+		CONFIG_RDD2_SITL_TX_FLIGHT_SNAPSHOT_PORT, CONFIG_RDD2_SITL_TX_MOTOR_OUTPUT_PORT,
+		CONFIG_RDD2_SITL_HOST);
 
 	return 0;
 }

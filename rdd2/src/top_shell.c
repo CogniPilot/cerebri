@@ -13,9 +13,9 @@
 #include <zephyr/shell/shell.h>
 
 #define RDD2_TOP_DEFAULT_PERIOD_MS 1000U
-#define RDD2_TOP_MAX_THREADS 32U
-#define RDD2_TOP_NAME_LEN 31U
-#define RDD2_TOP_WATCH_STACK_SIZE 4096U
+#define RDD2_TOP_MAX_THREADS       32U
+#define RDD2_TOP_NAME_LEN          31U
+#define RDD2_TOP_WATCH_STACK_SIZE  4096U
 
 struct rdd2_top_watch {
 	const struct shell *sh;
@@ -57,8 +57,8 @@ K_SEM_DEFINE(g_rdd2_top_watch_sem, 0, 1);
 
 static void rdd2_top_watch_thread(void *p0, void *p1, void *p2);
 
-K_THREAD_DEFINE(g_rdd2_top_watch_tid, RDD2_TOP_WATCH_STACK_SIZE, rdd2_top_watch_thread, NULL,
-		NULL, NULL, K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
+K_THREAD_DEFINE(g_rdd2_top_watch_tid, RDD2_TOP_WATCH_STACK_SIZE, rdd2_top_watch_thread, NULL, NULL,
+		NULL, K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
 
 static int rdd2_top_find_prev_index(const struct k_thread *thread)
 {
@@ -241,8 +241,8 @@ static int rdd2_top_render(const struct shell *sh, bool watch_mode, uint32_t per
 
 			if (prev >= 0 &&
 			    row->execution_cycles >= g_rdd2_top_prev[prev].execution_cycles) {
-				row->display_cycles =
-					row->execution_cycles - g_rdd2_top_prev[prev].execution_cycles;
+				row->display_cycles = row->execution_cycles -
+						      g_rdd2_top_prev[prev].execution_cycles;
 			}
 		}
 	}
@@ -254,7 +254,9 @@ static int rdd2_top_render(const struct shell *sh, bool watch_mode, uint32_t per
 	}
 
 	shell_print(sh, "kind  prio state        cpu%%  stack%% used/size  name");
-	shell_print(sh, "----  ---- ----------- ----- ------ ---------- -------------------------------");
+	shell_print(
+		sh,
+		"----  ---- ----------- ----- ------ ---------- -------------------------------");
 
 	for (size_t i = 0; i < snapshot.count; ++i) {
 		const struct rdd2_top_row *row = &snapshot.rows[i];
@@ -266,19 +268,13 @@ static int rdd2_top_render(const struct shell *sh, bool watch_mode, uint32_t per
 		}
 
 		cpu_percent_x10 = rdd2_top_percent_x10(row->display_cycles,
-						     delta_total_cycles > 0U ? delta_total_cycles :
-						     total_cycles);
+						       delta_total_cycles > 0U ? delta_total_cycles
+									       : total_cycles);
 
 		shell_print(sh, "%-4s  %4d %-11.11s %3u.%1u%% %5zu%% %4zu/%-5zu  %-31.31s",
-			    row->current ? "curr" : "thr",
-			    row->priority,
-			    row->state,
-			    cpu_percent_x10 / 10U,
-			    cpu_percent_x10 % 10U,
-			    stack_percent,
-			    row->stack_used,
-			    row->stack_size,
-			    row->name);
+			    row->current ? "curr" : "thr", row->priority, row->state,
+			    cpu_percent_x10 / 10U, cpu_percent_x10 % 10U, stack_percent,
+			    row->stack_used, row->stack_size, row->name);
 	}
 
 	if (snapshot.truncated) {
@@ -393,6 +389,5 @@ static int cmd_top(const struct shell *sh, size_t argc, char **argv)
 
 SYS_INIT(rdd2_top_shell_init, APPLICATION, 0);
 
-SHELL_CMD_REGISTER(top, NULL,
-		   "watch a compact thread CPU/stack table: top [period_ms|once|stop]",
+SHELL_CMD_REGISTER(top, NULL, "watch a compact thread CPU/stack table: top [period_ms|once|stop]",
 		   cmd_top);

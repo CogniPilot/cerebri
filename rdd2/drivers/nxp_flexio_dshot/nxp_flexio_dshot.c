@@ -25,7 +25,7 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_LOG_DEFAULT_LEVEL);
 
 #include <zephyr/drivers/misc/nxp_flexio/nxp_flexio.h>
 
-#define DT_DRV_COMPAT cognipilot_flexio_dshot
+#define DT_DRV_COMPAT       cognipilot_flexio_dshot
 #define DSHOT_INIT_PRIORITY CONFIG_KERNEL_INIT_PRIORITY_DEVICE
 
 #define DSHOT_THROTTLE_POSITION  5u
@@ -678,7 +678,6 @@ static const struct nxp_flexio_dshot_driver_api nxp_flexio_dshot_api_funcs = {
 	static struct nxp_flexio_dshot_data nxp_flexio_dshot_data_##n;                             \
 	SENSOR_DEVICE_DT_INST_DEFINE(n, &nxp_flexio_dshot_init, NULL, &nxp_flexio_dshot_data_##n,  \
 				     &nxp_flexio_dshot_config_##n, POST_KERNEL,                    \
-				     DSHOT_INIT_PRIORITY,                                           \
-				     &nxp_flexio_dshot_api_funcs);
+				     DSHOT_INIT_PRIORITY, &nxp_flexio_dshot_api_funcs);
 
 DT_INST_FOREACH_STATUS_OKAY(NXP_FLEXIO_DSHOT_INIT)

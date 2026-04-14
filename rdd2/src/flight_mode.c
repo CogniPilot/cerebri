@@ -4,8 +4,7 @@
 
 #include "flight_mode.h"
 
-enum rdd2_flight_mode rdd2_flight_mode_from_rc(
-	const synapse_topic_RcChannels16_t *rc)
+enum rdd2_flight_mode rdd2_flight_mode_from_rc(const synapse_topic_RcChannels16_t *rc)
 {
 	const int32_t *channels;
 

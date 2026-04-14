@@ -12,8 +12,8 @@ static int sitl_rc_init(const struct device *dev)
 	return 0;
 }
 
-#define RDD2_SITL_RC_INIT(inst)                                                              \
-	DEVICE_DT_INST_DEFINE(inst, sitl_rc_init, NULL, NULL, NULL, POST_KERNEL,               \
+#define RDD2_SITL_RC_INIT(inst)                                                                    \
+	DEVICE_DT_INST_DEFINE(inst, sitl_rc_init, NULL, NULL, NULL, POST_KERNEL,                   \
 			      CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, NULL)
 
 DT_INST_FOREACH_STATUS_OKAY(RDD2_SITL_RC_INIT)

@@ -19,12 +19,12 @@
 
 LOG_MODULE_DECLARE(rdd2, LOG_LEVEL_INF);
 
-#define IMU_NODE DT_ALIAS(imu0)
-#define RDD2_IMU_TIMEOUT_NS (4ULL * RDD2_CONTROL_PERIOD_NS)
-#define RDD2_IMU_RTIO_SQ_COUNT 16U
-#define RDD2_IMU_RTIO_CQ_COUNT 16U
+#define IMU_NODE                DT_ALIAS(imu0)
+#define RDD2_IMU_TIMEOUT_NS     (4ULL * RDD2_CONTROL_PERIOD_NS)
+#define RDD2_IMU_RTIO_SQ_COUNT  16U
+#define RDD2_IMU_RTIO_CQ_COUNT  16U
 #define RDD2_IMU_RTIO_BUF_COUNT 32U
-#define RDD2_IMU_RTIO_BUF_SIZE 128U
+#define RDD2_IMU_RTIO_BUF_SIZE  128U
 
 static void imu_outputs_zero(synapse_topic_Vec3f_t *gyro, synapse_topic_Vec3f_t *accel)
 {
@@ -35,19 +35,15 @@ static void imu_outputs_zero(synapse_topic_Vec3f_t *gyro, synapse_topic_Vec3f_t 
 #if DT_NODE_HAS_COMPAT(IMU_NODE, invensense_icm45686) && defined(CONFIG_SENSOR_ASYNC_API)
 
 SENSOR_DT_STREAM_IODEV(rdd2_imu_stream_iodev, IMU_NODE,
-		       { SENSOR_TRIG_DATA_READY, SENSOR_STREAM_DATA_INCLUDE });
+		       {SENSOR_TRIG_DATA_READY, SENSOR_STREAM_DATA_INCLUDE});
 
 /*
  * The ICM45686 stream path is self-sustaining. Give it enough queue and buffer
  * headroom to absorb brief startup stalls without starving the ISR-side RTIO
  * buffer acquisition path.
  */
-RTIO_DEFINE_WITH_MEMPOOL(rdd2_imu_rtio,
-			 RDD2_IMU_RTIO_SQ_COUNT,
-			 RDD2_IMU_RTIO_CQ_COUNT,
-			 RDD2_IMU_RTIO_BUF_COUNT,
-			 RDD2_IMU_RTIO_BUF_SIZE,
-			 sizeof(void *));
+RTIO_DEFINE_WITH_MEMPOOL(rdd2_imu_rtio, RDD2_IMU_RTIO_SQ_COUNT, RDD2_IMU_RTIO_CQ_COUNT,
+			 RDD2_IMU_RTIO_BUF_COUNT, RDD2_IMU_RTIO_BUF_SIZE, sizeof(void *));
 
 static const struct device *const g_imu_dev = DEVICE_DT_GET(IMU_NODE);
 static struct rtio_sqe *g_imu_stream_handle;
@@ -64,8 +60,7 @@ static const struct sensor_chan_spec g_imu_gyro_chan = {
 };
 
 static void imu_sensor_axes_to_body(float gyro_x, float gyro_y, float gyro_z, float accel_x,
-				    float accel_y, float accel_z,
-				    synapse_topic_Vec3f_t *gyro_out,
+				    float accel_y, float accel_z, synapse_topic_Vec3f_t *gyro_out,
 				    synapse_topic_Vec3f_t *accel_out)
 {
 
@@ -91,8 +86,7 @@ static float imu_q31_to_float(q31_t value, int8_t shift)
 
 static int imu_stream_start(void)
 {
-	return sensor_stream(&rdd2_imu_stream_iodev, &rdd2_imu_rtio, NULL,
-			     &g_imu_stream_handle);
+	return sensor_stream(&rdd2_imu_stream_iodev, &rdd2_imu_rtio, NULL, &g_imu_stream_handle);
 }
 
 static void imu_stream_timing_reset(void)
@@ -166,16 +160,14 @@ static bool imu_stream_decode_latest(const uint8_t *buf, synapse_topic_Vec3f_t *
 		return false;
 	}
 
-	imu_sensor_axes_to_body(
-		imu_q31_to_float(gyro_data.readings[0].x, gyro_data.shift),
-		imu_q31_to_float(gyro_data.readings[0].y, gyro_data.shift),
-		imu_q31_to_float(gyro_data.readings[0].z, gyro_data.shift),
-		imu_q31_to_float(accel_data.readings[0].x, accel_data.shift),
-		imu_q31_to_float(accel_data.readings[0].y, accel_data.shift),
-		imu_q31_to_float(accel_data.readings[0].z, accel_data.shift),
-		gyro, accel);
-	*sample_ns = gyro_data.header.base_timestamp_ns +
-		     gyro_data.readings[0].timestamp_delta;
+	imu_sensor_axes_to_body(imu_q31_to_float(gyro_data.readings[0].x, gyro_data.shift),
+				imu_q31_to_float(gyro_data.readings[0].y, gyro_data.shift),
+				imu_q31_to_float(gyro_data.readings[0].z, gyro_data.shift),
+				imu_q31_to_float(accel_data.readings[0].x, accel_data.shift),
+				imu_q31_to_float(accel_data.readings[0].y, accel_data.shift),
+				imu_q31_to_float(accel_data.readings[0].z, accel_data.shift), gyro,
+				accel);
+	*sample_ns = gyro_data.header.base_timestamp_ns + gyro_data.readings[0].timestamp_delta;
 	return true;
 }
 
@@ -203,10 +195,8 @@ int rdd2_imu_stream_init(void)
 	return 0;
 }
 
-bool rdd2_imu_stream_wait_next(synapse_topic_Vec3f_t *gyro,
-				  synapse_topic_Vec3f_t *accel,
-				  float *dt,
-				  uint64_t *interrupt_timestamp_ns)
+bool rdd2_imu_stream_wait_next(synapse_topic_Vec3f_t *gyro, synapse_topic_Vec3f_t *accel, float *dt,
+			       uint64_t *interrupt_timestamp_ns)
 {
 	struct rtio_cqe *cqe;
 	uint8_t *buf = NULL;
@@ -311,10 +301,8 @@ int rdd2_imu_stream_init(void)
 	return 0;
 }
 
-bool rdd2_imu_stream_wait_next(synapse_topic_Vec3f_t *gyro,
-				  synapse_topic_Vec3f_t *accel,
-				  float *dt,
-				  uint64_t *interrupt_timestamp_ns)
+bool rdd2_imu_stream_wait_next(synapse_topic_Vec3f_t *gyro, synapse_topic_Vec3f_t *accel, float *dt,
+			       uint64_t *interrupt_timestamp_ns)
 {
 	k_sleep(K_NSEC(RDD2_CONTROL_PERIOD_NS));
 	*dt = RDD2_CONTROL_DT_S;

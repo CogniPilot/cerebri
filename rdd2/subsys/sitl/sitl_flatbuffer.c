@@ -30,9 +30,7 @@ static uint16_t get_le16(const uint8_t *buf)
 
 static uint32_t get_le32(const uint8_t *buf)
 {
-	return (uint32_t)buf[0] |
-	       ((uint32_t)buf[1] << 8) |
-	       ((uint32_t)buf[2] << 16) |
+	return (uint32_t)buf[0] | ((uint32_t)buf[1] << 8) | ((uint32_t)buf[2] << 16) |
 	       ((uint32_t)buf[3] << 24);
 }
 
@@ -88,10 +86,9 @@ static bool sim_input_struct_in_bounds(size_t table_offset, uint16_t object_size
 	return (table_offset + (size_t)field_offset + field_size) <= buf_size;
 }
 
-bool rdd2_sitl_fb_unpack_input(
-	const uint8_t *buf, size_t buf_size, synapse_topic_Vec3f_t *gyro,
-	synapse_topic_Vec3f_t *accel, synapse_topic_RcChannels16_t *rc,
-	uint8_t *rc_link_quality, bool *rc_valid, bool *imu_valid)
+bool rdd2_sitl_fb_unpack_input(const uint8_t *buf, size_t buf_size, synapse_topic_Vec3f_t *gyro,
+			       synapse_topic_Vec3f_t *accel, synapse_topic_RcChannels16_t *rc,
+			       uint8_t *rc_link_quality, bool *rc_valid, bool *imu_valid)
 {
 	const uint8_t *table;
 	size_t table_offset;
@@ -133,8 +130,8 @@ bool rdd2_sitl_fb_unpack_input(
 		memcpy(accel, table + field_offset, sizeof(*accel));
 	}
 
-	if (!sim_input_read_field_offset(table, table_offset, buf_size, SIM_FIELD_RC,
-					 &field_offset, &object_size) ||
+	if (!sim_input_read_field_offset(table, table_offset, buf_size, SIM_FIELD_RC, &field_offset,
+					 &object_size) ||
 	    !sim_input_struct_in_bounds(table_offset, object_size, field_offset,
 					sizeof(synapse_topic_RcChannels16_t), buf_size)) {
 		return false;

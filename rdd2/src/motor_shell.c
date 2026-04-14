@@ -16,8 +16,7 @@
 #include <zros/zros_topic.h>
 
 static void motor_latest_output(synapse_topic_MotorValues4f_t *motors,
-				synapse_topic_MotorRaw4u16_t *raw, bool *armed,
-				bool *test_mode)
+				synapse_topic_MotorRaw4u16_t *raw, bool *armed, bool *test_mode)
 {
 	rdd2_topic_motor_output_blob_t blob = {0};
 
@@ -54,28 +53,18 @@ static int cmd_motor_status(const struct shell *sh, size_t argc, char **argv)
 	active = rdd2_motor_test_get(&test_motors);
 	raw_active = rdd2_motor_raw_test_get(&test_raw);
 	motor_latest_output(&motors, &raw, &armed, &test_mode);
-	shell_print(sh,
-		    "motor_test=%d test_m0=%0.3f test_m1=%0.3f test_m2=%0.3f test_m3=%0.3f",
-		    active ? 1 : 0,
-		    (double)test_motors.m0,
-		    (double)test_motors.m1,
-		    (double)test_motors.m2,
-		    (double)test_motors.m3);
-	shell_print(sh,
-		    "raw_test=%d raw_m0=%u raw_m1=%u raw_m2=%u raw_m3=%u",
-		    raw_active ? 1 : 0,
-		    (unsigned int)test_raw.m0,
-		    (unsigned int)test_raw.m1,
-		    (unsigned int)test_raw.m2,
+	shell_print(sh, "motor_test=%d test_m0=%0.3f test_m1=%0.3f test_m2=%0.3f test_m3=%0.3f",
+		    active ? 1 : 0, (double)test_motors.m0, (double)test_motors.m1,
+		    (double)test_motors.m2, (double)test_motors.m3);
+	shell_print(sh, "raw_test=%d raw_m0=%u raw_m1=%u raw_m2=%u raw_m3=%u", raw_active ? 1 : 0,
+		    (unsigned int)test_raw.m0, (unsigned int)test_raw.m1, (unsigned int)test_raw.m2,
 		    (unsigned int)test_raw.m3);
-	shell_print(sh,
-		    "last_out armed=%d test_mode=%d m0=%0.3f/%u m1=%0.3f/%u m2=%0.3f/%u m3=%0.3f/%u",
-		    armed ? 1 : 0,
-		    test_mode ? 1 : 0,
-		    (double)motors.m0, (unsigned int)raw.m0,
-		    (double)motors.m1, (unsigned int)raw.m1,
-		    (double)motors.m2, (unsigned int)raw.m2,
-		    (double)motors.m3, (unsigned int)raw.m3);
+	shell_print(
+		sh,
+		"last_out armed=%d test_mode=%d m0=%0.3f/%u m1=%0.3f/%u m2=%0.3f/%u m3=%0.3f/%u",
+		armed ? 1 : 0, test_mode ? 1 : 0, (double)motors.m0, (unsigned int)raw.m0,
+		(double)motors.m1, (unsigned int)raw.m1, (double)motors.m2, (unsigned int)raw.m2,
+		(double)motors.m3, (unsigned int)raw.m3);
 	shell_print(sh, "guess: m0=front-right m1=rear-right m2=rear-left m3=front-left");
 
 	return 0;
@@ -203,6 +192,5 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 	SHELL_CMD_ARG(raw_all, NULL, "set all motors raw: motor raw_all <value:0|48..2047>",
 		      cmd_motor_raw_all, 2, 0),
 	SHELL_CMD(stop, NULL, "stop all motor tests", cmd_motor_stop),
-	SHELL_CMD(status, NULL, "show motor test state", cmd_motor_status),
-	SHELL_SUBCMD_SET_END);
+	SHELL_CMD(status, NULL, "show motor test state", cmd_motor_status), SHELL_SUBCMD_SET_END);
 SHELL_CMD_REGISTER(motor, &sub_motor, "bench motor commands", NULL);

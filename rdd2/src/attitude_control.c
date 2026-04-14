@@ -6,10 +6,10 @@
 
 #include "rate_control.h"
 
-#define RC_US_CENTER                1500
-#define MAX_AUTO_LEVEL_TILT_RAD     0.61086524f
-#define AUTO_LEVEL_ROLL_P_GAIN      4.0f
-#define AUTO_LEVEL_PITCH_P_GAIN     4.0f
+#define RC_US_CENTER            1500
+#define MAX_AUTO_LEVEL_TILT_RAD 0.61086524f
+#define AUTO_LEVEL_ROLL_P_GAIN  4.0f
+#define AUTO_LEVEL_PITCH_P_GAIN 4.0f
 
 static float clampf(float value, float min_value, float max_value)
 {
@@ -54,8 +54,8 @@ void rdd2_attitude_controller_reset(struct rdd2_attitude_controller *controller)
 }
 
 void rdd2_attitude_desired_from_rc(const synapse_topic_RcChannels16_t *rc,
-				      const synapse_topic_AttitudeEuler_t *attitude,
-				      synapse_topic_AttitudeEuler_t *attitude_desired)
+				   const synapse_topic_AttitudeEuler_t *attitude,
+				   synapse_topic_AttitudeEuler_t *attitude_desired)
 {
 	const int32_t *channels;
 
@@ -72,10 +72,10 @@ void rdd2_attitude_desired_from_rc(const synapse_topic_RcChannels16_t *rc,
 }
 
 void rdd2_attitude_controller_step(struct rdd2_attitude_controller *controller,
-				      const synapse_topic_AttitudeEuler_t *attitude,
-				      const synapse_topic_AttitudeEuler_t *attitude_desired,
-				      const synapse_topic_RcChannels16_t *rc, float dt,
-				      synapse_topic_RateTriplet_t *rate_desired)
+				   const synapse_topic_AttitudeEuler_t *attitude,
+				   const synapse_topic_AttitudeEuler_t *attitude_desired,
+				   const synapse_topic_RcChannels16_t *rc, float dt,
+				   synapse_topic_RateTriplet_t *rate_desired)
 {
 	const int32_t *channels;
 
@@ -98,6 +98,5 @@ void rdd2_attitude_controller_step(struct rdd2_attitude_controller *controller,
 
 	channels = rdd2_topic_rc_channels_data_const(rc);
 	rate_desired->yaw =
-		-rc_norm_centered(channels[RDD2_YAW_CHANNEL_INDEX]) *
-		RDD2_MAX_YAW_RATE_RAD_S;
+		-rc_norm_centered(channels[RDD2_YAW_CHANNEL_INDEX]) * RDD2_MAX_YAW_RATE_RAD_S;
 }

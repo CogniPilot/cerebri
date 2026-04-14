@@ -36,8 +36,8 @@ static void motor_output_publish(const synapse_topic_MotorValues4f_t *motors,
 	}
 
 	len = rdd2_topic_fb_pack_motor_output(g_rdd2_motor_output_blob,
-					      sizeof(g_rdd2_motor_output_blob), motors, raw,
-					      armed, test_mode);
+					      sizeof(g_rdd2_motor_output_blob), motors, raw, armed,
+					      test_mode);
 	if (len != sizeof(g_rdd2_motor_output_blob)) {
 		return;
 	}
@@ -82,8 +82,8 @@ void rdd2_motor_output_init(void)
 	int rc;
 
 	zros_node_init(&g_rdd2_motor_output_node, "rdd2_motor_output");
-	rc = zros_pub_init(&g_rdd2_motor_output_pub, &g_rdd2_motor_output_node,
-			   &topic_motor_output, &g_rdd2_motor_output_blob);
+	rc = zros_pub_init(&g_rdd2_motor_output_pub, &g_rdd2_motor_output_node, &topic_motor_output,
+			   &g_rdd2_motor_output_blob);
 	g_rdd2_motor_output_pub_ready = (rc == 0);
 
 	rdd2_motor_test_clear();
@@ -115,7 +115,8 @@ uint64_t rdd2_motor_output_write_all(const synapse_topic_MotorValues4f_t *motors
 
 	for (size_t i = 0; i < 4U; i++) {
 		applied_values[i] = armed ? clampf(motor_values[i], min_output, 1.0f) : 0.0f;
-		raw_values[i] = motor_to_dshot(applied_values[i], armed && applied_values[i] > 0.0f);
+		raw_values[i] =
+			motor_to_dshot(applied_values[i], armed && applied_values[i] > 0.0f);
 		nxp_flexio_dshot_data_set(DEVICE_DT_GET(DSHOT_NODE), i, raw_values[i], false);
 	}
 
@@ -123,8 +124,7 @@ uint64_t rdd2_motor_output_write_all(const synapse_topic_MotorValues4f_t *motors
 	return motor_output_trigger_and_timestamp();
 }
 
-uint64_t rdd2_motor_output_write_all_raw(const synapse_topic_MotorRaw4u16_t *raw,
-					 bool test_mode)
+uint64_t rdd2_motor_output_write_all_raw(const synapse_topic_MotorRaw4u16_t *raw, bool test_mode)
 {
 	synapse_topic_MotorValues4f_t applied = {0};
 	synapse_topic_MotorRaw4u16_t clamped = {0};
@@ -147,7 +147,8 @@ uint64_t rdd2_motor_output_write_all_raw(const synapse_topic_MotorRaw4u16_t *raw
 		if (value == DSHOT_DISARMED) {
 			applied_values[i] = 0.0f;
 		} else {
-			applied_values[i] = (float)(value - DSHOT_MIN) / (float)(DSHOT_MAX - DSHOT_MIN);
+			applied_values[i] =
+				(float)(value - DSHOT_MIN) / (float)(DSHOT_MAX - DSHOT_MIN);
 			armed = true;
 		}
 		nxp_flexio_dshot_data_set(DEVICE_DT_GET(DSHOT_NODE), i, value, false);

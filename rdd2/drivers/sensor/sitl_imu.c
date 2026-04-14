@@ -44,7 +44,7 @@ static int sitl_imu_sample_fetch(const struct device *dev, enum sensor_channel c
 	}
 
 	if (!rdd2_sitl_fb_unpack_input(buf, len, &data->gyro, &data->accel, NULL, NULL, NULL,
-					   &imu_valid)) {
+				       &imu_valid)) {
 		data->valid = false;
 		data->generation = generation;
 		return -ENODATA;
@@ -93,10 +93,10 @@ static const struct sensor_driver_api sitl_imu_api = {
 	.channel_get = sitl_imu_channel_get,
 };
 
-#define RDD2_SITL_IMU_INIT(inst)                                                              \
-	static struct sitl_imu_data sitl_imu_data_##inst;                                        \
-	SENSOR_DEVICE_DT_INST_DEFINE(inst, sitl_imu_init, NULL, &sitl_imu_data_##inst, NULL,    \
-				     POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,            \
+#define RDD2_SITL_IMU_INIT(inst)                                                                   \
+	static struct sitl_imu_data sitl_imu_data_##inst;                                          \
+	SENSOR_DEVICE_DT_INST_DEFINE(inst, sitl_imu_init, NULL, &sitl_imu_data_##inst, NULL,       \
+				     POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,             \
 				     &sitl_imu_api)
 
 DT_INST_FOREACH_STATUS_OKAY(RDD2_SITL_IMU_INIT)

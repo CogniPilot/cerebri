@@ -101,15 +101,14 @@ static const struct nxp_flexio_dshot_driver_api sitl_dshot_api = {
 	.channel_count = sitl_dshot_channel_count,
 };
 
-#define RDD2_SITL_DSHOT_INIT(inst)                                                            \
-	BUILD_ASSERT(DT_INST_PROP(inst, channel_count) == 4,                                     \
-		     "rdd2 native_sim expects four motor channels");                        \
-	static struct sitl_dshot_data sitl_dshot_data_##inst;                                  \
-	static const struct sitl_dshot_config sitl_dshot_config_##inst = {                       \
-		.channel_count = DT_INST_PROP(inst, channel_count),                             \
-	};                                                                                       \
-	SENSOR_DEVICE_DT_INST_DEFINE(inst, sitl_dshot_init, NULL,                             \
-				     &sitl_dshot_data_##inst,                                     \
+#define RDD2_SITL_DSHOT_INIT(inst)                                                                 \
+	BUILD_ASSERT(DT_INST_PROP(inst, channel_count) == 4,                                       \
+		     "rdd2 native_sim expects four motor channels");                               \
+	static struct sitl_dshot_data sitl_dshot_data_##inst;                                      \
+	static const struct sitl_dshot_config sitl_dshot_config_##inst = {                         \
+		.channel_count = DT_INST_PROP(inst, channel_count),                                \
+	};                                                                                         \
+	SENSOR_DEVICE_DT_INST_DEFINE(inst, sitl_dshot_init, NULL, &sitl_dshot_data_##inst,         \
 				     &sitl_dshot_config_##inst, POST_KERNEL,                       \
 				     CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, &sitl_dshot_api)
 

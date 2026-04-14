@@ -21,8 +21,7 @@ struct rdd2_imu_latency_stats_state {
 
 static RDD2_HOTPATH_DTCM_BSS struct rdd2_imu_latency_stats_state g_rdd2_imu_latency_stats;
 
-static void rdd2_imu_latency_stats_publish(
-	const struct rdd2_imu_latency_stats_snapshot *snapshot)
+static void rdd2_imu_latency_stats_publish(const struct rdd2_imu_latency_stats_snapshot *snapshot)
 {
 	__atomic_add_fetch(&g_rdd2_imu_latency_stats.sequence, 1U, __ATOMIC_RELAXED);
 	__atomic_thread_fence(__ATOMIC_RELEASE);

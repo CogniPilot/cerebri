@@ -3,6 +3,7 @@
 manifest:
   self:
     path: cerebri/rdd2
+    west-commands: rdd2/scripts/west-commands.yml
 
   remotes:
     - name: zephyrproject-rtos

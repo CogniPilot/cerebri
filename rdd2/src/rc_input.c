@@ -4,12 +4,15 @@
 
 #include "rc_input.h"
 
-#include "topic_shell.h"
+#include "topic_bus.h"
 
 #include <zephyr/drivers/input/input_crsf.h>
 #include <zephyr/input/input.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/atomic.h>
+
+#include <zros/zros_node.h>
+#include <zros/zros_pub.h>
 
 #define RC_NODE                DT_ALIAS(rc)
 #define RC_CHANNEL_COUNT       16
@@ -24,6 +27,10 @@ static bool g_rc_latest_valid;
 static int64_t g_rc_latest_stamp_ms;
 static atomic_t g_rc_seq;
 static atomic_t g_rc_link_quality;
+static struct zros_node g_rdd2_rc_node;
+static struct zros_pub g_rdd2_rc_pub;
+static synapse_topic_RcChannels16_t g_rdd2_rc_msg;
+static bool g_rdd2_rc_pub_ready;
 
 static void rc_channels_set_defaults(synapse_topic_RcChannels16_t *rc, bool *valid, int64_t *stamp_ms)
 {
@@ -44,10 +51,15 @@ static void rc_channels_set_defaults(synapse_topic_RcChannels16_t *rc, bool *val
 
 void rdd2_rc_input_init(void)
 {
+	int rc;
+
 	rc_channels_set_defaults(&g_rc_staging, &g_rc_staging_valid, NULL);
 	rc_channels_set_defaults(&g_rc_latest, &g_rc_latest_valid, &g_rc_latest_stamp_ms);
 	atomic_set(&g_rc_seq, 0);
 	atomic_set(&g_rc_link_quality, 0);
+	zros_node_init(&g_rdd2_rc_node, "rdd2_rc_input");
+	rc = zros_pub_init(&g_rdd2_rc_pub, &g_rdd2_rc_node, &topic_rc, &g_rdd2_rc_msg);
+	g_rdd2_rc_pub_ready = (rc == 0);
 }
 
 void rdd2_rc_input_latest_get(synapse_topic_RcChannels16_t *rc, int64_t *stamp_ms,
@@ -104,7 +116,10 @@ static void rc_input_cb(struct input_event *evt, void *user_data)
 		g_rc_latest_valid = g_rc_staging_valid;
 		g_rc_latest_stamp_ms = k_uptime_get();
 		atomic_inc(&g_rc_seq);
-		rdd2_topic_rc_published();
+		if (g_rdd2_rc_pub_ready) {
+			g_rdd2_rc_msg = g_rc_latest;
+			(void)zros_pub_update(&g_rdd2_rc_pub);
+		}
 	}
 }
 

@@ -1,12 +1,12 @@
 #ifndef RDD2_ATTITUDE_CONTROL_H_
 #define RDD2_ATTITUDE_CONTROL_H_
 
-#include "generated/PIDAxis.h"
+#include "pid_axis.h"
 #include "topic_flatbuffer.h"
 
 struct rdd2_attitude_controller {
-	PIDAxis_t roll;
-	PIDAxis_t pitch;
+	struct rdd2_pid_axis roll;
+	struct rdd2_pid_axis pitch;
 };
 
 void rdd2_attitude_controller_init(struct rdd2_attitude_controller *controller);

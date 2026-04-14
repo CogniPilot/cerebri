@@ -6,5 +6,6 @@ Rules:
 - If behavior needs to change, prefer regenerating or replacing these artifacts instead of patching them in place.
 
 Current status:
-- `PIDAxis.*` and `rdd2.*` are imported generated source artifacts.
+- `rdd2.*` is an imported generated source artifact.
+- `PIDAxis.*` is retained only as a historical reference and is no longer wired into the flight build.
 - This directory is transitional and is expected to be replaced by a local Rumoca-based generation flow.

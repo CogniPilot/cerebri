@@ -4,13 +4,38 @@
 
 #include "motor_output.h"
 
-#include "topic_shell.h"
+#include "topic_bus.h"
 
 #include <errno.h>
+#include <string.h>
 #include <stdlib.h>
 
 #include <zephyr/drivers/misc/nxp_flexio_dshot/nxp_flexio_dshot.h>
 #include <zephyr/shell/shell.h>
+
+#include <zros/zros_topic.h>
+
+static void motor_latest_output(synapse_topic_MotorValues4f_t *motors,
+				synapse_topic_MotorRaw4u16_t *raw, bool *armed,
+				bool *test_mode)
+{
+	rdd2_topic_motor_output_blob_t blob = {0};
+
+	memset(motors, 0, sizeof(*motors));
+	memset(raw, 0, sizeof(*raw));
+	*armed = false;
+	*test_mode = false;
+
+	if (!rdd2_topic_has_sample(&topic_motor_output)) {
+		return;
+	}
+
+	if (zros_topic_read(&topic_motor_output, &blob) != 0) {
+		return;
+	}
+
+	(void)rdd2_topic_fb_unpack_motor_output(blob, sizeof(blob), motors, raw, armed, test_mode);
+}
 
 static int cmd_motor_status(const struct shell *sh, size_t argc, char **argv)
 {
@@ -28,7 +53,7 @@ static int cmd_motor_status(const struct shell *sh, size_t argc, char **argv)
 
 	active = rdd2_motor_test_get(&test_motors);
 	raw_active = rdd2_motor_raw_test_get(&test_raw);
-	(void)rdd2_topic_motor_output_get(&motors, &raw, &armed, &test_mode);
+	motor_latest_output(&motors, &raw, &armed, &test_mode);
 	shell_print(sh,
 		    "motor_test=%d test_m0=%0.3f test_m1=%0.3f test_m2=%0.3f test_m3=%0.3f",
 		    active ? 1 : 0,

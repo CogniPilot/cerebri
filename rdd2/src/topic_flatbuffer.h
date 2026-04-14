@@ -7,8 +7,11 @@
 
 #include "synapse_topics_reader.h"
 
-#define RDD2_TOPIC_FB_FLIGHT_STATE_SIZE 192U
+#define RDD2_TOPIC_FB_FLIGHT_STATE_SIZE 198U
 #define RDD2_TOPIC_FB_MOTOR_OUTPUT_SIZE  48U
+
+typedef uint8_t rdd2_topic_flight_state_blob_t[RDD2_TOPIC_FB_FLIGHT_STATE_SIZE];
+typedef uint8_t rdd2_topic_motor_output_blob_t[RDD2_TOPIC_FB_MOTOR_OUTPUT_SIZE];
 
 static inline float *rdd2_topic_vec3f_data(synapse_topic_Vec3f_t *vec)
 {
@@ -82,14 +85,15 @@ size_t rdd2_topic_fb_pack_flight_state(
 	const synapse_topic_AttitudeEuler_t *attitude,
 	const synapse_topic_AttitudeEuler_t *attitude_desired,
 	const synapse_topic_RateTriplet_t *rate_desired,
-	const synapse_topic_RateTriplet_t *rate_cmd);
+	const synapse_topic_RateTriplet_t *rate_cmd, uint32_t main_loop_latency_us);
 
 bool rdd2_topic_fb_unpack_flight_state(
 	const uint8_t *buf, size_t buf_size, synapse_topic_Vec3f_t *gyro,
 	synapse_topic_Vec3f_t *accel, synapse_topic_RcChannels16_t *rc,
 	synapse_topic_ControlStatus_t *status, synapse_topic_AttitudeEuler_t *attitude,
 	synapse_topic_AttitudeEuler_t *attitude_desired,
-	synapse_topic_RateTriplet_t *rate_desired, synapse_topic_RateTriplet_t *rate_cmd);
+	synapse_topic_RateTriplet_t *rate_desired, synapse_topic_RateTriplet_t *rate_cmd,
+	uint32_t *main_loop_latency_us);
 
 size_t rdd2_topic_fb_pack_motor_output(
 	uint8_t *buf, size_t buf_size, const synapse_topic_MotorValues4f_t *motors,

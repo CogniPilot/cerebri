@@ -4,7 +4,7 @@
 ACCEPTED
 
 ## Summary
-The first flight-capable stack is manual multirotor flight with CRSF stick input, generated body-rate PID, quad-X mixing, a prediction-only attitude state in the hot path, and two pilot-selectable modes: `ACRO` and `AUTO_LEVEL`.
+The first flight-capable stack is manual multirotor flight with CRSF stick input, a handwritten fixed-step body-rate PID, quad-X mixing, a lightweight handwritten attitude predictor, and two pilot-selectable modes: `ACRO` and `AUTO_LEVEL`.
 
 ## Specification
 
@@ -15,9 +15,9 @@ The first flight-capable stack is manual multirotor flight with CRSF stick input
 - Inner body-rate PID is the active controller in both modes.
 - `ACRO` commands body-rate setpoints directly from RC sticks.
 - `AUTO_LEVEL` commands roll and pitch attitude through an outer attitude controller and keeps yaw as a rate command.
-- Attitude prediction runs in the hot path from gyro and accelerometer data.
+- Attitude prediction runs in the hot path from gyro and accelerometer data using handwritten fixed-step local code.
 - Attitude correction is not required in the hot path for v1 auto-level.
-- Imported generated estimator and controller source is treated as transitional vendored code and should be wrapped, not hand-edited, until the local Rumoca generation path replaces it.
+- Rate and attitude PID control in the flight stack use handwritten fixed-step discrete controllers, not generated multi-stage integrators.
 - Mixer shape is quad-X.
 - Control-path state is fixed-size and explicit.
 - Control code consumes body rates in `FLU` body axes and world references in `ENU`.
@@ -38,7 +38,7 @@ The first flight-capable stack is manual multirotor flight with CRSF stick input
 - Velocity control in the hot path.
 - Generic control-allocation frameworks in v1.
 - GPS or navigation fusion in the rate-loop hot path.
-- Attitude correction or other estimator update steps that block the 800 Hz loop.
+- Attitude correction or other estimator update steps that block the 1600 Hz body-rate loop.
 
 ## Motivation
 

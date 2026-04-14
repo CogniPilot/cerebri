@@ -11,17 +11,6 @@
 #define AUTO_LEVEL_ROLL_P_GAIN      4.0f
 #define AUTO_LEVEL_PITCH_P_GAIN     4.0f
 
-static void pid_reset(PIDAxis_t *pid)
-{
-	pid->e_int = 0.0f;
-	pid->meas_filt = 0.0f;
-	pid->error = 0.0f;
-	pid->u = 0.0f;
-	pid->setpoint = 0.0f;
-	pid->measurement = 0.0f;
-	pid->integrate = 0.0f;
-}
-
 static float clampf(float value, float min_value, float max_value)
 {
 	if (value < min_value) {
@@ -40,8 +29,8 @@ static float rc_norm_centered(int32_t pulse_us)
 
 void rdd2_attitude_controller_init(struct rdd2_attitude_controller *controller)
 {
-	PIDAxis_init(&controller->roll);
-	PIDAxis_init(&controller->pitch);
+	rdd2_pid_axis_init(&controller->roll);
+	rdd2_pid_axis_init(&controller->pitch);
 
 	controller->roll.kp = AUTO_LEVEL_ROLL_P_GAIN;
 	controller->roll.ki = 0.0f;
@@ -60,8 +49,8 @@ void rdd2_attitude_controller_init(struct rdd2_attitude_controller *controller)
 
 void rdd2_attitude_controller_reset(struct rdd2_attitude_controller *controller)
 {
-	pid_reset(&controller->roll);
-	pid_reset(&controller->pitch);
+	rdd2_pid_axis_reset(&controller->roll);
+	rdd2_pid_axis_reset(&controller->pitch);
 }
 
 void rdd2_attitude_desired_from_rc(const synapse_topic_RcChannels16_t *rc,
@@ -97,15 +86,13 @@ void rdd2_attitude_controller_step(struct rdd2_attitude_controller *controller,
 
 	controller->roll.setpoint = attitude_desired->roll;
 	controller->roll.measurement = attitude->roll;
-	controller->roll.integrate = 0.0f;
-	PIDAxis_step(&controller->roll, 0.0f, dt);
+	rdd2_pid_axis_step(&controller->roll, dt, false);
 	rate_desired->roll = clampf(controller->roll.u, -RDD2_MAX_ROLL_PITCH_RATE_RAD_S,
 				    RDD2_MAX_ROLL_PITCH_RATE_RAD_S);
 
 	controller->pitch.setpoint = attitude_desired->pitch;
 	controller->pitch.measurement = attitude->pitch;
-	controller->pitch.integrate = 0.0f;
-	PIDAxis_step(&controller->pitch, 0.0f, dt);
+	rdd2_pid_axis_step(&controller->pitch, dt, false);
 	rate_desired->pitch = clampf(controller->pitch.u, -RDD2_MAX_ROLL_PITCH_RATE_RAD_S,
 				     RDD2_MAX_ROLL_PITCH_RATE_RAD_S);
 

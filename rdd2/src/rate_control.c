@@ -58,22 +58,11 @@ static float rc_norm_throttle(int32_t pulse_us)
 	return clampf((float)(pulse_us - RC_US_MIN) / (float)(RC_US_MAX - RC_US_MIN), 0.0f, 1.0f);
 }
 
-static void pid_reset(PIDAxis_t *pid)
-{
-	pid->e_int = 0.0f;
-	pid->meas_filt = 0.0f;
-	pid->error = 0.0f;
-	pid->u = 0.0f;
-	pid->setpoint = 0.0f;
-	pid->measurement = 0.0f;
-	pid->integrate = 0.0f;
-}
-
 void rdd2_rate_controller_init(struct rdd2_rate_controller *controller)
 {
-	PIDAxis_init(&controller->roll);
-	PIDAxis_init(&controller->pitch);
-	PIDAxis_init(&controller->yaw);
+	rdd2_pid_axis_init(&controller->roll);
+	rdd2_pid_axis_init(&controller->pitch);
+	rdd2_pid_axis_init(&controller->yaw);
 	controller->yaw.kp = 0.20f;
 	controller->yaw.ki = 0.20f;
 	controller->yaw.kd = 0.0f;
@@ -82,9 +71,9 @@ void rdd2_rate_controller_init(struct rdd2_rate_controller *controller)
 
 void rdd2_rate_controller_reset(struct rdd2_rate_controller *controller)
 {
-	pid_reset(&controller->roll);
-	pid_reset(&controller->pitch);
-	pid_reset(&controller->yaw);
+	rdd2_pid_axis_reset(&controller->roll);
+	rdd2_pid_axis_reset(&controller->pitch);
+	rdd2_pid_axis_reset(&controller->yaw);
 }
 
 bool rdd2_rate_arm_switch_high(const synapse_topic_RcChannels16_t *rc)
@@ -113,6 +102,13 @@ float rdd2_rate_throttle_command(float throttle_input, bool armed)
 	       (throttle_input * (1.0f - RDD2_MOTOR_IDLE_THROTTLE));
 }
 
+float rdd2_rate_yaw_desired_from_rc(const synapse_topic_RcChannels16_t *rc)
+{
+	return -rc_norm_centered(
+		rdd2_topic_rc_channels_data_const(rc)[RDD2_YAW_CHANNEL_INDEX]) *
+	       RDD2_MAX_YAW_RATE_RAD_S;
+}
+
 void rdd2_rate_desired_from_rc(const synapse_topic_RcChannels16_t *rc,
 				  synapse_topic_RateTriplet_t *rate_desired)
 {
@@ -124,9 +120,7 @@ void rdd2_rate_desired_from_rc(const synapse_topic_RcChannels16_t *rc,
 	rate_desired->pitch =
 		rc_norm_centered(channels[RDD2_PITCH_CHANNEL_INDEX]) *
 		RDD2_MAX_ROLL_PITCH_RATE_RAD_S;
-	rate_desired->yaw =
-		-rc_norm_centered(channels[RDD2_YAW_CHANNEL_INDEX]) *
-		RDD2_MAX_YAW_RATE_RAD_S;
+	rate_desired->yaw = rdd2_rate_yaw_desired_from_rc(rc);
 }
 
 void rdd2_rate_controller_step(struct rdd2_rate_controller *controller,
@@ -142,20 +136,17 @@ void rdd2_rate_controller_step(struct rdd2_rate_controller *controller,
 
 	controller->roll.setpoint = rate_desired->roll;
 	controller->roll.measurement = gyro->x;
-	controller->roll.integrate = integrate ? 1.0f : 0.0f;
-	PIDAxis_step(&controller->roll, 0.0f, dt);
+	rdd2_pid_axis_step(&controller->roll, dt, integrate);
 	rate_cmd->roll = controller->roll.u;
 
 	controller->pitch.setpoint = rate_desired->pitch;
 	controller->pitch.measurement = gyro->y;
-	controller->pitch.integrate = integrate ? 1.0f : 0.0f;
-	PIDAxis_step(&controller->pitch, 0.0f, dt);
+	rdd2_pid_axis_step(&controller->pitch, dt, integrate);
 	rate_cmd->pitch = controller->pitch.u;
 
 	controller->yaw.setpoint = rate_desired->yaw;
 	controller->yaw.measurement = gyro->z;
-	controller->yaw.integrate = integrate ? 1.0f : 0.0f;
-	PIDAxis_step(&controller->yaw, 0.0f, dt);
+	rdd2_pid_axis_step(&controller->yaw, dt, integrate);
 	rate_cmd->yaw = controller->yaw.u;
 }
 

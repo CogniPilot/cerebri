@@ -14,6 +14,7 @@
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/misc/nxp_flexio_dshot/nxp_flexio_dshot.h>
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/sensor_clock.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -69,6 +70,7 @@ struct nxp_flexio_dshot_data {
 	uint32_t dshot_timer_mask;
 	uint32_t bdshot_recv_mask;
 	uint32_t bdshot_parsed_recv_mask;
+	uint64_t last_trigger_ns;
 };
 
 struct nxp_flexio_dshot_channel_config {
@@ -303,9 +305,16 @@ static void nxp_flexio_dshot_hw_trigger(const struct device *dev)
 	const struct nxp_flexio_dshot_config *config = dev->config;
 	struct nxp_flexio_dshot_data *data = dev->data;
 	FLEXIO_Type *flexio_base = (FLEXIO_Type *)(config->flexio_base);
+	struct nxp_flexio_child *child = (struct nxp_flexio_child *)(config->child);
 	struct nxp_flexio_dshot_channel_config *dshot_info;
+	uint64_t cycles = 0U;
 
 	FLEXIO_ClearTimerStatusFlags(flexio_base, data->dshot_timer_mask);
+	if (sensor_clock_get_cycles(&cycles) == 0) {
+		data->last_trigger_ns = sensor_clock_cycles_to_ns(cycles);
+	} else {
+		data->last_trigger_ns = 0U;
+	}
 
 	for (uint8_t channel = 0; (channel < config->channel->dshot_channel_count); channel++) {
 		dshot_info = &config->channel->dshot_info[channel];
@@ -315,7 +324,8 @@ static void nxp_flexio_dshot_hw_trigger(const struct device *dev)
 		}
 
 		if (dshot_info->init && dshot_info->data_seg1 != 0) {
-			flexio_base->SHIFTBUF[channel] = dshot_info->data_seg1;
+			flexio_base->SHIFTBUF[child->res.shifter_index[channel]] =
+				dshot_info->data_seg1;
 		}
 	}
 
@@ -324,6 +334,13 @@ static void nxp_flexio_dshot_hw_trigger(const struct device *dev)
 	FLEXIO_ClearTimerStatusFlags(flexio_base, data->dshot_timer_mask);
 	FLEXIO_EnableShifterStatusInterrupts(flexio_base, data->dshot_mask);
 	FLEXIO_EnableTimerStatusInterrupts(flexio_base, data->dshot_timer_mask);
+}
+
+static uint64_t nxp_flexio_dshot_hw_last_trigger_ns_get(const struct device *dev)
+{
+	const struct nxp_flexio_dshot_data *data = dev->data;
+
+	return data->last_trigger_ns;
 }
 
 static uint8_t nxp_flexio_dshot_hw_channel_count(const struct device *dev)
@@ -610,6 +627,7 @@ static const struct nxp_flexio_dshot_driver_api nxp_flexio_dshot_api_funcs = {
 		},
 	.data_set = nxp_flexio_dshot_hw_data_set,
 	.trigger = nxp_flexio_dshot_hw_trigger,
+	.last_trigger_ns_get = nxp_flexio_dshot_hw_last_trigger_ns_get,
 	.channel_count = nxp_flexio_dshot_hw_channel_count,
 };
 

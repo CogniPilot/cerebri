@@ -11,6 +11,7 @@
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/misc/nxp_flexio_dshot/nxp_flexio_dshot.h>
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(rdd2, LOG_LEVEL_INF);
@@ -62,11 +63,11 @@ void rdd2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 				synapse_topic_Vec3f_t *accel,
 				synapse_topic_RcChannels16_t *rc,
 				synapse_topic_ControlStatus_t *status,
-				float *dt)
+				float *dt, uint64_t *imu_interrupt_timestamp_ns)
 {
 	bool rc_valid;
 
-	status->imu_ok = rdd2_imu_stream_wait_next(gyro, accel, dt);
+	status->imu_ok = rdd2_imu_stream_wait_next(gyro, accel, dt, imu_interrupt_timestamp_ns);
 	status->rc_link_quality = rdd2_rc_input_link_quality_get(DEVICE_DT_GET(RC_NODE));
 	rdd2_rc_input_latest_get(rc, &status->rc_stamp_ms, &rc_valid);
 	status->rc_valid = rc_valid;

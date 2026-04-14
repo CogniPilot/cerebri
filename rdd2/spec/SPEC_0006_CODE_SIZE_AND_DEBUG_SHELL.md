@@ -16,8 +16,11 @@ Source files stay under 2000 lines, and shell-based topic diagnostics are isolat
 - That diagnostics thread runs at `K_LOWEST_APPLICATION_THREAD_PRIO`.
 - `topic echo` and `topic hz` reuse the existing diagnostics thread instead of spawning one per command.
 - Runtime shell reads come from stored state, not from adding prints to the control loop.
+- Offboard transport shells such as Zenoh diagnostics read stored subsystem state rather than touching the live network path from shell context.
 - Bench motor shell commands live outside `src/main.c`.
 - Flight-control debug shell commands live outside `src/main.c`.
+- Runtime thread/process inspection should use a concise fixed-width table view rather than the verbose stock kernel thread dump.
+- The concise `top` view should default to a live refresh mode around 1 Hz and stop on `Ctrl-C` instead of requiring a separate watcher command.
 - When controller math or device-sampling helpers stop being trivial, move them into focused hot-path modules instead of mixing them with shell or init code in `src/main.c`.
 - `src/main.c` should remain an orchestration file that wires IO, mode selection, estimator/controller calls, topic publication, and motor output together.
 - In-memory topic state should use small named structs such as `status`, `rate`, and `rc` rather than one flat field bag.
@@ -27,10 +30,12 @@ Source files stay under 2000 lines, and shell-based topic diagnostics are isolat
 - Topic readers retry locally on generation changes instead of blocking the publisher.
 - Topic payload layout is governed by `SPEC_0007` and the shared `.fbs` schema files in `modules/lib/synapse_msgs_fbs/fbs/synapse/`.
 - Repeated `topic echo` output should use stable fixed-width field formatting so live values are easy to scan.
+- Repeated `topic echo` output should redraw in place by default and stop on `Ctrl-C`, rather than appending an unbounded log.
+- `fc status` and `topic echo flight_state` should report running `imu_to_motor_us` summary statistics including count, mean, standard deviation, min, and max, and those summaries should come from the full control-rate sample stream rather than from shell-side resampling.
 
 **PROHIBITED:**
 - Per-command topic watcher threads.
-- Shell printing from the 800 Hz control loop.
+- Shell printing from the 1600 Hz control loop.
 - Folding growing shell/debug code back into `src/main.c`.
 - Blocking the control loop on shell/debug state reads.
 - Using file size as an excuse to introduce abstraction layers with no ownership benefit.

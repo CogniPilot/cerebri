@@ -4,12 +4,15 @@
 
 #include "motor_output.h"
 
-#include "topic_shell.h"
+#include "topic_bus.h"
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/misc/nxp_flexio_dshot/nxp_flexio_dshot.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/atomic.h>
+
+#include <zros/zros_node.h>
+#include <zros/zros_pub.h>
 
 #define DSHOT_NODE DT_ALIAS(motors)
 
@@ -17,6 +20,30 @@ static atomic_t g_motor_test_active;
 static synapse_topic_MotorValues4f_t g_motor_test_values;
 static atomic_t g_motor_raw_test_active;
 static synapse_topic_MotorRaw4u16_t g_motor_raw_test_values;
+static struct zros_node g_rdd2_motor_output_node;
+static struct zros_pub g_rdd2_motor_output_pub;
+static rdd2_topic_motor_output_blob_t g_rdd2_motor_output_blob;
+static bool g_rdd2_motor_output_pub_ready;
+
+static void motor_output_publish(const synapse_topic_MotorValues4f_t *motors,
+				 const synapse_topic_MotorRaw4u16_t *raw, bool armed,
+				 bool test_mode)
+{
+	size_t len;
+
+	if (!g_rdd2_motor_output_pub_ready) {
+		return;
+	}
+
+	len = rdd2_topic_fb_pack_motor_output(g_rdd2_motor_output_blob,
+					      sizeof(g_rdd2_motor_output_blob), motors, raw,
+					      armed, test_mode);
+	if (len != sizeof(g_rdd2_motor_output_blob)) {
+		return;
+	}
+
+	(void)zros_pub_update(&g_rdd2_motor_output_pub);
+}
 
 static float clampf(float value, float min_value, float max_value)
 {
@@ -42,18 +69,33 @@ static uint16_t motor_to_dshot(float normalized, bool armed)
 	return (uint16_t)(DSHOT_MIN + (clamped * span) + 0.5f);
 }
 
+static uint64_t motor_output_trigger_and_timestamp(void)
+{
+	const struct device *const dshot_dev = DEVICE_DT_GET(DSHOT_NODE);
+
+	nxp_flexio_dshot_trigger(dshot_dev);
+	return nxp_flexio_dshot_last_trigger_ns_get(dshot_dev);
+}
+
 void rdd2_motor_output_init(void)
 {
+	int rc;
+
+	zros_node_init(&g_rdd2_motor_output_node, "rdd2_motor_output");
+	rc = zros_pub_init(&g_rdd2_motor_output_pub, &g_rdd2_motor_output_node,
+			   &topic_motor_output, &g_rdd2_motor_output_blob);
+	g_rdd2_motor_output_pub_ready = (rc == 0);
+
 	rdd2_motor_test_clear();
 	rdd2_motor_raw_test_clear();
-	rdd2_topic_motor_output_publish(&(synapse_topic_MotorValues4f_t){0},
-					    &(synapse_topic_MotorRaw4u16_t){
-						    .m0 = DSHOT_DISARMED,
-						    .m1 = DSHOT_DISARMED,
-						    .m2 = DSHOT_DISARMED,
-						    .m3 = DSHOT_DISARMED,
-					    },
-					    false, false);
+	motor_output_publish(&(synapse_topic_MotorValues4f_t){0},
+			     &(synapse_topic_MotorRaw4u16_t){
+				     .m0 = DSHOT_DISARMED,
+				     .m1 = DSHOT_DISARMED,
+				     .m2 = DSHOT_DISARMED,
+				     .m3 = DSHOT_DISARMED,
+			     },
+			     false, false);
 }
 
 bool rdd2_motor_output_ready(void)
@@ -61,7 +103,7 @@ bool rdd2_motor_output_ready(void)
 	return device_is_ready(DEVICE_DT_GET(DSHOT_NODE));
 }
 
-void rdd2_motor_output_write_all(const synapse_topic_MotorValues4f_t *motors, bool armed,
+uint64_t rdd2_motor_output_write_all(const synapse_topic_MotorValues4f_t *motors, bool armed,
 				     bool test_mode)
 {
 	float min_output = (armed && !test_mode) ? RDD2_MOTOR_IDLE_THROTTLE : 0.0f;
@@ -77,11 +119,12 @@ void rdd2_motor_output_write_all(const synapse_topic_MotorValues4f_t *motors, bo
 		nxp_flexio_dshot_data_set(DEVICE_DT_GET(DSHOT_NODE), i, raw_values[i], false);
 	}
 
-	rdd2_topic_motor_output_publish(&applied, &raw, armed, test_mode);
-	nxp_flexio_dshot_trigger(DEVICE_DT_GET(DSHOT_NODE));
+	motor_output_publish(&applied, &raw, armed, test_mode);
+	return motor_output_trigger_and_timestamp();
 }
 
-void rdd2_motor_output_write_all_raw(const synapse_topic_MotorRaw4u16_t *raw, bool test_mode)
+uint64_t rdd2_motor_output_write_all_raw(const synapse_topic_MotorRaw4u16_t *raw,
+					 bool test_mode)
 {
 	synapse_topic_MotorValues4f_t applied = {0};
 	synapse_topic_MotorRaw4u16_t clamped = {0};
@@ -110,8 +153,8 @@ void rdd2_motor_output_write_all_raw(const synapse_topic_MotorRaw4u16_t *raw, bo
 		nxp_flexio_dshot_data_set(DEVICE_DT_GET(DSHOT_NODE), i, value, false);
 	}
 
-	rdd2_topic_motor_output_publish(&applied, &clamped, armed, test_mode);
-	nxp_flexio_dshot_trigger(DEVICE_DT_GET(DSHOT_NODE));
+	motor_output_publish(&applied, &clamped, armed, test_mode);
+	return motor_output_trigger_and_timestamp();
 }
 
 bool rdd2_motor_test_get(synapse_topic_MotorValues4f_t *motors)

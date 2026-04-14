@@ -1,5 +1,8 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * Handwritten fixed-layout FlatBuffer helpers for RDD2 topic blobs.
+ * Generated FlatCC output stays in the build tree under generated/flatbuffers.
  */
 
 #include "topic_flatbuffer.h"
@@ -10,9 +13,9 @@
 
 enum {
 	FLIGHT_VTABLE_OFFSET = 4,
-	FLIGHT_VTABLE_SIZE = 20,
+	FLIGHT_VTABLE_SIZE = 22,
 	FLIGHT_TABLE_OFFSET = FLIGHT_VTABLE_OFFSET + FLIGHT_VTABLE_SIZE,
-	FLIGHT_OBJECT_SIZE = 168,
+	FLIGHT_OBJECT_SIZE = 172,
 	FLIGHT_FIELD_GYRO = 4,
 	FLIGHT_FIELD_ACCEL = 16,
 	FLIGHT_FIELD_RC = 28,
@@ -21,6 +24,7 @@ enum {
 	FLIGHT_FIELD_ATTITUDE_DESIRED = 132,
 	FLIGHT_FIELD_RATE_DESIRED = 144,
 	FLIGHT_FIELD_RATE_CMD = 156,
+	FLIGHT_FIELD_MAIN_LOOP_LATENCY_US = 168,
 };
 
 enum {
@@ -130,7 +134,8 @@ static synapse_topic_FlightSnapshot_table_t flight_state_root(
 	    get_le16(vtable + 12) != FLIGHT_FIELD_ATTITUDE ||
 	    get_le16(vtable + 14) != FLIGHT_FIELD_ATTITUDE_DESIRED ||
 	    get_le16(vtable + 16) != FLIGHT_FIELD_RATE_DESIRED ||
-	    get_le16(vtable + 18) != FLIGHT_FIELD_RATE_CMD) {
+	    get_le16(vtable + 18) != FLIGHT_FIELD_RATE_CMD ||
+	    get_le16(vtable + 20) != FLIGHT_FIELD_MAIN_LOOP_LATENCY_US) {
 		return NULL;
 	}
 
@@ -179,7 +184,7 @@ size_t rdd2_topic_fb_pack_flight_state(
 	const synapse_topic_AttitudeEuler_t *attitude,
 	const synapse_topic_AttitudeEuler_t *attitude_desired,
 	const synapse_topic_RateTriplet_t *rate_desired,
-	const synapse_topic_RateTriplet_t *rate_cmd)
+	const synapse_topic_RateTriplet_t *rate_cmd, uint32_t main_loop_latency_us)
 {
 	static const uint16_t field_offsets[] = {
 		FLIGHT_FIELD_GYRO,
@@ -190,6 +195,7 @@ size_t rdd2_topic_fb_pack_flight_state(
 		FLIGHT_FIELD_ATTITUDE_DESIRED,
 		FLIGHT_FIELD_RATE_DESIRED,
 		FLIGHT_FIELD_RATE_CMD,
+		FLIGHT_FIELD_MAIN_LOOP_LATENCY_US,
 	};
 	uint8_t *table;
 	size_t length;
@@ -216,6 +222,7 @@ size_t rdd2_topic_fb_pack_flight_state(
 	       sizeof(*attitude_desired));
 	memcpy(table + FLIGHT_FIELD_RATE_DESIRED, rate_desired, sizeof(*rate_desired));
 	memcpy(table + FLIGHT_FIELD_RATE_CMD, rate_cmd, sizeof(*rate_cmd));
+	put_le32(main_loop_latency_us, table + FLIGHT_FIELD_MAIN_LOOP_LATENCY_US);
 
 	return length;
 }
@@ -225,13 +232,14 @@ bool rdd2_topic_fb_unpack_flight_state(
 	synapse_topic_Vec3f_t *accel, synapse_topic_RcChannels16_t *rc,
 	synapse_topic_ControlStatus_t *status, synapse_topic_AttitudeEuler_t *attitude,
 	synapse_topic_AttitudeEuler_t *attitude_desired,
-	synapse_topic_RateTriplet_t *rate_desired, synapse_topic_RateTriplet_t *rate_cmd)
+	synapse_topic_RateTriplet_t *rate_desired, synapse_topic_RateTriplet_t *rate_cmd,
+	uint32_t *main_loop_latency_us)
 {
 	synapse_topic_FlightSnapshot_table_t flight_state = flight_state_root(buf, buf_size);
 
 	if (flight_state == NULL || gyro == NULL || accel == NULL || rc == NULL ||
 	    status == NULL || attitude == NULL || attitude_desired == NULL ||
-	    rate_desired == NULL || rate_cmd == NULL) {
+	    rate_desired == NULL || rate_cmd == NULL || main_loop_latency_us == NULL) {
 		return false;
 	}
 
@@ -246,6 +254,7 @@ bool rdd2_topic_fb_unpack_flight_state(
 	memcpy(rate_desired, synapse_topic_FlightSnapshot_rate_desired(flight_state),
 	       sizeof(*rate_desired));
 	memcpy(rate_cmd, synapse_topic_FlightSnapshot_rate_cmd(flight_state), sizeof(*rate_cmd));
+	*main_loop_latency_us = synapse_topic_FlightSnapshot_main_loop_latency_us(flight_state);
 
 	return true;
 }

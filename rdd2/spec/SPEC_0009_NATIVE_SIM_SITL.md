@@ -4,7 +4,7 @@
 ACCEPTED
 
 ## Summary
-`native_sim` runs the same 800 Hz flight-control loop as flight firmware, but
+`native_sim` runs the same 1600 Hz flight-control loop as flight firmware, but
 simulator IO terminates in native-sim RC, IMU, and DSHOT devices backed by one
 low-priority SITL subsystem transport and FlatBuffer schemas in
 `synapse_msgs_fbs`.
@@ -13,7 +13,7 @@ low-priority SITL subsystem transport and FlatBuffer schemas in
 
 **REQUIRED:**
 - The `native_sim` target is for SITL and debug only.
-- The controller still runs in the main 800 Hz application thread on `native_sim`.
+- The controller still runs in the main 1600 Hz application thread on `native_sim`.
 - Host simulator IO must stay out of the hot path and run in a lower-priority thread than the main control loop.
 - `src/main.c` must remain free of `native_sim`-specific control-path branches.
 - The simulator boundary must terminate at board-selected `rc`, `imu0`, and `motors` devices, not at ad hoc app-level IO hooks.
@@ -30,7 +30,7 @@ low-priority SITL subsystem transport and FlatBuffer schemas in
 - SITL device selection lives in `boards/native_sim.overlay`.
 
 **PROHIBITED:**
-- Blocking socket IO in the 800 Hz control loop.
+- Blocking socket IO in the 1600 Hz control loop.
 - A simulation-only control loop separate from `src/main.c`.
 - SITL message definitions that bypass `modules/lib/synapse_msgs_fbs`.
 - Per-packet heap allocation in the hot path.

@@ -7,10 +7,11 @@
 #include "rate_control.h"
 
 #include <errno.h>
-#include <string.h>
+#include <math.h>
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/sensor_clock.h>
 #include <zephyr/drivers/sensor_data_types.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -19,16 +20,11 @@
 LOG_MODULE_DECLARE(rdd2, LOG_LEVEL_INF);
 
 #define IMU_NODE DT_ALIAS(imu0)
-#define RDD2_IMU_TIMEOUT_US (4U * RDD2_CONTROL_PERIOD_US)
+#define RDD2_IMU_TIMEOUT_NS (4ULL * RDD2_CONTROL_PERIOD_NS)
 #define RDD2_IMU_RTIO_SQ_COUNT 16U
 #define RDD2_IMU_RTIO_CQ_COUNT 16U
 #define RDD2_IMU_RTIO_BUF_COUNT 32U
 #define RDD2_IMU_RTIO_BUF_SIZE 128U
-
-#if DT_NODE_HAS_COMPAT(IMU_NODE, invensense_icm45686) && defined(CONFIG_SENSOR_ASYNC_API) && \
-	defined(CONFIG_DSP)
-#include <zephyr/dsp/utils.h>
-#endif
 
 static void imu_outputs_zero(synapse_topic_Vec3f_t *gyro, synapse_topic_Vec3f_t *accel)
 {
@@ -36,11 +32,10 @@ static void imu_outputs_zero(synapse_topic_Vec3f_t *gyro, synapse_topic_Vec3f_t 
 	*accel = (synapse_topic_Vec3f_t){0};
 }
 
-#if DT_NODE_HAS_COMPAT(IMU_NODE, invensense_icm45686) && defined(CONFIG_SENSOR_ASYNC_API) && \
-	defined(CONFIG_DSP)
+#if DT_NODE_HAS_COMPAT(IMU_NODE, invensense_icm45686) && defined(CONFIG_SENSOR_ASYNC_API)
 
 SENSOR_DT_STREAM_IODEV(rdd2_imu_stream_iodev, IMU_NODE,
-		       { SENSOR_TRIG_FIFO_WATERMARK, SENSOR_STREAM_DATA_INCLUDE });
+		       { SENSOR_TRIG_DATA_READY, SENSOR_STREAM_DATA_INCLUDE });
 
 /*
  * The ICM45686 stream path is self-sustaining. Give it enough queue and buffer
@@ -55,36 +50,24 @@ RTIO_DEFINE_WITH_MEMPOOL(rdd2_imu_rtio,
 			 sizeof(void *));
 
 static const struct device *const g_imu_dev = DEVICE_DT_GET(IMU_NODE);
-static const struct sensor_decoder_api *g_imu_decoder;
 static struct rtio_sqe *g_imu_stream_handle;
+static const struct sensor_decoder_api *g_imu_decoder;
 static uint64_t g_last_sample_ns;
 static bool g_have_last_sample;
+static const struct sensor_chan_spec g_imu_accel_chan = {
+	.chan_type = SENSOR_CHAN_ACCEL_XYZ,
+	.chan_idx = 0,
+};
+static const struct sensor_chan_spec g_imu_gyro_chan = {
+	.chan_type = SENSOR_CHAN_GYRO_XYZ,
+	.chan_idx = 0,
+};
 
-static uint64_t imu_sample_timestamp_ns(const struct sensor_three_axis_data *sample)
-{
-	return sample->header.base_timestamp_ns + sample->readings[0].timestamp_delta;
-}
-
-static float imu_q31_to_float(q31_t value, int8_t shift)
-{
-	/*
-	 * ICM45686 only emits non-negative q31 shifts in Zephyr's decoder.
-	 * Use the shared DSP utility rather than maintaining a local conversion.
-	 */
-	return (float)Z_SHIFT_Q31_TO_F32(value, shift);
-}
-
-static void imu_sensor_axes_to_body(const struct sensor_three_axis_data *gyro_sensor,
-				    const struct sensor_three_axis_data *accel_sensor,
+static void imu_sensor_axes_to_body(float gyro_x, float gyro_y, float gyro_z, float accel_x,
+				    float accel_y, float accel_z,
 				    synapse_topic_Vec3f_t *gyro_out,
 				    synapse_topic_Vec3f_t *accel_out)
 {
-	const float gyro_x = imu_q31_to_float(gyro_sensor->readings[0].x, gyro_sensor->shift);
-	const float gyro_y = imu_q31_to_float(gyro_sensor->readings[0].y, gyro_sensor->shift);
-	const float gyro_z = imu_q31_to_float(gyro_sensor->readings[0].z, gyro_sensor->shift);
-	const float accel_x = imu_q31_to_float(accel_sensor->readings[0].x, accel_sensor->shift);
-	const float accel_y = imu_q31_to_float(accel_sensor->readings[0].y, accel_sensor->shift);
-	const float accel_z = imu_q31_to_float(accel_sensor->readings[0].z, accel_sensor->shift);
 
 	/*
 	 * Control code consumes IMU data in FLU body axes:
@@ -101,53 +84,98 @@ static void imu_sensor_axes_to_body(const struct sensor_three_axis_data *gyro_se
 	accel_out->z = accel_z;
 }
 
-static int imu_decode_latest_three_axis(const uint8_t *buf, struct sensor_chan_spec chan_spec,
-					struct sensor_three_axis_data *sample,
-					uint64_t *timestamp_ns)
+static float imu_q31_to_float(q31_t value, int8_t shift)
 {
-	uint16_t frame_count = 0;
-	uint32_t fit = 0;
-	int rc;
+	return ldexpf((float)value, (int)shift - 31);
+}
 
-	rc = g_imu_decoder->get_frame_count(buf, chan_spec, &frame_count);
-	if (rc != 0 || frame_count == 0U) {
-		return rc == 0 ? -ENODATA : rc;
-	}
+static int imu_stream_start(void)
+{
+	return sensor_stream(&rdd2_imu_stream_iodev, &rdd2_imu_rtio, NULL,
+			     &g_imu_stream_handle);
+}
 
-	while (fit < frame_count) {
-		rc = g_imu_decoder->decode(buf, chan_spec, &fit, 1, sample);
-		if (rc <= 0) {
-			return rc == 0 ? -ENODATA : rc;
+static void imu_stream_timing_reset(void)
+{
+	g_last_sample_ns = 0U;
+	g_have_last_sample = false;
+}
+
+static void imu_stream_drain_cq(void)
+{
+	struct rtio_cqe *cqe;
+
+	while ((cqe = rtio_cqe_consume(&rdd2_imu_rtio)) != NULL) {
+		uint8_t *buf = NULL;
+		uint32_t buf_len = 0U;
+
+		if (cqe->result == 0 &&
+		    rtio_cqe_get_mempool_buffer(&rdd2_imu_rtio, cqe, &buf, &buf_len) == 0 &&
+		    buf != NULL) {
+			rtio_release_buffer(&rdd2_imu_rtio, buf, buf_len);
 		}
+
+		rtio_cqe_release(&rdd2_imu_rtio, cqe);
+	}
+}
+
+static void imu_stream_restart(const char *reason, int rc)
+{
+	int restart_rc;
+
+	LOG_WRN("imu stream restart after %s: %d", reason, rc);
+
+	if (g_imu_stream_handle != NULL) {
+		(void)rtio_sqe_cancel(g_imu_stream_handle);
 	}
 
-	*timestamp_ns = imu_sample_timestamp_ns(sample);
-	return 0;
+	imu_stream_drain_cq();
+	imu_stream_timing_reset();
+
+	restart_rc = imu_stream_start();
+	if (restart_rc != 0) {
+		LOG_ERR("imu stream restart failed: %d", restart_rc);
+	}
 }
 
 static bool imu_stream_decode_latest(const uint8_t *buf, synapse_topic_Vec3f_t *gyro,
 				     synapse_topic_Vec3f_t *accel, uint64_t *sample_ns)
 {
-	const struct sensor_chan_spec gyro_chan = { SENSOR_CHAN_GYRO_XYZ, 0 };
-	const struct sensor_chan_spec accel_chan = { SENSOR_CHAN_ACCEL_XYZ, 0 };
-	struct sensor_three_axis_data gyro_sample = {0};
-	struct sensor_three_axis_data accel_sample = {0};
-	uint64_t gyro_ns = 0;
-	uint64_t accel_ns = 0;
-	int rc;
+	struct sensor_three_axis_data accel_data = {0};
+	struct sensor_three_axis_data gyro_data = {0};
+	uint16_t accel_frame_count = 0U;
+	uint16_t gyro_frame_count = 0U;
+	uint32_t accel_fit;
+	uint32_t gyro_fit;
 
-	rc = imu_decode_latest_three_axis(buf, gyro_chan, &gyro_sample, &gyro_ns);
-	if (rc != 0) {
+	if (g_imu_decoder == NULL) {
 		return false;
 	}
 
-	rc = imu_decode_latest_three_axis(buf, accel_chan, &accel_sample, &accel_ns);
-	if (rc != 0) {
+	if (g_imu_decoder->get_frame_count(buf, g_imu_accel_chan, &accel_frame_count) != 0 ||
+	    g_imu_decoder->get_frame_count(buf, g_imu_gyro_chan, &gyro_frame_count) != 0 ||
+	    accel_frame_count == 0U || gyro_frame_count == 0U) {
 		return false;
 	}
 
-	imu_sensor_axes_to_body(&gyro_sample, &accel_sample, gyro, accel);
-	*sample_ns = (gyro_ns >= accel_ns) ? gyro_ns : accel_ns;
+	accel_fit = accel_frame_count - 1U;
+	gyro_fit = gyro_frame_count - 1U;
+
+	if (g_imu_decoder->decode(buf, g_imu_accel_chan, &accel_fit, 1U, &accel_data) <= 0 ||
+	    g_imu_decoder->decode(buf, g_imu_gyro_chan, &gyro_fit, 1U, &gyro_data) <= 0) {
+		return false;
+	}
+
+	imu_sensor_axes_to_body(
+		imu_q31_to_float(gyro_data.readings[0].x, gyro_data.shift),
+		imu_q31_to_float(gyro_data.readings[0].y, gyro_data.shift),
+		imu_q31_to_float(gyro_data.readings[0].z, gyro_data.shift),
+		imu_q31_to_float(accel_data.readings[0].x, accel_data.shift),
+		imu_q31_to_float(accel_data.readings[0].y, accel_data.shift),
+		imu_q31_to_float(accel_data.readings[0].z, accel_data.shift),
+		gyro, accel);
+	*sample_ns = gyro_data.header.base_timestamp_ns +
+		     gyro_data.readings[0].timestamp_delta;
 	return true;
 }
 
@@ -161,24 +189,24 @@ int rdd2_imu_stream_init(void)
 
 	rc = sensor_get_decoder(g_imu_dev, &g_imu_decoder);
 	if (rc != 0) {
-		LOG_ERR("imu decoder unavailable: %d", rc);
+		LOG_ERR("imu decoder init failed: %d", rc);
 		return rc;
 	}
 
-	rc = sensor_stream(&rdd2_imu_stream_iodev, &rdd2_imu_rtio, NULL,
-			   &g_imu_stream_handle);
+	rc = imu_stream_start();
 	if (rc != 0) {
 		LOG_ERR("imu stream start failed: %d", rc);
 		return rc;
 	}
 
-	g_have_last_sample = false;
+	imu_stream_timing_reset();
 	return 0;
 }
 
 bool rdd2_imu_stream_wait_next(synapse_topic_Vec3f_t *gyro,
 				  synapse_topic_Vec3f_t *accel,
-				  float *dt)
+				  float *dt,
+				  uint64_t *interrupt_timestamp_ns)
 {
 	struct rtio_cqe *cqe;
 	uint8_t *buf = NULL;
@@ -186,11 +214,15 @@ bool rdd2_imu_stream_wait_next(synapse_topic_Vec3f_t *gyro,
 	uint64_t sample_ns = 0;
 	int rc;
 
-	*dt = (float)RDD2_CONTROL_PERIOD_US * 1.0e-6f;
+	*dt = RDD2_CONTROL_DT_S;
+	if (interrupt_timestamp_ns != NULL) {
+		*interrupt_timestamp_ns = 0U;
+	}
 
-	cqe = rtio_cqe_consume_block_timeout(&rdd2_imu_rtio, K_USEC(RDD2_IMU_TIMEOUT_US));
+	cqe = rtio_cqe_consume_block_timeout(&rdd2_imu_rtio, K_NSEC(RDD2_IMU_TIMEOUT_NS));
 	if (cqe == NULL) {
 		imu_outputs_zero(gyro, accel);
+		imu_stream_restart("timeout", -ETIMEDOUT);
 		return false;
 	}
 
@@ -202,12 +234,14 @@ bool rdd2_imu_stream_wait_next(synapse_topic_Vec3f_t *gyro,
 
 	if (rc != 0) {
 		imu_outputs_zero(gyro, accel);
+		imu_stream_restart("cqe", rc);
 		return false;
 	}
 
 	if (!imu_stream_decode_latest(buf, gyro, accel, &sample_ns)) {
 		rtio_release_buffer(&rdd2_imu_rtio, buf, buf_len);
 		imu_outputs_zero(gyro, accel);
+		imu_stream_restart("decode", -EBADMSG);
 		return false;
 	}
 
@@ -216,6 +250,9 @@ bool rdd2_imu_stream_wait_next(synapse_topic_Vec3f_t *gyro,
 	if (g_have_last_sample && sample_ns > g_last_sample_ns) {
 		*dt = (float)(sample_ns - g_last_sample_ns) * 1.0e-9f;
 	}
+	if (interrupt_timestamp_ns != NULL) {
+		*interrupt_timestamp_ns = sample_ns;
+	}
 
 	g_last_sample_ns = sample_ns;
 	g_have_last_sample = true;
@@ -223,6 +260,11 @@ bool rdd2_imu_stream_wait_next(synapse_topic_Vec3f_t *gyro,
 }
 
 #else
+
+static uint64_t imu_timestamp_now_ns(void)
+{
+	return k_cyc_to_ns_floor64(k_cycle_get_64());
+}
 
 static bool imu_fetch_sync(synapse_topic_Vec3f_t *gyro_out, synapse_topic_Vec3f_t *accel_out)
 {
@@ -271,14 +313,22 @@ int rdd2_imu_stream_init(void)
 
 bool rdd2_imu_stream_wait_next(synapse_topic_Vec3f_t *gyro,
 				  synapse_topic_Vec3f_t *accel,
-				  float *dt)
+				  float *dt,
+				  uint64_t *interrupt_timestamp_ns)
 {
-	k_sleep(K_USEC(RDD2_CONTROL_PERIOD_US));
-	*dt = (float)RDD2_CONTROL_PERIOD_US * 1.0e-6f;
+	k_sleep(K_NSEC(RDD2_CONTROL_PERIOD_NS));
+	*dt = RDD2_CONTROL_DT_S;
+	if (interrupt_timestamp_ns != NULL) {
+		*interrupt_timestamp_ns = 0U;
+	}
 
 	if (!imu_fetch_sync(gyro, accel)) {
 		imu_outputs_zero(gyro, accel);
 		return false;
+	}
+
+	if (interrupt_timestamp_ns != NULL) {
+		*interrupt_timestamp_ns = imu_timestamp_now_ns();
 	}
 
 	return true;

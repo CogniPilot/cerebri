@@ -20,7 +20,7 @@ M10 GNSS support is staged after manual flight bring-up and must stay out of the
 - Bring GNSS online only after CRSF, DSHOT, and IMU behavior are stable.
 
 **PROHIBITED:**
-- GNSS polling inside the 800 Hz control loop.
+- GNSS polling inside the 1600 Hz control loop.
 - GNSS-specific worker threads justified only by convenience.
 - Holding first manual flight hostage to GNSS completion.
 

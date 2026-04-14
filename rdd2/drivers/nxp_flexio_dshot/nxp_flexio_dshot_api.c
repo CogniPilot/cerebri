@@ -29,6 +29,18 @@ void nxp_flexio_dshot_trigger(const struct device *dev)
 	api->trigger(dev);
 }
 
+uint64_t nxp_flexio_dshot_last_trigger_ns_get(const struct device *dev)
+{
+	const struct nxp_flexio_dshot_driver_api *api =
+		(const struct nxp_flexio_dshot_driver_api *)dev->api;
+
+	if (api == NULL || api->last_trigger_ns_get == NULL) {
+		return 0U;
+	}
+
+	return api->last_trigger_ns_get(dev);
+}
+
 uint8_t nxp_flexio_dshot_channel_count(const struct device *dev)
 {
 	const struct nxp_flexio_dshot_driver_api *api =

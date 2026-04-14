@@ -5,8 +5,8 @@
 #include "rc_input.h"
 #include "sitl_flatbuffer.h"
 #include "sitl_udp_coordinator.h"
+#include "topic_bus.h"
 #include "topic_flatbuffer.h"
-#include "topic_shell.h"
 
 #include <arpa/inet.h>
 #include <errno.h>

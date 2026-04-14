@@ -17,7 +17,7 @@ SD-card logging uses a dedicated FlatBuffer log-envelope schema plus generated b
 
 **PROHIBITED:**
 - Writing anonymous topic bytes to storage with no typed envelope.
-- Doing reflection parsing or schema serialization in the 800 Hz control loop.
+- Doing reflection parsing or schema serialization in the rate-loop hot path.
 
 ## Motivation
 

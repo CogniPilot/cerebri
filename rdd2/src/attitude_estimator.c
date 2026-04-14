@@ -4,13 +4,14 @@
 
 #include "attitude_estimator.h"
 
-#include "generated/casadi.h"
-#include "generated/rdd2.h"
-
 #include <math.h>
 #include <string.h>
 
 #define RDD2_GRAVITY_M_S2 9.81f
+#define RDD2_ATTITUDE_CORRECTION_KP 0.35f
+#define RDD2_ATTITUDE_CORRECTION_KI 0.02f
+#define RDD2_ATTITUDE_ACCEL_MIN_G   0.6f
+#define RDD2_ATTITUDE_ACCEL_MAX_G   1.4f
 
 static float clampf(float value, float min_value, float max_value)
 {
@@ -23,27 +24,29 @@ static float clampf(float value, float min_value, float max_value)
 	return value;
 }
 
-static void quaternion_normalize(float q[4])
+static void quaternion_normalize(struct rdd2_attitude_estimator *estimator)
 {
-	float norm_sq = (q[0] * q[0]) + (q[1] * q[1]) + (q[2] * q[2]) + (q[3] * q[3]);
+	float norm_sq = (estimator->q_w * estimator->q_w) + (estimator->q_x * estimator->q_x) +
+			(estimator->q_y * estimator->q_y) + (estimator->q_z * estimator->q_z);
 	float inv_norm;
 
 	if (norm_sq <= 1.0e-6f) {
-		q[0] = 1.0f;
-		q[1] = 0.0f;
-		q[2] = 0.0f;
-		q[3] = 0.0f;
+		estimator->q_w = 1.0f;
+		estimator->q_x = 0.0f;
+		estimator->q_y = 0.0f;
+		estimator->q_z = 0.0f;
 		return;
 	}
 
 	inv_norm = 1.0f / sqrtf(norm_sq);
-	q[0] *= inv_norm;
-	q[1] *= inv_norm;
-	q[2] *= inv_norm;
-	q[3] *= inv_norm;
+	estimator->q_w *= inv_norm;
+	estimator->q_x *= inv_norm;
+	estimator->q_y *= inv_norm;
+	estimator->q_z *= inv_norm;
 }
 
-static void quaternion_from_euler(float roll, float pitch, float yaw, float q[4])
+static void quaternion_from_euler(struct rdd2_attitude_estimator *estimator, float roll,
+				  float pitch, float yaw)
 {
 	float cr = cosf(roll * 0.5f);
 	float sr = sinf(roll * 0.5f);
@@ -52,24 +55,48 @@ static void quaternion_from_euler(float roll, float pitch, float yaw, float q[4]
 	float cy = cosf(yaw * 0.5f);
 	float sy = sinf(yaw * 0.5f);
 
-	q[0] = (cy * cp * cr) + (sy * sp * sr);
-	q[1] = (cy * cp * sr) - (sy * sp * cr);
-	q[2] = (sy * cp * sr) + (cy * sp * cr);
-	q[3] = (sy * cp * cr) - (cy * sp * sr);
-	quaternion_normalize(q);
+	estimator->q_w = (cy * cp * cr) + (sy * sp * sr);
+	estimator->q_x = (cy * cp * sr) - (sy * sp * cr);
+	estimator->q_y = (sy * cp * sr) + (cy * sp * cr);
+	estimator->q_z = (sy * cp * cr) - (cy * sp * sr);
+	quaternion_normalize(estimator);
 }
 
-static void attitude_from_quaternion(const float q[4], synapse_topic_AttitudeEuler_t *attitude)
+static void attitude_from_quaternion(const struct rdd2_attitude_estimator *estimator,
+				     synapse_topic_AttitudeEuler_t *attitude)
 {
-	float sinr_cosp = (2.0f * q[0] * q[1]) + (2.0f * q[2] * q[3]);
-	float cosr_cosp = 1.0f - (2.0f * ((q[1] * q[1]) + (q[2] * q[2])));
-	float sinp = (2.0f * q[0] * q[2]) - (2.0f * q[3] * q[1]);
-	float siny_cosp = (2.0f * q[0] * q[3]) + (2.0f * q[1] * q[2]);
-	float cosy_cosp = 1.0f - (2.0f * ((q[2] * q[2]) + (q[3] * q[3])));
+	float sinr_cosp = (2.0f * estimator->q_w * estimator->q_x) +
+			  (2.0f * estimator->q_y * estimator->q_z);
+	float cosr_cosp = 1.0f - (2.0f * ((estimator->q_x * estimator->q_x) +
+				      (estimator->q_y * estimator->q_y)));
+	float sinp = (2.0f * estimator->q_w * estimator->q_y) -
+		     (2.0f * estimator->q_z * estimator->q_x);
+	float siny_cosp = (2.0f * estimator->q_w * estimator->q_z) +
+			  (2.0f * estimator->q_x * estimator->q_y);
+	float cosy_cosp = 1.0f - (2.0f * ((estimator->q_y * estimator->q_y) +
+				      (estimator->q_z * estimator->q_z)));
 
 	attitude->roll = atan2f(sinr_cosp, cosr_cosp);
 	attitude->pitch = asinf(clampf(sinp, -1.0f, 1.0f));
 	attitude->yaw = atan2f(siny_cosp, cosy_cosp);
+}
+
+static bool accel_correction_valid(const synapse_topic_Vec3f_t *accel, float *ax, float *ay,
+				   float *az)
+{
+	float accel_norm;
+
+	accel_norm =
+		sqrtf((accel->x * accel->x) + (accel->y * accel->y) + (accel->z * accel->z));
+	if (accel_norm < (RDD2_ATTITUDE_ACCEL_MIN_G * RDD2_GRAVITY_M_S2) ||
+	    accel_norm > (RDD2_ATTITUDE_ACCEL_MAX_G * RDD2_GRAVITY_M_S2)) {
+		return false;
+	}
+
+	*ax = accel->x / accel_norm;
+	*ay = accel->y / accel_norm;
+	*az = accel->z / accel_norm;
+	return true;
 }
 
 void rdd2_attitude_estimator_init(struct rdd2_attitude_estimator *estimator)
@@ -79,7 +106,7 @@ void rdd2_attitude_estimator_init(struct rdd2_attitude_estimator *estimator)
 	}
 
 	memset(estimator, 0, sizeof(*estimator));
-	estimator->x[6] = 1.0f;
+	estimator->q_w = 1.0f;
 }
 
 void rdd2_attitude_estimator_reset_from_accel(
@@ -92,7 +119,7 @@ void rdd2_attitude_estimator_reset_from_accel(
 		return;
 	}
 
-	memset(estimator->x, 0, sizeof(estimator->x));
+	memset(estimator, 0, sizeof(*estimator));
 	if (accel != NULL) {
 		float yz_norm = sqrtf((accel->y * accel->y) + (accel->z * accel->z));
 
@@ -100,43 +127,72 @@ void rdd2_attitude_estimator_reset_from_accel(
 		pitch = atan2f(-accel->x, yz_norm);
 	}
 
-	quaternion_from_euler(roll, pitch, 0.0f, &estimator->x[6]);
+	quaternion_from_euler(estimator, roll, pitch, 0.0f);
 }
 
 void rdd2_attitude_estimator_predict(struct rdd2_attitude_estimator *estimator,
 					const synapse_topic_Vec3f_t *gyro,
 					const synapse_topic_Vec3f_t *accel, float dt)
 {
-	float a_b[3];
-	float omega_b[3];
-	float x1[10];
-	float gravity = RDD2_GRAVITY_M_S2;
+	float gx;
+	float gy;
+	float gz;
+	float q_w;
+	float q_x;
+	float q_y;
+	float q_z;
 
 	if (estimator == NULL || gyro == NULL || accel == NULL || dt <= 0.0f) {
 		return;
 	}
 
-	a_b[0] = accel->x;
-	a_b[1] = accel->y;
-	a_b[2] = accel->z;
-	omega_b[0] = gyro->x;
-	omega_b[1] = gyro->y;
-	omega_b[2] = gyro->z;
+	gx = gyro->x;
+	gy = gyro->y;
+	gz = gyro->z;
 
-	{
-		CASADI_FUNC_ARGS(strapdown_ins_propagate);
+	if (accel != NULL) {
+		float ax;
+		float ay;
+		float az;
 
-		args[0] = estimator->x;
-		args[1] = a_b;
-		args[2] = omega_b;
-		args[3] = &gravity;
-		args[4] = &dt;
-		res[0] = x1;
-		CASADI_FUNC_CALL(strapdown_ins_propagate);
+		if (accel_correction_valid(accel, &ax, &ay, &az)) {
+			float gravity_x = 2.0f * ((estimator->q_x * estimator->q_z) -
+						 (estimator->q_w * estimator->q_y));
+			float gravity_y = 2.0f * ((estimator->q_w * estimator->q_x) +
+						 (estimator->q_y * estimator->q_z));
+			float gravity_z = (estimator->q_w * estimator->q_w) -
+					  (estimator->q_x * estimator->q_x) -
+					  (estimator->q_y * estimator->q_y) +
+					  (estimator->q_z * estimator->q_z);
+			float error_x = (ay * gravity_z) - (az * gravity_y);
+			float error_y = (az * gravity_x) - (ax * gravity_z);
+			float error_z = (ax * gravity_y) - (ay * gravity_x);
+
+			estimator->gyro_bias_x += RDD2_ATTITUDE_CORRECTION_KI * error_x * dt;
+			estimator->gyro_bias_y += RDD2_ATTITUDE_CORRECTION_KI * error_y * dt;
+			estimator->gyro_bias_z += RDD2_ATTITUDE_CORRECTION_KI * error_z * dt;
+
+			gx += estimator->gyro_bias_x + (RDD2_ATTITUDE_CORRECTION_KP * error_x);
+			gy += estimator->gyro_bias_y + (RDD2_ATTITUDE_CORRECTION_KP * error_y);
+			gz += estimator->gyro_bias_z + (RDD2_ATTITUDE_CORRECTION_KP * error_z);
+		} else {
+			gx += estimator->gyro_bias_x;
+			gy += estimator->gyro_bias_y;
+			gz += estimator->gyro_bias_z;
+		}
 	}
 
-	memcpy(estimator->x, x1, sizeof(x1));
-	quaternion_normalize(&estimator->x[6]);
+	q_w = estimator->q_w;
+	q_x = estimator->q_x;
+	q_y = estimator->q_y;
+	q_z = estimator->q_z;
+
+	estimator->q_w += 0.5f * (-q_x * gx - q_y * gy - q_z * gz) * dt;
+	estimator->q_x += 0.5f * (q_w * gx + q_y * gz - q_z * gy) * dt;
+	estimator->q_y += 0.5f * (q_w * gy - q_x * gz + q_z * gx) * dt;
+	estimator->q_z += 0.5f * (q_w * gz + q_x * gy - q_y * gx) * dt;
+
+	quaternion_normalize(estimator);
 }
 
 void rdd2_attitude_estimator_get_attitude(
@@ -147,5 +203,5 @@ void rdd2_attitude_estimator_get_attitude(
 		return;
 	}
 
-	attitude_from_quaternion(&estimator->x[6], attitude);
+	attitude_from_quaternion(estimator, attitude);
 }

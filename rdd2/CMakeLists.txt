@@ -9,6 +9,8 @@ set(ZEPHYR_MODULES
   ${WORKSPACE_ROOT}/modules/hal/cmsis_6
   ${WORKSPACE_ROOT}/modules/hal/nxp
   ${WORKSPACE_ROOT}/modules/lib/cmsis-dsp
+  ${WORKSPACE_ROOT}/modules/lib/zenoh-pico
+  ${WORKSPACE_ROOT}/modules/lib/zros
   ${WORKSPACE_ROOT}/modules/lib/zephyr_boards
 )
 

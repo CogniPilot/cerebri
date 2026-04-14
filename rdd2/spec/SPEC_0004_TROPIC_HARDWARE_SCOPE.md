@@ -22,8 +22,10 @@ ACCEPTED
 - Application code consumes the `rc`, `imu0`, and `motors` aliases, not board-specific node labels.
 - DSHOT defaults to `DSHOT600`.
 - `DSHOT300` is the first fallback check if ESC signaling is marginal.
-- The `ICM45686` gyro and accel run at `800 Hz` ODR for the flight loop.
-- The `ICM45686` FIFO watermark is `1`, so each watermark event advances one `800 Hz` control iteration.
+- The `ICM45686` gyro and accel run at `1600 Hz` ODR for the flight loop.
+- The `ICM45686` data-ready interrupt advances one `1600 Hz` control iteration.
+- The onboard Ethernet path, when enabled, uses the `TJA1103` PHY with an external RMII reference clock.
+- The Tropic `TJA1103` reset line is wired to `GPIO_B0_14` / `GPIO2_IO14` and must be driven high before PHY initialization.
 - IMU data is remapped into `FRD` body axes before control use:
   - body roll / `x` = sensor gyro `y`
   - body pitch / `y` = sensor gyro `x`

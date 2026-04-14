@@ -4,7 +4,13 @@
 #include "topic_flatbuffer.h"
 
 struct rdd2_attitude_estimator {
-	float x[10];
+	float q_w;
+	float q_x;
+	float q_y;
+	float q_z;
+	float gyro_bias_x;
+	float gyro_bias_y;
+	float gyro_bias_z;
 };
 
 void rdd2_attitude_estimator_init(struct rdd2_attitude_estimator *estimator);

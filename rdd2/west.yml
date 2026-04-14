@@ -13,7 +13,7 @@ manifest:
   projects:
     - name: zephyr
       remote: cognipilot
-      revision: cerebri2-base
+      revision: c908d12ebc2baa679d0f5b8e31eeb459ea93caff # cerebri2 4/14/26
       path: zephyr
       west-commands: scripts/west-commands.yml
     - name: cmsis
@@ -32,11 +32,19 @@ manifest:
       remote: cognipilot
       revision: cf8f1631e862528ee044850bcc70273975b90771 # loaded in ~/cognipilot/ws/modules/hal/nxp
       path: modules/hal/nxp
+    - name: zros
+      remote: cognipilot
+      revision: 959bce412d6e12b3a49fb8b55c219affcf7f6d0e # cerebri2 4/14/26
+      path: modules/lib/zros
+    - name: zenoh-pico
+      url: https://github.com/cognipilot/zenoh-pico.git
+      revision: a330e6c1489097646746f7a50831cc512c290c3f  # cerebri2 4/14/26
+      path: modules/lib/zenoh-pico
     - name: zephyr_boards
       remote: cognipilot
-      revision: cerebri2-base
+      revision: d006ec84e621ee33f43c233a96380c8c3f6470eb # cerebri2 4/14/26
       path: modules/lib/zephyr_boards
     - name: synapse_msgs_fbs
       url: https://github.com/CogniPilot/synapse_msgs_fbs.git
-      revision: cerebri2
+      revision: 764acec47c44f8b9363e2a704cb4b8043b127d88 # cerebri2 4/14/26
       path: modules/lib/synapse_msgs_fbs

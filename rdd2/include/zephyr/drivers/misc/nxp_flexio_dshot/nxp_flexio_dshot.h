@@ -34,12 +34,14 @@ struct nxp_flexio_dshot_driver_api {
 	void (*data_set)(const struct device *dev, unsigned channel, uint16_t throttle,
 			 bool telemetry);
 	void (*trigger)(const struct device *dev);
+	uint64_t (*last_trigger_ns_get)(const struct device *dev);
 	uint8_t (*channel_count)(const struct device *dev);
 };
 
 void nxp_flexio_dshot_data_set(const struct device *dev, unsigned channel, uint16_t throttle,
 			       bool telemetry);
 void nxp_flexio_dshot_trigger(const struct device *dev);
+uint64_t nxp_flexio_dshot_last_trigger_ns_get(const struct device *dev);
 uint8_t nxp_flexio_dshot_channel_count(const struct device *dev);
 
 #ifdef __cplusplus

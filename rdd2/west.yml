@@ -39,7 +39,7 @@ manifest:
       path: modules/lib/zros
     - name: zenoh-pico
       url: https://github.com/cognipilot/zenoh-pico.git
-      revision: c7dd53b5b62a3430a36e95418529518b15bd1727  # cerebri2 4/14/26
+      revision: 3c203551f37c5ad0b6f5471a8c344d376c04127b  # cerebri2 4/14/26
       path: modules/lib/zenoh-pico
     - name: zephyr_boards
       remote: cognipilot

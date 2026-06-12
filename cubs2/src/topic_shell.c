@@ -474,8 +474,8 @@ static void topic_print_status(const struct shell *sh)
 	int64_t rc_age_ms = status.rc_valid ? (now_ms - status.rc_stamp_ms) : -1;
 
 	shell_print(sh,
-		    "status mode=%-10s armed=%1d imu_ok=%1d rc_valid=%1d rc_stale=%1d arm_switch=%1d rc_age_ms=%6lld lq=%3u throttle_us=%4ld desired_rate=[%8.3f %8.3f %8.3f] rate_cmd=[%8.3f %8.3f %8.3f]",
-		    cubs2_flight_mode_name((enum cubs2_flight_mode)status.flight_mode),
+		    "status mode=%u armed=%1d imu_ok=%1d rc_valid=%1d rc_stale=%1d arm_switch=%1d rc_age_ms=%6lld lq=%3u throttle_us=%4ld desired_rate=[%8.3f %8.3f %8.3f] rate_cmd=[%8.3f %8.3f %8.3f]",
+		    (unsigned int)status.flight_mode,
 		    status.armed ? 1 : 0,
 		    status.imu_ok ? 1 : 0,
 		    status.rc_valid ? 1 : 0,

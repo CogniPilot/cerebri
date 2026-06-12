@@ -4,58 +4,23 @@
 
 #include "control_io.h"
 
-#include "imu_stream.h"
-#include "rc_input.h"
-
 #include <errno.h>
 
-#include <zephyr/device.h>
-#include <zephyr/drivers/misc/nxp_flexio_dshot/nxp_flexio_dshot.h>
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(cubs2, LOG_LEVEL_INF);
 
-#define RC_NODE    DT_ALIAS(rc)
-#define IMU_NODE   DT_ALIAS(imu0)
-#define DSHOT_NODE DT_ALIAS(motors)
-#define GNSS_NODE  DT_ALIAS(gnss)
-
-static bool ready_or_log(const struct device *dev, const char *name)
-{
-	if (!device_is_ready(dev)) {
-		LOG_ERR("%s not ready", name);
-		return false;
-	}
-
-	return true;
-}
+K_SEM_DEFINE(g_input_sem, 0, 1);
 
 int cubs2_control_io_init(void)
 {
-	const struct device *const rc_dev = DEVICE_DT_GET(RC_NODE);
-	const struct device *const imu_dev = DEVICE_DT_GET(IMU_NODE);
-	const struct device *const dshot_dev = DEVICE_DT_GET(DSHOT_NODE);
-	const struct device *const gnss_dev = DEVICE_DT_GET_OR_NULL(GNSS_NODE);
+	return 0;
+}
 
-	cubs2_rc_input_init();
-
-	if (!ready_or_log(dshot_dev, "dshot")) {
-		return -ENODEV;
-	}
-
-	ready_or_log(rc_dev, "rc");
-	ready_or_log(imu_dev, "imu");
-
-	if (gnss_dev != NULL && device_is_ready(gnss_dev)) {
-		LOG_INF("gnss path ready");
-	}
-
-	if (nxp_flexio_dshot_channel_count(dshot_dev) != 4U) {
-		LOG_ERR("expected 4 dshot channels");
-		return -EINVAL;
-	}
-
-	return cubs2_imu_stream_init();
+void cubs2_control_input_trigger(void)
+{
+	k_sem_give(&g_input_sem);
 }
 
 void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
@@ -64,10 +29,11 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 				synapse_topic_ControlStatus_t *status,
 				float *dt)
 {
-	bool rc_valid;
+	// Wait for the next input trigger (e.g. from bridge or timer)
+	(void)k_sem_take(&g_input_sem, K_MSEC(10));
 
-	status->imu_ok = cubs2_imu_stream_wait_next(gyro, accel, dt);
-	status->rc_link_quality = cubs2_rc_input_link_quality_get(DEVICE_DT_GET(RC_NODE));
-	cubs2_rc_input_latest_get(rc, &status->rc_stamp_ms, &rc_valid);
-	status->rc_valid = rc_valid;
+	// Default values if no real sensor data is present
+	*dt = 0.01f;
+	status->imu_ok = true;
+	status->rc_valid = true;
 }

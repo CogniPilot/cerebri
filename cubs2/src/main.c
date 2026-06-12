@@ -2,14 +2,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "attitude_control.h"
-#include "attitude_estimator.h"
 #include "control_io.h"
-#include "flight_mode.h"
 #include "hotpath_memory.h"
-#include "motor_output.h"
-#include "rate_control.h"
 #include "topic_shell.h"
+#include "generated_fixed_wing/CubControl_FixedWingOuterLoop.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -28,145 +24,73 @@ struct control_context {
 	synapse_topic_AttitudeEuler_t attitude_desired;
 	synapse_topic_RateTriplet_t rate_desired;
 	synapse_topic_RateTriplet_t rate_cmd;
-	synapse_topic_MotorValues4f_t motors;
-	synapse_topic_MotorRaw4u16_t raw_test;
-	float throttle_input;
-	float throttle_cmd;
 	float dt;
 	int64_t now_ms;
-	bool rc_stale;
-	enum cubs2_flight_mode flight_mode;
 };
 
-/* Keep the persistent 800 Hz control-loop working set in DTCM on Tropic. */
-static CUBS2_HOTPATH_DTCM_BSS struct cubs2_attitude_controller g_attitude_controller;
-static CUBS2_HOTPATH_DTCM_BSS struct cubs2_attitude_estimator g_attitude_estimator;
-static CUBS2_HOTPATH_DTCM_BSS struct cubs2_rate_controller g_rate_controller;
+/* Keep the persistent 100 Hz control-loop working set in DTCM if available. */
+static CUBS2_HOTPATH_DTCM_BSS CubControl_FixedWingOuterLoop_t g_model;
 static CUBS2_HOTPATH_DTCM_BSS struct control_context g_control_ctx;
 
-static void publish_flight_state(const struct control_context *ctx)
+static void publish_bridge_state(const struct control_context *ctx)
 {
 	cubs2_topic_flight_state_publish(&ctx->gyro, &ctx->accel, &ctx->rc, &ctx->status,
 					   &ctx->attitude, &ctx->attitude_desired,
 					   &ctx->rate_desired, &ctx->rate_cmd);
 }
 
+/* User: Map incoming telemetry to Modelica parameters p[305] */
+static void fixed_wing_bridge_map_input(CubControl_FixedWingOuterLoop_t *m, const struct control_context *ctx)
+{
+	// Example mapping (indices are placeholders):
+	// m->p[0] = ctx->attitude.roll;
+	// m->p[1] = ctx->attitude.pitch;
+	// m->p[2] = ctx->attitude.yaw;
+	// m->p[3] = ctx->gyro.x;
+}
+
+/* User: Map Modelica parameters/outputs to RC channel overrides */
+static void fixed_wing_bridge_map_output(const CubControl_FixedWingOuterLoop_t *m, synapse_topic_RcChannels16_t *rc)
+{
+	// Example mapping (indices are placeholders):
+	// rc->ch0 = (int)m->p[50]; // Aileron
+	// rc->ch1 = (int)m->p[51]; // Elevator
+	// rc->ch2 = (int)m->p[52]; // Throttle
+	// rc->ch3 = (int)m->p[53]; // Rudder
+}
+
 int main(void)
 {
 	struct control_context *const ctx = &g_control_ctx;
-	enum cubs2_flight_mode previous_mode = CUBS2_FLIGHT_MODE_ACRO;
-	bool was_armed = false;
 	int rc;
 
 	*ctx = (struct control_context){0};
-	cubs2_attitude_controller_init(&g_attitude_controller);
-	cubs2_attitude_estimator_init(&g_attitude_estimator);
-	cubs2_rate_controller_init(&g_rate_controller);
-	cubs2_motor_output_init();
+	startup(&g_model);
 
 	rc = cubs2_control_io_init();
 	if (rc != 0) {
 		return rc;
 	}
 
-	LOG_INF("CUBS2 flight stack starting");
+	LOG_INF("CUBS2 Fixed-Wing Bridge starting");
 
 	while (true) {
-		was_armed = ctx->status.armed;
-		previous_mode = ctx->flight_mode;
-
+		// Wait for next telemetry packet or 100Hz trigger
 		cubs2_control_input_wait(&ctx->gyro, &ctx->accel, &ctx->rc, &ctx->status, &ctx->dt);
 		ctx->now_ms = k_uptime_get();
-		ctx->rc_stale =
-			!ctx->status.rc_valid ||
-			((ctx->now_ms - ctx->status.rc_stamp_ms) > CUBS2_RC_STALE_TIMEOUT_MS);
-		ctx->flight_mode = cubs2_flight_mode_from_rc(&ctx->rc);
-		ctx->status.flight_mode = (uint8_t)ctx->flight_mode;
 
-		if (ctx->dt <= 0.0f) {
-			ctx->dt = (float)CUBS2_CONTROL_PERIOD_US * 1.0e-6f;
-		}
+		// Update model inputs
+		fixed_wing_bridge_map_input(&g_model, ctx);
 
-		ctx->status.arm_switch = cubs2_rate_arm_switch_high(&ctx->rc);
-		ctx->status.throttle_us = cubs2_rate_throttle_us(&ctx->rc);
-		ctx->status.rc_stale = ctx->rc_stale;
-		ctx->attitude = (synapse_topic_AttitudeEuler_t){0};
-		ctx->attitude_desired = (synapse_topic_AttitudeEuler_t){0};
-		ctx->rate_desired = (synapse_topic_RateTriplet_t){0};
-		ctx->rate_cmd = (synapse_topic_RateTriplet_t){0};
-		ctx->motors = (synapse_topic_MotorValues4f_t){0};
+		// Step the eFMU
+		dostep(&g_model, (real_t)ctx->dt);
 
-		if (!ctx->status.imu_ok || ctx->rc_stale || !ctx->status.arm_switch) {
-			ctx->status.armed = false;
-		} else if (!ctx->status.armed &&
-			   ctx->status.throttle_us <= CUBS2_THROTTLE_ARM_MAX) {
-			ctx->status.armed = true;
-		}
+		// Map model outputs to RC sticks
+		fixed_wing_bridge_map_output(&g_model, &ctx->rc);
 
-		if (!ctx->status.armed || !was_armed) {
-			cubs2_attitude_estimator_reset_from_accel(&g_attitude_estimator,
-							 &ctx->accel);
-		} else if (ctx->status.imu_ok) {
-			cubs2_attitude_estimator_predict(&g_attitude_estimator, &ctx->gyro,
-							   &ctx->accel, ctx->dt);
-		}
-
-		if (ctx->status.imu_ok) {
-			cubs2_attitude_estimator_get_attitude(&g_attitude_estimator,
-							 &ctx->attitude);
-			ctx->attitude_desired = ctx->attitude;
-		}
-
-		if (!ctx->status.armed || !was_armed || ctx->flight_mode != previous_mode) {
-			cubs2_attitude_controller_reset(&g_attitude_controller);
-			cubs2_rate_controller_reset(&g_rate_controller);
-		}
-
-		if (cubs2_motor_test_get(&ctx->motors)) {
-			publish_flight_state(ctx);
-			cubs2_motor_output_write_all(&ctx->motors, true, true);
-			continue;
-		}
-
-		if (cubs2_motor_raw_test_get(&ctx->raw_test)) {
-			publish_flight_state(ctx);
-			cubs2_motor_output_write_all_raw(&ctx->raw_test, true);
-			continue;
-		}
-
-		if (!ctx->status.imu_ok || ctx->rc_stale) {
-			publish_flight_state(ctx);
-			cubs2_motor_output_write_all(&ctx->motors, false, false);
-			continue;
-		}
-
-		switch (ctx->flight_mode) {
-		case CUBS2_FLIGHT_MODE_AUTO_LEVEL:
-			cubs2_attitude_desired_from_rc(&ctx->rc, &ctx->attitude,
-							 &ctx->attitude_desired);
-			cubs2_attitude_controller_step(&g_attitude_controller, &ctx->attitude,
-							 &ctx->attitude_desired, &ctx->rc,
-							 ctx->dt, &ctx->rate_desired);
-			break;
-		case CUBS2_FLIGHT_MODE_ACRO:
-		default:
-			cubs2_rate_desired_from_rc(&ctx->rc, &ctx->rate_desired);
-			ctx->attitude_desired = ctx->attitude;
-			break;
-		}
-
-		ctx->throttle_input = cubs2_rate_throttle_input_from_rc(&ctx->rc);
-		ctx->throttle_cmd =
-			cubs2_rate_throttle_command(ctx->throttle_input, ctx->status.armed);
-		cubs2_rate_controller_step(&g_rate_controller, &ctx->rate_desired,
-					     &ctx->gyro, ctx->dt,
-					     ctx->status.armed &&
-						     ctx->throttle_input >
-							     CUBS2_PID_INTEGRATE_THROTTLE_MIN,
-					     &ctx->rate_cmd);
-		cubs2_mix_quad_x(ctx->throttle_cmd, &ctx->rate_cmd, &ctx->motors);
-		publish_flight_state(ctx);
-		cubs2_motor_output_write_all(&ctx->motors, ctx->status.armed, false);
+		// Publish stick overrides to the bridge output
+		publish_bridge_state(ctx);
+		cubs2_topic_rc_published();
 	}
 
 	return 0;

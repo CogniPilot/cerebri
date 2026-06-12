@@ -10,4 +10,6 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 				synapse_topic_ControlStatus_t *status,
 				float *dt);
 
+void cubs2_control_input_trigger(void);
+
 #endif

@@ -1,0 +1,5 @@
+menu "Drivers"
+
+rsource "nxp_flexio_dshot/Kconfig"
+
+endmenu

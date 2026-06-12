@@ -1,0 +1,65 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/ {
+	chosen {
+		zephyr,console = &lpuart4;
+		zephyr,shell-uart = &lpuart4;
+		zephyr,uart-mcumgr = &lpuart4;
+	};
+
+	aliases {
+		rc = &sbus0;
+		imu0 = &icm42686_0;
+		motors = &dshot;
+		gnss = &gnss0;
+	};
+};
+
+&lpuart2 {
+	status = "okay";
+	current-speed = <115200>;
+
+	gnss0: gnss {
+		status = "disabled";
+		compatible = "gnss-nmea-generic";
+	};
+};
+
+&lpuart6 {
+	sbus0: sbus {
+		status = "okay";
+	};
+};
+
+&pinctrl {
+	pinmux_dshot_vmu: pinmux_dshot_vmu {
+	};
+};
+
+&flexio1 {
+	status = "okay";
+
+	dshot: dshot {
+		compatible = "cognipilot,flexio-dshot";
+		pinctrl-0 = <&pinmux_dshot_vmu>;
+		pinctrl-names = "default";
+		status = "okay";
+		speed = <600>;
+
+		ch1 {
+			pin-id = <6>;
+		};
+
+		ch2 {
+			pin-id = <7>;
+		};
+
+		ch3 {
+			pin-id = <9>;
+		};
+
+		ch4 {
+			pin-id = <8>;
+		};
+	};
+};

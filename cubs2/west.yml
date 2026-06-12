@@ -2,7 +2,7 @@
 
 manifest:
   self:
-    path: cerebri/rdd2
+    path: cerebri/cubs2
 
   remotes:
     - name: zephyrproject-rtos

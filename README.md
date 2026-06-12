@@ -12,15 +12,16 @@ Each vehicle lives in its own top-level folder and owns its own:
 This means the repository root is not the application root, and there is
 intentionally no root `west.yml`.
 
-Current platform:
+Current platforms:
 - `rdd2/`
+- `cubs2/`
 
 For a given vehicle, treat `<vehicle>/spec/` as the source of truth for that
 vehicle's policies and architecture. Start with
 [rdd2/spec/README.md](/home/jgoppert/cognipilot/ws/cerebri/rdd2/spec/README.md)
 and
 [rdd2/README.md](/home/jgoppert/cognipilot/ws/cerebri/rdd2/README.md)
-for the active `rdd2` platform.
+for the active `rdd2` platform and `cubs2` for the fixed-wing bring-up.
 
 ## West Layout
 

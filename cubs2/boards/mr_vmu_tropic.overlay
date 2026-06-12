@@ -1,0 +1,94 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+#include <zephyr/dt-bindings/sensor/icm45686.h>
+
+/ {
+	aliases {
+		rc = &sbus0;
+		imu0 = &icm45686;
+		motors = &dshot;
+		gnss = &gnss0;
+	};
+};
+
+&lpuart2 {
+	status = "okay";
+	current-speed = <115200>;
+
+	gnss0: gnss {
+		status = "disabled";
+		compatible = "gnss-nmea-generic";
+	};
+};
+
+&icm45686 {
+	spi-max-frequency = <10000000>;
+	/*
+	 * Pace the flight loop directly from the IMU FIFO watermark at 800 Hz.
+	 * Keep the filter settings conservative enough to cut motor vibration,
+	 * but leave the SPI DMA channels intact so the FIFO read can stay off
+	 * the CPU hot path.
+	 */
+	accel-odr = <ICM45686_DT_ACCEL_ODR_800>;
+	accel-lpf = <ICM45686_DT_ACCEL_LPF_BW_1_16>;
+	gyro-odr = <ICM45686_DT_GYRO_ODR_800>;
+	gyro-lpf = <ICM45686_DT_GYRO_LPF_BW_1_8>;
+	fifo-watermark = <1>;
+};
+
+&pinctrl {
+	pinmux_dshot_vmu: pinmux_dshot_vmu {
+		group0 {
+			pinmux = <&iomuxc_gpio_emc_06_flexio1_flexio06>,
+				 <&iomuxc_gpio_emc_07_flexio1_flexio07>,
+				 <&iomuxc_gpio_emc_08_flexio1_flexio08>,
+				 <&iomuxc_gpio_emc_09_flexio1_flexio09>,
+				 <&iomuxc_gpio_emc_02_flexio1_flexio02>,
+				 <&iomuxc_gpio_emc_03_flexio1_flexio03>,
+				 <&iomuxc_gpio_emc_04_flexio1_flexio04>,
+				 <&iomuxc_gpio_emc_05_flexio1_flexio05>;
+			drive-strength = "r0-4";
+			bias-pull-up;
+			bias-pull-up-value = "47k";
+			slew-rate = "fast";
+			input-enable;
+			nxp,speed = "100-mhz";
+		};
+	};
+};
+
+&flexio1 {
+	status = "okay";
+
+	dshot: dshot {
+		compatible = "cognipilot,flexio-dshot";
+		pinctrl-0 = <&pinmux_dshot_vmu>;
+		pinctrl-names = "default";
+		status = "okay";
+		speed = <600>;
+
+		ch1 {
+			pin-id = <6>;
+		};
+
+		ch2 {
+			pin-id = <7>;
+		};
+
+		ch3 {
+			pin-id = <9>;
+		};
+
+		ch4 {
+			pin-id = <8>;
+		};
+	};
+};
+
+&bmi08x_accel {
+	status = "disabled";
+};
+
+&bmi08x_gyro {
+	status = "disabled";
+};

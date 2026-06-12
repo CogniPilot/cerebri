@@ -1,0 +1,15 @@
+include "synapse_topics.fbs";
+
+namespace synapse.sil;
+
+table SimInput {
+  gyro:synapse.topic.Vec3f;
+  accel:synapse.topic.Vec3f;
+  rc:synapse.topic.RcChannels16;
+  rc_link_quality:ubyte;
+  rc_valid:bool;
+  imu_valid:bool;
+}
+
+root_type SimInput;
+file_identifier "SYSI";

@@ -6,9 +6,22 @@
 #include <stdint.h>
 
 #include "synapse_topics_reader.h"
+#include "synapse_mocap_reader.h"
 
 #define CUBS2_TOPIC_FB_FLIGHT_STATE_SIZE 192U
 #define CUBS2_TOPIC_FB_MOTOR_OUTPUT_SIZE  48U
+#define CUBS2_TOPIC_FB_MOCAP_FRAME_MAX_SIZE 512U
+
+typedef struct {
+    float x;
+    float y;
+    float z;
+    float qw;
+    float qx;
+    float qy;
+    float qz;
+    bool valid;
+} cubs2_mocap_rigid_body_t;
 
 static inline float *cubs2_topic_vec3f_data(synapse_topic_Vec3f_t *vec)
 {
@@ -98,5 +111,9 @@ size_t cubs2_topic_fb_pack_motor_output(
 bool cubs2_topic_fb_unpack_motor_output(
 	const uint8_t *buf, size_t buf_size, synapse_topic_MotorValues4f_t *motors,
 	synapse_topic_MotorRaw4u16_t *raw, bool *armed, bool *test_mode);
+
+bool cubs2_topic_fb_unpack_mocap_frame(
+	const uint8_t *buf, size_t buf_size,
+	cubs2_mocap_rigid_body_t *rb);
 
 #endif

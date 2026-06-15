@@ -300,3 +300,26 @@ bool cubs2_topic_fb_unpack_motor_output(
 
 	return true;
 }
+
+bool cubs2_topic_fb_unpack_mocap_frame(
+	const uint8_t *buf, size_t buf_size,
+	cubs2_mocap_rigid_body_t *rb)
+{
+	synapse_topic_MocapFrame_table_t frame = synapse_topic_MocapFrame_as_root(buf);
+	if (!frame) return false;
+
+	synapse_topic_MocapRigidBodySample_vec_t rbs = synapse_topic_MocapFrame_rigid_bodies(frame);
+	if (synapse_topic_MocapRigidBodySample_vec_len(rbs) == 0) return false;
+
+	const synapse_topic_MocapRigidBodySample_t *sample = synapse_topic_MocapRigidBodySample_vec_at(rbs, 0);
+	rb->x = sample->position.x;
+	rb->y = sample->position.y;
+	rb->z = sample->position.z;
+	rb->qw = sample->attitude.w;
+	rb->qx = sample->attitude.x;
+	rb->qy = sample->attitude.y;
+	rb->qz = sample->attitude.z;
+	rb->valid = sample->tracking_valid;
+
+	return true;
+}

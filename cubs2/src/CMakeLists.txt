@@ -4,6 +4,7 @@ target_sources(app PRIVATE
   control_io.c
   generated_fixed_wing/CubControl_FixedWingOuterLoop.c
   main.c
+  serial_bridge.c
   topic_flatbuffer.c
   topic_shell.c
 )
@@ -12,6 +13,7 @@ if(CONFIG_CODE_DATA_RELOCATION)
   set(RELOCATE_FILES
     main.c
     control_io.c
+    serial_bridge.c
     topic_flatbuffer.c
     generated_fixed_wing/CubControl_FixedWingOuterLoop.c
   )

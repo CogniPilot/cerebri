@@ -17,22 +17,6 @@
 
 LOG_MODULE_REGISTER(cubs2, LOG_LEVEL_INF);
 
-enum {
-	FW_P_X = 190,
-	FW_P_Y = 191,
-	FW_P_Z = 192,
-	FW_P_ROLL = 193,
-	FW_P_PITCH = 194,
-	FW_P_YAW = 195,
-	FW_P_AILERON = 196,
-	FW_P_ELEVATOR = 197,
-	FW_P_THROTTLE = 198,
-	FW_P_RUDDER = 199,
-	FW_P_STABILIZER = 200,
-	FW_P_CURRENT_WP = 205,
-	FW_P_AIRBORNE = 206,
-};
-
 struct control_context {
 	synapse_topic_Vec3f_t gyro;
 	synapse_topic_Vec3f_t accel;
@@ -104,36 +88,36 @@ static void fixed_wing_bridge_init_parameters(CubControl_FixedWingOuterLoop_t *m
 		[0] = 0.01,
 		[1] = 9.81,
 		[2] = 6.0,
-		[3] = -4.0, [4] = -5.0, [5] = 3.0,
-		[6] = -3.0, [7] = 2.0, [8] = 3.0,
-		[9] = 16.20, [10] = 2.0, [11] = 3.0,
-		[12] = 16.0, [13] = -4.22, [14] = 3.0,
-		[15] = 6.88, [16] = -5.1, [17] = 3.0,
-		[18] = -4.0, [19] = -5.0, [20] = 3.0,
+		[3] = 100.0, [4] = 0.0, [5] = 10.0,
+		[6] = 100.0, [7] = 100.0, [8] = 10.0,
+		[9] = 0.0, [10] = 100.0, [11] = 10.0,
+		[12] = 0.0, [13] = 0.0, [14] = 10.0,
+		[15] = 100.0, [16] = 0.0, [17] = 10.0,
+		[18] = 100.0, [19] = 100.0, [20] = 10.0,
 		[21] = 10.0,
 		[22] = 5.0,
-		[23] = 4.0,
-		[24] = 1.50,
-		[25] = 1.0,    /* lookaheadMin */
-		[26] = 5.0,    /* lookaheadMax */
-		[27] = 3.0,    /* vCruise */
-		[28] = 0.4,    /* takeoffAltitude */
+		[23] = 10.0,
+		[24] = 5.0,
+		[25] = 10.0,   /* lookaheadMin */
+		[26] = 50.0,   /* lookaheadMax */
+		[27] = 10.0,   /* vCruise */
+		[28] = 10.0,   /* takeoffAltitude */
 		[29] = 0.7,    /* takeoffThrottleMin */
 		[30] = 2.0,    /* takeoffThrottleRate */
-		[31] = 0.5,    /* takeoffSpeed */
+		[31] = 8.0,    /* takeoffSpeed */
 		[32] = -0.02,  /* takeoffElevDown */
 		[33] = 0.15,   /* takeoffElevUp */
 		[34] = 0.40,   /* takeoffElevRate */
-		[35] = 0.057,  /* mass */
+		[35] = 1.5,    /* mass */
 		[36] = 3.5,    /* trimThrust */
 		[37] = 0.20,   /* trimElev */
 		[38] = 0.0,    /* trimRud */
 		[39] = 0.0,    /* trimAil */
 		[40] = 7.5,    /* thrMax */
-		[41] = 0.01,   /* K_thrustp */
-		[42] = 0.4215, /* K_thrusti */
-		[43] = 0.075,  /* K_pitchp */
-		[44] = 0.216,  /* K_pitchi */
+		[41] = 0.5,    /* K_thrustp */
+		[42] = 0.05,   /* K_thrusti */
+		[43] = 0.2,    /* K_pitchp */
+		[44] = 0.05,   /* K_pitchi */
 		[45] = 0.107,  /* K_elevp */
 		[46] = 0.2107, /* K_elevi */
 		[47] = 0.2,    /* K_q */
@@ -146,7 +130,7 @@ static void fixed_wing_bridge_init_parameters(CubControl_FixedWingOuterLoop_t *m
 		[54] = 7.5,    /* distTermIntegralMax */
 		[55] = 0.4,    /* rIntegralMax */
 		[56] = 0.2,    /* rollIntegralMax */
-		[57] = 0.25,   /* K_rollp */
+		[57] = 0.5,    /* K_rollp */
 		[58] = 0.10,   /* K_rolli */
 		[59] = 1.20,   /* kChi */
 		[60] = 30.0 * 3.141592653589793 / 180.0,   /* phiLim */
@@ -158,9 +142,10 @@ static void fixed_wing_bridge_init_parameters(CubControl_FixedWingOuterLoop_t *m
 	for (size_t i = 0U; i < (sizeof(params) / sizeof(params[0])); i++) {
 		m->p[i] = params[i];
 	}
-	m->p[FW_P_THROTTLE] = 0.7;
-	m->p[FW_P_STABILIZER] = 1900.0;
-	m->p[FW_P_CURRENT_WP] = 1.0;
+	m->p[MODEL_P_THROTTLE] = 0.7;
+	m->p[MODEL_P_STABILIZER] = 1900.0;
+	m->p[MODEL_P_PRE_CURRENT_WP] = 1.0;
+	m->p[MODEL_P_CURRENT_WP] = 1.0;
 	m->p[CUBCONTROL_FIXEDWINGOUTERLOOP_P_LEN - 1] = 1.0; /* enable simulation computation */
 }
 
@@ -172,27 +157,27 @@ static void fixed_wing_bridge_map_input(CubControl_FixedWingOuterLoop_t *m, cons
 
 	if (ctx->mocap.valid) {
 		quat_to_euler(&ctx->mocap, &roll, &pitch, &yaw);
-		m->p[FW_P_X] = ctx->mocap.x;
-		m->p[FW_P_Y] = ctx->mocap.y;
-		m->p[FW_P_Z] = ctx->mocap.z;
+		m->p[MODEL_P_X] = ctx->mocap.x;
+		m->p[MODEL_P_Y] = ctx->mocap.y;
+		m->p[MODEL_P_Z] = ctx->mocap.z;
 	} else {
-		m->p[FW_P_X] = ctx->gyro.x;
-		m->p[FW_P_Y] = ctx->gyro.y;
-		m->p[FW_P_Z] = ctx->gyro.z;
+		m->p[MODEL_P_X] = ctx->gyro.x;
+		m->p[MODEL_P_Y] = ctx->gyro.y;
+		m->p[MODEL_P_Z] = ctx->gyro.z;
 	}
 
-	m->p[FW_P_ROLL] = roll;
-	m->p[FW_P_PITCH] = pitch;
-	m->p[FW_P_YAW] = yaw;
+	m->p[MODEL_P_ROLL] = roll;
+	m->p[MODEL_P_PITCH] = pitch;
+	m->p[MODEL_P_YAW] = yaw;
 }
 
 static void fixed_wing_bridge_map_output(const CubControl_FixedWingOuterLoop_t *m, synapse_topic_RcChannels16_t *rc)
 {
-	rc->ch0 = pwm_from_centered_stick((float)m->p[FW_P_AILERON], false);
-	rc->ch1 = pwm_from_centered_stick((float)m->p[FW_P_ELEVATOR], true);
-	rc->ch2 = pwm_from_throttle((float)m->p[FW_P_THROTTLE]);
-	rc->ch3 = pwm_from_centered_stick((float)m->p[FW_P_RUDDER], false);
-	rc->ch4 = (int32_t)clampf_local((float)m->p[FW_P_STABILIZER], 1000.0f, 2000.0f);
+	rc->ch0 = pwm_from_centered_stick((float)m->p[MODEL_P_AILERON], false);
+	rc->ch1 = pwm_from_centered_stick((float)m->p[MODEL_P_ELEVATOR], true);
+	rc->ch2 = pwm_from_throttle((float)m->p[MODEL_P_THROTTLE]);
+	rc->ch3 = pwm_from_centered_stick((float)m->p[MODEL_P_RUDDER], false);
+	rc->ch4 = (int32_t)clampf_local((float)m->p[MODEL_P_STABILIZER], 1000.0f, 2000.0f);
 }
 
 int main(void)
@@ -229,16 +214,24 @@ int main(void)
 
 		// Step the eFMU
 		dostep(&g_model, (real_t)ctx->dt);
+		CubControl_FixedWingOuterLoop_sync_pre(&g_model);
 
 		// Map model outputs to RC sticks
 		fixed_wing_bridge_map_output(&g_model, &ctx->rc);
-		LOG_INF("ail=%.2f elev=%.2f thr=%.2f rud=%.2f stab=%.2f d=%d z=%.2f yaw=%.2f air=%d",
-			(double)g_model.p[FW_P_AILERON], (double)g_model.p[FW_P_ELEVATOR],
-			(double)g_model.p[FW_P_THROTTLE], (double)g_model.p[FW_P_RUDDER],
-			(double)g_model.p[FW_P_STABILIZER],
-			(int)g_model.p[FW_P_CURRENT_WP],
-			(double)g_model.p[FW_P_Z], (double)g_model.p[FW_P_YAW],
-			(int)g_model.p[FW_P_AIRBORNE]);
+
+		LOG_INF("FWDBG,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%d,%d,%.3f,%.3f",
+			(double)g_model.time,
+			(double)g_model.p[MODEL_P_X], (double)g_model.p[MODEL_P_Y],
+			(double)g_model.p[MODEL_P_Z], (double)g_model.p[MODEL_P_ROLL],
+			(double)g_model.p[MODEL_P_PITCH], (double)g_model.p[MODEL_P_YAW],
+			(double)g_model.p[MODEL_P_AILERON], (double)g_model.p[MODEL_P_ELEVATOR],
+			(double)g_model.p[MODEL_P_THROTTLE], (double)g_model.p[MODEL_P_RUDDER],
+			(double)g_model.p[MODEL_P_STABILIZER], (double)g_model.p[MODEL_P_DES_HEADING],
+			(double)g_model.p[MODEL_P_CHI], (double)g_model.p[MODEL_P_VX_EST],
+			(double)g_model.p[MODEL_P_VY_EST], (double)g_model.p[MODEL_P_PHI_CMD],
+			(double)g_model.p[MODEL_P_CHI_ERR],
+			(int)g_model.p[MODEL_P_CURRENT_WP], (int)g_model.p[MODEL_P_AIRBORNE],
+			(double)g_model.p[MODEL_P_DES_V], (double)g_model.p[MODEL_P_DES_GAMMA]);
 
 		// Publish stick overrides to the bridge output
 		publish_bridge_state(ctx);

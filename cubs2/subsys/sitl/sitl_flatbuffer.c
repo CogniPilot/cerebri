@@ -17,13 +17,11 @@ enum {
 	SIM_FIELD_RC_LINK_QUALITY = 3,
 	SIM_FIELD_RC_VALID = 4,
 	SIM_FIELD_IMU_VALID = 5,
-	SIM_FIELD_MOCAP = 6,
 };
 
 BUILD_ASSERT(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__);
 BUILD_ASSERT(sizeof(synapse_topic_Vec3f_t) == 12U);
 BUILD_ASSERT(sizeof(synapse_topic_RcChannels16_t) == 64U);
-BUILD_ASSERT(sizeof(synapse_topic_MocapRigidBodySample_t) == 40U);
 
 static uint16_t get_le16(const uint8_t *buf)
 {
@@ -43,8 +41,7 @@ static bool sim_input_read_field_offset(const uint8_t *table, size_t table_offse
 					uint16_t *object_size)
 {
 	size_t entry_offset = 4U + ((size_t)field_index * sizeof(uint16_t));
-	int32_t vtable_distance;
-	int64_t vtable_pos;
+	uint32_t vtable_distance;
 	size_t vtable_offset;
 	const uint8_t *vtable;
 	uint16_t vtable_size;
@@ -55,16 +52,16 @@ static bool sim_input_read_field_offset(const uint8_t *table, size_t table_offse
 		return false;
 	}
 
-	/* The table starts with a *signed* soffset to its vtable. A negative
-	 * value places the vtable after the table (e.g. flatcc), a positive
-	 * value places it before (e.g. flatbuffers C++/Python). Handle both. */
-	vtable_distance = (int32_t)get_le32(table);
-	vtable_pos = (int64_t)table_offset - (int64_t)vtable_distance;
-	if (vtable_pos < 0 || ((uint64_t)vtable_pos + 4U) > buf_size) {
+	vtable_distance = get_le32(table);
+	if (vtable_distance > table_offset) {
 		return false;
 	}
 
-	vtable_offset = (size_t)vtable_pos;
+	vtable_offset = table_offset - vtable_distance;
+	if ((vtable_offset + 4U) > buf_size) {
+		return false;
+	}
+
 	vtable = table - vtable_distance;
 	vtable_size = get_le16(vtable + 0U);
 	*object_size = get_le16(vtable + 2U);
@@ -94,8 +91,7 @@ static bool sim_input_struct_in_bounds(size_t table_offset, uint16_t object_size
 bool cubs2_sitl_fb_unpack_input(
 	const uint8_t *buf, size_t buf_size, synapse_topic_Vec3f_t *gyro,
 	synapse_topic_Vec3f_t *accel, synapse_topic_RcChannels16_t *rc,
-	uint8_t *rc_link_quality, bool *rc_valid, bool *imu_valid,
-	cubs2_mocap_rigid_body_t *mocap)
+	uint8_t *rc_link_quality, bool *rc_valid, bool *imu_valid)
 {
 	const uint8_t *table;
 	size_t table_offset;
@@ -189,32 +185,6 @@ bool cubs2_sitl_fb_unpack_input(
 				return false;
 			}
 			*imu_valid = table[field_offset] != 0U;
-		}
-	}
-
-	if (mocap != NULL) {
-		*mocap = (cubs2_mocap_rigid_body_t){0};
-		if (!sim_input_read_field_offset(table, table_offset, buf_size, SIM_FIELD_MOCAP,
-						 &field_offset, &object_size)) {
-			return false;
-		}
-		/* Optional: absent (field_offset == 0) -> mocap stays invalid. */
-		if (field_offset != 0U) {
-			synapse_topic_MocapRigidBodySample_t rb;
-
-			if (!sim_input_struct_in_bounds(table_offset, object_size, field_offset,
-							sizeof(rb), buf_size)) {
-				return false;
-			}
-			memcpy(&rb, table + field_offset, sizeof(rb));
-			mocap->x = rb.position.x;
-			mocap->y = rb.position.y;
-			mocap->z = rb.position.z;
-			mocap->qw = rb.attitude.w;
-			mocap->qx = rb.attitude.x;
-			mocap->qy = rb.attitude.y;
-			mocap->qz = rb.attitude.z;
-			mocap->valid = rb.tracking_valid != 0U;
 		}
 	}
 

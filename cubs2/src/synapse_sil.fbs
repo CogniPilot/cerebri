@@ -1,5 +1,4 @@
 include "synapse_topics.fbs";
-include "synapse_mocap.fbs";
 
 namespace synapse.sil;
 
@@ -10,9 +9,6 @@ table SimInput {
   rc_link_quality:ubyte;
   rc_valid:bool;
   imu_valid:bool;
-  // Simulated motion-capture pose, same type the flight path consumes.
-  // Appended last so existing field offsets are unchanged.
-  mocap:synapse.topic.MocapRigidBodySample;
 }
 
 root_type SimInput;

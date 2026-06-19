@@ -184,7 +184,7 @@ static void sitl_rx_drain(void)
 		}
 
 		if (!cubs2_sitl_fb_unpack_input(buf, (size_t)len, NULL, NULL, &rc,
-						   &rc_link_quality, &rc_valid, NULL, NULL)) {
+						   &rc_link_quality, &rc_valid, NULL)) {
 			source_addr_len = sizeof(source_addr);
 			continue;
 		}

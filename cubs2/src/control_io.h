@@ -8,8 +8,7 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 				synapse_topic_Vec3f_t *accel,
 				synapse_topic_RcChannels16_t *rc,
 				synapse_topic_ControlStatus_t *status,
-				float *dt,
-				cubs2_mocap_rigid_body_t *mocap);
+				float *dt);
 
 void cubs2_control_input_trigger(void);
 

@@ -44,7 +44,7 @@ static int sitl_imu_sample_fetch(const struct device *dev, enum sensor_channel c
 	}
 
 	if (!cubs2_sitl_fb_unpack_input(buf, len, &data->gyro, &data->accel, NULL, NULL, NULL,
-					   &imu_valid, NULL)) {
+					   &imu_valid)) {
 		data->valid = false;
 		data->generation = generation;
 		return -ENODATA;

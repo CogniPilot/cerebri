@@ -16,7 +16,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(cubs2 LANGUAGES C)
 
 set(CUBS2_FLATBUFFER_SCHEMA_DIR
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${WORKSPACE_ROOT}/modules/lib/synapse_msgs_fbs/fbs/synapse
 )
 set(CUBS2_FLATBUFFER_SCHEMA
   ${CUBS2_FLATBUFFER_SCHEMA_DIR}/synapse_topics.fbs

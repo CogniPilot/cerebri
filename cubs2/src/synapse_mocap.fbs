@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Motion-capture FlatBuffer schema.
+//
+// Byte-compatible with the `synapse_fbs` crate (v0.1.1) used by
+// CogniPilot/synapse_qualisys_bridge, which serializes a `MocapFrame` root
+// table and publishes the raw bytes on the "synapse/mocap/frame" topic.
+//
+// Struct sizes (must match the crate exactly):
+//   Vec3f                12 bytes  (defined in synapse_topics.fbs)
+//   Quaternionf          16 bytes
+//   MocapMarkerSample    20 bytes
+//   MocapRigidBodySample 40 bytes
+//   MocapSegmentSample   40 bytes
+
+include "synapse_topics.fbs";
+
+namespace synapse.topic;
+
+struct Quaternionf {
+  x:float;
+  y:float;
+  z:float;
+  w:float;
+}
+
+struct MocapMarkerSample {
+  id:int;
+  position:Vec3f;
+  residual:float;
+}
+
+struct MocapRigidBodySample {
+  id:int;
+  position:Vec3f;
+  attitude:Quaternionf;
+  residual:float;
+  tracking_valid:bool;
+}
+
+struct MocapSegmentSample {
+  skeleton_id:int;
+  segment_id:int;
+  position:Vec3f;
+  attitude:Quaternionf;
+  tracking_valid:bool;
+}
+
+table MocapFrame {
+  timestamp_us:ulong;
+  frame_number:uint;
+  labeled_markers:[MocapMarkerSample];
+  unlabeled_markers:[MocapMarkerSample];
+  rigid_bodies:[MocapRigidBodySample];
+  skeleton_segments:[MocapSegmentSample];
+}
+
+root_type MocapFrame;

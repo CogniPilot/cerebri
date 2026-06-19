@@ -82,72 +82,30 @@ static void quat_to_euler(const cubs2_mocap_rigid_body_t *mocap, float *roll, fl
 	*yaw = atan2f(siny_cosp, cosy_cosp);
 }
 
-static void fixed_wing_bridge_init_parameters(CubControl_FixedWingOuterLoop_t *m)
-{
-	static const real_t params[] = {
-		[0] = 0.01,
-		[1] = 9.81,
-		[2] = 6.0,
-		[3] = 100.0, [4] = 0.0, [5] = 10.0,
-		[6] = 100.0, [7] = 100.0, [8] = 10.0,
-		[9] = 0.0, [10] = 100.0, [11] = 10.0,
-		[12] = 0.0, [13] = 0.0, [14] = 10.0,
-		[15] = 100.0, [16] = 0.0, [17] = 10.0,
-		[18] = 100.0, [19] = 100.0, [20] = 10.0,
-		[21] = 10.0,
-		[22] = 5.0,
-		[23] = 10.0,
-		[24] = 5.0,
-		[25] = 10.0,   /* lookaheadMin */
-		[26] = 50.0,   /* lookaheadMax */
-		[27] = 10.0,   /* vCruise */
-		[28] = 10.0,   /* takeoffAltitude */
-		[29] = 0.7,    /* takeoffThrottleMin */
-		[30] = 2.0,    /* takeoffThrottleRate */
-		[31] = 8.0,    /* takeoffSpeed */
-		[32] = -0.02,  /* takeoffElevDown */
-		[33] = 0.15,   /* takeoffElevUp */
-		[34] = 0.40,   /* takeoffElevRate */
-		[35] = 1.5,    /* mass */
-		[36] = 3.5,    /* trimThrust */
-		[37] = 0.20,   /* trimElev */
-		[38] = 0.0,    /* trimRud */
-		[39] = 0.0,    /* trimAil */
-		[40] = 7.5,    /* thrMax */
-		[41] = 0.5,    /* K_thrustp */
-		[42] = 0.05,   /* K_thrusti */
-		[43] = 0.2,    /* K_pitchp */
-		[44] = 0.05,   /* K_pitchi */
-		[45] = 0.107,  /* K_elevp */
-		[46] = 0.2107, /* K_elevi */
-		[47] = 0.2,    /* K_q */
-		[48] = 2.5,    /* K_phi_elev */
-		[49] = 0.4,    /* K_deltap */
-		[50] = 0.15,   /* K_deltai */
-		[51] = 0.10,   /* K_deltad */
-		[52] = 0.3,    /* pitchIntegralMax */
-		[53] = 7.5,    /* normEsDotIntegralMax */
-		[54] = 7.5,    /* distTermIntegralMax */
-		[55] = 0.4,    /* rIntegralMax */
-		[56] = 0.2,    /* rollIntegralMax */
-		[57] = 0.5,    /* K_rollp */
-		[58] = 0.10,   /* K_rolli */
-		[59] = 1.20,   /* kChi */
-		[60] = 30.0 * 3.141592653589793 / 180.0,   /* phiLim */
-		[61] = 90.0 * 3.141592653589793 / 180.0,   /* phiDotLim */
-		[62] = 1.0 * 3.141592653589793 / 180.0,    /* chiDeadband */
-		[63] = 20.0 * 3.141592653589793 / 180.0,   /* phiStickLimit */
-	};
-
-	for (size_t i = 0U; i < (sizeof(params) / sizeof(params[0])); i++) {
-		m->p[i] = params[i];
-	}
-	m->p[MODEL_P_THROTTLE] = 0.7;
-	m->p[MODEL_P_STABILIZER] = 1900.0;
-	m->p[MODEL_P_PRE_CURRENT_WP] = 1.0;
-	m->p[MODEL_P_CURRENT_WP] = 1.0;
-	m->p[CUBCONTROL_FIXEDWINGOUTERLOOP_P_LEN - 1] = 1.0; /* enable simulation computation */
-}
+/* Generated-model p[] slot aliases (rumoca embedded-c). Gains, waypoints and
+ * the rest of the parameters are baked into the model and set by
+ * CubControl_FixedWingOuterLoop_init(); only the pose inputs and the control
+ * outputs are exchanged each cycle. */
+#define P_X          CUBCONTROL_FIXEDWINGOUTERLOOP_P_x
+#define P_Y          CUBCONTROL_FIXEDWINGOUTERLOOP_P_y
+#define P_Z          CUBCONTROL_FIXEDWINGOUTERLOOP_P_z
+#define P_ROLL       CUBCONTROL_FIXEDWINGOUTERLOOP_P_roll
+#define P_PITCH      CUBCONTROL_FIXEDWINGOUTERLOOP_P_pitch
+#define P_YAW        CUBCONTROL_FIXEDWINGOUTERLOOP_P_yaw
+#define P_AILERON    CUBCONTROL_FIXEDWINGOUTERLOOP_P_aileron
+#define P_ELEVATOR   CUBCONTROL_FIXEDWINGOUTERLOOP_P_elevator
+#define P_THROTTLE   CUBCONTROL_FIXEDWINGOUTERLOOP_P_throttle
+#define P_RUDDER     CUBCONTROL_FIXEDWINGOUTERLOOP_P_rudder
+#define P_STABILIZER CUBCONTROL_FIXEDWINGOUTERLOOP_P_stabilizer
+#define P_DES_V      CUBCONTROL_FIXEDWINGOUTERLOOP_P_des_v
+#define P_DES_GAMMA  CUBCONTROL_FIXEDWINGOUTERLOOP_P_des_gamma
+#define P_DES_HEADING CUBCONTROL_FIXEDWINGOUTERLOOP_P_des_heading
+#define P_CURRENT_WP CUBCONTROL_FIXEDWINGOUTERLOOP_P_current_wp
+#define P_AIRBORNE   CUBCONTROL_FIXEDWINGOUTERLOOP_P_airborne
+#define P_PHI_CMD    CUBCONTROL_FIXEDWINGOUTERLOOP_P_phi_cmd
+#define P_CHI_ERR    CUBCONTROL_FIXEDWINGOUTERLOOP_P_chi_err
+#define P_VX_EST     CUBCONTROL_FIXEDWINGOUTERLOOP_P_vx_est
+#define P_VY_EST     CUBCONTROL_FIXEDWINGOUTERLOOP_P_vy_est
 
 static void fixed_wing_bridge_map_input(CubControl_FixedWingOuterLoop_t *m, const struct control_context *ctx)
 {
@@ -157,27 +115,27 @@ static void fixed_wing_bridge_map_input(CubControl_FixedWingOuterLoop_t *m, cons
 
 	if (ctx->mocap.valid) {
 		quat_to_euler(&ctx->mocap, &roll, &pitch, &yaw);
-		m->p[MODEL_P_X] = ctx->mocap.x;
-		m->p[MODEL_P_Y] = ctx->mocap.y;
-		m->p[MODEL_P_Z] = ctx->mocap.z;
+		m->p[P_X] = ctx->mocap.x;
+		m->p[P_Y] = ctx->mocap.y;
+		m->p[P_Z] = ctx->mocap.z;
 	} else {
-		m->p[MODEL_P_X] = ctx->gyro.x;
-		m->p[MODEL_P_Y] = ctx->gyro.y;
-		m->p[MODEL_P_Z] = ctx->gyro.z;
+		m->p[P_X] = ctx->gyro.x;
+		m->p[P_Y] = ctx->gyro.y;
+		m->p[P_Z] = ctx->gyro.z;
 	}
 
-	m->p[MODEL_P_ROLL] = roll;
-	m->p[MODEL_P_PITCH] = pitch;
-	m->p[MODEL_P_YAW] = yaw;
+	m->p[P_ROLL] = roll;
+	m->p[P_PITCH] = pitch;
+	m->p[P_YAW] = yaw;
 }
 
 static void fixed_wing_bridge_map_output(const CubControl_FixedWingOuterLoop_t *m, synapse_topic_RcChannels16_t *rc)
 {
-	rc->ch0 = pwm_from_centered_stick((float)m->p[MODEL_P_AILERON], false);
-	rc->ch1 = pwm_from_centered_stick((float)m->p[MODEL_P_ELEVATOR], true);
-	rc->ch2 = pwm_from_throttle((float)m->p[MODEL_P_THROTTLE]);
-	rc->ch3 = pwm_from_centered_stick((float)m->p[MODEL_P_RUDDER], false);
-	rc->ch4 = (int32_t)clampf_local((float)m->p[MODEL_P_STABILIZER], 1000.0f, 2000.0f);
+	rc->ch0 = pwm_from_centered_stick((float)m->p[P_AILERON], false);
+	rc->ch1 = pwm_from_centered_stick((float)m->p[P_ELEVATOR], true);
+	rc->ch2 = pwm_from_throttle((float)m->p[P_THROTTLE]);
+	rc->ch3 = pwm_from_centered_stick((float)m->p[P_RUDDER], false);
+	rc->ch4 = (int32_t)clampf_local((float)m->p[P_STABILIZER], 1000.0f, 2000.0f);
 }
 
 int main(void)
@@ -186,8 +144,7 @@ int main(void)
 	int rc;
 
 	*ctx = (struct control_context){0};
-	startup(&g_model);
-	fixed_wing_bridge_init_parameters(&g_model);
+	CubControl_FixedWingOuterLoop_init(&g_model);
 
 	rc = cubs2_control_io_init();
 	if (rc != 0) {
@@ -202,36 +159,46 @@ int main(void)
 	LOG_INF("CUBS2 Fixed-Wing Bridge starting");
 
 	while (true) {
-		// Wait for next telemetry packet or 100Hz trigger
-		cubs2_control_input_wait(&ctx->gyro, &ctx->accel, &ctx->rc, &ctx->status, &ctx->dt);
+		// Wait for next telemetry packet or 100Hz trigger. In SITL this
+		// also stages the simulated mocap pose; on flight hardware it
+		// leaves ctx->mocap invalid.
+		cubs2_control_input_wait(&ctx->gyro, &ctx->accel, &ctx->rc, &ctx->status, &ctx->dt,
+					 &ctx->mocap);
 		ctx->now_ms = k_uptime_get();
 
-		// Fetch latest mocap data from the bridge
-		cubs2_serial_bridge_get_mocap(&ctx->mocap);
+		// Fall back to the serial bridge mocap source when no other source
+		// has provided a valid pose this cycle.
+		if (!ctx->mocap.valid) {
+			cubs2_serial_bridge_get_mocap(&ctx->mocap);
+		}
 
 		// Update model inputs
 		fixed_wing_bridge_map_input(&g_model, ctx);
 
-		// Step the eFMU
-		dostep(&g_model, (real_t)ctx->dt);
-		CubControl_FixedWingOuterLoop_sync_pre(&g_model);
+		// Advance one 100 Hz discrete control step (snapshots pre(), runs the
+		// sample tick). NOTE: step the model with its OWN dt (p[0], a double
+		// 0.01) rather than ctx->dt, which is a float 0.01f. The generated
+		// sample() event only fires when m->time is within 1e-9 of a multiple
+		// of dt; accumulating m->time from the float (0.00999999977648...)
+		// drifts ~2.2e-10 per step and silently stops the sample event after a
+		// few steps, freezing the controller in open-loop takeoff.
+		CubControl_FixedWingOuterLoop_step(&g_model, g_model.p[0]);
 
 		// Map model outputs to RC sticks
 		fixed_wing_bridge_map_output(&g_model, &ctx->rc);
 
-		LOG_INF("FWDBG,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%d,%d,%.3f,%.3f",
+		LOG_INF("FWDBG,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%d,%d,%.3f,%.3f",
 			(double)g_model.time,
-			(double)g_model.p[MODEL_P_X], (double)g_model.p[MODEL_P_Y],
-			(double)g_model.p[MODEL_P_Z], (double)g_model.p[MODEL_P_ROLL],
-			(double)g_model.p[MODEL_P_PITCH], (double)g_model.p[MODEL_P_YAW],
-			(double)g_model.p[MODEL_P_AILERON], (double)g_model.p[MODEL_P_ELEVATOR],
-			(double)g_model.p[MODEL_P_THROTTLE], (double)g_model.p[MODEL_P_RUDDER],
-			(double)g_model.p[MODEL_P_STABILIZER], (double)g_model.p[MODEL_P_DES_HEADING],
-			(double)g_model.p[MODEL_P_CHI], (double)g_model.p[MODEL_P_VX_EST],
-			(double)g_model.p[MODEL_P_VY_EST], (double)g_model.p[MODEL_P_PHI_CMD],
-			(double)g_model.p[MODEL_P_CHI_ERR],
-			(int)g_model.p[MODEL_P_CURRENT_WP], (int)g_model.p[MODEL_P_AIRBORNE],
-			(double)g_model.p[MODEL_P_DES_V], (double)g_model.p[MODEL_P_DES_GAMMA]);
+			(double)g_model.p[P_X], (double)g_model.p[P_Y],
+			(double)g_model.p[P_Z], (double)g_model.p[P_ROLL],
+			(double)g_model.p[P_PITCH], (double)g_model.p[P_YAW],
+			(double)g_model.p[P_AILERON], (double)g_model.p[P_ELEVATOR],
+			(double)g_model.p[P_THROTTLE], (double)g_model.p[P_RUDDER],
+			(double)g_model.p[P_STABILIZER], (double)g_model.p[P_DES_HEADING],
+			(double)g_model.p[P_VX_EST], (double)g_model.p[P_VY_EST],
+			(double)g_model.p[P_PHI_CMD], (double)g_model.p[P_CHI_ERR],
+			(int)g_model.p[P_CURRENT_WP], (int)g_model.p[P_AIRBORNE],
+			(double)g_model.p[P_DES_V], (double)g_model.p[P_DES_GAMMA]);
 
 		// Publish stick overrides to the bridge output
 		publish_bridge_state(ctx);

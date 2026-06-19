@@ -32,7 +32,8 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 				synapse_topic_Vec3f_t *accel,
 				synapse_topic_RcChannels16_t *rc,
 				synapse_topic_ControlStatus_t *status,
-				float *dt)
+				float *dt,
+				cubs2_mocap_rigid_body_t *mocap)
 {
 	uint8_t rc_link_quality = 0U;
 	bool rc_valid = false;
@@ -46,6 +47,12 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 	status->imu_ok = true;
 	status->rc_valid = true;
 
+	// Default: no mocap from this source (flight build gets it from the
+	// serial bridge instead).
+	if (mocap != NULL) {
+		*mocap = (cubs2_mocap_rigid_body_t){0};
+	}
+
 #if defined(CONFIG_CUBS2_SITL)
 	uint8_t buf[CUBS2_SITL_INPUT_MAX_SIZE];
 	size_t len;
@@ -53,7 +60,7 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 
 	if (cubs2_sitl_udp_latest_input_get(buf, sizeof(buf), &len, &generation) &&
 	    cubs2_sitl_fb_unpack_input(buf, len, gyro, accel, rc, &rc_link_quality, &rc_valid,
-				       &imu_valid)) {
+				       &imu_valid, mocap)) {
 		status->rc_link_quality = rc_link_quality;
 		status->rc_valid = rc_valid;
 		status->imu_ok = imu_valid;

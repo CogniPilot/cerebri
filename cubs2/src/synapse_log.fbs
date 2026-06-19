@@ -1,0 +1,31 @@
+include "synapse_topics.fbs";
+
+namespace synapse.log;
+
+table SchemaRecord {
+  name:string;
+  bfbs:[ubyte];
+}
+
+table FlightSnapshotRecord {
+  monotonic_us:ulong;
+  payload:synapse.topic.FlightSnapshot;
+}
+
+table MotorOutputRecord {
+  monotonic_us:ulong;
+  payload:synapse.topic.MotorOutput;
+}
+
+union RecordPayload {
+  SchemaRecord,
+  FlightSnapshotRecord,
+  MotorOutputRecord
+}
+
+table LogRecord {
+  record:RecordPayload;
+}
+
+root_type LogRecord;
+file_identifier "SYLG";

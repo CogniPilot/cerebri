@@ -39,8 +39,10 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 	bool rc_valid = false;
 	bool imu_valid = false;
 
-	// Wait for the next input trigger (e.g. from bridge or timer)
+#if !defined(CONFIG_CUBS2_SITL)
+	// Flight: wait for the next input trigger (serial-bridge mocap) or 10 ms.
 	(void)k_sem_take(&g_input_sem, K_MSEC(10));
+#endif
 
 	// Default values if no real sensor data is present
 	*dt = 0.01f;
@@ -55,10 +57,46 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 
 #if defined(CONFIG_CUBS2_SITL)
 	uint8_t buf[CUBS2_SITL_INPUT_MAX_SIZE];
-	size_t len;
-	uint32_t generation;
+	size_t len = 0U;
+	uint32_t generation = 0U;
+	static uint32_t s_last_generation;   // last plant step we consumed
+	bool have_input = false;
 
-	if (cubs2_sitl_udp_latest_input_get(buf, sizeof(buf), &len, &generation) &&
+	// Lockstep: block until the plant publishes a NEW input (its generation
+	// counter bumps), so the controller runs exactly once per simulator step
+	// and the finite-difference dt (0.01 s) matches one real plant step. Two
+	// guards keep it from deadlocking:
+	//   * before any pose has arrived (generation == 0) proceed immediately, so
+	//     the controller emits a first packet to prime the (also-waiting) plant;
+	//   * a 1 s ceiling keeps a dead/paused peer from hanging the loop forever.
+	static bool s_primed;   // emitted the initial control to prime the plant?
+	const int64_t deadline = k_uptime_get() + 1000;
+	while (true) {
+		uint32_t gen;
+		size_t l;
+
+		if (cubs2_sitl_udp_latest_input_get(buf, sizeof(buf), &l, &gen)) {
+			if (gen != s_last_generation) {
+				s_last_generation = gen;
+				len = l;
+				have_input = true;
+				s_primed = true;
+				break;   // fresh plant step -> consume it
+			}
+		} else if (!s_primed) {
+			s_primed = true;
+			break;   // no pose has ever arrived -> emit one control to prime
+		}
+		if (k_uptime_get() >= deadline) {
+			break;   // safety: peer stalled
+		}
+		// Yield so the SITL rx thread can drain the plant's reply. (This also
+		// replaces the yield the old k_sem_take used to provide.)
+		k_sleep(K_MSEC(1));
+	}
+	(void)generation;
+
+	if (have_input &&
 	    cubs2_sitl_fb_unpack_input(buf, len, gyro, accel, rc, &rc_link_quality, &rc_valid,
 				       &imu_valid, mocap)) {
 		status->rc_link_quality = rc_link_quality;

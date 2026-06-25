@@ -8,11 +8,10 @@
 //   * navigation/cross_tracker_lookAhead.py     (XTrack_NAV_lookAhead)
 //   * controller_cub/param/cub1.yaml            (gains)
 //
-// This is a pure STEP function: one `algorithm` body, no clock. There is no
-// sample()/when — scheduling is owned by the caller (main runs it once per
-// control cycle). State is held in `discrete` variables; `pre(v)` is v's value
-// from the previous step. `dt` is a parameter used by the difference equations,
-// not a scheduling quantity. There are no continuous states.
+// Discrete, fixed-rate (dt = 0.01 s) step controller. The when sample(0, dt)
+// clock drives one control cycle per tick. State is held in discrete variables;
+// pre(v) is v's value from the previous step. There are no continuous states
+// and no zero-crossing events.
 
 package CubControl
   constant Real pi = 3.141592653589793;
@@ -34,24 +33,24 @@ package CubControl
   end wrapPi;
 
   model FixedWingOuterLoop
-    parameter Real dt = 0.01;
+    constant Real dt(unit = "s", start = 0.01) = 0.01;
     parameter Real g = 9.81;
 
     // ── PURT circuit, constant 3 m altitude (node control_point) ────────────
-    parameter Integer nWaypoints = 6;
+    parameter Integer nWaypoints = 5;
     parameter Real waypoints[nWaypoints, 3] = [
       -4.0,  -5.0,  3.0;
       -3.0,   2.0,  3.0;
       16.20,  2.0,  3.0;
       16.0,  -4.22, 3.0;
-      6.88,  -5.1,  3.0;
-      -4.0,  -5.0,  3.0];
+      6.88,  -5.1,  3.0];
 
     // ── estimator / navigation (cross_tracker_lookAhead + node overrides) ───
     parameter Real filterCutoffHz = 10.0;
     parameter Real vCruise = 3.0                 "node speed_cruise";
+    parameter Real vTurnMin = 1.8                "minimum commanded speed in hard turns";
     parameter Real K_h = 3.0                     "glide-slope gain (get_desired_flight)";
-    parameter Real K_V = 1.0                     "des-accel gain (node)";
+    parameter Real K_V = 2.5                     "des-accel gain (node)";
     parameter Real lookaheadTime = 1.5;
     parameter Real lookaheadMin = 1.0;
     parameter Real lookaheadMax = 5.0;
@@ -112,7 +111,7 @@ package CubControl
     discrete output Real rudder(start = 0.0);
     discrete output Real stabilizer(start = 2000.0);
     discrete output Boolean airborne(start = false);
-    discrete output Integer current_wp(start = 1);
+    discrete output Integer current_wp(start = 2);
     discrete output Real des_v(start = 0.0);
     discrete output Real des_gamma(start = 0.0);
     discrete output Real des_heading(start = 0.0);
@@ -160,7 +159,7 @@ package CubControl
     discrete Real path_vect[3], path_len, path_angle;
     discrete Real unit_along_path[2], unit_normal[2], pose_vect[2];
     discrete Real along_track_err_w0, along_track_err_w1, cross_track_err;
-    discrete Real lookahead_nom, lookahead_eff, switch_threshold;
+    discrete Real lookahead_nom, lookahead_eff, switch_threshold, turn_slowdown;
     discrete Real weight, drag, r_v_dot;
     discrete Real err_norm_es_dot, thrust_unsat, ref_thrust;
     discrete Real err_dist_term, pitch_unsat, ref_pitch;
@@ -169,49 +168,48 @@ package CubControl
     discrete Real err_yaw, err_r_deriv;
 
   algorithm
-    // One control step. No clock here: main() owns scheduling and calls this
-    // once per cycle. pre(v) is the value of v from the previous step.
-    alpha := exp(-2.0 * pi * filterCutoffHz * dt);
-    weight := mass * g;
+    when sample(0.0, dt) then
+      alpha := exp(-2.0 * pi * filterCutoffHz * dt);
+      weight := mass * g;
 
-    if not pre(started) then
-      // first step: seed the estimator from the current pose, zero the rates
-      prev_x := x; prev_y := y; prev_z := z;
-      prev_roll := roll; prev_pitch := pitch; prev_yaw := yaw;
-      prev_speed := 0.0;
-      x_est := x; y_est := y; z_est := z;
-      roll_est := roll; pitch_est := pitch; yaw_est := yaw;
-      vx_est := 0.0; vy_est := 0.0; vz_est := 0.0; v_est := 0.0;
-      gamma_est := 0.0; vdot_est := 0.0; p_est := 0.0; q_est := 0.0; r_est := 0.0;
-      started := true;
-    else
-      // ── state estimation: finite diff + exponential low-pass (pose_cb) ─────
-      vx_new := (x - pre(prev_x)) / dt;
-      vy_new := (y - pre(prev_y)) / dt;
-      vz_new := (z - pre(prev_z)) / dt;
-      speed_new := sqrt(vx_new * vx_new + vy_new * vy_new + vz_new * vz_new);
-      p_new := wrapPi(roll - pre(prev_roll)) / dt;
-      q_new := wrapPi(pitch - pre(prev_pitch)) / dt;
-      r_new := wrapPi(yaw - pre(prev_yaw)) / dt;
-      gamma_new := asin(clamp(vz_new / max(speed_new, 1e-5), -1.0, 1.0));
-      vdot_new := speed_new - pre(prev_speed);       // prev_speed := previous v_est
+      // first sample: seed prev/est with the current pose
+      if not pre(started) then
+        prev_x := x; prev_y := y; prev_z := z;
+        prev_roll := roll; prev_pitch := pitch; prev_yaw := yaw;
+        prev_speed := 0.0;
+        x_est := x; y_est := y; z_est := z;
+        roll_est := roll; pitch_est := pitch; yaw_est := yaw;
+        vx_est := 0.0; vy_est := 0.0; vz_est := 0.0; v_est := 0.0;
+        gamma_est := 0.0; vdot_est := 0.0; p_est := 0.0; q_est := 0.0; r_est := 0.0;
+        started := true;
+      else
+        // ── state estimation: finite diff + exponential low-pass (pose_cb) ─────
+        vx_new := (x - pre(prev_x)) / dt;
+        vy_new := (y - pre(prev_y)) / dt;
+        vz_new := (z - pre(prev_z)) / dt;
+        speed_new := sqrt(vx_new * vx_new + vy_new * vy_new + vz_new * vz_new);
+        p_new := wrapPi(roll - pre(prev_roll)) / dt;
+        q_new := wrapPi(pitch - pre(prev_pitch)) / dt;
+        r_new := wrapPi(yaw - pre(prev_yaw)) / dt;
+        gamma_new := asin(clamp(vz_new / max(speed_new, 1e-5), -1.0, 1.0));
+        vdot_new := speed_new - pre(prev_speed);       // prev_speed := previous v_est
 
-      x_est := alpha * x + (1.0 - alpha) * pre(x_est);
-      y_est := alpha * y + (1.0 - alpha) * pre(y_est);
-      z_est := alpha * z + (1.0 - alpha) * pre(z_est);
-      roll_est := alpha * roll + (1.0 - alpha) * pre(roll_est);
-      pitch_est := alpha * pitch + (1.0 - alpha) * pre(pitch_est);
-      yaw_est := alpha * yaw + (1.0 - alpha) * pre(yaw_est);
-      vx_est := alpha * vx_new + (1.0 - alpha) * pre(vx_est);
-      vy_est := alpha * vy_new + (1.0 - alpha) * pre(vy_est);
-      vz_est := alpha * vz_new + (1.0 - alpha) * pre(vz_est);
-      v_est := alpha * speed_new + (1.0 - alpha) * pre(v_est);
-      gamma_est := alpha * gamma_new + (1.0 - alpha) * pre(gamma_est);
-      vdot_est := alpha * vdot_new + (1.0 - alpha) * pre(vdot_est);
-      p_est := alpha * p_new + (1.0 - alpha) * pre(p_est);
-      q_est := alpha * q_new + (1.0 - alpha) * pre(q_est);
-      r_est := alpha * r_new + (1.0 - alpha) * pre(r_est);
-    end if;
+        x_est := alpha * x + (1.0 - alpha) * pre(x_est);
+        y_est := alpha * y + (1.0 - alpha) * pre(y_est);
+        z_est := alpha * z + (1.0 - alpha) * pre(z_est);
+        roll_est := alpha * roll + (1.0 - alpha) * pre(roll_est);
+        pitch_est := alpha * pitch + (1.0 - alpha) * pre(pitch_est);
+        yaw_est := alpha * yaw + (1.0 - alpha) * pre(yaw_est);
+        vx_est := alpha * vx_new + (1.0 - alpha) * pre(vx_est);
+        vy_est := alpha * vy_new + (1.0 - alpha) * pre(vy_est);
+        vz_est := alpha * vz_new + (1.0 - alpha) * pre(vz_est);
+        v_est := alpha * speed_new + (1.0 - alpha) * pre(v_est);
+        gamma_est := alpha * gamma_new + (1.0 - alpha) * pre(gamma_est);
+        vdot_est := alpha * vdot_new + (1.0 - alpha) * pre(vdot_est);
+        p_est := alpha * p_new + (1.0 - alpha) * pre(p_est);
+        q_est := alpha * q_new + (1.0 - alpha) * pre(q_est);
+        r_est := alpha * r_new + (1.0 - alpha) * pre(r_est);
+      end if;
 
       // ── flight mode: LEVEL check, recomputed every step (node) ─────────────
       airborne := z > takeoffAltitude;
@@ -228,12 +226,14 @@ package CubControl
       else
         current_wp := pre(current_wp);
 
-        // next = waypoints[current_wp]; prev = waypoints[current_wp-1] (origin for wp1)
+        // next = waypoints[current_wp]; prev = prior waypoint, wrapping the circuit
         next_wx := waypoints[current_wp, 1];
         next_wy := waypoints[current_wp, 2];
         next_wz := waypoints[current_wp, 3];
         if current_wp == 1 then
-          prev_wx := 0.0; prev_wy := 0.0; prev_wz := 0.0;
+          prev_wx := waypoints[nWaypoints, 1];
+          prev_wy := waypoints[nWaypoints, 2];
+          prev_wz := waypoints[nWaypoints, 3];
         else
           prev_wx := waypoints[current_wp - 1, 1];
           prev_wy := waypoints[current_wp - 1, 2];
@@ -245,7 +245,6 @@ package CubControl
         y_err := next_wy - y_est;
         z_err := next_wz - z_est;
         horz_dist_err := sqrt(x_err * x_err + y_err * y_err);
-        des_v := vCruise;
         des_gamma := if horz_dist_err <= 0.0 then 0.0 else K_h * z_err / horz_dist_err;
 
         path_vect := {next_wx - prev_wx, next_wy - prev_wy, next_wz - prev_wz};
@@ -260,6 +259,10 @@ package CubControl
         lookahead_nom := clamp(sqrt(vx_est^2 + vy_est^2) * lookaheadTime, lookaheadMin, lookaheadMax);
         lookahead_eff := min(lookahead_nom, along_track_err_w1);
         des_heading := wrapPi(path_angle + atan2(-cross_track_err, max(lookahead_eff, 1e-6)));
+        turn_slowdown := clamp(max(abs(cross_track_err) / waypointSwitchingDistance,
+                                   abs(wrapPi(des_heading - yaw_est)) / (45.0 * pi / 180.0)),
+                               0.0, 1.0);
+        des_v := vCruise - (vCruise - vTurnMin) * turn_slowdown;
         des_a := K_V * (des_v - abs(v_est));
 
         // ── TECS: desired thrust + pitch (compute_thrust_pitch) ──────────────
@@ -324,8 +327,12 @@ package CubControl
         rudder := 0.0;
 
         // ── waypoint advance + circuit loop (check_arrived) ──────────────────
-        switch_threshold := max(waypointSwitchingDistance, lookahead_nom);
-        if along_track_err_w1 < switch_threshold then
+        // Advance on segment progress, but require the aircraft to be inside
+        // the active waypoint's horizontal capture radius. This keeps the
+        // path-following behavior from the along-track check without allowing a
+        // large lookahead threshold to skip a waypoint outside its radius.
+        switch_threshold := waypointSwitchingDistance;
+        if along_track_err_w1 < switch_threshold and horz_dist_err < waypointSwitchingDistance then
           current_wp := if current_wp >= nWaypoints then 1 else current_wp + 1;
         end if;
       end if;
@@ -336,5 +343,6 @@ package CubControl
       prev_x := x; prev_y := y; prev_z := z;
       prev_roll := roll; prev_pitch := pitch; prev_yaw := yaw;
       prev_speed := v_est;
+    end when;
   end FixedWingOuterLoop;
 end CubControl;

@@ -6,7 +6,7 @@ typedef double real_t;
 
 enum {
     CUBCONTROL_FIXEDWINGOUTERLOOP_Y_LEN = 0,
-    CUBCONTROL_FIXEDWINGOUTERLOOP_P_LEN = 291,
+    CUBCONTROL_FIXEDWINGOUTERLOOP_P_LEN = 290,
     CUBCONTROL_FIXEDWINGOUTERLOOP_STATE_LEN = 0,
     CUBCONTROL_FIXEDWINGOUTERLOOP_DERIVATIVE_LEN = 0
 };/* ---- Variable slot indices (name -> flat array position) ---- */
@@ -138,14 +138,13 @@ enum {
 #define CUBCONTROL_FIXEDWINGOUTERLOOP_P_c_15 286  /* discrete c[15] */
 #define CUBCONTROL_FIXEDWINGOUTERLOOP_P_c_16 287  /* discrete c[16] */
 #define CUBCONTROL_FIXEDWINGOUTERLOOP_P_c_17 288  /* discrete c[17] */
-#define CUBCONTROL_FIXEDWINGOUTERLOOP_P_c_18 289  /* discrete c[18] */
 
 
 
 typedef struct {
     real_t time;
     real_t y[1];
-    real_t p[291];
+    real_t p[290];
 } CubControl_FixedWingOuterLoop_t;
 
 /* Initialise to start values and run the initialization (`initial()`) event. */

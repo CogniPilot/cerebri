@@ -49,8 +49,8 @@ package CubControl
 
     // ── estimator / navigation (cross_tracker_lookAhead + node overrides) ───
     parameter Real filterCutoffHz = 10.0;
-    parameter Real vCruise = 3.0                 "node speed_cruise";
-    parameter Real K_h = 3.0                     "glide-slope gain (get_desired_flight)";
+    parameter Real vCruise = 4.2                 "node speed_cruise";
+    parameter Real K_h = 2.0                     "glide-slope gain (get_desired_flight)";
     parameter Real K_V = 1.0                     "des-accel gain (node)";
     parameter Real lookaheadTime = 1.5;
     parameter Real lookaheadMin = 1.0;
@@ -71,7 +71,7 @@ package CubControl
     parameter Real pitchCmdLim = 20.0 * pi / 180.0;
 
     // ── elevator inner loop (cub1.yaml) ──────────────────────────────────────
-    parameter Real trimElev = 0.20;
+    parameter Real trimElev = 0.08;
     parameter Real K_elevp = 0.107;
     parameter Real K_elevi = 0.2107;
     parameter Real K_q = 0.2;
@@ -213,8 +213,12 @@ package CubControl
       r_est := alpha * r_new + (1.0 - alpha) * pre(r_est);
     end if;
 
-      // ── flight mode: LEVEL check, recomputed every step (node) ─────────────
-      airborne := z > takeoffAltitude;
+      // ── flight mode: LATCH airborne (once above takeoff alt, stay airborne).
+      // Recomputing z>takeoffAltitude every step meant any altitude dip below
+      // 0.4 m in a turn flipped back to open-loop launch (full throttle, pitch
+      // up), creating a porpoise limit cycle. Latch so transient dips stay in
+      // cruise guidance.
+      airborne := pre(airborne) or (z > takeoffAltitude);
       time_s := pre(time_s) + dt;
 
       if not airborne then
@@ -246,7 +250,10 @@ package CubControl
         z_err := next_wz - z_est;
         horz_dist_err := sqrt(x_err * x_err + y_err * y_err);
         des_v := vCruise;
-        des_gamma := if horz_dist_err <= 0.0 then 0.0 else K_h * z_err / horz_dist_err;
+        // Clamp the glide-slope command and floor the denominator: near a
+        // waypoint horz_dist_err -> 0 made des_gamma blow up, commanding an
+        // aggressive climb/dive (altitude wallow). Bound to +/-15 deg.
+        des_gamma := clamp(K_h * z_err / max(horz_dist_err, lookaheadMin), -0.26, 0.26);
 
         path_vect := {next_wx - prev_wx, next_wy - prev_wy, next_wz - prev_wz};
         path_len := max(sqrt(path_vect[1]^2 + path_vect[2]^2 + path_vect[3]^2), 1e-6);

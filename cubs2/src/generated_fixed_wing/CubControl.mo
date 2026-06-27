@@ -8,6 +8,20 @@
 //   * navigation/cross_tracker_lookAhead.py     (XTrack_NAV_lookAhead)
 //   * controller_cub/param/cub1.yaml            (gains)
 //
+// RETUNED for the FixedWingTrueSILFull plant (NOT the cub1.yaml real airframe):
+//   * Plant physics: GA-identified SportCub, mass 0.063 kg, real max thrust
+//     thr_max = 0.30 N, thrust = thr_max*throttle. throttle = ref_thrust/thrMax,
+//     so thrMax MUST equal 0.30 N for the Newton command to map to throttle.
+//   * Inner loop: the plant has its OWN FBW attitude-hold loop. CubControl's
+//     aileron/elevator outputs are ATTITUDE STICKS (stick -> bank/pitch setpoint,
+//     phi_sp=0.87*ail, theta_sp=0.45*elev), exactly cerebri's role -- NOT surface
+//     deflections. The cub1 longitudinal gains (K_elevp=0.107, pitchIntegralMax
+//     =0.3) were in surface units and gave only ~4 deg of commandable pitch through
+//     the FBW, so the aircraft could not hold altitude (sank 3 m -> ground in 7 s,
+//     throttle strangled at 0.60). The thrust + elevator gains below are retuned
+//     to give real authority through the FBW and verified to hold the circuit in
+//     the rumoca SIL. Lateral "direct" gains are unchanged (heading err -> bank).
+//
 // This is a pure STEP function: one `algorithm` body, no clock. There is no
 // sample()/when — scheduling is owned by the caller (main runs it once per
 // control cycle). State is held in `discrete` variables; `pre(v)` is v's value
@@ -49,7 +63,7 @@ package CubControl
 
     // ── estimator / navigation (cross_tracker_lookAhead + node overrides) ───
     parameter Real filterCutoffHz = 10.0;
-    parameter Real vCruise = 4.2                 "node speed_cruise";
+    parameter Real vCruise = 4.5                 "airframe natural trim speed (open-loop); node was 4.2";
     parameter Real K_h = 2.0                     "glide-slope gain (get_desired_flight)";
     parameter Real K_V = 1.0                     "des-accel gain (node)";
     parameter Real lookaheadTime = 1.5;
@@ -57,26 +71,30 @@ package CubControl
     parameter Real lookaheadMax = 5.0;
     parameter Real waypointSwitchingDistance = 4.0 "node override";
 
-    // ── TECS longitudinal (cub1.yaml) ────────────────────────────────────────
-    parameter Real mass = 0.057;
-    parameter Real thrMax = 7.5;
-    parameter Real trimThrust = 3.5;
-    parameter Real K_thrustp = 0.01;
-    parameter Real K_thrusti = 0.4215;
-    parameter Real normEsDotIntegralMax = 7.5;
+    // ── TECS longitudinal (plant-matched physics; see header) ────────────────
+    parameter Real mass = 0.063               "FixedWingPlant.vehicle_mass [kg]";
+    parameter Real thrMax = 0.30              "FixedWingPlant.thr_max [N]";
+    parameter Real trimThrust = 0.19          "level-flight thrust [N] ~ throttle 0.63 (open-loop trim)";
+    parameter Real K_thrustp = 0.01           "energy-rate damping (small)";
+    parameter Real K_thrusti = 0.25           "ramps to full thrust in ~1.5 s on a sink";
+    parameter Real normEsDotIntegralMax = 3.0 "limit throttle-integral windup";
     parameter Real K_pitchp = 0.075;
     parameter Real K_pitchi = 0.216;
     parameter Real distTermIntegralMax = 7.5;
-    parameter Real envelopeDrag = 1.0;
-    parameter Real pitchCmdLim = 20.0 * pi / 180.0;
+    parameter Real envelopeDrag = 0.19        "real cruise drag [N]";
+    parameter Real pitchCmdLim = 12.0 * pi / 180.0 "limit climb pitch to stay below stall";
 
     // ── elevator inner loop (cub1.yaml) ──────────────────────────────────────
-    parameter Real trimElev = 0.08;
-    parameter Real K_elevp = 0.107;
-    parameter Real K_elevi = 0.2107;
-    parameter Real K_q = 0.2;
-    parameter Real K_phi_elev = 2.5;
-    parameter Real pitchIntegralMax = 0.3;
+    // Elevator stick is an ATTITUDE command into the plant's FBW inner loop
+    // (stick -> theta_sp = 0.45*stick), NOT a surface deflection. Gains are in
+    // stick-per-rad so the loop has real pitch authority (cub1's 0.107/0.3 gave
+    // only ~4 deg of commandable pitch through the FBW -> could not hold altitude).
+    parameter Real trimElev = 0.0             "let the integral find pitch trim";
+    parameter Real K_elevp = 0.4              "pitch err [rad] -> stick (~1/theta_sp_max)";
+    parameter Real K_elevi = 0.4;
+    parameter Real K_q = 0.0                  "turn pitch-rate FF off (noisy; FBW handles)";
+    parameter Real K_phi_elev = 0.5           "gentle turn nz feed-forward (was 2.5 -> stalled)";
+    parameter Real pitchIntegralMax = 0.5     "allow ~full pitch trim via integral";
 
     // ── lateral "direct": yaw-error PID -> aileron (cub1.yaml) ────────────────
     parameter Real trimAil = 0.0;
@@ -253,7 +271,7 @@ package CubControl
         // Clamp the glide-slope command and floor the denominator: near a
         // waypoint horz_dist_err -> 0 made des_gamma blow up, commanding an
         // aggressive climb/dive (altitude wallow). Bound to +/-15 deg.
-        des_gamma := clamp(K_h * z_err / max(horz_dist_err, lookaheadMin), -0.26, 0.26);
+        des_gamma := clamp(K_h * z_err / max(horz_dist_err, lookaheadMin), -0.12, 0.12);
 
         path_vect := {next_wx - prev_wx, next_wy - prev_wy, next_wz - prev_wz};
         path_len := max(sqrt(path_vect[1]^2 + path_vect[2]^2 + path_vect[3]^2), 1e-6);

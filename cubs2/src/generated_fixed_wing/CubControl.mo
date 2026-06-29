@@ -48,7 +48,7 @@ package CubControl
   end wrapPi;
 
   model FixedWingOuterLoop
-    parameter Real dt = 0.01;
+    parameter Real dt = 0.02   "50 Hz outer loop (lockstep: 2 plant steps of 0.01 per packet)";
     parameter Real g = 9.81;
 
     // ── PURT circuit, constant 3 m altitude (node control_point) ────────────
@@ -63,25 +63,25 @@ package CubControl
 
     // ── estimator / navigation (cross_tracker_lookAhead + node overrides) ───
     parameter Real filterCutoffHz = 10.0;
-    parameter Real vCruise = 4.5                 "airframe natural trim speed (open-loop); node was 4.2";
+    parameter Real vCruise = 4.0   "cruise (lower for tighter turn radius; was 4.5)";
     parameter Real K_h = 2.0                     "glide-slope gain (get_desired_flight)";
     parameter Real K_V = 1.0                     "des-accel gain (node)";
-    parameter Real lookaheadTime = 1.5;
-    parameter Real lookaheadMin = 1.0;
-    parameter Real lookaheadMax = 5.0;
-    parameter Real waypointSwitchingDistance = 4.0 "node override";
+    parameter Real lookaheadTime = 2.0;
+    parameter Real lookaheadMin = 3.0;  // gentler xtrack intercept (was 1.0 -> near-perpendicular dives)
+    parameter Real lookaheadMax = 8.0;
+    parameter Real waypointSwitchingDistance = 3.0 "switch only when within 3m (< 6m legs) so it visits every wp";
 
     // ── TECS longitudinal (plant-matched physics; see header) ────────────────
     parameter Real mass = 0.063               "FixedWingPlant.vehicle_mass [kg]";
     parameter Real thrMax = 0.30              "FixedWingPlant.thr_max [N]";
-    parameter Real trimThrust = 0.19          "level-flight thrust [N] ~ throttle 0.63 (open-loop trim)";
+    parameter Real trimThrust = 0.1   "cruise drag at 4.3 (L/D~9)";
     parameter Real K_thrustp = 0.01           "energy-rate damping (small)";
     parameter Real K_thrusti = 0.25           "ramps to full thrust in ~1.5 s on a sink";
     parameter Real normEsDotIntegralMax = 3.0 "limit throttle-integral windup";
     parameter Real K_pitchp = 0.075;
     parameter Real K_pitchi = 0.216;
     parameter Real distTermIntegralMax = 7.5;
-    parameter Real envelopeDrag = 0.19        "real cruise drag [N]";
+    parameter Real envelopeDrag = 0.07   "cruise drag";
     parameter Real pitchCmdLim = 12.0 * pi / 180.0 "limit climb pitch to stay below stall";
 
     // ── elevator inner loop (cub1.yaml) ──────────────────────────────────────
@@ -93,14 +93,14 @@ package CubControl
     parameter Real K_elevp = 0.4              "pitch err [rad] -> stick (~1/theta_sp_max)";
     parameter Real K_elevi = 0.4;
     parameter Real K_q = 0.0                  "turn pitch-rate FF off (noisy; FBW handles)";
-    parameter Real K_phi_elev = 0.5           "gentle turn nz feed-forward (was 2.5 -> stalled)";
+    parameter Real K_phi_elev = 1.5   "turn comp: pitch up with bank to hold a LEVEL turn (tighter radius)";
     parameter Real pitchIntegralMax = 0.5     "allow ~full pitch trim via integral";
 
     // ── lateral "direct": yaw-error PID -> aileron (cub1.yaml) ────────────────
     parameter Real trimAil = 0.0;
-    parameter Real K_deltap = 0.4;
-    parameter Real K_deltai = 0.15;
-    parameter Real K_deltad = 0.10;
+    parameter Real K_deltap = 1.2;  // raised from 0.4: was using only 16 of 32 deg available bank
+    parameter Real K_deltai = 0.05;  // less windup -> faster recovery
+    parameter Real K_deltad = 0.35;  // more lead/damping: roll out before reaching target heading (anti-overshoot)
     parameter Real rIntegralMax = 0.4;
 
     // ── heading -> bank shaping (computed every step; cub1.yaml) ─────────────
@@ -283,7 +283,7 @@ package CubControl
         along_track_err_w1 := max(0.0, path_len - clamp(along_track_err_w0, 0.0, path_len));
         cross_track_err := pose_vect[1] * unit_normal[1] + pose_vect[2] * unit_normal[2];
         lookahead_nom := clamp(sqrt(vx_est^2 + vy_est^2) * lookaheadTime, lookaheadMin, lookaheadMax);
-        lookahead_eff := min(lookahead_nom, along_track_err_w1);
+        lookahead_eff := max(lookaheadMin, min(lookahead_nom, along_track_err_w1));  // floor so intercept angle stays shallow near waypoints
         des_heading := wrapPi(path_angle + atan2(-cross_track_err, max(lookahead_eff, 1e-6)));
         des_a := K_V * (des_v - abs(v_est));
 
@@ -340,7 +340,7 @@ package CubControl
         phi_cmd := phi_cmd_state;
 
         // ── lateral "direct": yaw-error PID -> aileron ───────────────────────
-        err_yaw := wrapPi(des_heading - yaw_est);
+        err_yaw := wrapPi(des_heading - yaw_est);  // closed-loop (FWDBG) verified: +aileron raises cerebri yaw_est, so des-yaw = neg feedback
         err_r_deriv := (err_yaw - pre(err_r_last)) / dt;
         err_r_last := err_yaw;
         err_r_int := clamp(pre(err_r_int) + err_yaw * dt, -rIntegralMax, rIntegralMax);
@@ -349,7 +349,7 @@ package CubControl
         rudder := 0.0;
 
         // ── waypoint advance + circuit loop (check_arrived) ──────────────────
-        switch_threshold := max(waypointSwitchingDistance, lookahead_nom);
+        switch_threshold := waypointSwitchingDistance;  // decoupled from lookahead: was skipping short legs (lookahead 8 > 6m legs)
         if along_track_err_w1 < switch_threshold then
           current_wp := if current_wp >= nWaypoints then 1 else current_wp + 1;
         end if;

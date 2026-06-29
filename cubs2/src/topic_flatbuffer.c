@@ -323,3 +323,71 @@ bool cubs2_topic_fb_unpack_mocap_frame(
 
 	return true;
 }
+
+static float clamp_float(float value, float min_value, float max_value)
+{
+	if (value < min_value) {
+		return min_value;
+	}
+	if (value > max_value) {
+		return max_value;
+	}
+	return value;
+}
+
+static int32_t centered_axis_to_pwm(float value)
+{
+	return (int32_t)(1500.0f + (clamp_float(value, -1.0f, 1.0f) * 500.0f));
+}
+
+static int32_t throttle_axis_to_pwm(float value)
+{
+	return (int32_t)(1000.0f + (clamp_float(value, 0.0f, 1.0f) * 1000.0f));
+}
+
+bool cubs2_topic_fb_unpack_manual_control(
+	const uint8_t *buf, size_t buf_size, synapse_topic_RcChannels16_t *rc,
+	bool *valid)
+{
+	synapse_topic_ManualControl_table_t message;
+	const synapse_topic_ManualControlData_t *data;
+	const synapse_topic_ManualControlAxes_t *axes;
+	uint8_t flight_mode;
+	bool active_manual;
+
+	if (buf == NULL || rc == NULL || valid == NULL || buf_size < 8U) {
+		return false;
+	}
+
+	message = synapse_topic_ManualControl_as_root(buf);
+	if (message == NULL) {
+		return false;
+	}
+
+	data = synapse_topic_ManualControl_data(message);
+	if (data == NULL) {
+		return false;
+	}
+
+	axes = synapse_topic_ManualControlData_axes(data);
+	if (axes == NULL) {
+		return false;
+	}
+
+	flight_mode = synapse_topic_ManualControlData_flight_mode(data);
+	active_manual = synapse_topic_ManualControlData_active(data);
+	*valid = synapse_topic_ManualControlData_valid(data) != 0U;
+
+	*rc = (synapse_topic_RcChannels16_t){
+		.ch0 = centered_axis_to_pwm(synapse_topic_ManualControlAxes_roll(axes)),
+		.ch1 = centered_axis_to_pwm(synapse_topic_ManualControlAxes_pitch(axes)),
+		.ch2 = throttle_axis_to_pwm(synapse_topic_ManualControlAxes_throttle(axes)),
+		.ch3 = centered_axis_to_pwm(synapse_topic_ManualControlAxes_yaw(axes)),
+		.ch4 = flight_mode > 0U ? 1900 : 1100,
+		.ch5 = active_manual ? 1000 : 2000,
+		.ch6 = synapse_topic_ManualControlData_arm_switch(data) ? 2000 : 1000,
+		.ch7 = synapse_topic_ManualControlData_kill_switch(data) ? 2000 : 1000,
+	};
+
+	return true;
+}

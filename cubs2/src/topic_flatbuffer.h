@@ -116,4 +116,8 @@ bool cubs2_topic_fb_unpack_mocap_frame(
 	const uint8_t *buf, size_t buf_size,
 	cubs2_mocap_rigid_body_t *rb);
 
+bool cubs2_topic_fb_unpack_manual_control(
+	const uint8_t *buf, size_t buf_size, synapse_topic_RcChannels16_t *rc,
+	bool *valid);
+
 #endif

@@ -1,8 +1,10 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
  *
- * Zenoh-pico subscriber for the MocapFrame flatbuffer published by
- * CogniPilot/synapse_qualisys_bridge on key "synapse/mocap/frame".
+ * Legacy host mocap hook.
+ *
+ * Live mocap transport moved to the Zephyr native_sim + csyn path. This host
+ * shim is retained only so cubs2_host can still build without Zenoh.
  */
 #ifndef CUBS2_HOST_MOCAP_SUB_H_
 #define CUBS2_HOST_MOCAP_SUB_H_
@@ -10,16 +12,7 @@
 #include <stdbool.h>
 #include "topic_flatbuffer.h" /* cubs2_mocap_rigid_body_t */
 
-/*
- * Start a background zenoh-pico session and subscribe to the mocap frame key.
- *
- * keyexpr: zenoh key to subscribe to (e.g. "synapse/mocap/frame").
- * mode:    "peer" or "client" (NULL -> "peer").
- * connect: optional endpoint to connect to (e.g. "tcp/127.0.0.1:7447"),
- *          or NULL to rely on multicast scouting.
- *
- * Returns 0 on success.
- */
+/* Returns -1; live mocap now belongs to the csyn/native_sim path. */
 int mocap_sub_start(const char *keyexpr, const char *mode, const char *connect);
 
 /* Copy the most-recent rigid body into *rb. Returns rb->valid. */

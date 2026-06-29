@@ -2,6 +2,132 @@ source "Kconfig.zephyr"
 
 menu "CUBS2"
 
+choice CUBS2_SERIAL_BRIDGE_OUTPUT_PROTOCOL
+	prompt "Serial bridge RC output protocol"
+	default CUBS2_SERIAL_BRIDGE_INTERNAL
+	help
+	  Select the wire format used when publishing controller RC output over
+	  the serial bridge.
+
+config CUBS2_SERIAL_BRIDGE_INTERNAL
+	bool "Internal CUBS2 bridge frame"
+	help
+	  Send 0x55 0xAA framed RcChannels16 payloads. This is the historical
+	  SIL/bridge protocol and is not consumed by the PPM Arduino encoder.
+
+config CUBS2_SERIAL_BRIDGE_PPM_ARDUINO
+	bool "Arduino PPM encoder frame"
+	help
+	  Send the 14-byte packet consumed by the wsribunma/ppm_bridge Arduino:
+	  0xFF 0xFF, five little-endian uint16 PWM channels, and a little-endian
+	  uint16 sum checksum.
+
+endchoice
+
+config CUBS2_PPM_MANUAL_OVERRIDE
+	bool "Select manual or autonomous PPM output from incoming RC switch"
+	default y if CUBS2_SERIAL_BRIDGE_PPM_ARDUINO
+	help
+	  Mirror the legacy ROS ppm_bridge behavior: keep both the incoming
+	  manual RC channels and the generated autonomous channels, then send
+	  manual channels when the mode switch is low and autonomous channels
+	  when the mode switch is high. If the manual channels or switch do not
+	  look like valid PWM values, the controller stays on autonomous output.
+
+config CUBS2_PPM_AUTO_SWITCH_CHANNEL
+	int "Incoming RC channel index used for manual/autonomous switch"
+	depends on CUBS2_PPM_MANUAL_OVERRIDE
+	default 5
+	range 0 15
+	help
+	  Zero-based RcChannels16 index used as the source mode switch. The
+	  legacy Taranis path used joy axes[5], so channel index 5 is the
+	  default equivalent.
+
+config CUBS2_PPM_AUTO_SWITCH_THRESHOLD_US
+	int "Manual/autonomous switch PWM threshold"
+	depends on CUBS2_PPM_MANUAL_OVERRIDE
+	default 1500
+	range 1000 2000
+	help
+	  Switch values above this threshold select autonomous output. Values at
+	  or below this threshold select manual passthrough.
+
+config CUBS2_SERIAL_BRIDGE_CSYN_OUTPUT
+	bool "Route controller output through csyn instead of serial"
+	depends on CUBS2_CSYN
+	default y
+	help
+	  Treat synapse/control_output as the Arduino-facing controller output.
+	  When enabled, the legacy serial bridge send path does not write the
+	  selected RC output to UART or a host serial device.
+
+config CUBS2_SERIAL_BRIDGE_QUIET
+	bool "Suppress serial bridge runtime logs"
+	default y if CUBS2_SERIAL_BRIDGE_CSYN_OUTPUT
+	help
+	  Suppress Arduino/serial bridge runtime logs. This keeps native_sim
+	  control deployments focused on csyn and controller logs while leaving
+	  the legacy serial bridge code available when explicitly enabled.
+
+config CUBS2_FWDBG_LOG
+	bool "Print fixed-wing controller debug trace"
+	default n
+	help
+	  Print the periodic FWDBG controller trace from the main control loop.
+	  Enable this only when tuning or collecting controller diagnostics.
+
+config CUBS2_HOST_DEPLOY_IO
+	bool "Enable native host deploy input state"
+	depends on BOARD_NATIVE_SIM
+	help
+	  Enable native_sim deploy input state fed by csyn topics such as
+	  synapse/manual_control and synapse/mocap_frame. The controller output
+	  is then sent to the Arduino PPM encoder path.
+
+config CUBS2_HOST_DEPLOY_JOYSTICK
+	bool "Read manual RC from Linux joystick device in zephyr.exe"
+	depends on CUBS2_HOST_DEPLOY_IO
+	default y
+	help
+	  Start a background thread inside zephyr.exe that reads /dev/input/js*
+	  events and maps them into RcChannels16 for manual override selection.
+	  Deployment normally leaves this disabled and feeds manual_control from
+	  an external joystick node over csyn.
+
+config CUBS2_JOYSTICK_DEVICE
+	string "Linux joystick device"
+	depends on CUBS2_HOST_DEPLOY_JOYSTICK
+	default "/dev/input/js0"
+
+config CUBS2_JOYSTICK_AILERON_AXIS
+	int "Joystick aileron axis"
+	depends on CUBS2_HOST_DEPLOY_JOYSTICK
+	default 0
+
+config CUBS2_JOYSTICK_ELEVATOR_AXIS
+	int "Joystick elevator axis"
+	depends on CUBS2_HOST_DEPLOY_JOYSTICK
+	default 1
+
+config CUBS2_JOYSTICK_THROTTLE_AXIS
+	int "Joystick throttle axis"
+	depends on CUBS2_HOST_DEPLOY_JOYSTICK
+	default 2
+
+config CUBS2_JOYSTICK_RUDDER_AXIS
+	int "Joystick rudder axis"
+	depends on CUBS2_HOST_DEPLOY_JOYSTICK
+	default 3
+
+config CUBS2_JOYSTICK_AUTO_BUTTON
+	int "Joystick autopilot button"
+	depends on CUBS2_HOST_DEPLOY_JOYSTICK
+	default 0
+	help
+	  Button index mapped to RcChannels16 ch5. Released selects manual
+	  output; pressed selects autopilot output.
+
 rsource "subsys/Kconfig"
 rsource "drivers/Kconfig"
 

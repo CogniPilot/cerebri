@@ -90,6 +90,7 @@ static void fixed_wing_bridge_map_input(CubControl_FixedWingOuterLoop_t *m, cons
 
 	if (ctx->mocap.valid) {
 		quat_to_euler(&ctx->mocap, &roll, &pitch, &yaw);
+		pitch = -pitch;
 		m->x = ctx->mocap.x;
 		m->y = ctx->mocap.y;
 		m->z = ctx->mocap.z;
@@ -117,6 +118,51 @@ static void fixed_wing_bridge_map_output(const CubControl_FixedWingOuterLoop_t *
 	rc->ch8 = (int32_t)(1000.0f * (float)m->chi_err);
 }
 
+static bool fixed_wing_bridge_select_ppm_output(
+	const synapse_topic_RcChannels16_t *manual_rc, const synapse_topic_RcChannels16_t *auto_rc,
+	const synapse_topic_ControlStatus_t *status, synapse_topic_RcChannels16_t *out_rc)
+{
+#if defined(CONFIG_CUBS2_PPM_MANUAL_OVERRIDE)
+	const int32_t *manual_channels = cubs2_topic_rc_channels_data_const(manual_rc);
+#if !defined(CONFIG_CUBS2_SERIAL_BRIDGE_QUIET)
+	static int s_last_auto_mode = -1;
+#endif
+	bool manual_valid = status->rc_valid;
+	int32_t switch_us = manual_channels[CONFIG_CUBS2_PPM_AUTO_SWITCH_CHANNEL];
+	bool auto_mode;
+
+	for (size_t i = 0U; i < 5U; i++) {
+		manual_valid = manual_valid && (manual_channels[i] >= 900) &&
+			       (manual_channels[i] <= 2100);
+	}
+	manual_valid = manual_valid && (switch_us >= 900) && (switch_us <= 2100);
+
+	auto_mode = !manual_valid || (switch_us > CONFIG_CUBS2_PPM_AUTO_SWITCH_THRESHOLD_US);
+	*out_rc = auto_mode ? *auto_rc : *manual_rc;
+
+#if !defined(CONFIG_CUBS2_SERIAL_BRIDGE_QUIET)
+	if ((int)auto_mode != s_last_auto_mode) {
+		if (manual_valid) {
+			LOG_INF("PPM bridge mode: %s switch_ch%u=%ld",
+				auto_mode ? "auto" : "manual",
+				(unsigned int)CONFIG_CUBS2_PPM_AUTO_SWITCH_CHANNEL,
+				(long)switch_us);
+		} else {
+			LOG_INF("PPM bridge mode: auto (manual RC unavailable)");
+		}
+		s_last_auto_mode = (int)auto_mode;
+	}
+#endif
+
+	return auto_mode;
+#else
+	ARG_UNUSED(manual_rc);
+	ARG_UNUSED(status);
+	*out_rc = *auto_rc;
+	return true;
+#endif
+}
+
 int main(void)
 {
 	struct control_context *const ctx = &g_control_ctx;
@@ -132,7 +178,9 @@ int main(void)
 
 	rc = cubs2_serial_bridge_init();
 	if (rc != 0) {
+#if !defined(CONFIG_CUBS2_SERIAL_BRIDGE_QUIET)
 		LOG_ERR("Failed to initialize serial bridge: %d", rc);
+#endif
 	}
 
 	LOG_INF("CUBS2 Fixed-Wing Bridge starting");
@@ -144,6 +192,8 @@ int main(void)
 		cubs2_control_input_wait(&ctx->gyro, &ctx->accel, &ctx->rc, &ctx->status, &ctx->dt,
 					 &ctx->mocap);
 		ctx->now_ms = k_uptime_get();
+		synapse_topic_RcChannels16_t manual_rc = ctx->rc;
+		synapse_topic_RcChannels16_t auto_rc;
 
 		// Fall back to the serial bridge mocap source when no other source
 		// has provided a valid pose this cycle.
@@ -154,13 +204,20 @@ int main(void)
 		// Update model inputs
 		fixed_wing_bridge_map_input(&g_model, ctx);
 
+		// Set sample period (not baked into the generated init by GALEC).
+		g_model.dt = ctx->dt;
+
 		// Advance one 100 Hz discrete control step. The GALEC-generated model
 		// has a fixed sample period baked into the controller state.
 		CubControl_FixedWingOuterLoop_step(&g_model);
 
-		// Map model outputs to RC sticks
-		fixed_wing_bridge_map_output(&g_model, &ctx->rc);
+		// Map model outputs to autonomous RC sticks, then mirror the legacy
+		// ROS ppm_bridge manual/autonomous switch behavior.
+		fixed_wing_bridge_map_output(&g_model, &auto_rc);
+		(void)fixed_wing_bridge_select_ppm_output(&manual_rc, &auto_rc, &ctx->status,
+							  &ctx->rc);
 
+#if defined(CONFIG_CUBS2_FWDBG_LOG)
 		LOG_INF("FWDBG,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%d,%d,%.3f,%.3f",
 			(double)g_model.time_s,
 			(double)g_model.x, (double)g_model.y,
@@ -173,6 +230,7 @@ int main(void)
 			(double)g_model.phi_cmd, (double)g_model.chi_err,
 			(int)g_model.current_wp, (int)g_model.airborne,
 			(double)g_model.des_v, (double)g_model.des_gamma);
+#endif
 
 		// Publish stick overrides to the bridge output
 		publish_bridge_state(ctx);

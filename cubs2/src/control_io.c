@@ -14,13 +14,21 @@
 #include "sitl_udp_coordinator.h"
 #endif
 
+#if defined(CONFIG_CUBS2_HOST_DEPLOY_IO)
+#include "host_deploy_io.h"
+#endif
+
 LOG_MODULE_DECLARE(cubs2, LOG_LEVEL_INF);
 
 K_SEM_DEFINE(g_input_sem, 0, 1);
 
 int cubs2_control_io_init(void)
 {
+#if defined(CONFIG_CUBS2_HOST_DEPLOY_IO)
+	return cubs2_host_deploy_io_init();
+#else
 	return 0;
+#endif
 }
 
 void cubs2_control_input_trigger(void)
@@ -107,5 +115,18 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 	ARG_UNUSED(rc_link_quality);
 	ARG_UNUSED(rc_valid);
 	ARG_UNUSED(imu_valid);
+#endif
+
+#if defined(CONFIG_CUBS2_HOST_DEPLOY_IO)
+	if (mocap != NULL) {
+		(void)cubs2_host_deploy_io_get_mocap(mocap);
+	}
+	if (cubs2_host_deploy_io_get_rc(rc)) {
+		status->rc_valid = true;
+		status->rc_link_quality = 100U;
+	} else {
+		status->rc_valid = false;
+		status->rc_link_quality = 0U;
+	}
 #endif
 }

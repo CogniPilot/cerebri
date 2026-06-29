@@ -3,11 +3,10 @@
  *
  * cubs2_host: native fixed-wing outer-loop controller.
  *
- *   synapse_qualisys_bridge  --(Zenoh: MocapFrame flatbuffer)-->  cubs2_host
  *   cubs2_host  --(57600 serial: 0xFF-framed RC)-->  ppm_bridge Arduino  --> PPM --> Tx
  *
- * This is a POSIX port of cubs2/src/main.c: same generated controller, same
- * input/output mapping, running at 100 Hz on the host.
+ * This legacy POSIX port keeps the controller/serial smoke test buildable.
+ * Live mocap and Zenoh-facing transport moved to zephyr native_sim with csyn.
  */
 #include "CubControl_FixedWingOuterLoop.h"
 #include "topic_flatbuffer.h"
@@ -117,9 +116,6 @@ static const char *env_or(const char *name, const char *fallback)
 int main(int argc, char **argv)
 {
 	const char *ppm_dev = (argc > 1) ? argv[1] : env_or("CUBS2_PPM_DEVICE", "/dev/ttyACM0");
-	const char *zkey = env_or("CUBS2_MOCAP_KEY", "synapse/mocap/frame");
-	const char *zmode = env_or("CUBS2_ZENOH_MODE", "peer");
-	const char *zconnect = getenv("CUBS2_ZENOH_CONNECT");
 
 	signal(SIGINT, on_signal);
 	signal(SIGTERM, on_signal);
@@ -133,7 +129,7 @@ int main(int argc, char **argv)
 	}
 	fprintf(stderr, "cubs2_host: PPM serial open on %s @ 57600\n", ppm_dev);
 
-	if (mocap_sub_start(zkey, zmode, zconnect) != 0) {
+	if (mocap_sub_start(NULL, NULL, NULL) != 0) {
 		fprintf(stderr, "cubs2_host: continuing without mocap (failsafe output)\n");
 	}
 

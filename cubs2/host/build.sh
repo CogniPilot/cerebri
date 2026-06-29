@@ -4,9 +4,8 @@
 # Build the native cubs2_host executable.
 #
 #   - fetches & builds flatcc (FlatBuffer C codegen + runtime) if missing
-#   - fetches & builds zenoh-pico (mocap transport) if missing
 #   - generates FlatBuffer readers from ../src/*.fbs
-#   - compiles the host control loop, serial output, and zenoh subscriber
+#   - compiles the legacy host control loop and serial output
 #
 # Output: build/cubs2_host
 set -euo pipefail
@@ -30,16 +29,6 @@ if [ ! -x "$FLATCC_DIR/bin/flatcc" ]; then
 fi
 FLATCC="$FLATCC_DIR/bin/flatcc"
 
-# --- zenoh-pico ---------------------------------------------------------
-ZP_DIR="$TP/zenoh-pico"
-if [ ! -f "$ZP_DIR/build/lib/libzenohpico.a" ]; then
-	echo ">> building zenoh-pico"
-	rm -rf "$ZP_DIR"
-	git clone --depth 1 https://github.com/cognipilot/zenoh-pico.git "$ZP_DIR"
-	cmake -S "$ZP_DIR" -B "$ZP_DIR/build" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF
-	cmake --build "$ZP_DIR/build" -j"$JOBS"
-fi
-
 # --- generate FlatBuffer readers ---------------------------------------
 echo ">> generating FlatBuffer readers"
 "$FLATCC" -a -I"$SRC_DIR" -o"$GEN" "$SRC_DIR/synapse_topics.fbs"
@@ -48,12 +37,10 @@ echo ">> generating FlatBuffer readers"
 # --- compile ------------------------------------------------------------
 echo ">> compiling cubs2_host"
 cc -O2 -std=c11 -Wall -Wextra -Wno-unused-parameter \
-	-D_DEFAULT_SOURCE -DZENOH_LINUX \
+	-D_DEFAULT_SOURCE \
 	-I"$GEN" \
 	-I"$SRC_DIR/generated_fixed_wing" \
 	-I"$FLATCC_DIR/include" \
-	-I"$ZP_DIR/include" \
-	-I"$ZP_DIR/build/include" \
 	-I"$SRC_DIR" \
 	-I"$HOST_DIR" \
 	-I"$HOST_DIR/compat" \
@@ -63,8 +50,7 @@ cc -O2 -std=c11 -Wall -Wextra -Wno-unused-parameter \
 	"$SRC_DIR/topic_flatbuffer.c" \
 	"$SRC_DIR/generated_fixed_wing/CubControl_FixedWingOuterLoop.c" \
 	"$FLATCC_DIR/lib/libflatccrt.a" \
-	"$ZP_DIR/build/lib/libzenohpico.a" \
-	-lm -lpthread \
+	-lm \
 	-o "$BUILD/cubs2_host"
 
 echo ">> built $BUILD/cubs2_host"

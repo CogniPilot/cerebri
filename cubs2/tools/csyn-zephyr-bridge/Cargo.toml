@@ -1,0 +1,11 @@
+[package]
+name = "cubs2-csyn-zephyr-bridge"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive", "env"] }
+ctrlc = "3.4"
+zenoh = "1.4"

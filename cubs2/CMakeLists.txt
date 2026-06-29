@@ -13,7 +13,8 @@ set(ZEPHYR_MODULES
 )
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(cubs2 LANGUAGES C)
+set(CUBS2_TARGET_NAME "cubs2_sil" CACHE STRING "CUBS2 build target/profile name")
+project(${CUBS2_TARGET_NAME} LANGUAGES C)
 
 set(CUBS2_FLATBUFFER_SCHEMA_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/src

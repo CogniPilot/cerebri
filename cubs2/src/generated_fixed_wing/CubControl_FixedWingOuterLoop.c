@@ -3,8 +3,7 @@
 #include <math.h>
 
 void CubControl_FixedWingOuterLoop_init(CubControl_FixedWingOuterLoop_t *m) {
-    m->dt = CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_S;
-    m->nWaypoints = 5.0;
+    m->nWaypoints = 6.0;
     m->aileron = 0.0;
     m->elevator = 0.0;
     m->throttle = 0.7;
@@ -45,6 +44,8 @@ void CubControl_FixedWingOuterLoop_init(CubControl_FixedWingOuterLoop_t *m) {
     m->err_r_int = 0.0;
     m->err_r_last = 0.0;
     m->phi_cmd_state = 0.0;
+    m->transitionTimer = 0.0;
+    m->elevatorTarget = 0.0;
     m->alpha = 0.0;
     m->vx_new = 0.0;
     m->vy_new = 0.0;
@@ -83,6 +84,7 @@ void CubControl_FixedWingOuterLoop_init(CubControl_FixedWingOuterLoop_t *m) {
     m->lookahead_eff = 0.0;
     m->switch_threshold = 0.0;
     m->turn_slowdown = 0.0;
+    m->speed_energy_deficit = 0.0;
     m->weight = 0.0;
     m->drag = 0.0;
     m->r_v_dot = 0.0;
@@ -98,6 +100,7 @@ void CubControl_FixedWingOuterLoop_init(CubControl_FixedWingOuterLoop_t *m) {
     m->err_q = 0.0;
     m->nz_excess = 0.0;
     m->ele_ff_phi = 0.0;
+    m->altitude_elev_bias = 0.0;
     m->chi = 0.0;
     m->chi_dot_des = 0.0;
     m->phi_des = 0.0;
@@ -105,69 +108,73 @@ void CubControl_FixedWingOuterLoop_init(CubControl_FixedWingOuterLoop_t *m) {
     m->err_yaw = 0.0;
     m->err_r_deriv = 0.0;
     m->airborne = false;
-    m->current_wp = 2.0;
+    m->current_wp = 1.0;
     m->started = false;
     m->g = 9.81;
     m->waypoints[0][0] = (-4.0);
     m->waypoints[0][1] = (-5.0);
-    m->waypoints[0][2] = 3.0;
+    m->waypoints[0][2] = 1.0;
     m->waypoints[1][0] = (-3.0);
     m->waypoints[1][1] = 2.0;
-    m->waypoints[1][2] = 3.0;
+    m->waypoints[1][2] = 1.0;
     m->waypoints[2][0] = 16.2;
     m->waypoints[2][1] = 2.0;
-    m->waypoints[2][2] = 3.0;
+    m->waypoints[2][2] = 1.0;
     m->waypoints[3][0] = 16.0;
     m->waypoints[3][1] = (-4.22);
-    m->waypoints[3][2] = 3.0;
+    m->waypoints[3][2] = 1.0;
     m->waypoints[4][0] = 6.88;
     m->waypoints[4][1] = (-5.1);
-    m->waypoints[4][2] = 3.0;
+    m->waypoints[4][2] = 1.0;
+    m->waypoints[5][0] = (-4.0);
+    m->waypoints[5][1] = (-5.0);
+    m->waypoints[5][2] = 1.0;
     m->filterCutoffHz = 10.0;
-    m->vCruise = 3.0;
-    m->vTurnMin = 1.8;
-    m->K_h = 3.0;
-    m->K_V = 2.5;
+    m->vCruise = 5.5;
+    m->vTurnMin = 4.5;
+    m->turnThrottleBoost = 0.3;
+    m->speedThrottleBoost = 0.2;
+    m->K_h = 2.0;
+    m->K_V = 1.0;
     m->lookaheadTime = 1.5;
     m->lookaheadMin = 1.0;
     m->lookaheadMax = 5.0;
     m->waypointSwitchingDistance = 4.0;
     m->mass = 0.057;
-    m->thrMax = 7.5;
-    m->trimThrust = 3.5;
+    m->thrMax = 0.4;
+    m->trimThrust = 0.2;
     m->K_thrustp = 0.01;
     m->K_thrusti = 0.4215;
-    m->normEsDotIntegralMax = 7.5;
+    m->normEsDotIntegralMax = 0.4;
     m->K_pitchp = 0.075;
     m->K_pitchi = 0.216;
-    m->distTermIntegralMax = 7.5;
-    m->envelopeDrag = 1.0;
+    m->distTermIntegralMax = 0.4;
+    m->envelopeDrag = 0.2;
     m->pitchCmdLim = 0.3490658503988659;
-    m->trimElev = 0.2;
+    m->trimElev = 0.1;
+    m->K_alt_elev = 0.05;
     m->K_elevp = 0.107;
     m->K_elevi = 0.2107;
     m->K_q = 0.2;
-    m->K_phi_elev = 2.5;
+    m->K_phi_elev = 0.6;
     m->pitchIntegralMax = 0.3;
-    m->trimAil = 0.0;
-    m->K_deltap = 0.4;
-    m->K_deltai = 0.15;
-    m->K_deltad = 0.1;
-    m->rIntegralMax = 0.4;
     m->kChi = 1.2;
     m->phiLim = 0.5235987755982988;
     m->phiDotLim = 1.5707963267948966;
     m->chiDeadband = 0.017453292519943295;
     m->takeoffAltitude = 0.4;
-    m->takeoffElev = 0.15;
+    m->takeoffElev = 0.12;
     m->stabilizerCmd = 2000.0;
+    m->transitionDuration = 0.3;
 }
 
 void CubControl_FixedWingOuterLoop_recalibrate(CubControl_FixedWingOuterLoop_t *m) {
-    m->nWaypoints = 5.0;
+    m->nWaypoints = 6.0;
 }
 
 void CubControl_FixedWingOuterLoop_step(CubControl_FixedWingOuterLoop_t *m) {
+    real_t galec_previous_transitionTimer;
+    galec_previous_transitionTimer = m->transitionTimer;
     m->alpha = exp((-(((2.0 * 3.141592653589793) * m->filterCutoffHz) * m->dt)));
     m->weight = (m->mass * m->g);
     if ((!m->started)) {
@@ -203,7 +210,7 @@ void CubControl_FixedWingOuterLoop_step(CubControl_FixedWingOuterLoop_t *m) {
         m->q_new = ((((m->pitch - m->prev_pitch) > 3.141592653589793) ? ((m->pitch - m->prev_pitch) - (2.0 * 3.141592653589793)) : (((m->pitch - m->prev_pitch) <= (-3.141592653589793)) ? ((m->pitch - m->prev_pitch) + (2.0 * 3.141592653589793)) : (m->pitch - m->prev_pitch))) / m->dt);
         m->r_new = ((((m->yaw - m->prev_yaw) > 3.141592653589793) ? ((m->yaw - m->prev_yaw) - (2.0 * 3.141592653589793)) : (((m->yaw - m->prev_yaw) <= (-3.141592653589793)) ? ((m->yaw - m->prev_yaw) + (2.0 * 3.141592653589793)) : (m->yaw - m->prev_yaw))) / m->dt);
         m->gamma_new = asin(fmin(fmax((m->vz_new / fmax(m->speed_new, 0.00001)), (-1.0)), 1.0));
-        m->vdot_new = (m->speed_new - m->prev_speed);
+        m->vdot_new = ((m->speed_new - m->prev_speed) / m->dt);
         m->x_est = ((m->alpha * m->x) + ((1.0 - m->alpha) * m->x_est));
         m->y_est = ((m->alpha * m->y) + ((1.0 - m->alpha) * m->y_est));
         m->z_est = ((m->alpha * m->z) + ((1.0 - m->alpha) * m->z_est));
@@ -232,15 +239,20 @@ void CubControl_FixedWingOuterLoop_step(CubControl_FixedWingOuterLoop_t *m) {
         m->des_heading = 0.0;
         m->des_a = 0.0;
         m->current_wp = m->current_wp;
+        m->err_norm_es_dot_int = 0.0;
+        m->err_dist_term_int = 0.0;
+        m->err_pitch_int = 0.0;
+        m->phi_cmd_state = 0.0;
+        m->transitionTimer = 0.0;
     } else {
         m->current_wp = m->current_wp;
         m->next_wx = ((m->waypoints)[((int)(m->current_wp)-1)])[((int)(1)-1)];
         m->next_wy = ((m->waypoints)[((int)(m->current_wp)-1)])[((int)(2)-1)];
         m->next_wz = ((m->waypoints)[((int)(m->current_wp)-1)])[((int)(3)-1)];
         if ((m->current_wp == 1)) {
-            m->prev_wx = ((m->waypoints)[((int)(m->nWaypoints)-1)])[((int)(1)-1)];
-            m->prev_wy = ((m->waypoints)[((int)(m->nWaypoints)-1)])[((int)(2)-1)];
-            m->prev_wz = ((m->waypoints)[((int)(m->nWaypoints)-1)])[((int)(3)-1)];
+            m->prev_wx = 0.0;
+            m->prev_wy = 0.0;
+            m->prev_wz = 0.0;
         } else {
             m->prev_wx = ((m->waypoints)[((int)((m->current_wp - 1))-1)])[((int)(1)-1)];
             m->prev_wy = ((m->waypoints)[((int)((m->current_wp - 1))-1)])[((int)(2)-1)];
@@ -250,7 +262,7 @@ void CubControl_FixedWingOuterLoop_step(CubControl_FixedWingOuterLoop_t *m) {
         m->y_err = (m->next_wy - m->y_est);
         m->z_err = (m->next_wz - m->z_est);
         m->horz_dist_err = sqrt(((m->x_err * m->x_err) + (m->y_err * m->y_err)));
-        m->des_gamma = ((m->horz_dist_err <= 0.0) ? 0.0 : ((m->K_h * m->z_err) / m->horz_dist_err));
+        m->des_gamma = fmin(fmax(((m->K_h * m->z_err) / fmax(m->horz_dist_err, m->lookaheadMin)), (-0.05)), 0.05);
         m->path_vect[0] = (m->next_wx - m->prev_wx);
         m->path_vect[1] = (m->next_wy - m->prev_wy);
         m->path_vect[2] = (m->next_wz - m->prev_wz);
@@ -270,6 +282,7 @@ void CubControl_FixedWingOuterLoop_step(CubControl_FixedWingOuterLoop_t *m) {
         m->des_heading = (((m->path_angle + atan2((-m->cross_track_err), fmax(m->lookahead_eff, 0.000001))) > 3.141592653589793) ? ((m->path_angle + atan2((-m->cross_track_err), fmax(m->lookahead_eff, 0.000001))) - (2.0 * 3.141592653589793)) : (((m->path_angle + atan2((-m->cross_track_err), fmax(m->lookahead_eff, 0.000001))) <= (-3.141592653589793)) ? ((m->path_angle + atan2((-m->cross_track_err), fmax(m->lookahead_eff, 0.000001))) + (2.0 * 3.141592653589793)) : (m->path_angle + atan2((-m->cross_track_err), fmax(m->lookahead_eff, 0.000001)))));
         m->turn_slowdown = fmin(fmax(fmax((fabs(m->cross_track_err) / m->waypointSwitchingDistance), (fabs((((m->des_heading - m->yaw_est) > 3.141592653589793) ? ((m->des_heading - m->yaw_est) - (2.0 * 3.141592653589793)) : (((m->des_heading - m->yaw_est) <= (-3.141592653589793)) ? ((m->des_heading - m->yaw_est) + (2.0 * 3.141592653589793)) : (m->des_heading - m->yaw_est)))) / ((45.0 * 3.141592653589793) / 180.0))), 0.0), 1.0);
         m->des_v = (m->vCruise - ((m->vCruise - m->vTurnMin) * m->turn_slowdown));
+        m->speed_energy_deficit = fmin(fmax(((m->des_v - fabs(m->v_est)) / fmax((m->vCruise - m->vTurnMin), 0.1)), 0.0), 1.0);
         m->des_a = (m->K_V * (m->des_v - fabs(m->v_est)));
         m->drag = m->envelopeDrag;
         m->r_v_dot = fmin(fmax(m->des_a, (-(m->drag / m->weight))), ((m->thrMax - m->drag) / m->weight));
@@ -289,17 +302,24 @@ void CubControl_FixedWingOuterLoop_step(CubControl_FixedWingOuterLoop_t *m) {
         } else {
             m->err_dist_term_int = m->err_dist_term_int;
         }
-        m->pitch_ned = (-m->pitch_est);
+        m->pitch_ned = m->pitch_est;
         m->err_pitch = (((m->ref_pitch - m->pitch_ned) > 3.141592653589793) ? ((m->ref_pitch - m->pitch_ned) - (2.0 * 3.141592653589793)) : (((m->ref_pitch - m->pitch_ned) <= (-3.141592653589793)) ? ((m->ref_pitch - m->pitch_ned) + (2.0 * 3.141592653589793)) : (m->ref_pitch - m->pitch_ned)));
         m->q_turn = ((((sin(m->roll_est) * cos(m->pitch_ned)) * tan(m->roll_est)) * m->g) / fmax(m->v_est, 0.00001));
         m->err_q = (((m->q_turn - m->q_est) > 3.141592653589793) ? ((m->q_turn - m->q_est) - (2.0 * 3.141592653589793)) : (((m->q_turn - m->q_est) <= (-3.141592653589793)) ? ((m->q_turn - m->q_est) + (2.0 * 3.141592653589793)) : (m->q_turn - m->q_est)));
         m->nz_excess = ((1.0 / fmax(cos(m->roll_est), 0.00001)) - 1.0);
-        m->ele_ff_phi = (m->K_phi_elev * m->nz_excess);
+        m->ele_ff_phi = fmin(fmax((m->K_phi_elev * m->nz_excess), 0.0), 0.12);
+        m->altitude_elev_bias = fmin(fmax((m->K_alt_elev * (m->next_wz - m->z_est)), (-0.12)), 0.12);
         m->err_pitch_int = fmin(fmax((m->err_pitch_int + (m->err_pitch * m->dt)), (-m->pitchIntegralMax)), m->pitchIntegralMax);
-        m->elevator = fmin(fmax(((((m->trimElev + (m->K_elevp * m->err_pitch)) + (m->K_elevi * m->err_pitch_int)) + (m->K_q * m->err_q)) + m->ele_ff_phi), (-1.0)), 1.0);
-        m->throttle = fmin(fmax((m->ref_thrust / m->thrMax), 0.0), 1.0);
+        m->elevatorTarget = fmin(fmax((((((m->trimElev + (m->K_elevp * m->err_pitch)) + (m->K_elevi * m->err_pitch_int)) + (m->K_q * m->err_q)) + m->ele_ff_phi) + m->altitude_elev_bias), (-1.0)), 1.0);
+        if ((m->transitionTimer < m->transitionDuration)) {
+            m->transitionTimer = (m->transitionTimer + m->dt);
+            m->elevator = (m->takeoffElev + ((m->elevatorTarget - m->takeoffElev) * (galec_previous_transitionTimer / m->transitionDuration)));
+        } else {
+            m->elevator = m->elevatorTarget;
+        }
+        m->throttle = fmin(fmax((((m->ref_thrust / m->thrMax) + (m->turnThrottleBoost * m->turn_slowdown)) + (m->speedThrottleBoost * m->speed_energy_deficit)), 0.0), 1.0);
         m->chi = atan2(m->vy_est, m->vx_est);
-        m->chi_err = (-(((m->des_heading - m->chi) > 3.141592653589793) ? ((m->des_heading - m->chi) - (2.0 * 3.141592653589793)) : (((m->des_heading - m->chi) <= (-3.141592653589793)) ? ((m->des_heading - m->chi) + (2.0 * 3.141592653589793)) : (m->des_heading - m->chi))));
+        m->chi_err = (((m->des_heading - m->chi) > 3.141592653589793) ? ((m->des_heading - m->chi) - (2.0 * 3.141592653589793)) : (((m->des_heading - m->chi) <= (-3.141592653589793)) ? ((m->des_heading - m->chi) + (2.0 * 3.141592653589793)) : (m->des_heading - m->chi)));
         if ((fabs(m->chi_err) < m->chiDeadband)) {
             m->chi_err = 0.0;
         }
@@ -309,14 +329,10 @@ void CubControl_FixedWingOuterLoop_step(CubControl_FixedWingOuterLoop_t *m) {
         m->phi_des = (fmin(fmax((m->phi_des - m->phi_cmd_state), (-m->dphi_max)), m->dphi_max) + m->phi_cmd_state);
         m->phi_cmd_state = fmin(fmax(m->phi_des, (-m->phiLim)), m->phiLim);
         m->phi_cmd = m->phi_cmd_state;
-        m->err_yaw = (((m->des_heading - m->yaw_est) > 3.141592653589793) ? ((m->des_heading - m->yaw_est) - (2.0 * 3.141592653589793)) : (((m->des_heading - m->yaw_est) <= (-3.141592653589793)) ? ((m->des_heading - m->yaw_est) + (2.0 * 3.141592653589793)) : (m->des_heading - m->yaw_est)));
-        m->err_r_deriv = ((m->err_yaw - m->err_r_last) / m->dt);
-        m->err_r_last = m->err_yaw;
-        m->err_r_int = fmin(fmax((m->err_r_int + (m->err_yaw * m->dt)), (-m->rIntegralMax)), m->rIntegralMax);
-        m->aileron = fmin(fmax((((m->trimAil + (m->K_deltap * m->err_yaw)) + (m->K_deltai * m->err_r_int)) + (m->K_deltad * m->err_r_deriv)), (-1.0)), 1.0);
-        m->rudder = 0.0;
-        m->switch_threshold = m->waypointSwitchingDistance;
-        if (((m->along_track_err_w1 < m->switch_threshold) && (m->horz_dist_err < m->waypointSwitchingDistance))) {
+        m->aileron = (-(m->phi_cmd / 0.87));
+        m->rudder = fmin(fmax((m->aileron * 0.3), (-1.0)), 1.0);
+        m->switch_threshold = fmax(m->waypointSwitchingDistance, m->lookahead_nom);
+        if ((m->along_track_err_w1 < m->switch_threshold)) {
             m->current_wp = ((m->current_wp >= m->nWaypoints) ? 1 : (m->current_wp + 1));
         }
     }

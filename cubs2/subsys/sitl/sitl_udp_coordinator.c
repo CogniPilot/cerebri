@@ -3,6 +3,7 @@
  */
 
 #include "rc_input.h"
+#include "csyn.h"
 #include "sitl_flatbuffer.h"
 #include "sitl_udp_coordinator.h"
 #include "topic_flatbuffer.h"
@@ -39,6 +40,9 @@ static struct sockaddr_in g_sitl_tx_flight_addr;
 static struct sockaddr_in g_sitl_tx_motor_addr;
 static K_THREAD_STACK_DEFINE(g_sitl_thread_stack, CONFIG_CUBS2_SITL_THREAD_STACK_SIZE);
 static struct k_thread g_sitl_thread;
+
+static void sitl_report_rc_input(const synapse_topic_RcChannels16_t *rc, uint8_t rc_link_quality,
+				 bool rc_valid);
 
 static int sitl_socket_set_nonblocking(int sock)
 {
@@ -107,6 +111,23 @@ static void sitl_input_store_publish(const uint8_t *buf, size_t len)
 	memcpy(g_sitl_input_store.slots[slot], buf, len);
 	g_sitl_input_store.lengths[slot] = (uint16_t)len;
 	atomic_set(&g_sitl_input_store.generation, (atomic_val_t)next_generation);
+}
+
+bool cubs2_sitl_udp_publish_input(const uint8_t *buf, size_t len)
+{
+	synapse_topic_RcChannels16_t rc;
+	uint8_t rc_link_quality;
+	bool rc_valid;
+
+	if (buf == NULL || len > CUBS2_SITL_INPUT_MAX_SIZE ||
+	    !cubs2_sitl_fb_unpack_input(buf, len, NULL, NULL, &rc, &rc_link_quality,
+					&rc_valid, NULL, NULL)) {
+		return false;
+	}
+
+	sitl_input_store_publish(buf, len);
+	sitl_report_rc_input(&rc, rc_link_quality, rc_valid);
+	return true;
 }
 
 bool cubs2_sitl_udp_latest_input_get(
@@ -189,8 +210,9 @@ static void sitl_rx_drain(void)
 			continue;
 		}
 
-		sitl_input_store_publish(buf, (size_t)len);
-		sitl_report_rc_input(&rc, rc_link_quality, rc_valid);
+		if (cubs2_sitl_udp_publish_input(buf, (size_t)len)) {
+			cubs2_csyn_publish_sim_input(buf, (size_t)len);
+		}
 		source_addr_len = sizeof(source_addr);
 	}
 }

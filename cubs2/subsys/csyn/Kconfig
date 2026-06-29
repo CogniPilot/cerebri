@@ -1,0 +1,60 @@
+config CUBS2_CSYN
+	bool "Enable CUBS2 csyn FlatBuffer topic bus"
+	default y
+	help
+	  Enable a bounded, FlatBuffer-first in-process topic bus for CUBS2.
+	  This is the Zephyr-side csyn module: it stores latest samples and
+	  exposes C APIs for future host/transport backends.
+
+if CUBS2_CSYN
+
+config CUBS2_CSYN_SHELL
+	bool "Enable csyn shell diagnostics"
+	depends on SHELL
+	default y
+	help
+	  Adds csyn topic list/info/echo/hz shell commands.
+
+config CUBS2_CSYN_SHELL_THREAD_STACK_SIZE
+	int "csyn shell watch thread stack size"
+	depends on CUBS2_CSYN_SHELL
+	default 2048
+	range 1024 8192
+
+config CUBS2_CSYN_NATIVE_UDP
+	bool "Enable native_sim csyn UDP transport"
+	depends on BOARD_NATIVE_SIM
+	default y
+	help
+	  Add a native_sim-only UDP transport for csyn topic packets. This keeps
+	  socket IO in a low-priority thread and outside the controller loop.
+
+config CUBS2_CSYN_NATIVE_UDP_RX_PORT
+	int "csyn native_sim UDP RX port"
+	depends on CUBS2_CSYN_NATIVE_UDP
+	default 4250
+	range 1 65535
+
+config CUBS2_CSYN_NATIVE_UDP_TX_PORT
+	int "csyn native_sim UDP TX port"
+	depends on CUBS2_CSYN_NATIVE_UDP
+	default 4251
+	range 1 65535
+
+config CUBS2_CSYN_NATIVE_UDP_HOST
+	string "csyn native_sim UDP host"
+	depends on CUBS2_CSYN_NATIVE_UDP
+	default "127.0.0.1"
+
+config CUBS2_CSYN_NATIVE_UDP_THREAD_STACK_SIZE
+	int "csyn native_sim UDP thread stack size"
+	depends on CUBS2_CSYN_NATIVE_UDP
+	default 2048
+	range 1024 8192
+
+config CUBS2_CSYN_NATIVE_UDP_THREAD_PRIORITY
+	int "csyn native_sim UDP thread priority"
+	depends on CUBS2_CSYN_NATIVE_UDP
+	default 6
+
+endif

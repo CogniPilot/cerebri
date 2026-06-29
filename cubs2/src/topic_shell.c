@@ -3,6 +3,7 @@
  */
 
 #include "topic_shell.h"
+#include "csyn.h"
 #include "flight_mode.h"
 #include "topic_flatbuffer.h"
 
@@ -328,7 +329,13 @@ void cubs2_topic_motor_output_publish(const synapse_topic_MotorValues4f_t *motor
 					 const synapse_topic_MotorRaw4u16_t *raw, bool armed,
 					 bool test_mode)
 {
+	uint8_t buf[CUBS2_TOPIC_FB_MOTOR_OUTPUT_SIZE];
+	size_t len;
+
 	motor_output_store_publish(motors, raw, armed, test_mode);
+	if (motor_output_store_copy_latest_blob(buf, sizeof(buf), &len)) {
+		cubs2_csyn_publish_motor_output(buf, len);
+	}
 	topic_seq_bump(TOPIC_MOTOR);
 }
 
@@ -357,8 +364,14 @@ void cubs2_topic_flight_state_publish(
 	const synapse_topic_RateTriplet_t *rate_desired,
 	const synapse_topic_RateTriplet_t *rate_cmd)
 {
+	uint8_t buf[CUBS2_TOPIC_FB_FLIGHT_STATE_SIZE];
+	size_t len;
+
 	flight_state_store_publish(gyro, accel, rc, status, attitude, attitude_desired,
 				   rate_desired, rate_cmd);
+	if (flight_state_store_copy_latest_blob(buf, sizeof(buf), &len)) {
+		cubs2_csyn_publish_flight_snapshot(buf, len);
+	}
 	topic_seq_bump(TOPIC_STATUS);
 	if (status->imu_ok) {
 		topic_seq_bump(TOPIC_IMU);

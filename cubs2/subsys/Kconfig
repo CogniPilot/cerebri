@@ -1,5 +1,6 @@
 menu "Subsystems"
 
+rsource "csyn/Kconfig"
 rsource "sitl/Kconfig"
 
 endmenu

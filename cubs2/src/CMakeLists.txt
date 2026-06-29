@@ -9,6 +9,12 @@ target_sources(app PRIVATE
   topic_shell.c
 )
 
+if(CONFIG_CUBS2_HOST_DEPLOY_IO)
+  target_sources(app PRIVATE
+    host_deploy_io.c
+  )
+endif()
+
 if(CONFIG_CODE_DATA_RELOCATION)
   set(RELOCATE_FILES
     main.c

@@ -120,6 +120,36 @@ static void print_rc(const struct shell *sh, const uint8_t *buf, size_t len)
 		    (long)rc->ch12, (long)rc->ch13, (long)rc->ch14, (long)rc->ch15);
 }
 
+static double decode_centered_pwm(int32_t pwm)
+{
+	return ((double)pwm - 1500.0) / 500.0;
+}
+
+static double decode_inverted_centered_pwm(int32_t pwm)
+{
+	return (1500.0 - (double)pwm) / 500.0;
+}
+
+static double decode_throttle_pwm(int32_t pwm)
+{
+	return ((double)pwm - 1000.0) / 1000.0;
+}
+
+static void print_control_output(const struct shell *sh, const uint8_t *buf, size_t len)
+{
+	const synapse_topic_RcChannels16_t *rc = (const synapse_topic_RcChannels16_t *)buf;
+
+	if (len != sizeof(*rc)) {
+		shell_error(sh, "control_output: invalid sample size %u", (unsigned int)len);
+		return;
+	}
+
+	shell_print(sh, "control_output throttle=%0.3f aileron=%0.3f elevator=%0.3f rudder=%0.3f mode=%ld",
+		    decode_throttle_pwm(rc->ch2), decode_inverted_centered_pwm(rc->ch0),
+		    decode_inverted_centered_pwm(rc->ch1), decode_centered_pwm(rc->ch3),
+		    (long)rc->ch4);
+}
+
 static void print_mocap(const struct shell *sh, const uint8_t *buf, size_t len)
 {
 	cubs2_mocap_rigid_body_t rb;
@@ -258,11 +288,12 @@ static void csyn_topic_line_once(const struct shell *sh, enum cubs2_csyn_topic_i
 			(const synapse_topic_RcChannels16_t *)g_csyn_shell_buf;
 
 		(void)snprintk(line, sizeof(line),
-			       "%s gen=%u rc=[%ld %ld %ld %ld %ld %ld %ld %ld]",
-			       info->name, (unsigned int)generation, (long)rc->ch0,
-			       (long)rc->ch1, (long)rc->ch2, (long)rc->ch3,
-			       (long)rc->ch4, (long)rc->ch5, (long)rc->ch6,
-			       (long)rc->ch7);
+			       "%s gen=%u throttle=%0.3f aileron=%0.3f elevator=%0.3f rudder=%0.3f mode=%ld",
+			       info->name, (unsigned int)generation,
+			       decode_throttle_pwm(rc->ch2),
+			       decode_inverted_centered_pwm(rc->ch0),
+			       decode_inverted_centered_pwm(rc->ch1),
+			       decode_centered_pwm(rc->ch3), (long)rc->ch4);
 	} else {
 		(void)snprintk(line, sizeof(line), "%s gen=%u len=%u key=%s",
 			       info->name, (unsigned int)generation, (unsigned int)len,
@@ -292,7 +323,7 @@ static int csyn_topic_echo_once(const struct shell *sh, enum cubs2_csyn_topic_id
 		    (unsigned int)generation, (unsigned int)len, info->type_name, info->keyexpr);
 
 	if (topic == CUBS2_CSYN_TOPIC_CONTROL_OUTPUT) {
-		print_rc(sh, g_csyn_shell_buf, len);
+		print_control_output(sh, g_csyn_shell_buf, len);
 	} else if (topic == CUBS2_CSYN_TOPIC_MOCAP_FRAME) {
 		print_mocap(sh, g_csyn_shell_buf, len);
 	} else if (topic == CUBS2_CSYN_TOPIC_MANUAL_CONTROL) {

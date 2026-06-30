@@ -1,10 +1,13 @@
+use std::fs::{self, File};
+use std::io::{BufWriter, Write};
 use std::net::UdpSocket;
+use std::path::{Path, PathBuf};
 use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
 };
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result, anyhow};
 use clap::Parser;
@@ -54,6 +57,13 @@ struct Args {
     motor_topic: String,
     #[arg(long, default_value = "synapse/control_output")]
     control_output_topic: String,
+    #[arg(
+        long,
+        env = "CUBS2_BAG",
+        value_name = "PATH",
+        help = "Record bridged topic payloads to a cubs2 bag file"
+    )]
+    bag: Option<PathBuf>,
 }
 
 fn main() -> Result<()> {
@@ -71,7 +81,12 @@ fn main() -> Result<()> {
     let manual_sub = session
         .declare_subscriber(args.manual_control_topic.clone())
         .wait()
-        .map_err(|error| anyhow!("failed to subscribe to {}: {error}", args.manual_control_topic))?;
+        .map_err(|error| {
+            anyhow!(
+                "failed to subscribe to {}: {error}",
+                args.manual_control_topic
+            )
+        })?;
     let mocap_sub = session
         .declare_subscriber(args.mocap_topic.clone())
         .wait()
@@ -83,6 +98,7 @@ fn main() -> Result<()> {
 
     let tx = CsynUdpTx::connect(&args.zephyr_input)?;
     let mut rx = CsynUdpRx::bind(&args.output_bind)?;
+    let mut bag = args.bag.as_deref().map(BagWriter::create).transpose()?;
 
     eprintln!("cubs2 csyn bridge via Zenoh {}", args.connect);
     eprintln!(
@@ -93,16 +109,41 @@ fn main() -> Result<()> {
         "  out: UDP {} -> {}, {}, {}",
         args.output_bind, args.flight_topic, args.motor_topic, args.control_output_topic
     );
+    if let Some(path) = &args.bag {
+        eprintln!("  bag: {}", path.display());
+    }
 
     while !shutdown.load(Ordering::Relaxed) {
-        drain_subscriber(&manual_sub, CSYN_TOPIC_MANUAL_CONTROL, &tx, "manual_control")?;
-        drain_subscriber(&mocap_sub, CSYN_TOPIC_MOCAP_FRAME, &tx, "mocap_frame")?;
-        drain_subscriber(&sim_input_sub, CSYN_TOPIC_SIM_INPUT, &tx, "sim_input")?;
+        drain_subscriber(
+            &manual_sub,
+            CSYN_TOPIC_MANUAL_CONTROL,
+            &tx,
+            "manual_control",
+            &args.manual_control_topic,
+            &mut bag,
+        )?;
+        drain_subscriber(
+            &mocap_sub,
+            CSYN_TOPIC_MOCAP_FRAME,
+            &tx,
+            "mocap_frame",
+            &args.mocap_topic,
+            &mut bag,
+        )?;
+        drain_subscriber(
+            &sim_input_sub,
+            CSYN_TOPIC_SIM_INPUT,
+            &tx,
+            "sim_input",
+            &args.sim_input_topic,
+            &mut bag,
+        )?;
         rx.drain(
             &session,
             &args.flight_topic,
             &args.motor_topic,
             &args.control_output_topic,
+            &mut bag,
         )?;
         thread::sleep(Duration::from_millis(1));
     }
@@ -118,12 +159,17 @@ fn drain_subscriber(
     topic_id: u16,
     tx: &CsynUdpTx,
     name: &str,
+    topic_name: &str,
+    bag: &mut Option<BagWriter>,
 ) -> Result<()> {
     while let Some(sample) = subscriber
         .recv_timeout(Duration::ZERO)
         .map_err(|error| anyhow!("failed to receive {name} sample: {error}"))?
     {
         let payload = sample.payload().to_bytes();
+        if let Some(writer) = bag.as_mut() {
+            writer.write_record(topic_name, &payload)?;
+        }
         tx.send(topic_id, &payload)?;
     }
     Ok(())
@@ -183,6 +229,7 @@ impl CsynUdpRx {
         flight_topic: &str,
         motor_topic: &str,
         control_output_topic: &str,
+        bag: &mut Option<BagWriter>,
     ) -> Result<()> {
         loop {
             let len = match self.socket.recv(&mut self.buf) {
@@ -208,11 +255,67 @@ impl CsynUdpRx {
                 _ => continue,
             };
 
+            if let Some(writer) = bag.as_mut() {
+                writer.write_record(keyexpr, &self.buf[8..len])?;
+            }
             session
                 .put(keyexpr.to_owned(), self.buf[8..len].to_vec())
                 .wait()
                 .map_err(|error| anyhow!("failed to publish {keyexpr}: {error}"))?;
         }
+    }
+}
+
+struct BagWriter {
+    writer: BufWriter<File>,
+}
+
+impl BagWriter {
+    fn create(path: &Path) -> Result<Self> {
+        if let Some(parent) = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("failed to create bag directory {}", parent.display()))?;
+        }
+
+        let mut writer = BufWriter::new(
+            File::create(path)
+                .with_context(|| format!("failed to create bag {}", path.display()))?,
+        );
+        writer
+            .write_all(b"CUBS2BAG1\n")
+            .with_context(|| format!("failed to write bag header {}", path.display()))?;
+        writer
+            .write_all(b"record=u64_unix_us,u16_topic_len,u32_payload_len,topic,payload\n")
+            .with_context(|| format!("failed to write bag schema {}", path.display()))?;
+        Ok(Self { writer })
+    }
+
+    fn write_record(&mut self, topic: &str, payload: &[u8]) -> Result<()> {
+        let topic_bytes = topic.as_bytes();
+        if topic_bytes.len() > u16::MAX as usize {
+            return Err(anyhow!("bag topic name too long: {topic}"));
+        }
+        if payload.len() > u32::MAX as usize {
+            return Err(anyhow!("bag payload too large: {} bytes", payload.len()));
+        }
+
+        let timestamp_us = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .context("system clock is before UNIX epoch")?
+            .as_micros() as u64;
+
+        self.writer.write_all(&timestamp_us.to_le_bytes())?;
+        self.writer
+            .write_all(&(topic_bytes.len() as u16).to_le_bytes())?;
+        self.writer
+            .write_all(&(payload.len() as u32).to_le_bytes())?;
+        self.writer.write_all(topic_bytes)?;
+        self.writer.write_all(payload)?;
+        self.writer.flush()?;
+        Ok(())
     }
 }
 

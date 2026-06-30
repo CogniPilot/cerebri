@@ -118,9 +118,31 @@ static void fixed_wing_bridge_map_output(const CubControl_FixedWingOuterLoop_t *
 	rc->ch8 = (int32_t)(1000.0f * (float)m->chi_err);
 }
 
+static bool fixed_wing_bridge_auto_mode(const synapse_topic_RcChannels16_t *manual_rc,
+					const synapse_topic_ControlStatus_t *status)
+{
+#if defined(CONFIG_CUBS2_PPM_MANUAL_OVERRIDE)
+	const int32_t *manual_channels = cubs2_topic_rc_channels_data_const(manual_rc);
+	bool manual_valid = status->rc_valid;
+	int32_t switch_us = manual_channels[CONFIG_CUBS2_PPM_AUTO_SWITCH_CHANNEL];
+
+	for (size_t i = 0U; i < 5U; i++) {
+		manual_valid = manual_valid && (manual_channels[i] >= 900) &&
+			       (manual_channels[i] <= 2100);
+	}
+	manual_valid = manual_valid && (switch_us >= 900) && (switch_us <= 2100);
+
+	return !manual_valid || (switch_us > CONFIG_CUBS2_PPM_AUTO_SWITCH_THRESHOLD_US);
+#else
+	ARG_UNUSED(manual_rc);
+	ARG_UNUSED(status);
+	return true;
+#endif
+}
+
 static bool fixed_wing_bridge_select_ppm_output(
 	const synapse_topic_RcChannels16_t *manual_rc, const synapse_topic_RcChannels16_t *auto_rc,
-	const synapse_topic_ControlStatus_t *status, synapse_topic_RcChannels16_t *out_rc)
+	const synapse_topic_ControlStatus_t *status, bool auto_mode, synapse_topic_RcChannels16_t *out_rc)
 {
 #if defined(CONFIG_CUBS2_PPM_MANUAL_OVERRIDE)
 	const int32_t *manual_channels = cubs2_topic_rc_channels_data_const(manual_rc);
@@ -129,7 +151,6 @@ static bool fixed_wing_bridge_select_ppm_output(
 #endif
 	bool manual_valid = status->rc_valid;
 	int32_t switch_us = manual_channels[CONFIG_CUBS2_PPM_AUTO_SWITCH_CHANNEL];
-	bool auto_mode;
 
 	for (size_t i = 0U; i < 5U; i++) {
 		manual_valid = manual_valid && (manual_channels[i] >= 900) &&
@@ -137,7 +158,6 @@ static bool fixed_wing_bridge_select_ppm_output(
 	}
 	manual_valid = manual_valid && (switch_us >= 900) && (switch_us <= 2100);
 
-	auto_mode = !manual_valid || (switch_us > CONFIG_CUBS2_PPM_AUTO_SWITCH_THRESHOLD_US);
 	*out_rc = auto_mode ? *auto_rc : *manual_rc;
 
 #if !defined(CONFIG_CUBS2_SERIAL_BRIDGE_QUIET)
@@ -158,6 +178,7 @@ static bool fixed_wing_bridge_select_ppm_output(
 #else
 	ARG_UNUSED(manual_rc);
 	ARG_UNUSED(status);
+	ARG_UNUSED(auto_mode);
 	*out_rc = *auto_rc;
 	return true;
 #endif
@@ -168,6 +189,7 @@ int main(void)
 	struct control_context *const ctx = &g_control_ctx;
 	const k_timeout_t controller_timeout =
 		K_NSEC(CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_NS);
+	bool previous_auto_mode = false;
 	int rc;
 
 	*ctx = (struct control_context){0};
@@ -198,12 +220,19 @@ int main(void)
 		ctx->now_ms = k_uptime_get();
 		synapse_topic_RcChannels16_t manual_rc = ctx->rc;
 		synapse_topic_RcChannels16_t auto_rc = {0};
+		bool auto_mode = fixed_wing_bridge_auto_mode(&manual_rc, &ctx->status);
 
 		// Fall back to the serial bridge mocap source when no other source
 		// has provided a valid pose this cycle.
 		if (!ctx->mocap.valid) {
 			cubs2_serial_bridge_get_mocap(&ctx->mocap);
 		}
+
+		if (auto_mode && !previous_auto_mode) {
+			CubControl_FixedWingOuterLoop_init(&g_model);
+			g_model.dt = CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_S;
+		}
+		previous_auto_mode = auto_mode;
 
 		// Update model inputs
 		fixed_wing_bridge_map_input(&g_model, ctx);
@@ -214,7 +243,7 @@ int main(void)
 		// Map model outputs to autonomous RC sticks, then mirror the legacy
 		// ROS ppm_bridge manual/autonomous switch behavior.
 		fixed_wing_bridge_map_output(&g_model, &auto_rc);
-		(void)fixed_wing_bridge_select_ppm_output(&manual_rc, &auto_rc, &ctx->status,
+		(void)fixed_wing_bridge_select_ppm_output(&manual_rc, &auto_rc, &ctx->status, auto_mode,
 							  &ctx->rc);
 
 #if defined(CONFIG_CUBS2_FWDBG_LOG)

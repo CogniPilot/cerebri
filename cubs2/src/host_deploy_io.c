@@ -52,10 +52,15 @@ void cubs2_host_deploy_io_put_rc(const synapse_topic_RcChannels16_t *rc, bool va
 void cubs2_host_deploy_io_put_mocap_payload(const uint8_t *buf, size_t len)
 {
 	cubs2_mocap_rigid_body_t mocap;
+	const float mocap_mm_to_m = 0.001f;
 
 	if (buf == NULL || !cubs2_topic_fb_unpack_mocap_frame(buf, len, &mocap)) {
 		return;
 	}
+
+	mocap.x *= mocap_mm_to_m;
+	mocap.y *= mocap_mm_to_m;
+	mocap.z *= mocap_mm_to_m;
 
 	k_mutex_lock(&g_input_mutex, K_FOREVER);
 	g_latest_mocap = mocap;

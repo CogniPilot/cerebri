@@ -70,6 +70,23 @@ cargo run --manifest-path cubs2/tools/csyn-zephyr-bridge/Cargo.toml -- \
   --connect udp/192.168.10.2:7447
 ```
 
+To record the bridged topic stream from the terminal, pass `--bag`:
+
+```sh
+cargo run --manifest-path cubs2/tools/csyn-zephyr-bridge/Cargo.toml -- \
+  --connect udp/192.168.10.2:7447 \
+  --bag cubs2-control.cubs2bag
+```
+
+The packaged controls script records by default into `bags/` with a timestamped
+filename. Override the path with `CSYN_BAG`, or disable recording with
+`CSYN_BAG=off`:
+
+```sh
+CSYN_BAG=cubs2-control.cubs2bag ./run-controls.sh
+CSYN_BAG=off ./run-controls.sh
+```
+
 The bridge forwards these Zenoh topics into `zephyr.exe`:
 
 - `synapse/manual_control`

@@ -48,14 +48,18 @@ cp "${ZEPHYR_EXE}" "${OUT_DIR}/zephyr.exe"
 cp "${BRIDGE_EXE}" "${OUT_DIR}/cubs2-csyn-zephyr-bridge"
 cp "${MANUAL_BRIDGE_EXE}" "${OUT_DIR}/synapse-manual-control-bridge"
 cp "${PPM_BRIDGE_EXE}" "${OUT_DIR}/synapse-ppm-bridge"
+mkdir -p "${OUT_DIR}/bags"
 
 cat >"${OUT_DIR}/run-controls.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
 CONNECT=${CSYN_CONNECT:-udp/192.168.10.2:7447}
+CUBS2_BAG_DIR=${CUBS2_BAG_DIR:-bags}
+CSYN_BAG=${CSYN_BAG:-${CUBS2_BAG_DIR}/cubs2-control-$(date -u +%Y%m%dT%H%M%SZ).cubs2bag}
 MANUAL_CONTROL_DEVICE=${MANUAL_CONTROL_DEVICE:-/dev/input/js0}
 MANUAL_CONTROL_TOPIC=${MANUAL_CONTROL_TOPIC:-synapse/manual_control}
+MANUAL_CONTROL_INVERT_ROLL=${MANUAL_CONTROL_INVERT_ROLL:-true}
 START_MANUAL_CONTROL=${START_MANUAL_CONTROL:-auto}
 PPM_SERIAL_DEVICE=${PPM_SERIAL_DEVICE:-/dev/ttyACM0}
 PPM_TOPIC=${PPM_TOPIC:-synapse/manual_control}
@@ -88,7 +92,8 @@ manual_control_watch() {
 		./synapse-manual-control-bridge \
 			--device "${MANUAL_CONTROL_DEVICE}" \
 			--zenoh-connect "${CONNECT}" \
-			--topic "${MANUAL_CONTROL_TOPIC}" || true
+			--topic "${MANUAL_CONTROL_TOPIC}" \
+			--invert-roll "${MANUAL_CONTROL_INVERT_ROLL}" || true
 
 		echo "manual-control bridge stopped; waiting before retry" >&2
 		sleep 1
@@ -118,7 +123,16 @@ ppm_bridge_watch() {
 	done
 }
 
-./cubs2-csyn-zephyr-bridge --connect "${CONNECT}" &
+CSYN_BRIDGE_ARGS=(--connect "${CONNECT}")
+if [[ "${CSYN_BAG}" != "off" && "${CSYN_BAG}" != "0" ]]; then
+	mkdir -p "$(dirname -- "${CSYN_BAG}")"
+	CSYN_BRIDGE_ARGS+=(--bag "${CSYN_BAG}")
+	echo "recording csyn bag to ${CSYN_BAG}" >&2
+else
+	echo "csyn bag recording disabled by CSYN_BAG=${CSYN_BAG}" >&2
+fi
+
+./cubs2-csyn-zephyr-bridge "${CSYN_BRIDGE_ARGS[@]}" &
 PIDS+=("$!")
 
 if [[ "${START_MANUAL_CONTROL}" == "1" || "${START_MANUAL_CONTROL}" == "auto" ]]; then

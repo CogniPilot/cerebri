@@ -215,6 +215,9 @@ static int bl_send_cmd(uint8_t esc, const uint8_t *cmd, int cmd_len, uint8_t *ac
 	pkt[cmd_len] = crc & 0xFF;
 	pkt[cmd_len + 1] = crc >> 8;
 
+	/* Turnaround delay - give bootloader time to process before we send */
+	delay_us(200);
+
 	/* Send entire packet in one call */
 	sw_tx(esc, pkt, cmd_len + 2);
 
@@ -260,6 +263,9 @@ static int bl_read_data(uint8_t esc, uint8_t *data, uint16_t len)
 	uint16_t crc = crc16_bl(pkt, 2);
 	pkt[2] = crc & 0xFF;
 	pkt[3] = crc >> 8;
+
+	/* Turnaround delay - give bootloader time to process before we send */
+	delay_us(200);
 
 	/* Send entire packet in one call */
 	sw_tx(esc, pkt, 4);
@@ -336,11 +342,14 @@ static int bl_write_data(uint8_t esc, const uint8_t *data, uint16_t len)
 
 	LOG_DBG("BL WRITE: SET_BUFFER len=%d", len);
 
+	/* Turnaround delay - give bootloader time to process before we send */
+	delay_us(200);
+
 	/* Send SET_BUFFER - no ACK expected */
 	nxp_flexio_uart_write(flexio_uart_dev, esc, set_buf_pkt, 6);
 
 	/* Inter-packet delay before DATA */
-	delay_us(200);
+	delay_us(500);
 
 	/* Step 2: Send DATA + CRC */
 	uint8_t tx_buf[258]; /* Max 256 data + 2 CRC */
@@ -374,6 +383,9 @@ static int bl_write_data(uint8_t esc, const uint8_t *data, uint16_t len)
 	crc = crc16_bl(prog_pkt, 2);
 	prog_pkt[2] = crc & 0xFF;
 	prog_pkt[3] = crc >> 8;
+
+	/* Turnaround delay - give bootloader time to process before we send */
+	delay_us(200);
 
 	LOG_DBG("BL WRITE: PROG_FLASH");
 	sw_tx(esc, prog_pkt, 4);

@@ -5,8 +5,8 @@
 
 // RTOS scheduler metadata — use these to configure the timer/thread that
 // calls CubControl_FixedWingOuterLoop_step() at the correct interval.
-#define CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_S  0.01
-#define CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_NS 10000000
+#define CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_S  0.02
+#define CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_NS 20000000
 
 typedef double real_t;
 
@@ -51,9 +51,6 @@ typedef struct {
     real_t waypoints[6][3];
     real_t filterCutoffHz;
     real_t vCruise;
-    real_t vTurnMin;
-    real_t turnThrottleBoost;
-    real_t speedThrottleBoost;
     real_t K_h;
     real_t K_V;
     real_t lookaheadTime;
@@ -72,12 +69,16 @@ typedef struct {
     real_t envelopeDrag;
     real_t pitchCmdLim;
     real_t trimElev;
-    real_t K_alt_elev;
     real_t K_elevp;
     real_t K_elevi;
     real_t K_q;
     real_t K_phi_elev;
     real_t pitchIntegralMax;
+    real_t trimAil;
+    real_t K_deltap;
+    real_t K_deltai;
+    real_t K_deltad;
+    real_t rIntegralMax;
     real_t kChi;
     real_t phiLim;
     real_t phiDotLim;
@@ -85,7 +86,6 @@ typedef struct {
     real_t takeoffAltitude;
     real_t takeoffElev;
     real_t stabilizerCmd;
-    real_t transitionDuration;
     real_t dt;
     real_t prev_x;
     real_t prev_y;
@@ -101,8 +101,6 @@ typedef struct {
     real_t err_r_int;
     real_t err_r_last;
     real_t phi_cmd_state;
-    real_t transitionTimer;
-    real_t elevatorTarget;
     real_t alpha;
     real_t vx_new;
     real_t vy_new;
@@ -135,8 +133,6 @@ typedef struct {
     real_t lookahead_nom;
     real_t lookahead_eff;
     real_t switch_threshold;
-    real_t turn_slowdown;
-    real_t speed_energy_deficit;
     real_t weight;
     real_t drag;
     real_t r_v_dot;
@@ -152,7 +148,6 @@ typedef struct {
     real_t err_q;
     real_t nz_excess;
     real_t ele_ff_phi;
-    real_t altitude_elev_bias;
     real_t chi;
     real_t chi_dot_des;
     real_t phi_des;

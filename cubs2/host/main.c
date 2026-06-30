@@ -22,24 +22,6 @@
 #include <string.h>
 #include <time.h>
 
-/* Generated-model p[] slot aliases (rumoca embedded-c). Gains, waypoints and
- * the rest of the parameters are baked into the model by
- * CubControl_FixedWingOuterLoop_init(); only the pose inputs and the control
- * outputs are exchanged each cycle. */
-#define P_X          CUBCONTROL_FIXEDWINGOUTERLOOP_P_x
-#define P_Y          CUBCONTROL_FIXEDWINGOUTERLOOP_P_y
-#define P_Z          CUBCONTROL_FIXEDWINGOUTERLOOP_P_z
-#define P_ROLL       CUBCONTROL_FIXEDWINGOUTERLOOP_P_roll
-#define P_PITCH      CUBCONTROL_FIXEDWINGOUTERLOOP_P_pitch
-#define P_YAW        CUBCONTROL_FIXEDWINGOUTERLOOP_P_yaw
-#define P_AILERON    CUBCONTROL_FIXEDWINGOUTERLOOP_P_aileron
-#define P_ELEVATOR   CUBCONTROL_FIXEDWINGOUTERLOOP_P_elevator
-#define P_THROTTLE   CUBCONTROL_FIXEDWINGOUTERLOOP_P_throttle
-#define P_RUDDER     CUBCONTROL_FIXEDWINGOUTERLOOP_P_rudder
-#define P_STABILIZER CUBCONTROL_FIXEDWINGOUTERLOOP_P_stabilizer
-#define P_CURRENT_WP CUBCONTROL_FIXEDWINGOUTERLOOP_P_current_wp
-#define P_AIRBORNE   CUBCONTROL_FIXEDWINGOUTERLOOP_P_airborne
-
 static volatile sig_atomic_t g_stop;
 
 static void on_signal(int sig)
@@ -89,22 +71,22 @@ static void map_input(CubControl_FixedWingOuterLoop_t *m, const cubs2_mocap_rigi
 {
 	float roll, pitch, yaw;
 	quat_to_euler(mocap, &roll, &pitch, &yaw);
-	m->p[P_X] = mocap->x;
-	m->p[P_Y] = mocap->y;
-	m->p[P_Z] = mocap->z;
-	m->p[P_ROLL] = roll;
-	m->p[P_PITCH] = pitch;
-	m->p[P_YAW] = yaw;
+	m->x = mocap->x;
+	m->y = mocap->y;
+	m->z = mocap->z;
+	m->roll = roll;
+	m->pitch = pitch;
+	m->yaw = yaw;
 }
 
-/* PPM channel order: aileron, elevator(inverted), throttle, rudder, stabilizer/mode. */
+/* PPM channel order: aileron(inverted), elevator(inverted), throttle, rudder, stabilizer/mode. */
 static void map_output(const CubControl_FixedWingOuterLoop_t *m, uint16_t ch[PPM_NUM_CHANNELS])
 {
-	ch[0] = pwm_from_centered_stick((float)m->p[P_AILERON], false);
-	ch[1] = pwm_from_centered_stick((float)m->p[P_ELEVATOR], true);
-	ch[2] = pwm_from_throttle((float)m->p[P_THROTTLE]);
-	ch[3] = pwm_from_centered_stick((float)m->p[P_RUDDER], false);
-	ch[4] = (uint16_t)clampf_local((float)m->p[P_STABILIZER], 1000.0f, 2000.0f);
+	ch[0] = pwm_from_centered_stick((float)m->aileron, true);
+	ch[1] = pwm_from_centered_stick((float)m->elevator, true);
+	ch[2] = pwm_from_throttle((float)m->throttle);
+	ch[3] = pwm_from_centered_stick((float)m->rudder, false);
+	ch[4] = (uint16_t)clampf_local((float)m->stabilizer, 1000.0f, 2000.0f);
 }
 
 static const char *env_or(const char *name, const char *fallback)
@@ -122,6 +104,7 @@ int main(int argc, char **argv)
 
 	CubControl_FixedWingOuterLoop_t model;
 	CubControl_FixedWingOuterLoop_init(&model);
+	model.dt = CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_S;
 
 	int fd = ppm_serial_open(ppm_dev);
 	if (fd < 0) {
@@ -133,8 +116,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "cubs2_host: continuing without mocap (failsafe output)\n");
 	}
 
-	const real_t dt = 0.01; /* 100 Hz, matches embedded default */
-	const long period_ns = 10L * 1000L * 1000L;
+	const long period_ns = CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_NS;
 
 	uint16_t ch[PPM_NUM_CHANNELS];
 	unsigned long ticks = 0;
@@ -148,8 +130,7 @@ int main(int argc, char **argv)
 
 		if (have_mocap) {
 			map_input(&model, &mocap);
-			/* one 100 Hz discrete control step (snapshots pre(), runs the tick) */
-			CubControl_FixedWingOuterLoop_step(&model, dt);
+			CubControl_FixedWingOuterLoop_step(&model);
 			map_output(&model, ch);
 		} else {
 			/* Failsafe until first mocap frame: throttle low, sticks centered. */
@@ -167,9 +148,9 @@ int main(int argc, char **argv)
 		if ((ticks % 100UL) == 0UL) {
 			fprintf(stderr,
 				"t=%.1fs frames=%lu mocap=%d | A=%u E=%u T=%u R=%u M=%u | wp=%d air=%d\n",
-				(double)ticks * 0.01, mocap_sub_frame_count(), (int)have_mocap,
+				(double)ticks * (double)model.dt, mocap_sub_frame_count(), (int)have_mocap,
 				ch[0], ch[1], ch[2], ch[3], ch[4],
-				(int)model.p[P_CURRENT_WP], (int)model.p[P_AIRBORNE]);
+				(int)model.current_wp, (int)model.airborne);
 		}
 		ticks++;
 

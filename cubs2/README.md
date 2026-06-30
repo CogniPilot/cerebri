@@ -67,20 +67,20 @@ host computer, run the repo-local companion bridge:
 
 ```sh
 cargo run --manifest-path cubs2/tools/csyn-zephyr-bridge/Cargo.toml -- \
-  --connect tcp/127.0.0.1:7447
+  --connect udp/192.168.10.2:7447
 ```
 
 The bridge forwards these Zenoh topics into `zephyr.exe`:
 
 - `synapse/manual_control`
-- `synapse/mocap_frame`
+- `synapse/mocap/frame`
 - `synapse/sim_input`
 
 It forwards these `zephyr.exe` outputs back onto Zenoh:
 
 - `synapse/flight_snapshot`
 - `synapse/motor_output`
-- `synapse/control_output`
+- `synapse/control_output` for the external Arduino PPM node
 
 By default, `zephyr.exe` listens for csyn UDP packets on `127.0.0.1:4250` and
 the bridge listens for Zephyr csyn output on `127.0.0.1:4251`. These ports are
@@ -100,7 +100,7 @@ On the controls computer:
 ```sh
 tar xf cubs2-native-control-package.tar.gz
 cd cubs2-native-control-package
-CSYN_CONNECT=tcp/127.0.0.1:7447 ./run-controls.sh
+CSYN_CONNECT=udp/192.168.10.2:7447 ./run-controls.sh
 ```
 
 Flashing is a separate future path for an onboard microcontroller or a

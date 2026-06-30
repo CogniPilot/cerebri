@@ -82,8 +82,9 @@ config CUBS2_HOST_DEPLOY_IO
 	depends on BOARD_NATIVE_SIM
 	help
 	  Enable native_sim deploy input state fed by csyn topics such as
-	  synapse/manual_control and synapse/mocap_frame. The controller output
-	  is then sent to the Arduino PPM encoder path.
+	  synapse/manual_control and synapse/mocap/frame. The selected
+	  controller output is then published on synapse/control_output for an
+	  external actuator or Arduino PPM node.
 
 config CUBS2_HOST_DEPLOY_JOYSTICK
 	bool "Read manual RC from Linux joystick device in zephyr.exe"

@@ -26,7 +26,7 @@ struct Args {
     #[arg(
         long,
         env = "CSYN_CONNECT",
-        default_value = "tcp/127.0.0.1:7447",
+        default_value = "udp/192.168.10.2:7447",
         help = "Zenoh router endpoint"
     )]
     connect: String,
@@ -44,7 +44,7 @@ struct Args {
     output_bind: String,
     #[arg(long, default_value = "synapse/manual_control")]
     manual_control_topic: String,
-    #[arg(long, default_value = "synapse/mocap_frame")]
+    #[arg(long, default_value = "synapse/mocap/frame")]
     mocap_topic: String,
     #[arg(long, default_value = "synapse/sim_input")]
     sim_input_topic: String,

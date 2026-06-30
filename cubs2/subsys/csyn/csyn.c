@@ -46,7 +46,7 @@ static const struct cubs2_csyn_topic_info g_csyn_topic_info[] = {
 	},
 	[CUBS2_CSYN_TOPIC_MOCAP_FRAME] = {
 		.name = "mocap_frame",
-		.keyexpr = "synapse/mocap_frame",
+		.keyexpr = "synapse/mocap/frame",
 		.type_name = "synapse.topic.MocapFrame",
 		.kind = CUBS2_CSYN_KIND_FLATBUFFER,
 		.max_size = CUBS2_TOPIC_FB_MOCAP_FRAME_MAX_SIZE,

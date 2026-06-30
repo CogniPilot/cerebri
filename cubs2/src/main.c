@@ -31,7 +31,7 @@ struct control_context {
 	int64_t now_ms;
 };
 
-/* Keep the persistent 100 Hz control-loop working set in DTCM if available. */
+/* Keep the persistent control-loop working set in DTCM if available. */
 static CUBS2_HOTPATH_DTCM_BSS CubControl_FixedWingOuterLoop_t g_model;
 static CUBS2_HOTPATH_DTCM_BSS struct control_context g_control_ctx;
 
@@ -107,7 +107,7 @@ static void fixed_wing_bridge_map_input(CubControl_FixedWingOuterLoop_t *m, cons
 
 static void fixed_wing_bridge_map_output(const CubControl_FixedWingOuterLoop_t *m, synapse_topic_RcChannels16_t *rc)
 {
-	rc->ch0 = pwm_from_centered_stick((float)m->aileron, false);
+	rc->ch0 = pwm_from_centered_stick((float)m->aileron, true);
 	rc->ch1 = pwm_from_centered_stick((float)m->elevator, true);
 	rc->ch2 = pwm_from_throttle((float)m->throttle);
 	rc->ch3 = pwm_from_centered_stick((float)m->rudder, false);
@@ -166,10 +166,13 @@ static bool fixed_wing_bridge_select_ppm_output(
 int main(void)
 {
 	struct control_context *const ctx = &g_control_ctx;
+	const k_timeout_t controller_timeout =
+		K_NSEC(CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_NS);
 	int rc;
 
 	*ctx = (struct control_context){0};
 	CubControl_FixedWingOuterLoop_init(&g_model);
+	g_model.dt = CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_S;
 
 	rc = cubs2_control_io_init();
 	if (rc != 0) {
@@ -186,14 +189,15 @@ int main(void)
 	LOG_INF("CUBS2 Fixed-Wing Bridge starting");
 
 	while (true) {
-		// Wait for next telemetry packet or 100Hz trigger. In SITL this
+		// Wait for next telemetry packet or generated-period trigger. In SITL this
 		// also stages the simulated mocap pose; on flight hardware it
 		// leaves ctx->mocap invalid.
-		cubs2_control_input_wait(&ctx->gyro, &ctx->accel, &ctx->rc, &ctx->status, &ctx->dt,
-					 &ctx->mocap);
+		cubs2_control_input_wait(&ctx->gyro, &ctx->accel, &ctx->rc, &ctx->status,
+					 CUBCONTROL_FIXEDWINGOUTERLOOP_PERIOD_S,
+					 controller_timeout, &ctx->dt, &ctx->mocap);
 		ctx->now_ms = k_uptime_get();
 		synapse_topic_RcChannels16_t manual_rc = ctx->rc;
-		synapse_topic_RcChannels16_t auto_rc;
+		synapse_topic_RcChannels16_t auto_rc = {0};
 
 		// Fall back to the serial bridge mocap source when no other source
 		// has provided a valid pose this cycle.
@@ -204,11 +208,7 @@ int main(void)
 		// Update model inputs
 		fixed_wing_bridge_map_input(&g_model, ctx);
 
-		// Set sample period (not baked into the generated init by GALEC).
-		g_model.dt = ctx->dt;
-
-		// Advance one 100 Hz discrete control step. The GALEC-generated model
-		// has a fixed sample period baked into the controller state.
+		// Advance one generated-period discrete control step.
 		CubControl_FixedWingOuterLoop_step(&g_model);
 
 		// Map model outputs to autonomous RC sticks, then mirror the legacy

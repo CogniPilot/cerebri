@@ -40,6 +40,8 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 				synapse_topic_Vec3f_t *accel,
 				synapse_topic_RcChannels16_t *rc,
 				synapse_topic_ControlStatus_t *status,
+				float controller_period_s,
+				k_timeout_t controller_timeout,
 				float *dt,
 				cubs2_mocap_rigid_body_t *mocap)
 {
@@ -48,12 +50,12 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 	bool imu_valid = false;
 
 #if !defined(CONFIG_CUBS2_SITL)
-	// Flight: wait for the next input trigger (serial-bridge mocap) or 10 ms.
-	(void)k_sem_take(&g_input_sem, K_MSEC(10));
+	// Flight: wait for the next input trigger or one generated controller period.
+	(void)k_sem_take(&g_input_sem, controller_timeout);
 #endif
 
 	// Default values if no real sensor data is present
-	*dt = 0.01f;
+	*dt = controller_period_s;
 	status->imu_ok = true;
 	status->rc_valid = true;
 
@@ -71,8 +73,8 @@ void cubs2_control_input_wait(synapse_topic_Vec3f_t *gyro,
 	bool have_input = false;
 
 	// Lockstep: block until the plant publishes a NEW input (its generation
-	// counter bumps), so the controller runs exactly once per simulator step
-	// and the finite-difference dt (0.01 s) matches one real plant step. Two
+	// counter bumps). The controller dt still comes from the generated
+	// Modelica period passed above; the plant/bridge decides packet cadence. Two
 	// guards keep it from deadlocking:
 	//   * before any pose has arrived (generation == 0) proceed immediately, so
 	//     the controller emits a first packet to prime the (also-waiting) plant;
